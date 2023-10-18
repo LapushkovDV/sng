@@ -1,0 +1,17 @@
+Получение bеarer
+
+curl 'http://127.1.1.1:5555/api/login' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' -H 'Accept: application/json, text/plain, */*' -H 'Sec-Fetch-Dest: empty' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36' -H 'Content-Type: application/json' -H 'Origin: http://localhost:4300' -H 'Sec-Fetch-Site: same-origin' -H 'Sec-Fetch-Mode: cors' -H 'Referer: http://localhost:4300/login' -H 'Accept-Language: ru,en-US;q=0.9,en;q=0.8,ru-RU;q=0.7' -H 'Cookie: Webstorm-a52720a5=e792738d-a999-44f5-a9fe-f4cdb82eaa9a; ajs_user_id=null; ajs_group_id=null; ajs_anonymous_id=%22659d05a2-04cb-43cd-8f77-9c044abfcdd7%22; auth.strategy=local; auth._refresh_token.local=false; io=yt_CDbmQ8xyu0nRMAAAA; locale=ru; auth.redirect=%2Foffers%2Fnew; _ga=GA1.1.1733344036.1575482007; auth._token.local=8931246ad9fbdaa2d405369d34ed5b84; session=s%3A9MqVz4mFh9rq8T2EujMFZTNQ-0ceuaVj.ysY2dyrhGVfGOJOsGeHO2Mqr95r6u9A67hdtWIBGn7g; _pgdSid=hRrtdE72xc0HOumQeMVO; _ym_d=1578994321; _ym_uid=1578994321245599289; _ym_debug=1; _gid=GA1.1.1308278501.1583128705; _pgdScroll=0; _ym_isad=1; _pgdDistance=1820.4301339796198; _pgdLifeTime=3441130; _pgdOnTime=11905' --data-binary '{"username":"admin","password":"123"}' --compressed
+
+{username: "admin", password: "123"}
+
+Должен вернуть- отсюда взять authToken и помещать в заголовок
+
+{
+    "id": "a35f6dfc-fa50-11e9-8672-10c37b93a946",
+    "login": "admin",
+    "position": null,
+    "name": "admin",
+    "authToken": "eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTI1NiIsInR5cCI6IkpXVCJ9.eyJ3ZWJzZXNzaW9uIjoiZDI5NDE5OWMtYmMzYS00YWRjLWE0NDctNjczMGQ5MjlkMmRhIiwiaWF0IjoxNTgzMjQxMDA0LCJuYmYiOjE1ODMyNDEwMDMsImV4cCI6MTU4Njg0MTAwMywiaXNzIjoiR2FsYWt0aWthLkVBTS5TZXJ2ZXIiLCJhdWQiOiJBbGwifQ.DL8ky9RQamDZ-SBghaUMlbiF6kM5vTxlXBbVUlvoPyk",
+   .......
+}
+

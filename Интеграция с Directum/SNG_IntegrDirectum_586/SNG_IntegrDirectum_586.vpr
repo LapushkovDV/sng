@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<Viper Version="5005020000">
+	<ProjectManager>
+		<ProjectName>FilesRef</ProjectName>
+		<ProjectVarList>
+			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\GAL\exe\"/>
+			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
+			<ProjectVar Name="$[GalSrc]" Value="C:\Galaktika\GAL\Frm\"/>
+		</ProjectVarList>
+		<CoreVip>
+			<VipParameters>
+				<AtlDir>C:\Galaktika\VIPER\bin\5.5.40.0\Exe</AtlDir>
+				<StrictVip>True</StrictVip>
+				<ClearResource>True</ClearResource>
+				<DebugInfo>False</DebugInfo>
+				<LocalInfo>False</LocalInfo>
+			</VipParameters>
+			<VipDebug>
+				<ActiveConfigure>по умолчанию</ActiveConfigure>
+				<DebugConfigList>
+					<DebugConfig Name="по умолчанию"/>
+				</DebugConfigList>
+			</VipDebug>
+			<VipFiles>
+				<OutputResource>$[ProjectPath]\$[ProjectName]$[ExtRes]</OutputResource>
+				<SubServientResource>$[ProjectPath]\Atlantis.res</SubServientResource>
+				<ConfWorkResource>$[ProjectPath]\Viper.crf</ConfWorkResource>
+				<OutputDirectory>$[ProjectPath]\$[ProjectName]</OutputDirectory>
+				<TemporaryDirectory>$[Tmp]</TemporaryDirectory>
+				<IncludeList>
+					$[GalSrc]\*
+					$[AtlPath]\*
+					$[PROJECTPATH]\*
+					..\..\..\..\GAL\Viper 5.5\Sources\src\*
+				</IncludeList>
+				<ResourceList>
+					$[GalExe]\C_ExtFun.res
+					$[GalExe]\C_JOIN.res
+					$[GalExe]\C_StatLine.res
+					$[GalExe]\C_Common.res
+					$[GalExe]\C_Tune.res
+					$[GalExe]\C_ExpImp.res
+					$[GalExe]\F_UserReport.res
+					$[GalExe]\F_KATDOC.res
+					$[GalExe]\L_SOPRDOC.res
+					$[GalExe]\L_COMMON.res
+					$[GalExe]\C_EXTCLASS.res
+					$[GalExe]\m_mnplan.res
+				</ResourceList>
+			</VipFiles>
+			<VipMessages>
+				<VerboseMake>True</VerboseMake>
+			</VipMessages>
+			<VipDatabase>
+				<Name>по умолчанию</Name>
+			</VipDatabase>
+			<VipFR>
+				<PackFR>True</PackFR>
+			</VipFR>
+		</CoreVip>
+		<DatabaseConfiguration>
+			<ConfigurationList>
+				<VipDatabase>
+					<Name>по умолчанию</Name>
+					<DatabaseName>..\..\GAL910\DATA_EM</DatabaseName>
+					<DatabaseDriver>1</DatabaseDriver>
+					<DatabaseID>RUSSIA</DatabaseID>
+					<SqlServerParameters>ncacn_ip_tcp:localhost\SQLEXPRESS[32777]</SqlServerParameters>
+					<HwKeyTransport>1</HwKeyTransport>
+					<HwKeyDirectory>localhost:55555</HwKeyDirectory>
+					<LicFileName>..\..\..\..\..\..\..\..\Galaktika\sup\exe\License.lic</LicFileName>
+				</VipDatabase>
+			</ConfigurationList>
+		</DatabaseConfiguration>
+		<DebugOptions StopOnStartup="False"/>
+		<MarkerList>
+			<Marker FileName="Vip\GP_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="213" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Vip\GP_DocFieldsStateService.vip" Caption="Нумерованная закладка 1" Line="676" NumIndex="1" MarkerType="mtNumBookmark" Comment="if (getfirst fastfirstrow mFields"/>
+			<Marker FileName="Vip\GP_DocFieldsStateService.vip" Caption="Нумерованная закладка 2" Line="172" NumIndex="2" MarkerType="mtNumBookmark" Comment="inner join r_WorkPlace on r_WorkPlace.cUsers = :(pR_Users) // r_Users.NRec"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusPickAndEdit.vip" Caption="Нумерованная закладка 1" Line="117" NumIndex="1" MarkerType="mtNumBookmark" Comment="Status := New(MR_Status, InitForTypeDoc(RoleGroups.GetGroupByName(RoleGroupName),));"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusAccessEdit.vip" Caption="Нумерованная закладка 1" Line="239" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
+			<Marker FileName="SOURCE\COMMON\MR_TypeDocs.vip" Caption="Нумерованная закладка 1" Line="151" NumIndex="1" MarkerType="mtNumBookmark" Comment="message('NOT IsValid(tnMR_RoleGroups) ',error);"/>
+			<Marker FileName="SOURCE\Report\NASTRFORMREP.vip" Caption="Нумерованная закладка 1" Line="297" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SOURCE\MR_Base.Vip" Caption="Нумерованная закладка 1" Line="196" NumIndex="1" MarkerType="mtNumBookmark" Comment="LoadVipRef(DataProtector, 'C_COMMON::PROTECTOR');"/>
+			<Marker FileName="SOURCE\MR_Base.Vip" Caption="Нумерованная закладка 2" Line="195" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusAndRolesAccessEdit.vip" Caption="Нумерованная закладка 1" Line="161" NumIndex="1" MarkerType="mtNumBookmark" Comment="_loop"/>
+			<Marker FileName="SOURCE\NewRas\ViewPerShbl.vip" Caption="Нумерованная закладка 1" Line="1011" NumIndex="1" MarkerType="mtNumBookmark" Comment=",coKatSopr //_wTable    : word; указать код таблицы документа системы"/>
+			<Marker FileName="Source\SHK_VIP.vip" Caption="Нумерованная закладка 1" Line="299" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst"/>
+			<Marker FileName="Source\SHK_InOut_KatMC.vpp" Caption="Нумерованная закладка 1" Line="150" NumIndex="1" MarkerType="mtNumBookmark" Comment="var iRes : IResultSet = GetResultQueryForKatMC(GetTMPLTByName(_ActionName), _pIdent);"/>
+			<Marker FileName="..\..\..\..\GAL9\!Gal_Source\Z_M_L_F_C_5539_20211025\SRC\CompSrc\L\L_SoprDoc\vip\CanEditDocument.vpp" Caption="Нумерованная закладка 1" Line="32" NumIndex="1" MarkerType="mtNumBookmark" Comment="var cUser : comp = m_objDescriptors.GetXUserByDescr(sDescr);"/>
+			<Marker FileName="Source\SHK_TEMPLATES.vip" Caption="Нумерованная закладка 2" Line="46" NumIndex="2" MarkerType="mtNumBookmark" Comment="function Get"/>
+			<Marker FileName="Source\SHK_TEMPLATES.pan" Caption="Нумерованная закладка 1" Line="84" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst"/>
+			<Marker FileName="Source\SHK_TEMPLATES.vip" Caption="Нумерованная закладка 1" Line="214" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SHK_VIP.prj" Caption="Нумерованная закладка 1" Line="95" NumIndex="1" MarkerType="mtNumBookmark" Comment="coTypeDocBoxSaldo = 101423 ;//100000+1430 Сальдо по ячейкам хранения"/>
+			<Marker FileName="Source\shk_barcodeFunc.vip" Caption="Нумерованная закладка 1" Line="68" NumIndex="1" MarkerType="mtNumBookmark" Comment="if (getfirst shk_barcodeLink where ((tmp == shk_barcodelink.barcode(length = 250))) = tsOk) {"/>
+			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="379" NumIndex="1" MarkerType="mtNumBookmark" Comment="if (getfirst _tElements where ((_npp == _tElements.npp)) and _tElements.name = _SpecFieldIDName) = tsOK"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 1" Line="511" NumIndex="1" MarkerType="mtNumBookmark" Comment=", 28 // 28  для НОП - 168"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 2" Line="437" NumIndex="2" MarkerType="mtNumBookmark" Comment="MakeMoveForESB(  cKatSopr"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 2" Line="500" NumIndex="2" MarkerType="mtNumBookmark" Comment="MakeMoveForESB(  cKatSopr"/>
+			<Marker FileName="Source\SHK_InOut.vip" Caption="Нумерованная закладка 1" Line="534" NumIndex="1" MarkerType="mtNumBookmark" Comment="bySHKObjNrec _cSHKObj == SHKObj.nrec"/>
+			<Marker FileName="Source\SHK_Base.vip" Caption="Нумерованная закладка 1" Line="176" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\shk_barcode_View.vip" Caption="Нумерованная закладка 2" Line="39" NumIndex="2" MarkerType="mtNumBookmark" Comment="SetWindowTitle(winSelectKatsoprs,)"/>
+			<Marker FileName="Source\shk_barcode_View.vip" Caption="Нумерованная закладка 1" Line="39" NumIndex="1" MarkerType="mtNumBookmark" Comment="SelectKatsoprs.name"/>
+			<Marker FileName="Source\shk_barcode_Generate.vip" Caption="Нумерованная закладка 1" Line="247" NumIndex="1" MarkerType="mtNumBookmark" Comment="var ishk_barcode_Print : shk_barcode_Print;"/>
+			<Marker FileName="Source\shk_barcode_Print.vip" Caption="Нумерованная закладка 1" Line="195" NumIndex="1" MarkerType="mtNumBookmark" Comment="delete all"/>
+			<Marker FileName="SOURCE\FilesRef\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="883" NumIndex="1" MarkerType="mtNumBookmark" Comment="Message('Ошибка добавления файла:' +"/>
+			<Marker FileName="SOURCE\FilesRef\MR_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="494" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
+			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
+			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
+		</MarkerList>
+		<BreakPointList>
+			<BreakPoint FileName="Vip.prj" Line="90"/>
+			<BreakPoint FileName="SOURCE\MR_RolesAndUsers.vip" Line="13"/>
+			<BreakPoint FileName="Source\SHK_Base.vip" Line="1"/>
+			<BreakPoint FileName="Source\shk_barcodeFunc.vip" Line="233"/>
+			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="227"/>
+		</BreakPointList>
+		<CompileMessengerList>
+			<CompileMessenger Name="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\SNG_IntegrDirectum_586.prj" DateTimeStart="45203,6706184375" DateTimeCompile="5,28587988810614E-5" StateHistory="False">
+				<CompileMessageList>
+					<CompileMessage MessageType="mtHint" MessageText="Уже есть зарегистрированная функция с именем : USERNAME" SourceFileName="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="19" SourceColumn="11"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="26" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) DoRequest локальная переменная jsonResponse:TPtr, объявленная в C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\VIP\SNG_IntegrDirectum_out.Vip(105), не используется." SourceFileName="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="128" SourceColumn="7"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\Интеграция с Directum\SNG_IntegrDirectum_586\VIP\SNG_IntegrDirectum_REST.Vip" SourceLine="22" SourceColumn="1"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="04.10.2023 16:05:46"/>
+				</CompileMessageList>
+			</CompileMessenger>
+		</CompileMessengerList>
+		<ActiveIndex>1</ActiveIndex>
+		<FileList>
+			<File Name="SNG_IntegrDirectum_586.prj" PosX="55" PosY="14" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="75" PosY="73" OpenEditor="True" Active="True"/>
+		</FileList>
+		<ProjectItems>
+			<ProjectCompileFile FileName="SNG_IntegrDirectum_586.prj" Priority="0">
+				<CoreVip>
+					<VipParameters>
+						<StrictVip>True</StrictVip>
+					</VipParameters>
+				</CoreVip>
+			</ProjectCompileFile>
+		</ProjectItems>
+	</ProjectManager>
+</Viper>

@@ -1,0 +1,32 @@
+#define Atl60
+#statusline "statgal"
+#include GalNet.inc end;
+#include GloVars.inc
+const
+#include Tunes.inc
+end;
+
+//--------------------
+//--------------------
+
+//#include OBJINTPL.VIN
+
+//--------------------
+#params
+[vip]
+LicenseControlInclude="ddd!.vpp"
+#end
+
+#component "FILESREF"
+//-------------------------------
+#DEFINE _FILESREF_
+//-------------------------------
+
+
+#make "Source\FILESREF_CreateTune.vip"
+
+#include SOURCE\FILESREF_File_hRef.Vih
+
+#make "SOURCE\FILESREF_File_hRef.Vip"
+//#make "SOURCE\Algoritm_File_hRef.vip"
+//#make "SOURCE\Algoritm_File_hRef_Setup.vip"

@@ -1,0 +1,58 @@
+//------------------------------------------------------------------------------
+//                                                     (c) корпорация ГАЛАКТИКА
+// ERP 9.1 - тестовые методы для работы 
+//------------------------------------------------------------------------------
+#ifndef _W_TST_TST_vih_INCLUDED_
+#define _W_TST_TST_vih_INCLUDED_
+
+// пример вызова
+// {"jsonrpc": "2.0", "class": "W_TST::vTST", "method": "ITST_MakeInvoice", "params": {"_pId": "12345"}, "id": 3}
+
+const
+  CNTREC = 42;
+end;
+
+type
+  TRecMPZ = record
+/*01*/    pId            : string[20];
+/*02*/    pName          : string[255];
+  end;
+
+  TRecOrder = record
+/*01*/    pId            : string[20];
+/*02*/    pName          : string[255];
+  end;
+
+web objInterface ITST;
+  // Приобретение МПЗ у поставщика (накладные снабжение)
+  function PurchaseMPZ(_MPZ: TRecMPZ): longint;
+  // Формирование приходных ордеров на поступление ТМЦ
+  function MakeOrder(_order: TRecOrder): longint;
+  // Формирование счетов-фактур
+  function MakeInvoice(_pId: string): longint;
+  // Формирование книги покупок (регистрация счетов-фактур)
+  function MakePurchaseBook(_pId: string): longint;
+  // Формирование проводок
+  function MakeWiring(_pId: string): longint;
+end;
+
+// имплементация
+web vipInterface vTST
+  Implements ITST
+  licensed(free);
+public:
+  // конструктор по умолчанию
+  constructor Init;
+  // Приобретение МПЗ у поставщика (накладные снабжение)
+  function ITST.PurchaseMPZ(_MPZ: TRecMPZ): longint;
+  // Формирование приходных ордеров на поступление ТМЦ
+  function ITST.MakeOrder(_order: TRecOrder): longint;
+  // Формирование счетов-фактур
+  function ITST.MakeInvoice(_pId: string): longint;
+  // Формирование книги покупок (регистрация счетов-фактур)
+  function ITST.MakePurchaseBook(_pId: string): longint;
+  // Формирование проводок
+  function ITST.MakeWiring(_pId: string): longint;
+end;
+
+#end

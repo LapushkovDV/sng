@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+<!-- main template -->
+<html wf="none">
+
+<head>
+        <meta http-equiv="cache-control" value="no-cache">
+        </meta>
+        <meta http-equiv="content-type" value="text/html;charset=utf-8">
+        </meta>
+
+        <link type="image/png" rel="shortcut icon" href="/design/images/product.png">
+        </link>
+        <link type="text/css" rel="stylesheet" href="/design/styles/common.css">
+        </link>
+        <link type="text/css" rel="stylesheet" href="/design/styles/alterator.css">
+        </link>
+
+        <script src="/design/scripts/jquery.js"></script>
+        <script src="/design/scripts/form.js"></script>
+
+        <script src="/design/scripts/coolclock.js"></script>
+        <script type="text/javascript">
+                function setFocus() {
+            $("#password").focus();
+        }
+        </script>
+
+
+        <base href="/">
+        </base>
+        <script>
+                var weekList = [ "Mo", "Tu", "We", "Th" ,"Fr","Sa","Su" ];
+var monthList=[ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+        </script>
+</head>
+
+<body class="login" onload="setFocus();">
+        <script>
+                $(document).ready(function(){ form_callback('init'); });
+        </script>
+        <noscript>
+                <div class="alterator-attention-message">
+                        <img src="/design/images/attention.gif"></img>
+                        <span translate="alterator-ahttpd">This page uses Javascript. Your browser either doesn&apos;t support Javascript or you have it turned off. To see this page as it is meant to appear please use a Javascript enabled browser.</span>
+                </div>
+        </noscript>
+        <div id="top" class="ui-corner-all">
+                <table>
+                        <tbody>
+                                <tr>
+                                        <td style="text-align:left;width:100%"><img id="product-logo" src="/design/images/null.gif"></img>
+                                        </td>
+                                        <td style="text-align:right"><img id="brand-logo" src="/design/images/null.gif"></img></td>
+                                </tr>
+                        </tbody>
+                </table>
+        </div>
+        <div class="box ui-corner-all">
+                <form method="POST" onsubmit="return false;">
+                        <table class="form-table">
+                                <tr>
+                                        <td colspan="2" style="text-align:left">
+                                                <strong><span class="alterator-label" name="welcome">...</span></strong>
+                                        </td>
+                                </tr>
+                                <tr>
+                                        <td colspan="2">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                        <td><span translate="alterator-ahttpd">Account name:</span></td>
+                                        <td><input type="text" class="text" name="login"></input></td>
+                                </tr>
+                                <tr>
+                                        <td><span translate="alterator-ahttpd">Password:</span></td>
+                                        <td><input type="password" class="text" id="password" name="password"></input></td>
+                                </tr>
+                                <tr>
+                                        <td><span translate="alterator-ahttpd">Interface language:</span></td>
+                                        <td><select name="locale"></select></td>
+                                </tr>
+                                <tr>
+                                        <td colspan="2">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                        <td>&nbsp;</td>
+                                        <td><input value="Login" translate="alterator-ahttpd" type="button" class="btn" name="commit"></input>
+                                        </td>
+                                </tr>
+                        </table>
+                </form>
+        </div>
+</body>
+
+</html>

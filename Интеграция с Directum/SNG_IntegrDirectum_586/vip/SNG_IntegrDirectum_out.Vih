@@ -1,0 +1,29 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// GLX586
+//------------------------------------------------------------------------------
+#ifdef Atl60
+
+#ifndef _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+#define _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+
+#component "API_DIRECTUM_OUT"
+
+
+#doc
+дергаем API REST Directum для создания приказа - тест
+#end
+web objInterface IGLX586REST;
+
+end;
+
+web vipInterface GLX586REST
+  implements IGLX586REST
+  licensed(Free);
+public:
+end;
+
+#end // __GLX586_VIH__
+
+#endif

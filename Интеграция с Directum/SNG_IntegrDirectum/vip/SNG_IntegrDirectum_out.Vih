@@ -1,0 +1,96 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// GLX586
+//------------------------------------------------------------------------------
+
+
+#ifndef _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+#define _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+
+#component "API_DIRECTUM"
+
+
+#doc
+Класс для интеграции с Директумом.
+Содержит в себе все методы для интеграции
+#end
+objInterface ISNG_IntegrDirectum_out;
+
+end;
+
+vipInterface SNG_IntegrDirectum_out implements ISNG_IntegrDirectum_out
+  licensed(Free);
+public:
+#doc
+Зашифровать строку
+#end
+ function encrypt(_str:string):string;
+
+#doc
+Расшифровать строку
+#end
+ function decrypt(_str:string):string;
+
+#doc
+Создать приказ
+#end
+Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
+
+#doc
+Синхронизировать весь каталог "Виды дополнительных соглашений"
+#end
+ function CreateUpdateKindDC_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Виды дополнительных соглашений" по NREC
+#end
+ Function CreateUpdateKindDC_API( _cRec : comp; var lResponse :TPtr) : boolean;
+
+#doc
+Синхронизировать весь каталог "Виды трудовых договоров"
+#end
+ function CreateUpdateKindTD_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Виды трудовых договоров" по NREC
+#end
+ Function CreateUpdateKindTD_API( _cRec : comp; var lResponse : tptr) : boolean;
+
+
+#doc
+Синхронизировать весь каталог "Распорядительные действия по персоналу"
+#end
+ function CreateUpdateRPD_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Распорядительные действия по персоналу" по NREC
+#end
+ function CreateUpdateRPD_API( _cRec : comp; var lResponse :TPtr) : boolean;
+
+#doc
+Синхронизировать весь каталог "Причины мероприятий"
+#end
+ function CreateUpdateReasonForOrder_api(_crec : comp; var lResponse :TPtr) : boolean;
+#doc
+Синхронизировать элемент каталога "Причины мероприятий" по NREC
+#end
+ function CreateUpdateReasonForOrder_ALL(): boolean;
+
+#doc
+Сгенерировать и отправить JSON по РПД1 - переделать как дадут структуру от директума
+#end
+  function CreateJSON_RPD1(_cRec : comp) : boolean;
+
+#doc
+Сгенерировать и отправить JSON по РПД8 - переделать как дадут структуру от директума
+#end
+  function CreateJSON_RPD8(_cRec : comp) : boolean;
+
+#doc
+Сгенерировать и отправить JSON по РПД8 - переделать как дадут структуру от директума
+#end
+  function CreateJSON_RPD41(_cRec : comp) : boolean;
+
+
+
+end;
+        var _SNG_IntegrDirectum_out : SNG_IntegrDirectum_out;
+#end // __GLX586_VIH__

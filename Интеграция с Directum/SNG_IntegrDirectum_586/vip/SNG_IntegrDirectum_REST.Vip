@@ -1,0 +1,33 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+#ifdef Atl60
+
+#include SNG_IntegrDirectum_REST.Vih
+
+#component "API_DIRECTUM"
+
+interface SNG_IntegrDirectum_REST 'API REST для вызова из Directum' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+Create view
+var
+  Api        : string;
+  HeaderMess : string;
+  BodyMess   : string;
+  _getoutdir : string;
+;
+function ISNG_IntegrDirectum_REST.Test(_id : string; _Name : string): TResultTest;
+{
+  var res: TResultTest;
+    res.returnCode := 0 ;
+    res.returntMessage := 'В сервис передали _id  = ' + _id  + ' _Name ' + _Name;
+  result := res;
+}
+HandleEvent
+end; // HandleEvent
+
+end.
+#end

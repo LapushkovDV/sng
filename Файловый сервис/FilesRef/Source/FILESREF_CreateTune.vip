@@ -1,0 +1,27 @@
+
+#include CreateTune.vih
+
+Handler with replace SNG_FILESREF_CreateTune on extensionPoint
+  epCreateTuneComponent (TR: ObjCreateTuneEx) [205]
+Action
+{
+  Result := true;
+  //----------------------------------------------------------------------------
+  // Обязательно установить  имя компонента
+  TR.SetComponent('#__COMPONENT__');
+  //----------------------------------------------------------------------------
+//  TR.SetParent('Tune');
+  TR.SetParent('TUNE');
+  TR.AddPart(ttSYSUSERTUNE,'SNG','TUNE','Настройки СНГ','');
+
+  TR.SetParent('SNG');
+
+
+  TR.AddPartA('FILESREF','Файловый сервис','');
+  TR.SetParent('FILESREF');
+  TR.AddTuneS('FILESREF.HREF_PATHAPI', 'Сайт API', ftString,'','','');
+  TR.AddTuneU('FILESREF.HREF_F_F8'   , 'Разрешить удаление в хранилище файлов', ftBoolean,'','','');
+  //"C:\Program Files\internet explorer\iexplore.exe"
+
+
+}

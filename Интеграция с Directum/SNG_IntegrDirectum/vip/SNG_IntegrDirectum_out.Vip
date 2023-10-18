@@ -1,0 +1,972 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+//#ifdef Atl60
+
+//#include SNG_IntegrDirectum_out.Vih
+#include SNG_IntegrDirectum_out.Vih
+#component "API_DIRECTUM"
+
+interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+/*
+const
+  API_Username = 'DIRRX_GATE_GL@sgc.oil.gas';
+  API_Password = '35!RvWdhdeykQVnu';
+end;
+*/
+Create view
+var
+   _isDebug : boolean;
+    API_url
+  , API_Username
+  , API_Password
+  , API_methodFromTune : string;
+   API_method : byte;
+  BodyMess   : string;
+  _getoutdir : string;
+  _MainCrec : comp;
+as select
+ catalogs.nrec
+from
+    catalogs
+  , catalogs catalogs_api
+  , Catalogs cat_search
+  , catalogs Catalogs_podr
+  , Persons
+  , Appointments
+  , contdoc
+  , PartDoc
+  , Titledoc
+  , TYPEPR
+  , TYPEPR TYPEPR_api
+  , staffStruct
+  , SpAllStaff SpAllStaff_TD
+  , SpAllStaff SpAllStaff_exp
+  , PutVacCon
+  , KlOtpusk
+  , PutVacation
+  , WorkPeriod
+  , APPHIST
+;
+
+function getoutdir : string;
+{
+  if _getoutdir = '' then {
+     _getoutdir := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0)); // ExDirectoryOut;
+//     MESSAGE('_getoutdir=' + _getoutdir + ' 0_0 ' + ExDirectoryOut);
+    }
+
+  result := _getoutdir
+}
+
+function encrypt(_str:string):string;{
+  var _strres : string = '';
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i);
+     _i++;
+   }
+   result := _strres;
+}
+function decrypt(_str:string):string;{
+  var _strres : string = '' ;
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i);
+     _i++;
+   }
+   result := _strres;
+}
+
+Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
+{
+  result := false;
+ var _sfileout : string = getoutdir+ 'SNG_APIDIRECTUMOUT_DoRequest_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'_';
+
+ var lResponse    : TPtr;
+ var _logHttpConnect : string = _sfileout + '_logHttpConnect.log' ;
+  var httpCon: TPtr = longint(0);
+  var lHeader: TPtr = longint(0);
+
+  httpCon := HttpConnect_CreateEx(Api_url, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+  HttpConnect_ResponseLogEnable(httpCon);
+
+    if _isDebug{
+         var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(httpCon,bodyJSON);
+         var _sfileoutJSON : string = _sfileout + '_JSON_'+OleGenerateGUID+'.txt';
+         HttpConnect_SaveToFileEx(httpCon, JSONSJSON, _sfileoutJSON, cpUTF8, false);
+         PutFileToClient(_sfileoutJSON,false);
+      }
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Host: directumrxtst' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Username: '+ API_Username+ chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Password: '+ API_Password+ chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, methodstr, lAddUrl);
+
+    _try
+    {
+      if methodstr = '---miss_http_request---' {
+        result := True;
+        exit;
+      }
+
+      var lRequest: TPtr = HttpConnect_JSONObjectToString(httpCon, bodyJSON);
+      if _isDebug{
+           var _sfileoutJSON : string = _sfileout + '_JSON_onestring_'+OleGenerateGUID+'.txt';
+           HttpConnect_SaveToFileEx(httpCon, lRequest, _sfileoutJSON, cpUTF8, false);
+           PutFileToClient(_sfileoutJSON,false);
+        }
+
+      _try
+      {
+        /*
+        <li><code>httpCon</code> - идентификатор объекта для работы с HTTP (см. статью про <a href="art--HttpConnector_Init.htm">инициализация и деинициализацию объектов для работы с HTTP</a>)</li>
+        <li><code>lAddUrl</code> - строка с адресом ресурса на сервере (например, <code>'/auth/key'</code>)</li>
+        <li><code>lHeader</code> - идентификатор длинной строки с заголовком авторизации</li>
+        <li><code>lRequest</code> - идентификатор длинной строки с телом запроса</li>
+        <li><code>Async</code> - параметр, включающий псевдоасинхронность работы. Устанавливает таймаут в 2 сек и выходит без ошибки. Во всех иных случаях - false</li>
+        */
+        lResponse := HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+//        var jsonResponse : TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+        if (HttpConnect_LastError(httpCon) <> 0)
+          {
+           HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
+           logstrtofile(_logHttpConnect,HttpConnect_LastErrorText(httpCon));
+           if _isDebug{
+              message('При выполнении запроса возникла ошибка' +
+                  ''#13''+  HttpConnect_LastErrorText(httpCon) +
+                  ''#13''+ 'Лог ошибок в файле : ' + _logHttpConnect,error);
+              PutFileToClient(_logHttpConnect,false);
+            }
+            Exit;
+          }
+        var filelResponse : string = _sfileout + '_Response.txt' ;
+        HttpConnect_ResponseLogToFile(httpCon, filelResponse);
+        if _isDebug{
+/*            message('Запрос выполнен' +
+                   ''#13''+ 'ответ от директума в файле : ' +
+                   ''#13'' + filelResponse );
+*/
+           PutFileToClient(filelResponse,false);
+         }
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+   HttpConnect_Free(httpCon);
+  }
+  _lResponse := lResponse;
+  result := true;
+}
+procedure CreatePersonnelOrder_API_test;
+{
+/*
+ '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
+*/
+  var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+  var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+   var stringNULL : TPtr =  HttpConnect_CreateLongString(m_service);
+
+   HttpConnect_AddValueToLongString(m_service, '{"Id":null,"DocumentKind":"PersOrder"}',stringNULL);
+   JSONObj_Element :=  HttpConnect_JSONObjectByLongString(m_service, stringNULL);
+
+//   HttpConnect_JsonObjectAddLongString(m_service, JSONObj_Element, 'Id', stringNULL);
+//   HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
+   HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+
+  var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00220401');
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00076778');
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj_Element, 'Employees', JSONObj_Array);
+
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelOrder', JSONObj_Element);
+
+var lResponse : TPtr;
+   if CreatePersonnelOrder_API(JSONObj, lResponse) {
+     /*что то делаем*/
+   }
+   else {
+     /*что то делаем*/
+   }
+
+  HttpConnect_JSONArrayDestroy( m_service, JSONObj_Array);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj_Element);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj);
+  HttpConnect_Free(m_service);
+
+
+}
+
+
+Window winDEBUGAPIRESTDIRECTUM;
+screen scrDEBUGAPIRESTDIRECTUM 'API DIRECTUM';
+  show at(,,,);
+fields
+  Api_url      ('Адрес',,): Skip;
+  API_Username ('Username',,): Skip;
+!  API_Password ('Password',,): Skip;
+
+  API_method       ('Метод',,): [LIST 0 'CreateUpdateKindDC'
+                                    , 1 'CreatePersonnelOrder- TEST'
+                                    , 2 'CreateUpdateKindTD'
+                                    , 3 'CreateUpdateRPD'
+                                    , 4 'CreateUpdateReasonForOrder'
+                                    , 5 'CreateJSON_RPD1'
+                                    , 6 'CreateJSON_RPD8'
+                                    , 7 'CreateJSON_RPD41'
+                                ],protect;
+  API_methodFromTune   ('Метод из настройки',,): Skip;
+  _MainCrec  ('ссылка на экземпляр объекта - параметр для метода'): NoProtect;
+buttons
+  cmValue1;
+<<
+Данный интерфейс содержит все функции по интеграции с "Директумом".
+Сейчас вы запустили его напрямую. это DEBUG-вариант: все запросы будут сопровождаться сообщениями
+    и будут скачаны файлы ответом от API "Директума"
+
+Из настроек системы:
+  `URL API`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `API_Username`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!  `API_Password`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+`Выберите метод:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Метод из настройки системы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `cREC`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   <.    Отправить    .>
+>>
+end; // screen scrGLX586REST
+end;
+windowevent  winDEBUGAPIRESTDIRECTUM;
+cmValue1: {
+      case API_method of
+         0 : CreateUpdateKindDC_ALL
+         1 : CreatePersonnelOrder_API_test
+         2 : CreateUpdateKindTD_ALL
+         3 : CreateUpdateRPD_ALL
+         4 : CreateUpdateReasonForOrder_ALL
+         5 : CreateJSON_RPD1(_MainCrec)
+         6 : CreateJSON_RPD8(_MainCrec)
+         7 : CreateJSON_RPD41(_MainCrec)
+      end;
+}
+end;
+procedure gettunes;{
+    set API_url      := sgettune('DirectumIntegration_URL');
+    set API_Username := sgettune('DirectumIntegration_UserName');
+    set API_Password := decrypt(sgettune('DirectumIntegration_Password'));
+
+}
+
+Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
+{
+  /*
+  на будущее
+  просто пока есть, не используем, т.к. четкого использования поака нет
+  */
+ gettunes;
+ var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
+ if DoRequest(methodstr, JSON, lResponse) {
+   /*что то надо сделать*/
+   result := True;
+ }
+ else {
+   result := False;
+   exit;
+ }
+}
+
+
+ function CreateUpdateRPD_API( _cRec : comp; var lResponse :TPtr) : boolean; {
+/*
+{"personnelRPDStructure": {
+"HRCode": "1234658905489",
+"Name": "Прием на работу"
+}}
+*/
+  if getfirst TYPEPR_api where (( _cRec == TYPEPR_api.nrec)) <> tsOK then exit;
+
+   gettunes;
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateRPD');
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', TYPEPR_api.noper);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelRPDStructure', JSONObj_Element);
+
+
+
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+
+Function CreateUpdateRPD_ALL() : boolean; {
+result := false;
+  _loop TYPEPR {
+    var lReponse : tptr;
+     if CreateUpdateRPD_API( TYPEPR.nrec, lReponse) {
+        /*чято то надо сделать или нет*/
+
+     }
+     else {
+       exit;
+     }
+   }
+  result := true;
+}
+
+
+ function CreateUpdateReasonForOrder_api(_crec : comp; var lResponse :TPtr) : boolean; {
+  /*
+{"reasonStructure": {
+"HRCode": "ttstst-668u98fu-hjh",
+"Name": "(отзыв)"
+}}
+  */
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'reasonStructure', JSONObj_Element);
+
+
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+function CreateUpdateReasonForOrder_ALL_recursion(_cParent: comp) : boolean;
+{
+  result := true; //  если вообще нет детей, то надо чтобы продолжал
+  _loop catalogs where ((_cParent == catalogs.cParent)) {
+    var lResponse : tptr;
+     if CreateUpdateReasonForOrder_api(catalogs.nrec, lResponse) {
+       /*что то надо сделать или нет*/
+        result := true;
+       }
+       else {
+         result := false;
+         exit;
+       }
+     pushpos(tncatalogs);
+     if CreateUpdateReasonForOrder_ALL_recursion(catalogs.nrec) {
+       result := true;
+     }
+     else {
+       result := false;
+        exit;
+     }
+     poppos(tncatalogs);
+  }
+}
+
+function CreateUpdateReasonForOrder_ALL(): boolean;{
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=-32000 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+     if _isDebug{
+          message(' Не найден каталог "Причины мероприятий" ' +
+              ''#13''+ 'catalogs.syscode=-32000' ,error);
+      }
+    exit;
+  }
+  var _cParent : comp = catalogs.nrec;
+
+// сказали, что вложенные не надо элементы result := CreateUpdateReasonForOrder_ALL_recursion(_cParent);
+  _loop catalogs where ((_cParent == catalogs.cParent)) {
+    var lResponse : tptr;
+     if CreateUpdateReasonForOrder_api(catalogs.nrec, lResponse) {
+       /*что то надо сделать или нет*/
+        result := true;
+       }
+       else {
+         result := false;
+         exit;
+       }
+  }
+}
+
+
+ Function CreateUpdateKindTD_API( _cRec : comp; var lResponse : tptr) : boolean; {
+/*
+ {"KindDC": {
+              "IdHR": 1,
+              "Name": "О ПОСТОЯННОМ ПЕРЕВОДЕ"
+            }
+ }
+*/
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindTD');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
+
+     var lResponse : TPtr;
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+Function CreateUpdateKindTD_ALL() : boolean; {
+  result := false;
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=-133 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+     if _isDebug{
+          message(' Не найден каталог "Виды трудовых договоров" ' +
+              ''#13''+ 'catalogs.syscode=-133' ,error);
+      }
+    exit;
+  }
+  var _KindTDParent : comp = catalogs.nrec;
+  _loop catalogs where ((_KindTDParent == catalogs.cParent)) {
+    var lResponse : tptr;
+     if CreateUpdateKindTD_API(catalogs.nrec, lResponse) {
+      /* надо что то сделать */
+     }
+     else {
+       result := false;
+       exit;
+     }
+  }
+  result := true;
+}
+
+
+ Function CreateUpdateKindDC_API( _cRec : comp; var lResponse :TPtr) : boolean ;{
+/*
+ {"KindDC": {
+              "IdHR": 1,
+              "Name": "О ПОСТОЯННОМ ПЕРЕВОДЕ"
+            }
+ }
+*/
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindDC');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
+
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        result := true;
+       }
+       else {
+         result := false;
+       }
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+Function CreateUpdateKindDC_ALL() : boolean; {
+  result := false;
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=-31681 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+     if _isDebug{
+          message(' Не найден каталог "Виды дополнительных соглашений" ' +
+              ''#13''+ 'catalogs.syscode=-31681' ,error);
+      }
+    exit;
+  }
+  var _KindDCParent : comp = catalogs.nrec;
+  var lResponse : TPtr;
+  _loop catalogs where ((_KindDCParent == catalogs.cParent)) {
+     if CreateUpdateKindDC_API(catalogs.nrec, lResponse) {
+       /*что то надо сделать.. или нет*/
+     }
+     else {
+
+       exit;
+     }
+  }
+  result :=  true;
+}
+
+function getpodrunder(_code : string; _crec , _cParent: comp) : string; {
+
+  if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
+   {
+    if cat_search.code = _code {
+        if getfirst fastfirstrow cat_search where ((_crec == cat_search.nrec)) = tsOK {
+          result := cat_search.longname ;
+          exit;
+        }
+        else {
+         result := '';
+         exit;
+
+        }
+      }
+      else {
+        result := getpodrunder(_code, cat_search.nrec, cat_search.cParent)
+      }
+   }
+   else {
+     result := '';
+     exit;
+   }
+}
+
+function CreateJSON_RPD1(_cRec : comp) : boolean;{
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 1 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "Прием на работу" (РПД 1)',error)
+      }
+    exit;
+  }
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD1');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 1 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+      if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC)) <> tsOK  then {
+         if _isDebug{
+            message('В истории назначений не нашли ссылку на приказ (CONTDOC.nrec == APPHIST.CCONTDOC). APPHIST.CCONTDOC = ' + string(APPHIST.CCONTDOC,0,0),error)
+          }
+          continue;
+        }
+
+    /*
+      Структуру не дали... сказали делать просто чтобы было.
+      Потом дадут структуру  и "ЧУТЬ ЧУТЬ" надо будет переделать 0_о
+    */
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+
+    var cSpAllStaff_Nrec : comp = 0h;
+    /*
+    трудовой договор
+    */
+     var _MVHT1 : double = 0;
+     var _MVHT3 : string = '0';
+    if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
+                                     and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
+                    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_DAY', day(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_MONTH', month(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_YEAR', year(SpAllStaff_TD.RESDATE[2]));
+                    cSpAllStaff_Nrec := SpAllStaff_TD.nrec;
+                  }
+     /*
+       какие то поля MVHT -_-
+     */
+    if cSpAllStaff_Nrec <> 0h {
+       if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
+                          and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
+             if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
+              HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
+              _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  'Значение РРК_место проведения работ'  );
+              _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, 'РКС/МКС'  );
+             }
+         }
+      }
+    HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'MVHT1',_MVHT1); // Значение РРК_место проведения работ
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
+
+    if contdoc.dat1 <> to_date(0,0,0) {
+      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+    }
+    HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'TAXRATE',apphist.taxrate);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
+
+    var lResponse : tptr;
+
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+         result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+
+
+function CreateJSON_RPD8(_cRec : comp): boolean; {
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 8 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "Увольнение" (РПД 8)',error)
+      }
+    exit;
+  }
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD8');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 8 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+
+
+    /*
+      Структуру не дали... сказали делать просто чтобы было.
+      Потом дадут структуру  и "ЧУТЬ ЧУТЬ" надо будет переделать 0_о
+    */
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_YEAR', year(CONTDOC.DDISDATE));
+
+    /*
+    трудовой договор
+    */
+    if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
+                                     and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
+                    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
+                  }
+
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+
+     var lResponse : tptr;
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+
+function CreateJSON_RPD41(_cRec : comp): boolean; {
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 41 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "компенсация за неиспользованные дни отпуска" (РПД 41)',error)
+      }
+    exit;
+  }
+ gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD41');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 41 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+
+    /*
+      Структуру не дали... сказали делать просто чтобы было.
+      Потом дадут структуру  и "ЧУТЬ ЧУТЬ" надо будет переделать 0_о
+    */
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_DAY', day(TITLEDOC.DOCDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_MONTH', month(TITLEDOC.DOCDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_YEAR', year(TITLEDOC.DOCDATE));
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+    if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) = tsOK {
+
+       // Комп.дней: PutVacCon.wDayCount
+        HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'KOMP_DAYS',PutVacCon.wDayCount);
+
+       if getfirst KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) = tsOK {
+
+         // Наименование компенсации: KlOtpusk.Notpus
+        HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
+       }
+
+       // Компенсируемый отпуск:
+       if getfirst PutVacation where ((PutVacCon.cPutVacation == PutVacation.nRec)) = tsOK{
+          if getfirst KlOtpusk where ((PutVacation.cKlOtpusk == KlOtpusk.Nrec)) = tsOK {
+          // // Компенсируемый отпуск: KlOtpusk.Notpus
+           HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
+          }
+         var _WorkPeriod : comp ;
+          if PutVacation.wTypeVac = 0
+           then _WorkPeriod := PutVacation.cWorkPeriod
+           else _WorkPeriod := PutVacation.cWPRemain;
+         if getfirst WorkPeriod where ((_WorkPeriod == WorkPeriod.nrec)) = tsOK {
+           // Отпуск/остаток за период : WorkPeriod.dPerBeg и WorkPeriod.dPerEnd.
+           HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' по '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
+          }
+       }
+     }
+
+
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+     var lResponse : tptr;
+     if DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+          var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+         result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+
+
+
+Procedure setvisiblefields;
+{
+  var _isVisible: boolean = False;
+       case API_method of
+         0,1,2,3,4 : _isVisible := False;
+         5,6,7 : _isVisible := true;
+       end;
+ cfssetprop('L_SCRDEBUGAPIRESTDIRECTUM_cREC','Visible', _isVisible) ;
+ cfssetprop('i_SCRDEBUGAPIRESTDIRECTUM_MAINCREC','Visible', _isVisible)
+}
+HandleEvent
+
+cmInit: {
+  gettunes;
+  API_method := 0;
+  API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindDC');
+  setvisiblefields;
+  if ( BodyMess = '' )
+  {
+    set BodyMess := '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
+  }
+  _isDebug := true;
+  runwindowmodal(winDEBUGAPIRESTDIRECTUM);
+  closeinterface(-1);
+}
+
+cmCheckField: {
+  case curfield of
+   #API_method:
+       case API_method of
+         0 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindDC');
+              }
+         1 :  { API_methodFromTune := sgettune('DirectumIntegration_CreatePersonnelOrder');
+              }
+         2 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindTD');
+              }
+         3 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateRPD');
+              }
+         4 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
+              }
+         5 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD1');//CreateJSON_RPD1
+              }
+         6 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD8');//CreateJSON_RPD8
+              }
+         7 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD41');//CreateJSON_RPD41
+              }
+       end;
+   end;
+   setvisiblefields;
+   rereadrecord;
+}
+end; // HandleEvent
+end.

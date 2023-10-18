@@ -1,0 +1,28 @@
+table,
+td {
+  border: 1px solid #333;
+}
+
+thead,
+tfoot {
+  background-color: blue;
+  color: #fff;
+}
+
+.cls_table {
+  margin-left:100px;
+}
+
+.body_request {
+  margin-left:50px;
+}
+
+.response_401 {
+  margin-left:100px;
+  color: red;
+}
+
+.response_200 {
+  margin-left:100px;
+  color: blue;
+}

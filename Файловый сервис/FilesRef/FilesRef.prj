@@ -1,0 +1,63 @@
+
+#statusline "statgal"
+#include PreDefs.inc
+
+
+
+#include GalNet.ccm
+#include GalNet.csc
+#include Money.ccm
+#include Excel.inc
+#include ExcelFormat.inc
+#include FldColor.inc
+#include MnPlan.inc
+#include Tunes.inc
+#include GloConst.inc
+#include KauConst.inc
+#include BuhConst.inc
+#include Kutconst.inc
+#include CommonC.inc
+#include Cfg_All.inc   // константы для использования конфигуратора
+#include Cfg_Err.inc
+#include Mark.inc       // константы команд пометки (разные для Atl 3.03 и 5.1)
+#include ieConst.inc   // Нужны для VIP\C_ExpImp\*
+#include KatDoc.inc   // Нужны для VIP\C_ExpImp\expimpj.frm
+#include fpConst.inc
+end;
+
+#include GloTypes.inc
+#include GloFuncs.inc
+
+//--------------------
+#include ValFunc.Vih
+//--------------------
+#include oEdIzm.var        // fEdIzm - объект для работы с единицами измерения
+#include ValFunc.Var
+#include ExtAttr.vih
+#include ExtAttr.var
+
+#include C_Common.vil
+#include c_tune.vil
+#include F_PlansSch.vil
+#include TMnPlan.vih
+#include OBJINTPL.VIN
+
+//--------------------
+#params
+[vip]
+LicenseControlInclude="ddd!.vpp"
+#end
+
+#component "FILESREF"
+//-------------------------------
+#DEFINE _FILESREF_
+//-------------------------------
+
+
+#make "Source\FILESREF_CreateTune.vip"
+
+#include SOURCE\FILESREF_File_hRef.Vih
+
+#make "SOURCE\FILESREF_File_hRef.Vip"
+#make "SOURCE\Algoritm_File_hRef.vip"
+#make "SOURCE\Algoritm_File_hRef_Setup.vip"

@@ -1,0 +1,54 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// TestDistribCalculate
+//------------------------------------------------------------------------------
+#ifdef Atl60
+
+#ifndef __TestREST_VIH__
+#define __TestREST_VIH__
+
+#component "P_TEST"
+
+type
+  TPersonnelRecord = record
+    _fio: string;
+    _birthday: date;
+    _sex: string;
+  end;
+
+  TResult = record
+    returnCode: longint;
+    returntMessage: string;
+    return: record
+      totalCount: longint;
+      res: array[1..1] of TPersonnelRecord;
+    end;
+  end;
+
+#doc
+Тестовый интерфейс для демонстрации работы REST Атлантис 6
+#end
+web objInterface ITestREST;
+
+  #doc
+  Получить список сотрудников из БД
+  _cnt - количество записей
+  _filter - первые буквы фамилии
+  #end
+  function GetPersonList(_cnt: longint; _filter: string): TResult;
+
+end;
+
+web vipInterface TestREST
+  implements ITestREST
+  licensed(Free);
+public:
+  // получить данные для календаря дел
+  function ITestREST.GetPersonList(_cnt: longint; _filter: string): TResult;
+
+end;
+
+#end // __TestREST_VIH__
+
+#endif

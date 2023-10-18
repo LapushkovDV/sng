@@ -1,0 +1,415 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// TestDistribCalculate
+//------------------------------------------------------------------------------
+#ifdef Atl60
+#include TestREST.vih
+
+interface TestREST 'Тестовый интерфейс для демонстрации работы REST Атлантис 6' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+Create view vwTestREST
+var
+  sUrl       : string;
+  lPort      : longint;
+  sUserName  : string;
+  sPassword  : string;
+  sClass     : string;
+  sMethodRun : string;
+
+  bLogEnable : boolean;
+  sLogPath   : string;
+
+  resFile    : string;
+  logFile    : string;
+as select
+  *
+from
+  Persons
+where
+((
+  cgAllStaffDistrCalcTest  == SpAllStaff.wNoCon
+));
+
+
+screen scrTestDistribCalculate 'main test';
+  show at(,,,);
+fields
+  sUrl         ('URL сервера приложений',,): noProtect;
+  lPort        ('Порт сервера приложений',,): noProtect;
+  sUserName    ('Логин',,): noProtect;
+  sPassword    ('Пароль',,): noProtect;
+
+  sClass       ('Интерфейс запроса',,): Protect, { font = { backColor = colorSysSilver} };
+  sMethodRun   ('Метод запуска',,): Protect, { font = { backColor = colorSysSilver} };
+
+  bLogEnable   ('Логирование работы',,): noProtect, noFrame;
+  sLogPath     ('Папка лога с \',,): noProtect;
+
+
+buttons
+  cmValue1;
+<<
+
+  `URL`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Port`   .@@@@@@@@@@
+  `Логин`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@ `Пароль` .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Class*` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Method*`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   [:] Логирование`
+  `Путь`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   <.    Получить    .>
+>>
+end; // screen scrTestHttp1
+
+function ITestREST.GetPersonList(_cnt: longint; _filter: string): TResult;
+{
+  var res: TResult;
+
+  res.returnCode := 0;
+  res.returntMessage := 'Не выполнено';
+  res.return.totalCount := -1;
+  SetLimit(res.return.res, 0);
+
+  _filter := UpCase(_filter);
+
+  var prs: longint = 0;
+
+  _loop Persons
+  {
+    if (_filter <> '')
+    {
+      var k: word = Length(_filter);
+
+      if ( UpCase(SubStr(Persons.Fio, 1, k)) <> UpCase(_filter) )
+        continue;
+    }
+
+    prs++;
+    SetLimit(res.return.res, prs);
+
+    res.return.res[prs]._fio      := Persons.Fio;
+    res.return.res[prs]._birthday := Persons.BornDate;
+    res.return.res[prs]._sex      := Persons.Sex;
+
+    if ( prs >= _cnt )
+      break;
+  }
+
+  res.return.totalCount := prs;
+
+  res.returnCode := 1;
+  res.returntMessage := 'Выполнено успешно';
+
+  result := res;
+}
+
+
+function AuthenficateRelogin(address: string; usr, pswd: string): widestring;
+{
+  result := widestring('');
+
+  var httpCon: TPtr = 0;
+  var lHeader: TPtr = 0;
+
+  httpCon := HttpConnect_CreateEx(address, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, '/api/login', lAddUrl);
+
+    _try
+    {
+      var lRequest: TPtr = HttpConnect_CreateLongString(httpCon);
+      HttpConnect_AddValueToLongString(httpCon, '{"username":"' + usr + '","password":"' + pswd + '","relogin":true}', lRequest);
+
+      _try
+      {
+        var lResponse: TPtr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+        var err: longint = HttpConnect_LastError(httpCon);
+        if ( err <> 0)
+        {
+          HttpConnect_ResponseLogToClipboard(httpCon);
+          message('Что-то пошло не так! HttpConnect_LastError вернул [' + err + '] ' + HttpConnect_LastErrorText(httpCon) + '!', Error);
+          _doFinally;
+        }
+        else
+        {
+          var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+          var lToken: TPtr = 0;
+
+          if ( jsonResponse > 0 )
+            _try
+            {
+              lToken := HttpConnect_JsonObjectLongValueByName(httpCon, jsonResponse, 'authToken');
+
+              if ( lToken > 0 )
+              {
+                var len: longint = HttpConnect_GetLongStringLength(httpCon, lToken);
+                var k: word;
+
+                for (k := 0; k < len; k += 200 )
+                  result += HttpConnect_GetLongStringSubString(httpCon, lToken, k, 200);
+              }
+            }
+            _finally
+            {
+              HttpConnect_JSONObjectDestroy(httpCon, jsonResponse);
+              HttpConnect_DestroyLongString(httpCon, lToken);
+            }
+        }
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+    if ( bLogEnable )
+    {
+      if ( ExistFile(sLogPath + 'logReLogin.txt') )
+       DeleteFile(sLogPath + 'logReLogin.txt');
+
+      HttpConnect_ResponseLogToFile(httpCon, sLogPath + 'logReLogin.txt');
+    }
+
+    HttpConnect_Free(httpCon);
+  }
+}
+
+function Authenficate(address: string; usr, pswd: string): widestring;
+{
+  result := widestring('');
+
+  var httpCon: TPtr = 0;
+  var lHeader: TPtr = 0;
+
+  httpCon := HttpConnect_CreateEx(address, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+  if ( bLogEnable )
+    HttpConnect_ResponseLogEnable(httpCon);
+
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, '/api/login', lAddUrl);
+
+    _try
+    {
+      var lRequest: TPtr = HttpConnect_CreateLongString(httpCon);
+      HttpConnect_AddValueToLongString(httpCon, '{"username":"' + usr + '","password":"' + pswd + '"}', lRequest);
+
+      _try
+      {
+        var lResponse: TPtr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+        var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+        var lToken: TPtr = 0;
+
+        _try
+        {
+          lToken := HttpConnect_JsonObjectLongValueByName(httpCon, jsonResponse, 'authToken');
+
+          if ( (jsonResponse > 0) and (lToken > 0) )
+          {
+            var len: longint = HttpConnect_GetLongStringLength(httpCon, lToken);
+            var k: word;
+
+            for (k := 0; k < len; k += 200 )
+              result += HttpConnect_GetLongStringSubString(httpCon, lToken, k, 200);
+          }
+          else
+          {
+            if ( HttpConnect_JsonObjectValueByName(httpCon, jsonResponse, 'message') = 'relogin' )
+              result := AuthenficateRelogin(address, usr, pswd);
+          }
+        }
+        _finally
+        {
+          HttpConnect_JSONObjectDestroy(httpCon, jsonResponse);
+          HttpConnect_DestroyLongString(httpCon, lToken);
+        }
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+    if ( bLogEnable )
+    {
+      if ( ExistFile(sLogPath + 'logLogin.txt') )
+       DeleteFile(sLogPath + 'logLogin.txt');
+
+      HttpConnect_ResponseLogToFile(httpCon, sLogPath + 'logLogin.txt');
+    }
+
+    HttpConnect_Free(httpCon);
+  }
+}
+
+procedure DoRequest(address: string; token: widestring; cnt: longint; filter: string);
+{
+  var httpCon: TPtr = 0;
+  var lHeader: TPtr = 0;
+
+  httpCon := HttpConnect_CreateEx(address, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+
+  if ( bLogEnable )
+    HttpConnect_ResponseLogEnable(httpCon);
+
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lToken: TPtr = HttpConnect_CreateLongString(httpCon);
+
+    HttpConnect_AddValueToLongString(httpCon, 'Authorization: Bearer ', lToken);
+
+    var len: longint = Length(token);
+    var k: word;
+
+    for (k := 1; k <= len; k += 200 )
+      HttpConnect_AddValueToLongString(httpCon, SubStr(token, k, 200), lToken);
+
+    HttpConnect_SolidStringInLongString(httpCon, lToken);
+
+    HttpConnect_AddLongValueToLongString(httpCon, lToken, lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, '/api', lAddUrl);
+
+    _try
+    {
+      var lRequest: TPtr = HttpConnect_CreateLongString(httpCon);
+      HttpConnect_AddValueToLongString(httpCon, '{"action":"atmcall", "jsonrpc":"2.0", "id":3,', lRequest);
+
+      HttpConnect_AddValueToLongString(httpCon, '"class":"' + sClass + '", "method":"' + sMethodRun + '",', lRequest);
+      HttpConnect_AddValueToLongString(httpCon, '"params":{"_cnt": "' + string(cnt) + '", "_filter":"' + filter + '"}' + '}', lRequest);
+
+      _try
+      {
+        var lResponse: TPtr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+        var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lToken);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+    if ( bLogEnable )
+    {
+      if ( ExistFile(sLogPath + 'logRequest.txt') )
+       DeleteFile(sLogPath + 'logRequest.txt');
+
+      HttpConnect_ResponseLogToFile(httpCon, sLogPath + 'logRequest.txt');
+    }
+
+    HttpConnect_Free(httpCon);
+  }
+}
+
+HandleEvent
+
+cmInit:
+{
+  ReadMyDsk(sUrl, 'TestREST_sUrl', true);
+  ReadMyDsk(lPort, 'TestREST_lPort', true);
+  ReadMyDsk(bLogEnable, 'TestREST_bLogEnable', true);
+  ReadMyDsk(sLogPath, 'TestREST_sLogPath', true);
+  ReadMyDsk(sUserName, 'TestREST_sUserName', true);
+  ReadMyDsk(sPassword, 'TestREST_sPassword', true);
+
+  ToggleFieldSelectable(#sLogPath, bLogEnable);
+
+  set sClass := 'P_Test::TestREST';
+  set sMethodRun := 'ITestREST_GetPersonList';
+
+  if ( sUrl = '' )
+  {
+    set sUrl := 'http://192.168.1.201';
+    set lPort := 8080;
+  }
+}
+
+cmDone:
+{
+  SaveMyDsk(sUrl, 'TestREST_sUrl');
+  SaveMyDsk(lPort, 'TestREST_lPort');
+  SaveMyDsk(sUserName, 'TestREST_sUserName');
+  SaveMyDsk(sPassword, 'TestREST_sPassword');
+
+  SaveMyDsk(bLogEnable, 'TestREST_bLogEnable');
+  SaveMyDsk(sLogPath, 'TestREST_sLogPath');
+}
+
+cmCheckField:
+{
+  case CurField() of
+    #bLogEnable: ToggleFieldSelectable(#sLogPath, bLogEnable);
+  end;
+}
+
+cmValue1:
+{
+  var token: widestring = '';
+
+  token := Authenficate(sUrl + ':' + string(lPort), sUserName, sPassword);
+
+  if ( token <> '' )
+  {
+    message(token);
+
+    DoRequest(sUrl + ':' + string(lPort), token, 3, 'Аг');
+  }
+  else
+    message('Ошибка авторизации', error);
+}
+
+
+end; // HandleEvent
+
+end.
+#endif

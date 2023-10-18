@@ -1,0 +1,2238 @@
+Date: Thu, 13 Jul 2023 20:07:14 +0300 (MSK)
+Message-ID: <1359331124.12590.1689268034759@ru01-app31.galaktika.local>
+MIME-Version: 1.0
+Content-Type: multipart/related; 
+	boundary="----=_Part_12589_111928606.1689268034757"
+
+------=_Part_12589_111928606.1689268034757
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///C:/export.html
+
+<html xmlns:o=3D'urn:schemas-microsoft-com:office:office'
+      xmlns:w=3D'urn:schemas-microsoft-com:office:word'
+      xmlns:v=3D'urn:schemas-microsoft-com:vml'
+      xmlns=3D'urn:w3-org-ns:HTML'>
+<head>
+        <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Du=
+tf-8" />
+    <link rel=3D"stylesheet" href=3D"inline_styles.css"/>
+    <!--[if gte mso 9]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:TargetScreenSize>1024x640</o:TargetScreenSize>
+            <o:PixelsPerInch>72</o:PixelsPerInch>
+            <o:AllowPNG/>
+        </o:OfficeDocumentSettings>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>90</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style type=3D"text/css">
+        <!--
+        html {
+    height:100%;
+}
+
+body {
+    padding: 0;
+    margin: 0;
+    background-color: white;
+    font-family: Arial;
+    font-size: 12px;
+}
+@page {
+    size: A4 portrait;
+    mso-header-margin: 0.5in;
+    mso-footer-margin: 0.5in;
+    mso-paper-source: 0;
+}
+       =20
+    @page=20
+    {
+        margin-top: 1in;
+        margin-right: 0.5in;
+        margin-bottom: 1in;
+        margin-left: 0.5in;
+    }
+
+/* module-key =3D 'confluence.web.resources:content-styles', location =3D '=
+/includes/css/wiki-content.less' */
+.wiki-content .header, .wiki-content .footer, .wiki-content .cell {
+=09margin: 8px 0;
+=09box-sizing: border-box;
+=09-moz-border-radius: 5px;
+=09-webkit-border-radius: 5px;
+=09border-radius: 5px
+}
+.wiki-content .columnLayout {
+=09display: table;
+=09table-layout: fixed;
+=09width: 100%;
+=09*clear: both
+}
+.wiki-content .columnLayout .cell {
+=09vertical-align: top
+}
+.wiki-content .columnLayout .cell.aside {
+=09width: 29.9%
+}
+.wiki-content .columnLayout .cell.sidebars {
+=09width: 19.9%
+}
+.wiki-content .cell {
+=09display: table-cell;
+=09padding: 0 10px
+}
+.wiki-content .innerCell {
+=09overflow-x: auto
+}
+.wiki-content .placeholder {
+=09background: #f5f5f5;
+=09border: 1px dotted #ccc;
+=09color: #707070;
+=09font-style: italic;
+=09margin: 0;
+=09padding: 10px
+}
+.wiki-content .placeholder .activation-content {
+=09display: none
+}
+.wiki-content .placeholder .display-content {
+=09display: inherit
+}
+.wiki-content li>ul, .wiki-content li>ol, .wiki-content ul>ul, .wiki-conten=
+t ol>ol {
+=09margin-top: 0
+}
+.wiki-content ul {
+=09list-style-type: disc
+}
+.wiki-content ol, .wiki-content ol ol ol ol, .wiki-content ol ol ol ol ol o=
+l ol, .wiki-content ol ol ol ol ol ol ol ol ol ol {
+=09list-style-type: decimal
+}
+.wiki-content ol ol, .wiki-content ol ol ol ol ol, .wiki-content ol ol ol o=
+l ol ol ol ol, .wiki-content ol ol ol ol ol ol ol ol ol ol ol {
+=09list-style-type: lower-alpha
+}
+.wiki-content ol ol ol, .wiki-content ol ol ol ol ol ol, .wiki-content ol o=
+l ol ol ol ol ol ol ol, .wiki-content ol ol ol ol ol ol ol ol ol ol ol ol {
+=09list-style-type: lower-roman
+}
+.wiki-content h1:first-child, .wiki-content h2:first-child, .wiki-content h=
+3:first-child, .wiki-content h4:first-child, .wiki-content h5:first-child, =
+.wiki-content h6:first-child {
+=09margin-top: 0
+}
+.wiki-content .confluence-content-image-border {
+=09border: 1px solid black
+}
+.wiki-content div.error>span.error {
+=09color: #333;
+=09padding: 6px 10px;
+=09position: relative;
+=09background: #fffdf6;
+=09border: 1px solid #ffeaae;
+=09-moz-border-radius: 5px;
+=09-webkit-border-radius: 5px;
+=09border-radius: 5px
+}
+.wiki-content .columnLayout, .wiki-content .cell, .wiki-content .header, .w=
+iki-content .footer {
+=09*display: block;
+=09*float: left;
+=09*width: 100%
+}
+.wiki-content .innerCell {
+=09*border: 2px dashed #ccc;
+=09*margin: 8px 4px;
+=09*padding: 4px 8px
+}
+.wiki-content .text-placeholder {
+=09background: #f5f5f5;
+=09color: #707070;
+=09font-style: italic;
+=09min-width: 10px;
+=09display: block
+}
+.wiki-content .text-placeholder.selected {
+=09color: #333
+}
+.contentLayout .innerCell>*:first-child .innerCell>*:first-child, .contentL=
+ayout2 .innerCell>*:first-child {
+=09margin-top: 0
+}
+.contentLayout2 .columnLayout {
+=09margin-bottom: 8px
+}
+.view .wiki-content .cell:first-child, .content-preview .wiki-content .cell=
+:first-child {
+=09padding: 0
+}
+li[style*=3D'text-align: center'], li[style*=3D'text-align: right'] {
+=09list-style-position: inside
+}
+#main .wiki-content .footer p,
+#main .wiki-content .footer a {
+=09font-family: arial, sans-serif;
+=09font-size: 14px
+}
+.wiki-content .cell, .mceContentBody.wiki-content .cell, .twoColumns .cell,=
+ .threeColumns .cell, .twoColumns .large, .mceContentBody.wiki-content .hea=
+der, .mceContentBody.wiki-content .footer, .threeColumns .large {
+=09*border: 0;
+=09*margin: 0;
+=09*padding: 0;
+=09*overflow: hidden
+}
+.twoColumns .cell {
+=09*width: 49.9%
+}
+.threeColumns .cell {
+=09*width: 33.3%
+}
+.twoColumns .large {
+=09*width: 69.9%
+}
+.threeColumns .large {
+=09*width: 59.9%
+}
+div.aside+div.large, div.large+div.aside, div.large+div.sidebars, .twoColum=
+ns div.cell+div.cell, .threeColumns div.cell+div.cell+div.cell {
+=09*float: right
+}
+.two-equal .normal {
+=09*width: 49.9%
+}
+.two-left-sidebar .normal, .two-right-sidebar .normal {
+=09*width: 69.9%
+}
+.three-equal .cell {
+=09*width: 33.3%
+}
+.three-with-sidebars .normal {
+=09*width: 59.9%
+}
+.two-equal div.cell+div.cell {
+=09*float: right
+}
+.three-equal div.cell+div.cell+div.cell, .three-with-sidebars div.cell+div.=
+cell+div.cell {
+=09*float: right
+}
+#mw-container div.mw-no-notifications div.subheading p {
+=09line-height: 24px;
+=09margin-top: 8px;
+=09margin-bottom: 8px
+}
+ul.inline-task-list>li {
+=09list-style: none;
+=09padding-left: 22px;
+=09margin-left: -22px;
+=09background-size: 16px 16px;
+=09line-height: 1.5;
+=09background-repeat: no-repeat;
+=09background-position: top left;
+=09background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABA=
+AAAAQCAQAAAC1+jfqAAAAj0lEQVR4AY2RBQ7EIBBFVy/P1TptbOUSdfePZFI3Xhh9MbhdOPS2BH=
+mEBZ6avo1giX9WoEen7kiJf2YJIzh+gW6gNVeTw/GNQGh3ILBQKxpzGe5GYYdBqHYYhHKHQSgUp=
+b4cC2YQ8h1mQqbvAhZsP0CKTF+OqYkByOOn/mY+kgUBvuqph8+yfcIc2x8+6/hIzptvjIrKkGEA=
+AAAASUVORK5CYII=3D');
+}
+ul.inline-task-list .checked{
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB=
+AAAAAQCAYAAAAf8/9hAAABSklEQVR4Aa2TxVajURCEGXvUUdzWuA3OGn8B3N0h7u7uu6yLv5Ab9=
+9xzvtN9u6sqf6ylKUehUPyQy+X/ZTJZUupRDmqopUcEfAzSKpUKGo0GarWatSjcUUtP9hOktFot=
+dDpdVVBLT3YAjEZjUQwGg6jZPT05ASaTicBsNouaBd87hocHcXp6wnthgM1mI7BaraJ+8vBwj/7=
++Hvz9+wtLSwucFQY4HA4CmeyFVXB5eYHOznaasbm5jlAwyHlhgNPpxOrqClpb/2B/fw+8s/JO8+=
+7ONkKhEOekeMDh4YEwzM/PgrWt7S9urq8RDASpKR8Q8Afw/PyMzs420Nzd3QmltPP5fNxXDiAUG=
+/R6jI+NwGwywev1cl4+QKlUpux2u1h6PB7EY3G43e6iZmqlX2Iy56cs/UTTIqQM1FBLT8GfiU9S=
+6c9EjfgzNeO8AvGFikbDq+3PAAAAAElFTkSuQmCC')
+}
+
+p:first-child, ul:first-child, ol:first-child, dl:first-child, h1:first-chi=
+ld, h2:first-child, h3:first-child, h4:first-child, h5:first-child, h6:firs=
+t-child, blockquote:first-child, pre:first-child, form.aui:first-child, tab=
+le.aui:first-child, .aui-tabs:first-child, .aui-panel:first-child, .aui-gro=
+up:first-child {
+    margin-top: 0;
+}
+
+p:last-child, ul:last-child, ol:last-child, dl:last-child, h1:last-child, h=
+2:last-child, h3:last-child, h4:last-child, h5:last-child, h6:last-child, b=
+lockquote:last-child, pre:last-child, form.aui:last-child, table.aui:last-c=
+hild, .aui-tabs:last-child, .aui-panel:last-child, .aui-group:last-child {
+    margin-bottom: 0;
+}
+
+.wiki-title h1 {
+    margin-bottom: 30px;
+}
+@font-face {
+=09font-family: "Atlassian Icons";
+=09src: url(../Atlassian-icons.ttf) format("truetype");
+=09font-weight: normal;
+=09font-style: normal;
+}
+.aui-icon-small {
+=09height: 16px;
+=09width: 16px;
+}
+
+.aui-icon-small, .aui-icon-large {
+=09line-height: 0;
+=09position: relative;
+=09vertical-align: text-top;
+}
+/*Confluence 5.6.1*/
+.aui-icon {
+=09background-repeat: no-repeat;
+=09background-position: 0 0;
+=09border: none;
+=09display: inline-block;
+=09height: 16px;
+=09margin: 0;
+=09padding: 0;
+=09text-align: left;
+=09text-indent: -999em;
+=09vertical-align: text-bottom;
+=09width: 16px;
+}
+/* Confluence 6.1.0*/
+/*.aui-icon {*/
+=09/*font-family:"Atlassian-icons";*/
+=09/*display:inline-block;*/
+=09/*vertical-align:middle;*/
+=09/*line-height:1;*/
+=09/*font-weight:normal;*/
+=09/*font-style:normal;*/
+=09/*speak:none;*/
+=09/*text-decoration:inherit;*/
+=09/*text-transform:none;*/
+=09/*text-rendering:optimizeLegibility;*/
+=09/*-webkit-font-smoothing:antialiased;*/
+=09/*-moz-osx-font-smoothing:grayscale;*/
+/*}*/
+.aui-icon-small:before {
+=09font-size: 16px;
+=09margin-top: -8px;
+}
+.aui-icon-small:before, .aui-icon-large:before {
+=09color: inherit;
+=09font-family: "Atlassian Icons";
+=09font-weight: normal;
+=09-webkit-font-smoothing: antialiased;
+=09font-style: normal;
+=09left: 0;
+=09line-height: 1;
+=09position: absolute;
+=09text-indent: 0;
+=09speak: none;
+=09top: 50%;
+}
+.aui-message .aui-icon {
+=09background-position: center;
+}
+.aui-message .aui-icon {
+=09left: 10px;
+=09position: absolute;
+=09top: 12px;
+}
+
+/* Icons */
+
+
+.aui-iconfont-add:before {
+=09content:"\f101";
+}
+
+
+.aui-iconfont-add-comment:before {
+=09content:"\f102";
+}
+
+
+.aui-iconfont-add-small:before {
+=09content:"\f103";
+}
+
+
+.aui-iconfont-approve:before {
+=09content:"\f104";
+}
+
+
+.aui-iconfont-appswitcher:before {
+=09content:"\f105";
+}
+
+
+.aui-iconfont-arrows-down:before {
+=09content:"\f106";
+}
+
+
+.aui-iconfont-arrows-left:before {
+=09content:"\f107";
+}
+
+
+.aui-iconfont-arrows-right:before {
+=09content:"\f108";
+}
+
+
+.aui-iconfont-arrows-up:before {
+=09content:"\f109";
+}
+
+
+.aui-iconfont-attachment:before {
+=09content:"\f10a";
+}
+
+
+.aui-iconfont-attachment-small:before {
+=09content:"\f10b";
+}
+
+
+.aui-iconfont-autocomplete-date:before {
+=09content:"\f10c";
+}
+
+
+.aui-iconfont-back-page:before {
+=09content:"\f10d";
+}
+
+
+.aui-iconfont-blogroll:before {
+=09content:"\f10e";
+}
+
+
+.aui-iconfont-bp-decisions:before {
+=09content:"\f10f";
+}
+
+
+.aui-iconfont-bp-default:before {
+=09content:"\f110";
+}
+
+
+.aui-iconfont-bp-files:before {
+=09content:"\f111";
+}
+
+
+.aui-iconfont-bp-requirements:before {
+=09content:"\f112";
+}
+
+
+.aui-iconfont-bp-howto:before {
+=09content:"\f113";
+}
+
+
+.aui-iconfont-bp-jira:before {
+=09content:"\f114";
+}
+
+
+.aui-iconfont-bp-meeting:before {
+=09content:"\f115";
+}
+
+
+.aui-iconfont-bp-retrospective:before {
+=09content:"\f116";
+}
+
+
+.aui-iconfont-bp-sharedlinks:before {
+=09content:"\f117";
+}
+
+
+.aui-iconfont-bp-troubleshooting:before {
+=09content:"\f118";
+}
+
+
+.aui-iconfont-build:before {
+=09content:"\f119";
+}
+
+
+.aui-iconfont-calendar:before {
+=09content:"\f11a";
+}
+
+
+.aui-iconfont-close-dialog:before {
+=09content:"\f11b";
+}
+
+
+.aui-iconfont-collapsed:before {
+=09content:"\f11c";
+}
+
+
+.aui-iconfont-comment:before {
+=09content:"\f11d";
+}
+
+
+.aui-iconfont-configure:before {
+=09content:"\f11e";
+}
+
+
+.aui-iconfont-confluence:before {
+=09content:"\f11f";
+}
+
+
+.aui-iconfont-copy-clipboard:before {
+=09content:"\f120";
+}
+
+
+.aui-iconfont-custom-bullet:before {
+=09content:"\f121";
+}
+
+
+.aui-iconfont-delete:before {
+=09content:"\f122";
+}
+
+
+.aui-iconfont-deploy:before {
+=09content:"\f123";
+}
+
+
+.aui-iconfont-details:before {
+=09content:"\f124";
+}
+
+
+.aui-iconfont-devtools-arrow-left:before {
+=09content:"\f125";
+}
+
+
+.aui-iconfont-devtools-arrow-right:before {
+=09content:"\f126";
+}
+
+
+.aui-iconfont-devtools-branch:before {
+=09content:"\f127";
+}
+
+
+.aui-iconfont-devtools-branch-small:before {
+=09content:"\f128";
+}
+
+
+.aui-iconfont-devtools-browse-up:before {
+=09content:"\f129";
+}
+
+
+.aui-iconfont-devtools-checkout:before {
+=09content:"\f12a";
+}
+
+
+.aui-iconfont-devtools-clone:before {
+=09content:"\f12b";
+}
+
+
+.aui-iconfont-devtools-commit:before {
+=09content:"\f12c";
+}
+
+
+.aui-iconfont-devtools-compare:before {
+=09content:"\f12d";
+}
+
+
+.aui-iconfont-devtools-file:before {
+=09content:"\f12e";
+}
+
+
+.aui-iconfont-devtools-file-binary:before {
+=09content:"\f12f";
+}
+
+
+.aui-iconfont-devtools-file-commented:before {
+=09content:"\f130";
+}
+
+
+.aui-iconfont-devtools-folder-closed:before {
+=09content:"\f131";
+}
+
+
+.aui-iconfont-devtools-folder-open:before {
+=09content:"\f132";
+}
+
+
+.aui-iconfont-devtools-fork:before {
+=09content:"\f133";
+}
+
+
+.aui-iconfont-devtools-pull-request:before {
+=09content:"\f134";
+}
+
+
+.aui-iconfont-devtools-repository:before {
+=09content:"\f135";
+}
+
+
+.aui-iconfont-devtools-repository-forked:before {
+=09content:"\f136";
+}
+
+
+.aui-iconfont-devtools-repository-locked:before {
+=09content:"\f137";
+}
+
+
+.aui-iconfont-devtools-side-diff:before {
+=09content:"\f138";
+}
+
+
+.aui-iconfont-devtools-submodule:before {
+=09content:"\f139";
+}
+
+
+.aui-iconfont-devtools-tag:before {
+=09content:"\f13a";
+}
+
+
+.aui-iconfont-devtools-tag-small:before {
+=09content:"\f13b";
+}
+
+
+.aui-iconfont-devtools-task-cancelled:before {
+=09content:"\f13c";
+}
+
+
+.aui-iconfont-devtools-task-disabled:before {
+=09content:"\f13d";
+}
+
+
+.aui-iconfont-devtools-task-in-progress:before {
+=09content:"\f13e";
+}
+
+
+.aui-iconfont-doc:before {
+=09content:"\f13f";
+}
+
+
+.aui-iconfont-down:before {
+=09content:"\f140";
+}
+
+
+.aui-iconfont-drag-vertical:before {
+=09content:"\f141";
+}
+
+
+.aui-iconfont-edit:before {
+=09content:"\f142";
+}
+
+
+.aui-iconfont-edit-small:before {
+=09content:"\f143";
+}
+
+
+.aui-iconfont-editor-align-center:before {
+=09content:"\f144";
+}
+
+
+.aui-iconfont-editor-align-left:before {
+=09content:"\f145";
+}
+
+
+.aui-iconfont-editor-align-right:before {
+=09content:"\f146";
+}
+
+
+.aui-iconfont-editor-bold:before {
+=09content:"\f147";
+}
+
+
+.aui-iconfont-editor-color:before {
+=09content:"\f148";
+}
+
+
+.aui-iconfont-editor-emoticon:before {
+=09content:"\f149";
+}
+
+
+.aui-iconfont-editor-help:before {
+=09content:"\f14a";
+}
+
+
+.aui-iconfont-editor-hr:before {
+=09content:"\f14b";
+}
+
+
+.aui-iconfont-editor-indent:before {
+=09content:"\f14c";
+}
+
+
+.aui-iconfont-editor-italic:before {
+=09content:"\f14d";
+}
+
+
+.aui-iconfont-editor-layout:before {
+=09content:"\f14e";
+}
+
+
+.aui-iconfont-editor-list-bullet:before {
+=09content:"\f14f";
+}
+
+
+.aui-iconfont-editor-list-number:before {
+=09content:"\f150";
+}
+
+
+.aui-iconfont-editor-macro-toc:before {
+=09content:"\f151";
+}
+
+
+.aui-iconfont-editor-mention:before {
+=09content:"\f152";
+}
+
+
+.aui-iconfont-editor-outdent:before {
+=09content:"\f153";
+}
+
+
+.aui-iconfont-editor-styles:before {
+=09content:"\f154";
+}
+
+
+.aui-iconfont-editor-symbol:before {
+=09content:"\f155";
+}
+
+
+.aui-iconfont-editor-table:before {
+=09content:"\f156";
+}
+
+
+.aui-iconfont-editor-task:before {
+=09content:"\f157";
+}
+
+
+.aui-iconfont-editor-underline:before {
+=09content:"\f158";
+}
+
+
+.aui-iconfont-email:before {
+=09content:"\f159";
+}
+
+
+.aui-iconfont-error:before {
+=09content:"\f15a";
+}
+.aui-message .icon-problem, .aui-icon-problem {
+=09background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA=
+AAAQCAYAAAAf8/9hAAAA20lEQVQ4y6WTTQ6CQAyFZ+VPohcBAgvBC3g/YQEJnsV4BjdGjNfQhRi=
+NvppHUnGYBJnkS+jrtHQ6HWNaa79aemANKnAjR2qe6VpwjkAOnuDVgfhKMLUFb9XGDUjAhCTUGv=
+9OYnSCgo4ziJT+CVC2D07Ucy0+KIatyr4SUIuoS4wvQtqUbenLTwLqzXFSw26LEfdIENNXiVHTG=
+PdIMKav/jfBnL6L8wiOmVkw5jC0iZkYQc9rDNU1Bs5BsvxZD1LhGuWS5xR9xu+yc5QHPyZLmRlL=
+vYOrdJta0N7/BnQXKgcW/4OXAAAAAElFTkSuQmCC);
+}
+
+
+.aui-iconfont-expanded:before {
+=09content:"\f15b";
+}
+
+
+.aui-iconfont-file-code:before {
+=09content:"\f15c";
+}
+
+
+.aui-iconfont-file-doc:before {
+=09content:"\f15d";
+}
+
+
+.aui-iconfont-file-java:before {
+=09content:"\f15e";
+}
+
+
+.aui-iconfont-file-pdf:before {
+=09content:"\f15f";
+}
+
+
+.aui-iconfont-file-ppt:before {
+=09content:"\f160";
+}
+
+
+.aui-iconfont-file-txt:before {
+=09content:"\f161";
+}
+
+
+.aui-iconfont-file-wav:before {
+=09content:"\f162";
+}
+
+
+.aui-iconfont-file-xls:before {
+=09content:"\f163";
+}
+
+
+.aui-iconfont-file-zip:before {
+=09content:"\f164";
+}
+
+
+.aui-iconfont-flag:before {
+=09content:"\f165";
+}
+
+
+.aui-iconfont-focus:before {
+=09content:"\f166";
+}
+
+
+.aui-iconfont-group:before {
+=09content:"\f167";
+}
+
+
+.aui-iconfont-handle-horizontal:before {
+=09content:"\f168";
+}
+
+
+.aui-iconfont-help:before {
+=09content:"\f169";
+}
+
+
+.aui-iconfont-hipchat:before {
+=09content:"\f16a";
+}
+
+
+.aui-iconfont-homepage:before {
+=09content:"\f16b";
+}
+
+
+.aui-iconfont-image:before {
+=09content:"\f16c";
+}
+
+
+.aui-iconfont-image-extrasmall:before {
+=09content:"\f16d";
+}
+
+
+.aui-iconfont-image-small:before {
+=09content:"\f16e";
+}
+
+
+.aui-iconfont-info:before {
+=09content:"\f16f";
+}
+.aui-message .icon-hint, .aui-icon-hint, .aui-message .icon-info, .aui-icon=
+-info {
+=09background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA=
+AAAQCAYAAAAf8/9hAAAA1klEQVR42qWTUQqCQBCGfdKCuogu+qBeoot0kl7TBwU9S3QLyega9ZB=
+h1L/wLyyDLGkLHzj/vzPM7o6eXLv9IQRH0IMnuVAL7b0y0QcVeIPPFPQasJ5KPlkbW5CDFcmpGf=
+8MfLtATeMGEqObBCuOwJV6ZYsjxVhrsoDQEuojiLRQmLa9H5d1nEIHPYOMvrMD6hm9XgcDg2BGg=
+YDesLTAlt596RFSep3jEp0FWnqlDtTMZ4ytZ1SuQZJLDlLtGuUGpNQ3/G7kKP/5M7nbLNnqCzxA=
+R03J/V+HSh9XtOsatQAAAABJRU5ErkJggg=3D=3D);
+}
+
+.aui-iconfont-jira:before {
+=09content:"\f170";
+}
+
+
+.aui-iconfont-jira-completed-task:before {
+=09content:"\f171";
+}
+
+
+.aui-iconfont-jira-test-session:before {
+=09content:"\f172";
+}
+
+
+.aui-iconfont-like:before {
+=09content:"\f173";
+}
+
+
+.aui-iconfont-like-small:before {
+=09content:"\f174";
+}
+
+
+.aui-iconfont-weblink:before {
+=09content:"\f175";
+}
+
+
+.aui-iconfont-link:before {
+=09content:"\f176";
+}
+
+
+.aui-iconfont-list-add:before {
+=09content:"\f177";
+}
+
+
+.aui-iconfont-list-remove:before {
+=09content:"\f178";
+}
+
+
+.aui-iconfont-locked:before {
+=09content:"\f179";
+}
+
+
+.aui-iconfont-locked-small:before {
+=09content:"\f17a";
+}
+
+
+.aui-iconfont-macro-code:before {
+=09content:"\f17b";
+}
+
+
+.aui-iconfont-macro-default:before {
+=09content:"\f17c";
+}
+
+
+.aui-iconfont-macro-gallery:before {
+=09content:"\f17d";
+}
+
+
+.aui-iconfont-macro-status:before {
+=09content:"\f17e";
+}
+
+
+.aui-iconfont-more:before {
+=09content:"\f17f";
+}
+
+
+.aui-iconfont-nav-children:before {
+=09content:"\f180";
+}
+
+
+.aui-iconfont-page-blank:before {
+=09content:"\f181";
+}
+
+
+.aui-iconfont-page-blogpost:before {
+=09content:"\f182";
+}
+
+
+.aui-iconfont-page-default:before {
+=09content:"\f183";
+}
+
+
+.aui-iconfont-page-template:before {
+=09content:"\f184";
+}
+
+
+.aui-iconfont-pages:before {
+=09content:"\f185";
+}
+
+
+.aui-iconfont-quote:before {
+=09content:"\f186";
+}
+
+
+.aui-iconfont-redo:before {
+=09content:"\f187";
+}
+
+
+.aui-iconfont-remove:before {
+=09content:"\f188";
+}
+
+
+.aui-iconfont-remove-label:before {
+=09content:"\f189";
+}
+
+
+.aui-iconfont-review:before {
+=09content:"\f18a";
+}
+
+
+.aui-iconfont-rss:before {
+=09content:"\f18b";
+}
+
+
+.aui-iconfont-search:before {
+=09content:"\f18c";
+}
+
+
+.aui-iconfont-search-small:before {
+=09content:"\f18d";
+}
+
+
+.aui-iconfont-share:before {
+=09content:"\f18e";
+}
+
+
+.aui-iconfont-sidebar-link:before {
+=09content:"\f18f";
+}
+
+
+.aui-iconfont-sourcetree:before {
+=09content:"\f190";
+}
+
+
+.aui-iconfont-space-default:before {
+=09content:"\f191";
+}
+
+
+.aui-iconfont-space-personal:before {
+=09content:"\f192";
+}
+
+
+.aui-iconfont-star:before {
+=09content:"\f193";
+}
+
+
+.aui-iconfont-success:before {
+=09content:"\f194";
+}
+.aui-message .icon-success, .aui-icon-success {
+=09background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA=
+AAAQCAYAAAAf8/9hAAAA9klEQVR42qWTPQrCQBSErfwBhRQewDoGFYyHtDEWCSSVR8gBRDxCGjF=
+i4xEstFBR4jyYYnmuK5LAB/vmzexuNpuGfvrzwAcLUIIb2VPzTa8ONkEMXqCywV4KOrbw2jBmYA=
+baZEatIhvJmBMkbBzB2LHLITjQG5vik+Ko8eORBeh9SlaEiELmCHmgACvWGTORFCWL8Et4IGF6T=
+tRC1qUUdxYtNiOB4wk4s18Aj3qL2v1jAiOQ28L09Khf1CuoVS1heqbs7ayHyEm2INdhdYhLKYI/=
+P+PI+IxBnYuUuK5yCqbUuxyn+irX/Jnc21xyqw9wBTtqgfa/Af067eG0xhemAAAAAElFTkSuQmC=
+C);
+}
+
+.aui-iconfont-table-bg:before {
+=09content:"\f195";
+}
+
+
+.aui-iconfont-table-col-left:before {
+=09content:"\f196";
+}
+
+
+.aui-iconfont-table-col-remove:before {
+=09content:"\f197";
+}
+
+
+.aui-iconfont-table-col-right:before {
+=09content:"\f198";
+}
+
+
+.aui-iconfont-table-copy-row:before {
+=09content:"\f199";
+}
+
+
+.aui-iconfont-table-cut-row:before {
+=09content:"\f19a";
+}
+
+
+.aui-iconfont-table-header-column:before {
+=09content:"\f19b";
+}
+
+
+.aui-iconfont-table-header-row:before {
+=09content:"\f19c";
+}
+
+
+.aui-iconfont-table-merge:before {
+=09content:"\f19d";
+}
+
+
+.aui-iconfont-table-no-bg:before {
+=09content:"\f19e";
+}
+
+
+.aui-iconfont-table-paste-row:before {
+=09content:"\f19f";
+}
+
+
+.aui-iconfont-table-remove:before {
+=09content:"\f1a0";
+}
+
+
+.aui-iconfont-table-row-down:before {
+=09content:"\f1a1";
+}
+
+
+.aui-iconfont-table-row-remove:before {
+=09content:"\f1a2";
+}
+
+
+.aui-iconfont-table-row-up:before {
+=09content:"\f1a3";
+}
+
+
+.aui-iconfont-table-split:before {
+=09content:"\f1a4";
+}
+
+
+.aui-iconfont-teamcals:before {
+=09content:"\f1a5";
+}
+
+
+.aui-iconfont-time:before {
+=09content:"\f1a6";
+}
+
+
+.aui-iconfont-undo:before {
+=09content:"\f1a7";
+}
+
+
+.aui-iconfont-unfocus:before {
+=09content:"\f1a8";
+}
+
+
+.aui-iconfont-unlocked:before {
+=09content:"\f1a9";
+}
+
+
+.aui-iconfont-unstar:before {
+=09content:"\f1aa";
+}
+
+
+.aui-iconfont-unwatch:before {
+=09content:"\f1ab";
+}
+
+
+.aui-iconfont-up:before {
+=09content:"\f1ac";
+}
+
+
+.aui-iconfont-user:before {
+=09content:"\f1ad";
+}
+
+
+.aui-iconfont-user-status:before {
+=09content:"\f1ae";
+}
+
+
+.aui-iconfont-view:before {
+=09content:"\f1af";
+}
+
+
+.aui-iconfont-view-card:before {
+=09content:"\f1b0";
+}
+
+
+.aui-iconfont-view-list:before {
+=09content:"\f1b1";
+}
+
+
+.aui-iconfont-view-table:before {
+=09content:"\f1b2";
+}
+
+
+.aui-iconfont-warning:before {
+=09content:"\f1b3";
+}
+.aui-message .icon-warning, .aui-icon-warning {
+=09background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAA=
+AAAQCAYAAAAf8/9hAAABA0lEQVR42p2QP0tCURiH7zdQRA3u4OJUiyDY4CDtTuEXuXs0JEQ4uDk=
+5C0EuKoEu+SWcg5baLCS7tNTx98IzyMWjXoeHe95/z3vODdzi2kdTvIo30fL1+YbLIhYOfsV5Gs=
+FAOL59zsNjBRfij60lEXKbf1E5RvDExl4URYGwXJfc6JCgwqZYhBp2hs5n4odadZ9gzKYu2x1Yr=
+UPt2SeosWEtijsEBfGN5HKXYErxweKkAMk9PbOkoE5hJXI+AbUVvfVtwZzkHTECAGptel8cgisS=
+nyJDk+8GRlZ8MdOwxITghoa9ArhlZmzB+/abDjwh+c8+LBgRnMLEBHnxKJYpBpfMFDbGjWcGPFD=
+11gAAAABJRU5ErkJggg=3D=3D);
+}
+
+
+
+
+.aui-iconfont-watch:before {
+=09content:"\f1b4";
+}
+
+
+.aui-iconfont-workbox:before {
+=09content:"\f1b5";
+}
+
+
+.aui-iconfont-workbox-empty:before {
+=09content:"\f1b6";
+}
+
+
+.aui-iconfont-configure-columns:before {
+=09content:"\f1b7";
+}
+
+
+.aui-iconfont-export:before {
+=09content:"\f1b8";
+}
+
+
+.aui-iconfont-export-list:before {
+=09content:"\f1b9";
+}
+
+
+.aui-iconfont-file-image:before {
+=09content:"\f1ba";
+}
+
+
+.aui-iconfont-admin-fusion:before {
+=09content:"\f1bb";
+}
+
+
+.aui-iconfont-admin-jira-fields:before {
+=09content:"\f1bc";
+}
+
+
+.aui-iconfont-admin-issue:before {
+=09content:"\f1bd";
+}
+
+
+.aui-iconfont-admin-notifications:before {
+=09content:"\f1be";
+}
+
+
+.aui-iconfont-admin-roles:before {
+=09content:"\f1bf";
+}
+
+
+.aui-iconfont-admin-jira-screens:before {
+=09content:"\f1c0";
+}
+
+
+.aui-iconfont-pause:before {
+=09content:"\f1c1";
+}
+
+
+.aui-iconfont-priority-highest:before {
+=09content:"\f1c2";
+}
+
+
+.aui-iconfont-priority-high:before {
+=09content:"\f1c3";
+}
+
+
+.aui-iconfont-priority-medium:before {
+=09content:"\f1c4";
+}
+
+
+.aui-iconfont-priority-low:before {
+=09content:"\f1c5";
+}
+
+
+.aui-iconfont-priority-lowest:before {
+=09content:"\f1c6";
+}
+
+
+.aui-iconfont-refresh-small:before {
+=09content:"\f1c7";
+}
+
+
+.aui-iconfont-share-list:before {
+=09content:"\f1c8";
+}
+
+
+.aui-iconfont-switch-small:before {
+=09content:"\f1c9";
+}
+
+
+.aui-iconfont-version:before {
+=09content:"\f1ca";
+}
+
+
+.aui-iconfont-workflow:before {
+=09content:"\f1cb";
+}
+
+
+.aui-iconfont-admin-jira-settings:before {
+=09content:"\f1cc";
+}
+
+
+.aui-iconfont-component:before {
+=09content:"\f1cd";
+}
+
+
+.aui-iconfont-reopen:before {
+=09content:"\f1ce";
+}
+
+
+.aui-iconfont-roadmap:before {
+=09content:"\f1cf";
+}
+
+
+.aui-iconfont-deploy-success:before {
+=09content:"\f1d0";
+}
+
+
+.aui-iconfont-deploy-fail:before {
+=09content:"\f1d1";
+}
+
+
+.aui-iconfont-file-generic:before {
+=09content:"\f1d2";
+}
+
+
+.aui-iconfont-arrow-down:before {
+=09content:"\f1d3";
+}
+
+
+.aui-iconfont-arrow-up:before {
+=09content:"\f1d4";
+}
+
+
+.aui-iconfont-blogroll-large:before {
+=09content:"\f1d5";
+}
+
+
+.aui-iconfont-email-large:before {
+=09content:"\f1d6";
+}
+
+
+.aui-iconfont-layout-1col-large:before {
+=09content:"\f1d7";
+}
+
+
+.aui-iconfont-layout-2col-large:before {
+=09content:"\f1d8";
+}
+
+
+.aui-iconfont-layout-2col-left-large:before {
+=09content:"\f1d9";
+}
+
+
+.aui-iconfont-layout-2col-right-large:before {
+=09content:"\f1da";
+}
+
+
+.aui-iconfont-layout-3col-center-large:before {
+=09content:"\f1db";
+}
+
+
+.aui-iconfont-layout-3col-large:before {
+=09content:"\f1dc";
+}
+
+
+.aui-iconfont-nav-children-large:before {
+=09content:"\f1dd";
+}
+
+
+.aui-iconfont-pages-large:before {
+=09content:"\f1de";
+}
+
+
+.aui-iconfont-sidebar-link-large:before {
+=09content:"\f1df";
+}
+
+
+.aui-iconfont-teamcals-large:before {
+=09content:"\f1e0";
+}
+
+
+.aui-iconfont-user-large:before {
+=09content:"\f1e1";
+}
+
+
+/* module-key =3D 'confluence.web.resources:view-content', location =3D '/i=
+ncludes/css/view-content.less' */
+.wiki-content .confluence-embedded-file-wrapper {
+=09max-width: 100%
+}
+.wiki-content .confluence-embedded-file-wrapper .confluence-embedded-image =
+{
+=09display: block;
+}
+.wiki-content .confluence-embedded-file-wrapper .confluence-embedded-image[=
+height], .wiki-content .confluence-embedded-file-wrapper .confluence-embedd=
+ed-image[width] {
+=09max-width: none
+}
+.wiki-content .confluence-embedded-file-wrapper.confluence-embedded-manual-=
+size {
+=09max-width: none
+}
+.wiki-content .image-left-wrapper {
+=09float: left;
+=09margin: 0 10px 10px 0
+}
+.wiki-content .image-center-wrapper {
+=09display: block;
+=09margin-left: auto;
+=09margin-right: auto
+}
+.wiki-content .image-center-wrapper .confluence-embedded-image{
+=09margin: auto;
+}
+.wiki-content .image-right-wrapper {
+=09float: right;
+=09margin: 0 0 10px 10px
+}
+
+/* module-key =3D 'confluence.web.resources:content-styles', location =3D '=
+/includes/css/tables.css' */
+.confluenceTable {
+=09border-collapse: collapse;
+=09border-spacing: 0;
+=09page-break-inside: auto;
+}
+.confluenceTable tr{
+=09page-break-inside: avoid;
+}
+.confluenceTh, .confluenceTd {
+=09border: 1px solid #ddd;
+=09padding: 7px 10px;
+=09vertical-align: top;
+=09text-align: left;
+=09min-width: 8px;
+}
+.confluenceTable ol, .confluenceTable ul {
+=09margin-left: 0;
+=09padding-left: 22px
+}
+.confluenceTable, .table-wrap {
+=09margin: 10px 0 0 0;
+=09overflow-x: auto
+}
+.confluenceTable:first-child, .table-wrap:first-child {
+=09margin-top: 0
+}
+table.confluenceTable th.confluenceTh, table.confluenceTable th.confluenceT=
+h>p, table.confluenceTable td.confluenceTd.highlight, table.confluenceTable=
+ td.confluenceTd.highlight>p, table.confluenceTable th.confluenceTh.highlig=
+ht-grey, table.confluenceTable th.confluenceTh.highlight-grey>p, table.conf=
+luenceTable td.confluenceTd.highlight-grey, table.confluenceTable td.conflu=
+enceTd.highlight-grey>p {
+=09background-color: #f0f0f0
+}
+table.confluenceTable th.confluenceTh.info, table.confluenceTable th.conflu=
+enceTh.info>p, table.confluenceTable td.confluenceTd.highlight.info, table.=
+confluenceTable td.confluenceTd.highlight.info>p, table.confluenceTable th.=
+confluenceTh.highlight-blue, table.confluenceTable th.confluenceTh.highligh=
+t-blue>p, table.confluenceTable td.confluenceTd.highlight-blue, table.confl=
+uenceTable td.confluenceTd.highlight-blue>p {
+=09background-color: #e0f0ff
+}
+table.confluenceTable th.confluenceTh.success, table.confluenceTable th.con=
+fluenceTh.success>p, table.confluenceTable td.confluenceTd.highlight.succes=
+s, table.confluenceTable td.confluenceTd.highlight.success>p, table.conflue=
+nceTable th.confluenceTh.highlight-green, table.confluenceTable th.confluen=
+ceTh.highlight-green>p, table.confluenceTable td.confluenceTd.highlight-gre=
+en, table.confluenceTable td.confluenceTd.highlight-green>p {
+=09background-color: #ddfade
+}
+table.confluenceTable th.confluenceTh.warning, table.confluenceTable th.con=
+fluenceTh.warning>p, table.confluenceTable td.confluenceTd.highlight.warnin=
+g, table.confluenceTable td.confluenceTd.highlight.warning>p, table.conflue=
+nceTable th.confluenceTh.highlight-red, table.confluenceTable th.confluence=
+Th.highlight-red>p, table.confluenceTable td.confluenceTd.highlight-red, ta=
+ble.confluenceTable td.confluenceTd.highlight-red>p {
+=09background-color: #ffe7e7
+}
+table.confluenceTable th.confluenceTh.note, table.confluenceTable th.conflu=
+enceTh.note>p, table.confluenceTable td.confluenceTd.highlight.note, table.=
+confluenceTable td.confluenceTd.highlight.note>p, table.confluenceTable th.=
+confluenceTh.highlight-yellow, table.confluenceTable th.confluenceTh.highli=
+ght-yellow>p, table.confluenceTable td.confluenceTd.highlight-yellow, table=
+.confluenceTable td.confluenceTd.highlight-yellow>p {
+=09background-color: #ffd
+}
+table.confluenceTable th.confluenceTh, table.confluenceTable th.confluenceT=
+h>p {
+=09font-weight: bold
+}
+table.confluenceTable th.confluenceTh.nohighlight, table.confluenceTable th=
+.confluenceTh.nohighlight>p {
+=09font-weight: normal;
+=09background-color: transparent
+}
+table.confluenceTable td.confluenceTd img, table.confluenceTable td.conflue=
+nceTd .confluence-embedded-file-wrapper img, table.confluenceTable th.confl=
+uenceTh .confluence-embedded-file-wrapper img {
+=09max-width: none
+}
+table.confluenceTable td.numberingColumn {
+=09-webkit-touch-callout: none;
+=09-webkit-user-select: none;
+=09-khtml-user-select: none;
+=09-moz-user-select: none;
+=09-ms-user-select: none;
+=09user-select: none;
+=09cursor: default
+}
+
+/*! AUI Lozenge */
+.aui-lozenge {
+=09background: #ccc;
+=09border: 1px solid #ccc;
+=09border-radius: 3px;
+=09color: #333;
+=09display: inline-block;
+=09font-size: 11px;
+=09font-weight: bold;
+=09/*line-height: 99%;*/
+=09margin: 0;
+=09padding: 0px 5px;
+=09text-align: center;
+=09text-decoration: none;
+=09text-transform: uppercase
+}
+.aui-lozenge.aui-lozenge-subtle {
+=09background-color: #fff;
+=09border-color: #ccc;
+=09color: #333
+}
+.aui-lozenge-success {
+=09background-color: #14892c;
+=09border-color: #14892c;
+=09color: #fff
+}
+.aui-lozenge-success.aui-lozenge-subtle {
+=09background-color: #fff;
+=09border-color: #60b070;
+=09color: #14892c
+}
+.aui-lozenge-error {
+=09background-color: #d04437;
+=09border-color: #d04437;
+=09color: #fff
+}
+.aui-lozenge-error.aui-lozenge-subtle {
+=09background-color: #fff;
+=09border-color: #e8a29b;
+=09color: #d04437
+}
+.aui-lozenge-current {
+    background-color: #b3d4ff;
+    border-color: #b3d4ff;
+    color: #0052cc;
+}
+.aui-lozenge-current.aui-lozenge-subtle {
+    background-color: #ffffff;
+    border-color: #b3d4ff;
+    color: #0052cc;
+}
+.aui-lozenge-current-pre68 {
+=09background-color: #f6c342;
+=09border-color: #f6c342;
+=09color: #594300
+}
+.aui-lozenge-current-pre68.aui-lozenge-subtle {
+=09background-color: #fff;
+=09border-color: #ffe9a8;
+=09color: #594300
+}
+.wiki-content .aui-lozenge-complete-pre68{
+    color: #ffffff;
+    background-color: #4a6785;
+    border-color: #4a6785;
+}
+.wiki-content .aui-lozenge-complete-pre68.aui-lozenge-subtle{
+    color: #4a6785;
+    background-color: #ffffff;
+    border-color: #e4e8ed;
+}
+.aui-lozenge-complete.aui-lozenge-subtle {
+=09background-color: #fff;
+=09border-color: #a5b3c2;
+=09color: #4a6785
+}
+.aui-lozenge-moved {
+    background-color: #ffab00;
+    border-color: #ffab00;
+    color: #253858;
+}
+.aui-lozenge-moved.aui-lozenge-subtle {
+    background-color: #ffffff;
+    border-color: #fff0b3;
+    color: #42526e;
+}
+/*! AUI Tables */
+table.aui {
+=09border-collapse: collapse;
+=09width: 100%
+}
+table.aui table.aui {
+=09margin: 0
+}
+table.aui>caption {
+=09color: #707070;
+=09background: #f5f5f5;
+=09border-bottom: 1px solid #ccc;
+=09caption-side: top;
+=09padding: 7px 10px;
+=09text-align: left
+}
+table.aui>tbody>tr>td, table.aui>tfoot>tr>td {
+=09background: #fff;
+=09border-bottom: 1px solid #ccc;
+=09color: #333
+}
+table.aui>tbody>tr>th {
+=09background: #fff;
+=09color: #333
+}
+table.aui>thead>tr>th, table.aui>tbody>tr>th, table.aui>thead>tr>td, table.=
+aui>tbody>tr>td, table.aui>tfoot>tr>td {
+=09padding: 7px 10px;
+=09text-align: left;
+=09vertical-align: top
+}
+table.aui>thead>tr>th, table.aui>tbody>tr>th {
+=09border-bottom: 1px solid #ccc
+}
+table.aui>tbody>tr:first-child>td, table.aui>tbody>tr:first-child>th, table=
+.aui>tfoot>tr:first-child>td {
+=09border-top: 1px solid #ccc
+}
+table.aui>thead>tr>th>ul.menu, table.aui>tbody>tr>th>ul.menu, table.aui>tbo=
+dy>tr>td>ul.menu, table.aui>tfoot>tr>td>ul.menu {
+=09list-style-type: none;
+=09margin: 0;
+=09padding: 0
+}
+table.aui>thead>tr>th>ul.menu>li, table.aui>tbody>tr>th>ul.menu>li, table.a=
+ui>tbody>tr>td>ul.menu>li, table.aui>tfoot>tr>td>ul.menu>li {
+=09float: left;
+=09margin: 0 10px 0 0;
+=09width: auto
+}
+table.aui.aui-table-interactive>tbody>tr:hover {
+=09background: #f5f5f5
+}
+table.aui.aui-zebra tr {
+=09border-bottom: 0
+}
+table.aui.aui-zebra>thead>tr:nth-child(even), table.aui.aui-zebra>tbody>tr:=
+nth-child(even), table.aui.aui-zebra>tfoot>tr:nth-child(even), table.aui-ze=
+bra>tbody>tr:nth-child(even)>th {
+=09background: #f5f5f5;
+=09color: #333
+}
+.emoticon {
+=09width: 1em;
+=09height: 1em;
+}
+
+/* module-key =3D 'confluence.extra.information:information-plugin-adg-styl=
+es', location =3D 'css/information-macros-adg.css' */
+.aui-message p:first-child {
+=09margin-top: 0;
+}
+.aui-message p {
+=09margin: 10px 0 0 0;
+}
+.confluence-information-macro, .aui-message {
+=09background: #fcfcfc;
+=09color: #333;
+=09padding: 10px 10px 10px 36px;
+=09position: relative
+}
+.cex-information-macro {
+=09background-color: #ccc;
+=09padding: 2px;
+=09margin: 30px 0 3em 0;
+}
+.confluence-information-macro.has-no-icon {
+=09padding-left: 10px
+}
+.confluence-information-macro:first-child {
+=09margin-top: 0
+}
+.aui-message.problem, .confluence-information-macro-warning{
+=09background: #fff8f7;
+=09border-color: #d04437
+}
+.aui-message.hint, .confluence-information-macro-information {
+=09background-color: #fcfcfc;
+=09border-color: #aab8c6
+}
+.aui-message.success {
+=09background: #f3f9f4;
+=09border-color: #91c89c;
+}
+.aui-message.warning {
+=09background: #fffdf6;
+=09border-color: #ffeaae;
+}
+.confluence-information-macro-tip {
+=09background-color: #f3f9f4;
+=09border-color: #91c89c
+}
+.confluence-information-macro-note {
+=09background: #fffdf6;
+=09border-color: #ffeaae
+}
+.confluence-information-macro>.title {
+=09font-weight: bold
+}
+.confluence-information-macro>.title>strong {
+=09font-weight: inherit
+}
+.confluence-information-macro .confluence-information-macro-icon {
+=09display: block;
+=09left: 10px;
+=09line-height: 20px;
+=09position: absolute;
+=09top: 12px;
+=09vertical-align: text-bottom
+}
+.confluence-information-macro .confluence-information-macro-icon.aui-iconfo=
+nt-info {
+=09color: #4a6785
+}
+.confluence-information-macro .confluence-information-macro-icon.aui-iconfo=
+nt-error {
+=09color: #cf4336
+}
+.confluence-information-macro .confluence-information-macro-icon.aui-iconfo=
+nt-approve {
+=09color: #14892c
+}
+.confluence-information-macro .confluence-information-macro-icon.aui-iconfo=
+nt-warning {
+=09color: #594300
+}
+.confluence-information-macro>.confluence-information-macro-body>p:empty {
+=09display: none
+}
+
+.confluence-information-macro>.confluence-information-macro-body>p {
+    padding: 3px 0;
+    margin: 0;
+}
+
+/* Custom */
+
+.confluence-information-macro>.title {
+=09padding: 1px 0 0 0;
+=09margin: 0;
+}
+
+
+.jira-issue, .unknown-jira-issue {
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    padding: 0 0 0 2px;
+    border-radius: 3px;
+    display: inline-block;
+    line-height: 18px;
+    white-space: normal;
+}
+
+.jira-issue a img {
+    margin-right: 5px;
+}
+
+.jira-issue .aui-lozenge {
+    /*vertical-align: top;*/
+}
+
+.jira-issue .aui-lozenge {
+    margin: 1px;
+    padding: 0 5px;
+}
+
+.sectionColumnWrapper {
+    display: block;
+    overflow-x: auto;
+}
+.sectionMacro, .sectionMacroWithBorder {
+    margin-top: 10px;
+    display: table;
+    width: 100%;
+}
+.sectionMacroRow {
+    display: table-row;
+}
+.sectionMacro .columnMacro + .columnMacro {
+    padding-left: 20px;
+}
+.sectionMacro .columnMacro {
+    border: none;
+    padding: 0;
+}
+.sectionMacroWithBorder .columnMacro {
+    border-style: dashed;
+    border-width: 1px;
+    border-color: #ccc;
+    padding: 10px;
+}
+.columnMacro {
+    display: table-cell;
+    vertical-align: top;
+}
+
+
+        -->
+    </style>
+
+    <style type=3D"text/css">
+        /* <![CDATA[ */
+           =20
+        /* ]]> */
+    </style>
+</head>
+<body>
+
+<div>
+    </div>
+<div class=3D'cex-page-numbers-section'>
+<div class=3D'page wiki-page'>
+<div class=3D'wiki-title'>
+<a name=3D'Bookmark1'></a><h1>=D0=9F=D1=80=D0=BE=D1=82=D0=BE=D0=BA=D0=BE=D0=
+=BB =D0=BA=D0=BB=D0=B8=D0=B5=D0=BD=D1=82-=D1=81=D0=B5=D1=80=D0=B2=D0=B5=D1=
+=80=D0=BD=D0=BE=D0=B3=D0=BE =D0=B2=D0=B7=D0=B0=D0=B8=D0=BC=D0=BE=D0=B4=D0=
+=B5=D0=B9=D1=81=D1=82=D0=B2=D0=B8=D1=8F</h1>
+</div>
+<div class=3D'wiki-content'>
+<a name=3D"Bookmark2"></a><h2 id=3D"Bookmark2" class=3D"toc-header-1">1. =
+=D0=9A=D1=80=D0=B0=D1=82=D0=BA=D0=BE=D0=B5 =D0=BE=D0=BF=D0=B8=D1=81=D0=B0=
+=D0=BD=D0=B8=D0=B5.</h2><p>=D0=AD=D1=82=D0=B0 =D1=81=D0=BF=D0=B5=D1=86=D0=
+=B8=D1=84=D0=B8=D0=BA=D0=B0=D1=86=D0=B8=D1=8F =D0=BE=D0=BF=D1=80=D0=B5=D0=
+=B4=D0=B5=D0=BB=D1=8F=D0=B5=D1=82 =D0=BD=D0=B5=D1=81=D0=BA=D0=BE=D0=BB=D1=
+=8C=D0=BA=D0=BE =D1=81=D1=82=D1=80=D1=83=D0=BA=D1=82=D1=83=D1=80 =D0=B4=D0=
+=B0=D0=BD=D0=BD=D1=8B=D1=85 =D0=B8 =D0=BF=D1=80=D0=B0=D0=B2=D0=B8=D0=BB=D0=
+=B0 =D0=B8=D1=85 =D0=BE=D0=B1=D1=80=D0=B0=D0=B1=D0=BE=D1=82=D0=BA=D0=B8. =
+=D0=9F=D1=80=D0=BE=D1=82=D0=BE=D0=BA=D0=BE=D0=BB =D0=B8=D1=81=D0=BF=D0=BE=
+=D0=BB=D1=8C=D0=B7=D1=83=D0=B5=D1=82 JSON =D0=B2 =D0=BA=D0=B0=D1=87=D0=B5=
+=D1=81=D1=82=D0=B2=D0=B5 =D1=84=D0=BE=D1=80=D0=BC=D0=B0=D1=82=D0=B0 =D0=B4=
+=D0=B0=D0=BD=D0=BD=D1=8B=D1=85 =D0=B8 =D0=BD=D0=B5 =D0=B7=D0=B0=D0=B2=D0=B8=
+=D1=81=D0=B8=D0=BC =D0=BE=D1=82 =D1=81=D0=B5=D1=82=D0=B5=D0=B2=D1=8B=D1=85 =
+=D0=BF=D1=80=D0=BE=D1=82=D0=BE=D0=BA=D0=BE=D0=BB=D0=BE=D0=B2 =D0=BF=D1=80=
+=D0=B8=D0=BA=D0=BB=D0=B0=D0=B4=D0=BD=D0=BE=D0=B3=D0=BE =D1=83=D1=80=D0=BE=
+=D0=B2=D0=BD=D1=8F, =D1=82=D0=B0=D0=BA=D0=B8=D1=85 =D0=BA=D0=B0=D0=BA http =
+=D0=B8=D0=BB=D0=B8 websocket.</p><p>=D0=9A=D0=BB=D0=B8=D0=B5=D0=BD=D1=82 =
+=D0=BE=D0=BF=D1=80=D0=B5=D0=B4=D0=B5=D0=BB=D1=8F=D0=B5=D1=82=D1=81=D1=8F =
+=D0=BA=D0=B0=D0=BA =D0=B8=D1=81=D1=82=D0=BE=D1=87=D0=BD=D0=B8=D0=BA =D0=BE=
+=D0=B1=D1=8A=D0=B5=D0=BA=D1=82=D0=BE=D0=B2 Request =D0=B8 =D0=BE=D0=B1=D1=
+=80=D0=B0=D0=B1=D0=BE=D1=82=D1=87=D0=B8=D0=BA =D0=BE=D0=B1=D1=8A=D0=B5=D0=
+=BA=D1=82=D0=BE=D0=B2 Response.<br />=D0=A1=D0=B5=D1=80=D0=B2=D0=B5=D1=80 =
+=D0=BE=D0=BF=D1=80=D0=B5=D0=B4=D0=B5=D0=BB=D1=8F=D0=B5=D1=82=D1=81=D1=8F =
+=D0=BA=D0=B0=D0=BA =D0=B8=D1=81=D1=82=D0=BE=D1=87=D0=BD=D0=B8=D0=BA =D0=BE=
+=D0=B1=D1=8A=D0=B5=D0=BA=D1=82=D0=BE=D0=B2 Response =D0=B8 =D0=BE=D0=B1=D1=
+=80=D0=B0=D0=B1=D0=BE=D1=82=D1=87=D0=B8=D0=BA =D0=BE=D0=B1=D1=8A=D0=B5=D0=
+=BA=D1=82=D0=BE=D0=B2 Request.</p><p>=D0=92=D1=81=D0=B5 =D0=B8=D0=BC=D0=B5=
+=D0=BD=D0=B0, =D0=BA=D0=BE=D1=82=D0=BE=D1=80=D1=8B=D0=BC=D0=B8 =D0=BE=D0=B1=
+=D0=BC=D0=B5=D0=BD=D0=B8=D0=B2=D0=B0=D1=8E=D1=82=D1=81=D1=8F =D0=9A=D0=BB=
+=D0=B8=D0=B5=D0=BD=D1=82 =D0=B8 =D0=A1=D0=B5=D1=80=D0=B2=D0=B5=D1=80 =D0=B4=
+=D0=BE=D0=BB=D0=B6=D0=BD=D1=8B =D1=80=D0=B0=D1=81=D1=81=D0=BC=D0=B0=D1=82=
+=D1=80=D0=B8=D0=B2=D0=B0=D1=82=D1=8C=D1=81=D1=8F =D1=81 =D1=83=D1=87=D0=B5=
+=D1=82=D0=BE=D0=BC =D1=80=D0=B5=D0=B3=D0=B8=D1=81=D1=82=D1=80=D0=B0. =D0=A2=
+=D0=B5=D1=80=D0=BC=D0=B8=D0=BD=D1=8B =D1=84=D1=83=D0=BD=D0=BA=D1=86=D0=B8=
+=D1=8F, =D0=BC=D0=B5=D1=82=D0=BE=D0=B4 =D0=B8 =D0=BF=D1=80=D0=BE=D1=86=D0=
+=B5=D0=B4=D1=83=D1=80=D0=B0 =D0=BC=D0=BE=D0=B3=D1=83=D1=82 =D1=81=D1=87=D0=
+=B8=D1=82=D0=B0=D1=82=D1=8C=D1=81=D1=8F =D0=B2=D0=B7=D0=B0=D0=B8=D0=BC=D0=
+=BE=D0=B7=D0=B0=D0=BC=D0=B5=D0=BD=D1=8F=D0=B5=D0=BC=D1=8B=D0=BC=D0=B8.</p><=
+a name=3D"Bookmark3"></a><h2 id=3D"Bookmark3" class=3D"toc-header-1">2. =D0=
+=9E=D0=B1=D1=8A=D0=B5=D0=BA=D1=82 =D0=B7=D0=B0=D0=BF=D1=80=D0=BE=D1=81=D0=
+=B0 (request object).</h2><div class=3D"code panel pdl" style=3D"border-wid=
+th: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;action&quot;: &quot;MethodName&quot;,
+  &quot;data&quot;: {...}
+}</pre>
+</div></div><p><code>action</code> - =D0=98=D0=BC=D1=8F =D0=BF=D1=80=D0=BE=
+=D1=86=D0=B5=D0=B4=D1=83=D1=80=D1=8B =D0=BA=D0=BE=D1=82=D0=BE=D1=80=D1=83=
+=D1=8E =D1=82=D1=80=D0=B5=D0=B1=D1=83=D0=B5=D1=82=D1=81=D1=8F =D0=B2=D1=8B=
+=D0=BF=D0=BE=D0=BB=D0=BD=D0=B8=D1=82=D1=8C =D0=BD=D0=B0 =D1=81=D0=B5=D1=80=
+=D0=B2=D0=B5=D1=80=D0=B5.</p><p><code>data</code> - =D0=94=D0=B0=D0=BD=D0=
+=BD=D1=8B=D0=B5 - =D0=B0=D1=80=D0=B3=D1=83=D0=BC=D0=B5=D0=BD=D1=82=D1=8B =
+=D1=82=D1=80=D0=B5=D0=B1=D1=83=D0=B5=D0=BC=D1=8B=D0=B5 =D0=B4=D0=BB=D1=8F =
+=D0=B2=D1=8B=D0=BF=D0=BE=D0=BB=D0=BD=D0=B5=D0=BD=D0=B8=D1=8F =D0=BF=D1=80=
+=D0=BE=D1=86=D0=B5=D0=B4=D1=83=D1=80=D1=8B.</p><a name=3D"Bookmark4"></a><h=
+2 id=3D"Bookmark4" class=3D"toc-header-1">3. =D0=9E=D0=B1=D1=8A=D0=B5=D0=BA=
+=D1=82 =D0=BE=D1=82=D0=B2=D0=B5=D1=82=D0=B0 (response object).</h2><p>=D0=
+=A1=D0=BE=D0=B4=D0=B5=D1=80=D0=B6=D0=B0=D0=BD=D0=B8=D0=B5 =D0=BE=D0=B1=D1=
+=8A=D0=B5=D0=BA=D1=82=D0=B0 =D0=BE=D1=82=D0=B2=D0=B5=D1=82=D0=B0 =D0=B7=D0=
+=B0=D0=B2=D0=B8=D1=81=D0=B8=D1=82 =D0=BE=D1=82 =D1=80=D0=B5=D0=B7=D1=83=D0=
+=BB=D1=8C=D1=82=D0=B0=D1=82=D0=B0 =D0=B2=D1=8B=D0=BF=D0=BE=D0=BB=D0=BD=D0=
+=B5=D0=BD=D0=B8=D1=8F =D0=BF=D1=80=D0=BE=D1=86=D0=B5=D0=B4=D1=83=D1=80=D1=
+=8B.</p><div class=3D"table-wrap"><table class=3D"wrapped confluenceTable" =
+style=3D"font-size:1.0em"><colgroup><col style=3D"" /><col style=3D"" /><co=
+l style=3D"" /></colgroup><tbody><tr><th class=3D"confluenceTh"><p><strong>=
+=D0=9A=D0=BE=D0=B4 =D0=BE=D1=88=D0=B8=D0=B1=D0=BA=D0=B8</strong></p></th><t=
+h class=3D"confluenceTh"><p><strong>=D0=9E=D0=BF=D0=B8=D1=81=D0=B0=D0=BD=D0=
+=B8=D0=B5</strong></p></th><th class=3D"confluenceTh"><p><strong>=D0=9E=D0=
+=B1=D1=8A=D0=B5=D0=BA=D1=82 =D0=BE=D1=82=D0=B2=D0=B5=D1=82=D0=B0</strong></=
+p></th></tr><tr><td class=3D"confluenceTd" style=3D"padding:0.5em"><p>200</=
+p></td><td class=3D"confluenceTd" style=3D"padding:0.5em"><p>=D0=9F=D1=80=
+=D0=BE=D1=86=D0=B5=D0=B4=D1=83=D1=80=D0=B0 =D1=83=D1=81=D0=BF=D0=B5=D1=88=
+=D0=BD=D0=BE =D0=B2=D1=8B=D0=BF=D0=BE=D0=BB=D0=BD=D0=B5=D0=BD=D0=B0.</p></t=
+d><td class=3D"confluenceTd" style=3D"padding:0.5em"><div class=3D"content-=
+wrapper"><div class=3D"code panel pdl" style=3D"border-width: 1px;"><div cl=
+ass=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{...}</pr=
+e>
+</div></div></div></td></tr><tr><td class=3D"confluenceTd" style=3D"padding=
+:0.5em"><p><strong>400</strong></p></td><td class=3D"confluenceTd" style=3D=
+"padding:0.5em"><p>=D0=9E=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D1=83=D1=80=D0=BE=
+=D0=B2=D0=BD=D1=8F =D0=B1=D0=B8=D0=B7=D0=BD=D0=B5=D1=81 =D0=BB=D0=BE=D0=B3=
+=D0=B8=D0=BA=D0=B8</p></td><td class=3D"confluenceTd" style=3D"padding:0.5e=
+m"><div class=3D"content-wrapper"><div class=3D"code panel pdl" style=3D"bo=
+rder-width: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  type: &quot;info|confirm|warning|error&quot;
+  message: &quot;...&quot;
+}</pre>
+</div></div></div></td></tr><tr><td class=3D"confluenceTd" style=3D"padding=
+:0.5em"><p>401</p></td><td class=3D"confluenceTd" style=3D"padding:0.5em"><=
+p>=D0=9D=D0=B5 =D0=B0=D1=83=D1=82=D0=B5=D0=BD=D1=82=D0=B8=D1=84=D0=B8=D1=86=
+=D0=B8=D1=80=D0=BE=D0=B2=D0=B0=D0=BD</p></td><td class=3D"confluenceTd" sty=
+le=3D"padding:0.5em"><div class=3D"content-wrapper"><div class=3D"code pane=
+l pdl" style=3D"border-width: 1px;"><div class=3D"codeContent panelContent =
+pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">=D0=9F=D1=
+=83=D1=81=D1=82=D0=BE=D0=B9</pre>
+</div></div></div></td></tr><tr><td class=3D"confluenceTd" style=3D"padding=
+:0.5em"><p>403</p></td><td class=3D"confluenceTd" style=3D"padding:0.5em"><=
+p>=D0=9E=D1=82=D1=81=D1=83=D1=82=D1=81=D1=82=D0=B2=D1=83=D0=B5=D1=82 =D0=B4=
+=D0=BE=D1=81=D1=82=D1=83=D0=BF =D0=BA =D0=B7=D0=B0=D0=BF=D1=80=D0=B0=D1=88=
+=D0=B8=D0=B2=D0=B0=D0=B5=D0=BC=D0=BE=D0=BC=D1=83 =D1=80=D0=B5=D1=81=D1=83=
+=D1=80=D1=81=D1=83</p></td><td class=3D"confluenceTd" style=3D"padding:0.5e=
+m"><div class=3D"content-wrapper"><div class=3D"code panel pdl" style=3D"bo=
+rder-width: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">=D0=9F=D1=
+=83=D1=81=D1=82=D0=BE=D0=B9</pre>
+</div></div></div></td></tr><tr><td class=3D"confluenceTd" style=3D"padding=
+:0.5em"><p>404</p></td><td class=3D"confluenceTd" style=3D"padding:0.5em"><=
+p>=D0=9E=D0=B1=D1=8A=D0=B5=D0=BA=D1=82 =D0=BD=D0=B5 =D0=BD=D0=B0=D0=B9=D0=
+=B4=D0=B5=D0=BD</p></td><td class=3D"confluenceTd" style=3D"padding:0.5em">=
+<div class=3D"content-wrapper"><div class=3D"code panel pdl" style=3D"borde=
+r-width: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">=D0=9F=D1=
+=83=D1=81=D1=82=D0=BE=D0=B9</pre>
+</div></div></div></td></tr><tr><td class=3D"confluenceTd" style=3D"padding=
+:0.5em"><p>406</p></td><td class=3D"confluenceTd" style=3D"padding:0.5em"><=
+p>=D0=9E=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D0=B2=D0=B0=D0=BB=D0=B8=D0=B4=D0=B0=
+=D1=86=D0=B8=D0=B8</p></td><td class=3D"confluenceTd" style=3D"padding:0.5e=
+m"><div class=3D"content-wrapper"><div class=3D"code panel pdl" style=3D"bo=
+rder-width: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">[{
+  formid: &quot;form id&quot;,
+  listid: &quot;list id&quot;,
+  id: &quot;component name&quot;,=20
+  message : &quot;validation message&quot;
+  },=20
+...]</pre>
+</div></div><p class=3D"auto-cursor-target">formid =3D =D0=B8=D0=B4 =D1=84=
+=D0=BE=D1=80=D0=BC=D1=8B</p><p class=3D"auto-cursor-target">listid =3D =D0=
+=B8=D0=B4 =D0=BB=D0=B8=D1=81=D1=82=D0=B0, =D0=B5=D1=81=D0=BB=D0=B8 =D0=BE=
+=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D0=B2 =D1=81=D0=BF=D0=B8=D1=81=D0=BA=D0=B5,=
+ =D0=B2 =D0=BF=D1=80=D0=BE=D1=82=D0=B8=D0=B2=D0=BD=D0=BE=D0=BC =D1=81=D0=BB=
+=D1=83=D1=87=D0=B0=D0=B5 listid =D0=BE=D1=82=D1=81=D1=83=D1=82=D1=81=D1=82=
+=D0=B2=D1=83=D0=B5=D1=82</p><p class=3D"auto-cursor-target">id =3D =D0=B8=
+=D0=B4 =D0=BA=D0=BE=D0=BC=D0=BF=D0=BE=D0=BD=D0=B5=D0=BD=D1=82=D0=B0 (=D0=BA=
+=D0=BE=D0=BD=D0=B5=D1=87=D0=BD=D0=BE=D0=B3=D0=BE =D0=BF=D0=BE=D0=BB=D1=8F =
+=D1=84=D0=BE=D1=80=D0=BC=D1=8B =D0=B8=D0=BB=D0=B8 =D1=81=D0=BF=D0=B8=D1=81=
+=D0=BA=D0=B0), =D0=B5=D1=81=D0=BB=D0=B8 &quot;&quot; =D0=B8=D0=BB=D0=B8 =D0=
+=BE=D1=82=D1=81=D1=83=D1=82=D1=81=D1=82=D0=B2=D1=83=D0=B5=D1=82 - =D0=BE=D0=
+=B1=D1=89=D0=B0=D1=8F =D0=BE=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D0=B2 =D1=84=D0=
+=BE=D1=80=D0=BC=D1=83</p></div></td></tr><tr><td class=3D"confluenceTd" sty=
+le=3D"padding:0.5em"><p>500</p></td><td class=3D"confluenceTd" style=3D"pad=
+ding:0.5em"><p>=D0=9E=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D1=81=D0=B5=D1=80=D0=
+=B2=D0=B5=D1=80=D0=B0</p></td><td class=3D"confluenceTd" style=3D"padding:0=
+.5em"><div class=3D"content-wrapper"><div class=3D"code panel pdl" style=3D=
+"border-width: 1px;"><div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  message: &quot;...&quot;
+}</pre>
+</div></div></div></td></tr></tbody></table></div><a name=3D"Bookmark5"></a=
+><h2 id=3D"Bookmark5" class=3D"toc-header-1">4. =D0=9F=D1=80=D0=B8=D0=BC=D0=
+=B5=D1=80=D1=8B.</h2><a name=3D"Bookmark6"></a><h3 id=3D"Bookmark6" class=
+=3D"toc-header-2">4.1. =D0=9F=D0=BE=D0=BB=D1=83=D1=87=D0=B5=D0=BD=D0=B8=D0=
+=B5 =D0=BE=D0=B1=D1=8A=D0=B5=D0=BA=D1=82=D0=B0 =D0=BF=D0=BE =D0=B5=D0=B3=D0=
+=BE =D0=B8=D0=B4=D0=B5=D0=BD=D1=82=D0=B8=D1=84=D0=B8=D0=BA=D0=B0=D1=82=D0=
+=BE=D1=80=D1=83.</h3><p><code>=D0=97=D0=B0=D0=BF=D1=80=D0=BE=D1=81:</code><=
+/p><div class=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D=
+"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;action&quot;: &quot;UnitGroupsDetail&quot;,
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;a7291599-755f-43b7-8f89-30bb2c7f3293&quot;
+  }
+}</pre>
+</div></div><p><code>=D0=9E=D1=82=D0=B2=D0=B5=D1=82 200:</code></p><div cla=
+ss=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D"codeConten=
+t panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;id&quot;: &quot;a7291599-755f-43b7-8f89-30bb2c7f3293&quot;
+  &quot;name&quot;: &quot;=D0=95=D0=B4=D0=B8=D0=BD=D0=B8=D1=86=D1=8B =D0=B4=
+=D0=BB=D0=B8=D0=BD=D1=8B&quot;
+}</pre>
+</div></div><p><br /></p><a name=3D"Bookmark7"></a><h3 id=3D"Bookmark7" cla=
+ss=3D"toc-header-2">4.2. =D0=9F=D0=BE=D0=BB=D1=83=D1=87=D0=B5=D0=BD=D0=B8=
+=D0=B5 =D1=81=D0=BF=D0=B8=D1=81=D0=BA=D0=B0 =D0=BE=D0=B1=D1=8A=D0=B5=D0=BA=
+=D1=82=D0=BE=D0=B2.</h3><p><code>=D0=97=D0=B0=D0=BF=D1=80=D0=BE=D1=81:</cod=
+e></p><div class=3D"code panel pdl" style=3D"border-width: 1px;"><div class=
+=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;action&quot;: &quot;UnitGroupsList&quot;,
+  &quot;data&quot;: {}
+}</pre>
+</div></div><p><code>=D0=9E=D1=82=D0=B2=D0=B5=D1=82 200:</code></p><div cla=
+ss=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D"codeConten=
+t panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">[
+  {
+    id: &quot;a7291599-755f-43b7-8f89-30bb2c7f3293&quot;,
+    name: &quot;=D0=95=D0=B4=D0=B8=D0=BD=D0=B8=D1=86=D1=8B =D0=B4=D0=BB=D0=
+=B8=D0=BD=D1=8B&quot;,
+    record_state: &quot;=D0=9E=D0=BF=D1=83=D0=B1=D0=BB=D0=B8=D0=BA=D0=BE=D0=
+=B2=D0=B0=D0=BD=D0=BD=D1=8B=D0=B9
+  },
+  ...
+]
+</pre>
+</div></div><p><br /></p><a name=3D"Bookmark8"></a><h3 id=3D"Bookmark8" cla=
+ss=3D"toc-header-2">4.3. =D0=9E=D0=B1=D0=BD=D0=BE=D0=B2=D0=BB=D0=B5=D0=BD=
+=D0=B8=D0=B5 =D0=BE=D0=B1=D1=8A=D0=B5=D0=BA=D1=82=D0=B0 =D1=81 =D0=BE=D1=88=
+=D0=B8=D0=B1=D0=BA=D0=BE=D0=B9 =D0=B2=D0=B0=D0=BB=D0=B8=D0=B4=D0=B0=D1=86=
+=D0=B8=D0=B8.</h3><p><code>=D0=97=D0=B0=D0=BF=D1=80=D0=BE=D1=81:</code></p>=
+<div class=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D"co=
+deContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;action&quot;: &quot;UnitUpdate&quot;,
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;5beb0ce4-66ed-4021-bed0-330325cd87fa&quot;,
+    &quot;name&quot;: &quot;=D0=9C=D0=B5=D1=82=D1=80&quot;,
+    &quot;symbol_national&quot;: &quot;=D0=BC=D0=BC&quot;
+    &quot;system_code&quot;: &quot;003&quot;
+  }
+}</pre>
+</div></div><p><code>=D0=9E=D1=82=D0=B2=D0=B5=D1=82 422:</code></p><div cla=
+ss=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D"codeConten=
+t panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">[{id: '=
+=D0=A2=D0=B5=D1=85=D0=A1=D0=B8=D1=81=D1=82=D0=B5=D0=BC=D0=B0',message: '=D0=
+=9D=D0=B5 =D0=B7=D0=B0=D0=BF=D0=BE=D0=BB=D0=BD=D0=B5=D0=BD=D0=BE =D0=BE=D0=
+=B1=D1=8F=D0=B7=D0=B0=D1=82=D0=B5=D0=BB=D1=8C=D0=BD=D0=BE=D0=B5 =D0=BF=D0=
+=BE=D0=BB=D0=B5'}]</pre>
+</div></div><p><br /></p><a name=3D"Bookmark9"></a><h3 id=3D"Bookmark9" cla=
+ss=3D"toc-header-2">4.4. =D0=9E=D1=88=D0=B8=D0=B1=D0=BA=D0=B0 =D1=83=D1=80=
+=D0=BE=D0=B2=D0=BD=D1=8F =D0=B1=D0=B8=D0=B7=D0=BD=D0=B5=D1=81 =D0=BB=D0=BE=
+=D0=B3=D0=B8=D0=BA=D0=B8.</h3><p><code>=D0=97=D0=B0=D0=BF=D1=80=D0=BE=D1=81=
+:</code></p><div class=3D"code panel pdl" style=3D"border-width: 1px;"><div=
+ class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;action&quot;: &quot;UnitUpdate&quot;,
+  &quot;data&quot;: {
+    &quot;id&quot;: &quot;5beb0ce4-66ed-4021-bed0-330325cd87fa&quot;,
+    &quot;name&quot;: &quot;=D0=9C=D0=B8=D0=BB=D0=BB=D0=B8=D0=BC=D0=B5=D1=
+=82=D1=80&quot;,
+    &quot;symbol_national&quot;: &quot;=D0=BC=D0=BC&quot;
+    &quot;system_code&quot;: &quot;003&quot;
+  }
+}</pre>
+</div></div><p><code>=D0=9E=D1=82=D0=B2=D0=B5=D1=82 400:</code></p><div cla=
+ss=3D"code panel pdl" style=3D"border-width: 1px;"><div class=3D"codeConten=
+t panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: js; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  &quot;message&quot;: &quot;=D0=9D=D0=B5=D0=BB=D1=8C=D0=B7=D1=8F =D0=BE=D0=
+=B1=D0=BD=D0=BE=D0=B2=D0=B8=D1=82=D1=8C =D0=BE=D0=B1=D1=8A=D0=B5=D0=BA=D1=
+=82 =D1=81=D0=BE =D1=81=D1=82=D0=B0=D1=82=D1=83=D1=81=D0=BE=D0=BC \&quot;=
+=D0=9E=D0=BF=D1=83=D0=B1=D0=BB=D0=B8=D0=BA=D0=BE=D0=B2=D0=B0=D0=BD\&quot;&q=
+uot;
+}</pre>
+</div></div>
+</div>
+</div>
+</div>
+</body>
+</html>
+
+------=_Part_12589_111928606.1689268034757
+Content-Type: text/css; charset=utf-8; name=inline_styles.css
+Content-Transfer-Encoding: 8bit
+Content-Location: file:///C:/inline_styles.css
+
+
+------=_Part_12589_111928606.1689268034757--

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="mystyles.css" media="screen" />
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fileservice based on Flask</title>
+</head>
+<body>
+    <h1>Service is running</h1>
+    <h3>/fileservice/api/v1.0/loadfile, methods=['POST']</h3>
+    <h4 class="body_request">BODY:</h4>
+    <table class="cls_table">
+        <thead>
+            <tr>
+                <th>JSON Field</th>
+                <th>Filed type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>filename</td>
+                <td>string</td>
+                <td>name of the file</td>
+            </tr>
+            <tr>
+                <td>extention</td>
+                <td>string</td>
+                <td>extention of the file</td>
+            </tr>
+            <tr>
+                <td>description</td>
+                <td>string</td>
+                <td>(optional) description of the file</td>
+            </tr>
+            <tr>
+                <td>data</td>
+                <td>stringbase64</td>
+                <td>content of the file</td>
+            </tr>
+        </tbody>
+    </table>
+    <h4 class="body_request">RESPONSE:</h4>
+    <div class="response_401">
+        <h4>return JSON{'message': 'Wrong JSON structure in body', 'status': '0', 'UUID': ''}, 401</h4>
+        <h4>return JSON{'message': 'Empty filename', 'status': '0', 'UUID': ''}, 401</h4>
+        <h4>return JSON{'message': 'Errror write data to disk', 'status': '0', 'UUID': ''}, 401</h4>
+        <h4>return JSON{'message': 'Empty data in file', 'status': '0', 'UUID': ''}, 401</h4>
+        <h4>return JSON{'message': 'Errror encrypt file on disk', 'status': '0', 'UUID': ''}, 401</h4>
+    </div>
+    <h4 class="response_200">return JSON{'message': 'OK','status': '1','UUID': "generated guid"}, 200</h4>
+    <h3> --- </h3>
+    <h3>/fileservice/api/v1.0/getfile/"your-file-uuid", methods=['GET'])</h3>
+    <h4 class="body_request">RESPONSE:</h4>
+    <div class="response_401">
+        <h4>{'status': '0','message':'DB Exception','URL':''} , 401</h4>
+        <h4>{'status': '0','message':'file not exists','url':''} , 401</h4>
+        <h4>{'status': '0','message':'OS IO error','URL':''} , 401</h4>
+    </div>
+    <div class="response_200">
+        <h4>{'status': '1','message':'','url':"temp url to file"}, 200</h4>
+    </div>
+    <h3> --- </h3>
+    <h3>/fileservice/api/v1.0/deletefile/"your-file-uuid", methods=['DELETE'])</h3>
+    <h4 class="body_request">RESPONSE:</h4>
+    <div class="response_401">
+        <h4>{'status': '0','message':'DB exception'}),401</h4>
+        <h4>{'status': '0','message':'File not exists'}),401</h4>
+        <h4>{'status': '0', 'message': 'OS IO error'}), 401</h4>
+    </div>
+    <div class="response_200">
+        <h4>{'status': '1','message':''}),200</h4>
+    </div>
+</body>
+</html>

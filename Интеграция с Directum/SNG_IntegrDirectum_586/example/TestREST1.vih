@@ -1,0 +1,101 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// TestDistribCalculate
+//------------------------------------------------------------------------------
+#ifdef Atl60
+
+#ifndef __TestREST_VIH__
+#define __TestREST_VIH__
+
+#component "P_TEST"
+
+type
+  TPersonnelRecord = record
+    _tab: longint;                                //добавили таб. №
+    _fio: string;
+    _birthday: date;
+   // _sex: string;
+    _dep: string;
+  end;
+
+  TResult = record
+    returnCode: longint;
+    returntMessage: string;
+    return: record
+      totalCount: longint;
+      res: array[1..1] of TPersonnelRecord;
+    end;
+    end;
+
+   TResult1 = record
+    returnCode: longint;
+    returntMessage: string;
+    _tab: longint;
+    _fio: string;
+    _birthday: date;
+    _dep: string;
+    end;
+
+
+#doc
+Тестовый интерфейс для демонстрации работы REST Атлантис 6
+#end
+web objInterface ITestREST;
+
+  #doc
+  Получить список сотрудников из БД
+  _cnt - количество записей
+  _filter - первые буквы фамилии
+  #end
+  function GetPersonList(_cnt: longint; _filter: string): TResult;
+
+  #doc
+  Проверить наличие сотрудника в базе
+  _tab - Табельный номер
+  #end
+  function CheckPerson(_tab: longint): string;
+
+  #doc
+  Проверить наличие сотрудника в базе
+  _tab - Табельный номер
+  #end
+  function GetPerson(_tab: longint): TResult;
+
+  #doc
+  Проверить наличие сотрудника в базе
+  _tab - Табельный номер
+  #end
+  function GetPerson1(_tab: longint): TResult1;
+
+  #doc
+  Проверить наличие сотрудника в базе
+  _tab - Табельный номер
+  _filter - первые буквы фамилии
+  _birthday - день рождения
+  #end
+  function GetPersonByInfo(_tab: longint; _filter: string; _birthday: string): TResult;
+
+
+end;
+
+web vipInterface TestREST
+  implements ITestREST
+  licensed(Free);
+public:
+  // получить данные для календаря дел
+  function ITestREST.GetPersonList(_cnt: longint; _filter: string): TResult;
+  // проверить наличие сотрудника
+  function ITestREST.CheckPerson(_tab: longint): string;
+  // получить информацию по сотруднику
+  function ITestREST.GetPerson(_tab: longint): TResult;
+  function ITestREST.GetPerson1(_tab: longint): TResult1;
+
+  function ITestREST.GetPersonByInfo(_tab: longint; _filter: string; _birthday: string): TResult;
+
+
+end;
+
+#end // __TestREST_VIH__
+
+#endif

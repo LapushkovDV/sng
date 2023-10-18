@@ -1,0 +1,37 @@
+#ifdef Atl60
+
+#ifndef __SNG_IntegrDirectum_REST_VIH__
+#define __SNG_IntegrDirectum_REST_VIH__
+
+#component "API_DIRECTUM"
+type
+  TResultTest = record
+    returnCode: longint;
+    returntMessage: string;
+  end;
+
+
+
+#doc
+Тестовый интерфейс для демонстрации работы REST Атлантис 6
+#end
+web objInterface ISNG_IntegrDirectum_REST;
+
+#doc
+  проверка работоспособности REST API Галактики
+#end
+  function Test(_id : string; _Name : string): TResultTest;
+end;
+
+web vipInterface SNG_IntegrDirectum_REST
+  implements ISNG_IntegrDirectum_REST
+  licensed(Free);
+public:
+  // тестовая функция
+  function ISNG_IntegrDirectum_REST.Test(_id : string; _Name : string): TResultTest;
+
+end;
+
+#end // __TestREST_VIH__
+
+#endif

@@ -1,0 +1,12 @@
+[Unit]
+	Description=fileservice_galaktika
+	After=multi-user.target
+	 
+	[Service]
+	User=sngadmin
+	Type=simple
+	Restart=always
+	ExecStart=/home/sngadmin/fileservice-api/flask/bin/python3 /home/sngadmin/fileservice-api/app.py
+	 
+	[Install]
+	WantedBy=multi-user.target

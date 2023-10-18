@@ -1,0 +1,24 @@
+Create table File_hRef "СНГ ссылки на файлы во внешнем API"
+  With table_Code = 32270
+  With replace
+  With TableOptions Branched
+  (
+    NRec     : comp     "Номер записи",
+    wTable   : word     "Номер таблицы",
+    cRec     : comp     "Ссылка на таблицу",
+    Descr    : string   "Дескриптор",
+    DesGr    : string   "Группа дескрипторов",
+    Add_Time : time     "Время добавления",
+    Add_Date : date     "Дата добавления",
+    Name     : string   "Наименование файла",
+    subject  : string   "Описание",
+    GUIDAPI  : string   "GUID для запроса ссылки через API",
+    isArch   : word     "Признак архивности 1- архив,2 к удалению"
+  )
+ With index
+  (
+    Indx1 = NRec(Unique, Surrogate, Journal),
+    Indx2 = wTable + cRec + isArch
+  )
+ ;
+

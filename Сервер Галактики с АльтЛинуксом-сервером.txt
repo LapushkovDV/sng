@@ -1,0 +1,34 @@
+172.30.55.106
+
+sngadmin
+Rfv@tz2023
+
+
+
+
+сервер для запуска галактики
+172.30.55.99
+galaktika\lapushkov
+buHJwa&N
+
+Галатика:
+D:\Galaktika\GAL91\sng-alt\galsrv\SNG - сюда доп ресы кидаем для десктопа
+
+D:\Galaktika\GAL91\sng-alt - тут ярлыки
+
+D:\Galaktika\GAL91\sng-alt\support - сюда закинул компилятор
+
+
+для веба
+на рабочем столе должен лежать WinSCP, через него нужно зайти на 172.30.55.104
+логин - sngadmin
+пароль - Rfv@tz2023
+
+и закинуть рес в /srv/galsrv/SNG
+
+
+веб галка - https://sng-alt.galaktika.ru
+
+
+логин - lapushkov
+пароль 123456

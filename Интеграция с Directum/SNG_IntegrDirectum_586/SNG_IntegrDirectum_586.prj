@@ -1,0 +1,32 @@
+#define Atl60
+#statusline "statgal"
+#include GalNet.inc end;
+#include GloVars.inc
+const
+#include Tunes.inc
+end;
+
+//--------------------
+//--------------------
+
+//#include OBJINTPL.VIN
+
+//--------------------
+#params
+[vip]
+LicenseControlInclude="ddd!.vpp"
+#end
+
+#component "SNG"
+//-------------------------------
+#DEFINE _SNG_
+//-------------------------------
+
+
+#make "vip\CreateTune_SNG_IntegrDirectum_out.vip"
+
+#include vip\SNG_IntegrDirectum_out.Vih
+
+#make "vip\SNG_IntegrDirectum_out.Vip"
+
+#make "vip\SNG_IntegrDirectum_REST.Vip"

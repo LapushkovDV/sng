@@ -1,0 +1,101 @@
+/*************************************************************************************************\
+* Наименование:  Настройки для интеграции с Directum                                              *
+* Контур/Модуль: Интеграция                                                                       *
+* Примечание:                                                                                     *
+\*************************************************************************************************/
+
+#include CreateTune.vih
+//------------------------------------------------------------------------------
+Handler with replace CreateTune_SNG_IntegrDirectum on extensionPoint epCreateTuneComponent (TR: ObjCreateTuneEx) [220]
+  // Внимание, приоритеты вызова обработчиков см. в CreateTune.vih
+Action
+{
+  Result := true;
+
+  TR.SetParent('TUNE');
+  TR.AddPart(ttSYSUSERTUNE,'SNG','TUNE','Настройки СНГ','');
+
+  TR.SetParent('SNG');
+//  TR.SetComponent('P_Test');
+  // ------------------------------------------------------------------------
+  // Создаём разделы настроек
+  // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \ Directum
+  TR.AddPart(ttSYSUSERTUNE,'Integration','SNG','Интеграция','');
+  TR.SetParent('Integration');
+  TR.AddPart(ttSYSUSERTUNE,'Integration','DirectumIntegration','Директум','');
+//  TR.AddPartU('DirectumIntegration', 'Directum', '');
+  // ------------------------------------------------------------------------
+  // Создаём общие настройки для переключения, логина и пароля
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegration_Enabled'
+                , 'DirectumIntegration'
+                , 'Включить интеграцию'
+                , ftBoolean
+                , '0'
+                , ''
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegration_UserName'
+                , 'DirectumIntegration'
+                , 'Пользователь'
+                , ftString
+                , ''
+                , '100'
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegration_Password'
+                , 'DirectumIntegration'
+                , 'Пароль'
+                , ftString
+                , ''
+                , '100'
+                , hcNoContext);
+  // ------------------------------------------------------------------------
+  // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \ Directum \ Приказы
+  TR.SetParent('DirectumIntegration');
+  TR.AddPartU('DirectumIntegrationOrders', 'Приказы', '');
+  // ------------------------------------------------------------------------
+  // Создаём настройки для приказов для переключения, url, логина и пароля
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegrationOrders_Enabled'
+                , 'DirectumIntegrationOrders'
+                , 'Включить интеграцию'
+                , ftBoolean
+                , '0'
+                , ''
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegrationOrders_Host'
+                , 'DirectumIntegrationOrders'
+                , 'Адрес'
+                , ftString
+                , ''
+                , '2048'
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegrationOrders_Port'
+                , 'DirectumIntegration'
+                , 'Порт'
+                , ftWord
+                , ''
+                , ''
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegrationOrders_UserName'
+                , 'DirectumIntegrationOrders'
+                , 'Пользователь'
+                , ftString
+                , ''
+                , '100'
+                , hcNoContext);
+  TR.AddTune(     ttSYSTUNE
+                , 'DirectumIntegrationOrders_Password'
+                , 'DirectumIntegrationOrders'
+                , 'Пароль'
+                , ftString
+                , ''
+                , '100'
+                , hcNoContext);
+  // ------------------------------------------------------------------------
+}
+

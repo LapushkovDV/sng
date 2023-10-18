@@ -1,0 +1,92 @@
+//********************************************************************************
+//                                                        (c) корпорация Галактика
+// Галактика 8.10 - настрокйи
+// Обработка настроек с вызовом интерфейсов в компонентах
+//********************************************************************************
+#include TuneSpec.vih
+#include SNG_IntegrDirectum_out.Vih
+#component "API_DIRECTUM"
+
+vipinterface IntrTune_API_DIRECTUM implements ObjIntrTuneComponent licensed (free);
+
+// Обработчик точки расширения epPostTuneComponent
+// Должен вернуть FALSE если обработка проводилась. TRUE - если не проводилась.
+handler with replace API_DIRECTUM_IntrTune on extensionPoint epIntrTuneComponent (TR: objTuneIntr; TVal: TTuneVal; Inter: string) [40]
+action
+{
+   var ifc : IntrTune_API_DIRECTUM;
+   result := (not ifc.TuneIntrComponent (TR, TVal, Inter));
+}
+
+#doc
+  Обработка настроек с вызовом интерфейсов в компонентах P_Tolerans
+#end
+interface IntrTune_API_DIRECTUM;
+
+var _password : string;
+
+
+window winenterpassword;
+screen screnterpassword 'Введите пароль';
+  show at(,,,);
+fields
+   _password : noprotect;
+buttons
+  cmValue1;
+  cmCancel;
+<<
+
+  Введите пароль .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+  <.    Ok    .>  <. Отмена .>
+>>
+end;
+end;
+windowevent winenterpassword;
+ cmValue1: {
+   closewindowex(winenterpassword, cmdefault)
+ }
+end;
+// Обязательно должна вернуть False если обработка не производилась, иначе true
+public function TuneIntrComponent (TR: objTuneIntr; TVal: TTuneVal; Inter: string) : boolean;
+{
+  /*    Входные параметры
+   TR    - ссылка objTuneIntr;
+   TVal  - буфер таблицы TuneVal;
+   Inter - интерфейс
+
+   !!! Внимание !!!
+   Строковые констаты названия интерфейса в CASE писать только в верхнем регистре.  Иначе не сработает.
+   Правильно - 'ARTDIZ1':    НЕПРАВИЛЬНО -  'Ardiz1':
+   После вызова интерфейса, если все нормально нужно установить PrOk := TRUE;
+  */
+
+  var tmpComp : comp    = 0;
+  var tmpLong : longint = 0;
+  var tmpStr  : string  = '';
+
+  var PrOk     : boolean = false;
+  var TuneCode : string  = TR.GetTuneCode(TVal.cTune);  // код текущей настройки
+
+  TuneIntrComponent := true;
+
+  case (Inter) of
+    'SETPASSWORD_DIRECTUM' :
+    {
+      if runwindowmodal(winenterpassword) = cmDefault {
+         TVal.strVal:= _SNG_IntegrDirectum_out.encrypt(_password);
+         PrOk := true;
+        }
+    }
+    else
+      TuneIntrComponent := false;
+  end;
+
+  if (PrOk)
+    TR.UpdateTuneVal(TVal);
+
+  result := PrOk;
+}
+
+end.

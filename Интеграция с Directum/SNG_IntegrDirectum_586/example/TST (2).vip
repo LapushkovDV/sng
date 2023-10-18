@@ -1,0 +1,54 @@
+//------------------------------------------------------------------------------
+//                                                     (c) корпорация ГАЛАКТИКА
+// ERP 9.1 - тестовыве методы для работы 
+//------------------------------------------------------------------------------
+
+#include TST.vih
+
+// реализация
+Interface vTST
+
+  // конструктор по умолчанию
+  constructor Init;
+  {
+     //LogStrToFile ('TST.log','Init');
+     Result := true;
+  }
+  // Приобретение МПЗ у поставщика (накладные снабжение)
+  function ITST.PurchaseMPZ(_MPZ: TRecMPZ): longint;
+  {
+     //LogStrToFile ('TST.log','+PurchaseMPZ (' +_MPZ.pId + ' , '+ _MPZ.pName + ')');
+     Result := 1;
+     //LogStrToFile ('TST.log','-PurchaseMPZ =1');
+  }
+  // Формирование приходных ордеров на поступление ТМЦ
+  function ITST.MakeOrder(_order: TRecOrder): longint;
+  {
+     //LogStrToFile ('TST.log','+MakeOrder (' +_order.pId +' , '+ _order.pName + ')');
+     Result := 2;
+     //LogStrToFile ('TST.log','-MakeOrder = 2');
+  }
+  // Формирование счетов-фактур
+  function ITST.MakeInvoice(_pId: string): longint;
+  {
+     //LogStrToFile ('TST.log','+MakeInvoice (' + _pId + ')');
+     Result := 3;
+     //LogStrToFile ('TST.log','-MakeInvoice = 3');
+  }
+  // Формирование книги покупок (регистрация счетов-фактур)
+  function ITST.MakePurchaseBook(_pId: string): longint;
+  {
+     //LogStrToFile ('TST.log','+MakePurchaseBook (' + _pId + ')');
+     Result := 4;
+     //LogStrToFile ('TST.log','-MakePurchaseBook = 4');
+  }
+  // Формирование проводок
+  function ITST.MakeWiring(_pId: string): longint;
+  {
+     //LogStrToFile ('TST.log','+MakeWiring (' + _pId + ')');
+     Result := 5;
+     //LogStrToFile ('TST.log','-MakeWiring = 5');
+  }
+end.
+
+
