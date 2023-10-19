@@ -12,12 +12,6 @@
 interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, gray;
   show at (,, 90, 13);
 
-/*
-const
-  API_Username = 'DIRRX_GATE_GL@sgc.oil.gas';
-  API_Password = '35!RvWdhdeykQVnu';
-end;
-*/
 Create view
 var
    _isDebug : boolean;
