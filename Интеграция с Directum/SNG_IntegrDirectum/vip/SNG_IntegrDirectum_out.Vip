@@ -311,7 +311,7 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
     HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', TYPEPR_api.noper);
+    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelRPDStructure', JSONObj_Element);
 
 
@@ -412,7 +412,8 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
   var _cParent : comp = catalogs.nrec;
 
 // сказали, что вложенные не надо элементы result := CreateUpdateReasonForOrder_ALL_recursion(_cParent);
-  _loop catalogs where ((_cParent == catalogs.cParent)) {
+//  _loop catalogs where ((_cParent == catalogs.cParent)) {
+  _loop catalogs where catalogs.cParent = _cParent {
     var lResponse : tptr;
      if CreateUpdateReasonForOrder_api(catalogs.nrec, lResponse) {
        /*что то надо сделать или нет*/
