@@ -47,6 +47,27 @@ from
   , APPHIST
 ;
 
+function EscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\', '\\');
+  Str:=Replace(Str, '/', '\/');
+  Str:=Replace(Str, '"', '\"');
+  Str:=Replace(Str, ''#10, '\n');
+  Str:=Replace(Str, ''#13, '\r');
+
+  result:=Str;
+}
+
+function UnEscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\"', '"');
+  Str:=Replace(Str, '\/', '/');
+  Str:=Replace(Str, '\n', ''#10);
+  Str:=Replace(Str, '\r', ''#13);
+  Str:=Replace(Str, '\\', '\');
+
+  result:=Str;
+}
 function getoutdir : string;
 {
   if _getoutdir = '' then {
@@ -76,6 +97,10 @@ function decrypt(_str:string):string;{
      _i++;
    }
    result := _strres;
+}
+
+function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;{
+   result := my_HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
 }
 
 Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
@@ -189,8 +214,10 @@ procedure CreatePersonnelOrder_API_test;
    JSONObj_Element :=  HttpConnect_JSONObjectByLongString(m_service, stringNULL);
 
 //   HttpConnect_JsonObjectAddLongString(m_service, JSONObj_Element, 'Id', stringNULL);
-//   HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
-   HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
+
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
 
   var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
    HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00220401');
@@ -310,8 +337,8 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
    var methodstr : string = sgettune('DirectumIntegration_CreateUpdateRPD');
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelRPDStructure', JSONObj_Element);
 
 
@@ -358,8 +385,8 @@ result := false;
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'reasonStructure', JSONObj_Element);
 
 
@@ -441,8 +468,8 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
 
      var lResponse : TPtr;
@@ -497,8 +524,8 @@ Function CreateUpdateKindTD_ALL() : boolean; {
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
 
      if DoRequest(methodstr, JSONObj, lResponse) {
@@ -615,16 +642,16 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
 
     var cSpAllStaff_Nrec : comp = 0h;
@@ -635,7 +662,7 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
      var _MVHT3 : string = '0';
     if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
-                    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
+                    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_DAY', day(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_MONTH', month(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_YEAR', year(SpAllStaff_TD.RESDATE[2]));
@@ -648,22 +675,22 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
        if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
                           and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
              if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
-              HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); //  ¨¬¥­®Ά ­¨¥ ¬¥αβ  ―ΰ®Ά¥¤¥­¨ο ΰ ΅®β
+              my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); //  ¨¬¥­®Ά ­¨¥ ¬¥αβ  ―ΰ®Ά¥¤¥­¨ο ΰ ΅®β
               _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  '‡­ η¥­¨¥ _¬¥αβ® ―ΰ®Ά¥¤¥­¨ο ΰ ΅®β'  );
               _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, '‘/‘'  );
              }
          }
       }
     HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'MVHT1',_MVHT1); // ‡­ η¥­¨¥ _¬¥αβ® ―ΰ®Ά¥¤¥­¨ο ΰ ΅®β
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // ‘/‘
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // ‘/‘
 
     if contdoc.dat1 <> to_date(0,0,0) {
-      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
-      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', '… ‘€‡€‹, —’ ……„€‚€’');
-      HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', '… ‘€‡€‹, —’ ……„€‚€’');
+      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', '… ‘€‡€‹, —’ ……„€‚€’');
+      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', '… ‘€‡€‹, —’ ……„€‚€’');
     }
     HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'TAXRATE',apphist.taxrate);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
 
     var lResponse : tptr;
 
@@ -739,15 +766,15 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
 
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
@@ -758,27 +785,27 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
     */
     if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
-                    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
+                    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
                   }
 
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','… ‘€‡€‹ € ‡€‹’');
 
      var lResponse : tptr;
      if DoRequest(methodstr, JSONObj, lResponse) {
@@ -848,17 +875,17 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_DAY', day(TITLEDOC.DOCDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_MONTH', month(TITLEDOC.DOCDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_YEAR', year(TITLEDOC.DOCDATE));
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
 
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
     if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) = tsOK {
 
@@ -868,14 +895,14 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
        if getfirst KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) = tsOK {
 
          //  ¨¬¥­®Ά ­¨¥ ª®¬―¥­α ζ¨¨: KlOtpusk.Notpus
-        HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
+        my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
        }
 
        // ®¬―¥­α¨ΰγ¥¬λ© ®β―γαª:
        if getfirst PutVacation where ((PutVacCon.cPutVacation == PutVacation.nRec)) = tsOK{
           if getfirst KlOtpusk where ((PutVacation.cKlOtpusk == KlOtpusk.Nrec)) = tsOK {
           // // ®¬―¥­α¨ΰγ¥¬λ© ®β―γαª: KlOtpusk.Notpus
-           HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
+           my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
           }
          var _WorkPeriod : comp ;
           if PutVacation.wTypeVac = 0
@@ -883,14 +910,14 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
            else _WorkPeriod := PutVacation.cWPRemain;
          if getfirst WorkPeriod where ((_WorkPeriod == WorkPeriod.nrec)) = tsOK {
            // β―γαª/®αβ β®ª §  ―¥ΰ¨®¤ : WorkPeriod.dPerBeg ¨ WorkPeriod.dPerEnd.
-           HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' ―® '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
+           my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' ―® '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
           }
        }
      }
 
 
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','… ‘€‡€‹ € ‡€‹’');
-    HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','… ‘€‡€‹ € ‡€‹’');
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','… ‘€‡€‹ € ‡€‹’');
      var lResponse : tptr;
      if DoRequest(methodstr, JSONObj, lResponse) {
         /*ηβ®β β® ­ ¤® α¤¥« βμ*/
