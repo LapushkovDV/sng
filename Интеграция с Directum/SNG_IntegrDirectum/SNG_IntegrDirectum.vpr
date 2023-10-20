@@ -108,9 +108,9 @@
 			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 3" Line="971" NumIndex="3" MarkerType="mtNumBookmark" Comment="API_method: set"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 1" Line="611" NumIndex="1" MarkerType="mtNumBookmark"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 2" Line="871" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) &lt;&gt; tsOK then continue;"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 3" Line="979" NumIndex="3" MarkerType="mtNumBookmark" Comment="API_method: set"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 1" Line="619" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 2" Line="879" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) &lt;&gt; tsOK then continue;"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -122,7 +122,7 @@
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="SNG_IntegrDirectum.prj" PosX="14" PosY="1" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="36" PosY="390" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="59" PosY="104" OpenEditor="True" Active="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out.Vih" PosX="61" PosY="75" OpenEditor="True"/>
 			<File Name="vip\IntrTune_SNG_IntegrDirectum_out.vip" PosX="1" PosY="78" OpenEditor="True"/>
 			<File Name="vip\CreateTune_SNG_IntegrDirectum_out.vip" PosX="1" PosY="34" OpenEditor="True"/>
@@ -140,7 +140,7 @@
 			</ProjectCompileFile>
 		</ProjectItems>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45218,5475419097" DateTimeCompile="5,06828728248365E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45219,4605092593" DateTimeCompile="0,000324074069794733" StateHistory="False">
 				<CompileMessageList>
 					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\GALAKTIKA\_GIT\SNG\ИНТЕГРАЦИЯ С DIRECTUM\SNG_INTEGRDIRECTUM\VIP\SNG_IntegrDirectum_out.Vih" SourceLine="43" SourceColumn="35">
 						<StackIncludeList>
@@ -187,17 +187,17 @@
 							<StackInclude FileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" Line="9" Column="1"/>
 						</StackIncludeList>
 					</CompileMessage>
-					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="50" SourceColumn="1"/>
-					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="359" SourceColumn="31"/>
-					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="431" SourceColumn="42"/>
-					<CompileMessage MessageType="mtInfo" MessageText="В функции(процедуре) - m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateUpdateKindTD_API входящий параметр: lResponse:TPtr не используется." SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="487" SourceColumn="1"/>
-					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="489" SourceColumn="34"/>
-					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="542" SourceColumn="34"/>
-					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD1 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(699), не использует" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="701" SourceColumn="8"/>
-					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD8 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(813), не использует" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="815" SourceColumn="8"/>
-					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD41 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(924), не используе" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="926" SourceColumn="8"/>
-					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT.UnEscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(61), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="994" SourceColumn="5"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="19.10.2023 13:08:32"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="58" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="367" SourceColumn="31"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="439" SourceColumn="42"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции(процедуре) - m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateUpdateKindTD_API входящий параметр: lResponse:TPtr не используется." SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="495" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="497" SourceColumn="34"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="550" SourceColumn="34"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD1 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(707), не использует" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="709" SourceColumn="8"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD8 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(821), не использует" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="823" SourceColumn="8"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_SNG_INTEGRDIRECTUM_OUT_o$SNG_IntegrDirectum_out_CreateJSON_RPD41 локальная переменная JSONResponse:TPtr, объявленная в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(932), не используе" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="934" SourceColumn="8"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT.UnEscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip(69), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out.Vip" SourceLine="1002" SourceColumn="5"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="20.10.2023 11:03:36"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

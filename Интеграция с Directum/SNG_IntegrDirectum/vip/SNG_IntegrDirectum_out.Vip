@@ -47,6 +47,14 @@ from
   , APPHIST
 ;
 
+/*
+эти две функции по сути своей - костыль для HttpConnect_JsonObjectAddString
+EscapeStr
+UnEscapeStr
+Шухман сказал, что исправит HttpConnect_JsonObjectAddString, вернее сделает новую...   HttpConnect_JsonObjectAddStringEsc
+
+ждемс и потом перейдем на нормальную
+*/
 function EscapeStr(Str:wideString):wideString;
 {
   Str:=Replace(Str, '\', '\\');
@@ -100,7 +108,7 @@ function decrypt(_str:string):string;{
 }
 
 function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;{
-   result := my_HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
+   result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
 }
 
 Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
