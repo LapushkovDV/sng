@@ -476,9 +476,12 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+//    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
     my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
-    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTDStructure', JSONObj_Element);
+
 
      var lResponse : TPtr;
      if DoRequest(methodstr, JSONObj, lResponse) {
@@ -532,9 +535,11 @@ Function CreateUpdateKindTD_ALL() : boolean; {
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+//    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
     my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
-    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
+HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindAdditionalAgreementStructure', JSONObj_Element);
 
      if DoRequest(methodstr, JSONObj, lResponse) {
         result := true;
@@ -549,7 +554,7 @@ Function CreateUpdateKindTD_ALL() : boolean; {
 
 Function CreateUpdateKindDC_ALL() : boolean; {
   result := false;
-  if (getfirst fastfirstrow catalogs where catalogs.syscode=-31681 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=   )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
      if _isDebug{
           message(' Не найден каталог "Виды дополнительных соглашений" ' +
               ''#13''+ 'catalogs.syscode=-31681' ,error);
