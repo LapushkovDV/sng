@@ -480,7 +480,9 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
     my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
     my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
 //    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
-    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTDStructure', JSONObj_Element);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTDStructure', JSONObj_Element);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindWorkContractStructure', JSONObj_Element);
+
 
 
      var lResponse : TPtr;
@@ -554,7 +556,7 @@ HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindAdditionalAgreementStru
 
 Function CreateUpdateKindDC_ALL() : boolean; {
   result := false;
-  if (getfirst fastfirstrow catalogs where catalogs.syscode=   )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+  if (getfirst fastfirstrow catalogs where catalogs.syscode= -31681  )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
      if _isDebug{
           message(' Не найден каталог "Виды дополнительных соглашений" ' +
               ''#13''+ 'catalogs.syscode=-31681' ,error);
