@@ -4,7 +4,7 @@
 // Обработка настроек с вызовом интерфейсов в компонентах
 //********************************************************************************
 #include TuneSpec.vih
-#include SNG_IntegrDirectum_out.Vih
+#include SNG_IntegrDirectum_out_base.Vih
 #component "API_DIRECTUM"
 
 vipinterface IntrTune_API_DIRECTUM implements ObjIntrTuneComponent licensed (free);
@@ -75,7 +75,7 @@ public function TuneIntrComponent (TR: objTuneIntr; TVal: TTuneVal; Inter: strin
     'SETPASSWORD_DIRECTUM' :
     {
       if runwindowmodal(winenterpassword) = cmDefault {
-         TVal.strVal:= _SNG_IntegrDirectum_out.encrypt(_password);
+         TVal.strVal:= _SNG_IntegrDirectum_out_base.encrypt(_password);
          PrOk := true;
         }
     }

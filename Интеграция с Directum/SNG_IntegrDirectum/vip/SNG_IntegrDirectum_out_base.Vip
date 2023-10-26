@@ -1,0 +1,198 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+//#ifdef Atl60
+
+//#include SNG_IntegrDirectum_out.Vih
+#include SNG_IntegrDirectum_out_base.Vih
+#component "API_DIRECTUM"
+
+interface SNG_IntegrDirectum_out_base 'Интеграция с Directum по API' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+Create view
+var
+   _isDebug : boolean = False;
+    API_url
+  , API_Username
+  , API_Password : string;
+  _getoutdir : string;
+;
+
+/*
+эти две функции по сути своей - костыль для HttpConnect_JsonObjectAddString
+EscapeStr
+UnEscapeStr
+Шухман сказал, что исправит HttpConnect_JsonObjectAddString, вернее сделает новую...   HttpConnect_JsonObjectAddStringEsc
+
+ждемс и потом перейдем на нормальную
+*/
+function EscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\', '\\');
+  Str:=Replace(Str, '/', '\/');
+  Str:=Replace(Str, '"', '\"');
+  Str:=Replace(Str, ''#10, '\n');
+  Str:=Replace(Str, ''#13, '\r');
+
+  result:=Str;
+}
+
+function UnEscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\"', '"');
+  Str:=Replace(Str, '\/', '/');
+  Str:=Replace(Str, '\n', ''#10);
+  Str:=Replace(Str, '\r', ''#13);
+  Str:=Replace(Str, '\\', '\');
+
+  result:=Str;
+}
+function getoutdir : string;
+{
+  if _getoutdir = '' then {
+     _getoutdir := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0)); // ExDirectoryOut;
+//     MESSAGE('_getoutdir=' + _getoutdir + ' 0_0 ' + ExDirectoryOut);
+    }
+
+  result := _getoutdir
+}
+
+function encrypt(_str:string):string;{
+  var _strres : string = '';
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i);
+     _i++;
+   }
+   result := _strres;
+}
+function decrypt(_str:string):string;{
+  var _strres : string = '' ;
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i);
+     _i++;
+   }
+   result := _strres;
+}
+
+procedure set_debug_mode; {
+ _isDebug := True;
+}
+
+procedure gettunes;{
+    set API_url      := sgettune('DirectumIntegration_URL');
+    set API_Username := sgettune('DirectumIntegration_UserName');
+    set API_Password := decrypt(sgettune('DirectumIntegration_Password'));
+}
+
+function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;{
+   result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
+}
+
+Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
+{
+
+ gettunes;
+ result := false;
+ var _sfileout : string = getoutdir+ 'SNG_APIDIRECTUMOUT_DoRequest_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'_';
+
+ var lResponse    : TPtr;
+ var _logHttpConnect : string = _sfileout + '_logHttpConnect.log' ;
+  var httpCon: TPtr = longint(0);
+  var lHeader: TPtr = longint(0);
+
+  httpCon := HttpConnect_CreateEx(Api_url, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+  HttpConnect_ResponseLogEnable(httpCon);
+
+    if _isDebug{
+         var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(httpCon,bodyJSON);
+         var _sfileoutJSON : string = _sfileout + '_JSON_'+OleGenerateGUID+'.txt';
+         HttpConnect_SaveToFileEx(httpCon, JSONSJSON, _sfileoutJSON, cpUTF8, false);
+         PutFileToClient(_sfileoutJSON,false);
+      }
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Host: directumrxtst' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Username: '+ API_Username+ chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Password: '+ API_Password+ chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, methodstr, lAddUrl);
+
+    _try
+    {
+      if methodstr = '---miss_http_request---' {
+        result := True;
+        exit;
+      }
+
+      var lRequest: TPtr = HttpConnect_JSONObjectToString(httpCon, bodyJSON);
+      if _isDebug{
+           var _sfileoutJSON : string = _sfileout + '_JSON_onestring_'+OleGenerateGUID+'.txt';
+           HttpConnect_SaveToFileEx(httpCon, lRequest, _sfileoutJSON, cpUTF8, false);
+           PutFileToClient(_sfileoutJSON,false);
+        }
+
+      _try
+      {
+        /*
+        <li><code>httpCon</code> - идентификатор объекта для работы с HTTP (см. статью про <a href="art--HttpConnector_Init.htm">инициализация и деинициализацию объектов для работы с HTTP</a>)</li>
+        <li><code>lAddUrl</code> - строка с адресом ресурса на сервере (например, <code>'/auth/key'</code>)</li>
+        <li><code>lHeader</code> - идентификатор длинной строки с заголовком авторизации</li>
+        <li><code>lRequest</code> - идентификатор длинной строки с телом запроса</li>
+        <li><code>Async</code> - параметр, включающий псевдоасинхронность работы. Устанавливает таймаут в 2 сек и выходит без ошибки. Во всех иных случаях - false</li>
+        */
+        lResponse := HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+//        var jsonResponse : TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+        if (HttpConnect_LastError(httpCon) <> 0)
+          {
+           HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
+           logstrtofile(_logHttpConnect,HttpConnect_LastErrorText(httpCon));
+           if _isDebug{
+              message('При выполнении запроса возникла ошибка' +
+                  ''#13''+  HttpConnect_LastErrorText(httpCon) +
+                  ''#13''+ 'Лог ошибок в файле : ' + _logHttpConnect,error);
+              PutFileToClient(_logHttpConnect,false);
+            }
+            Exit;
+          }
+        var filelResponse : string = _sfileout + '_Response.txt' ;
+        HttpConnect_ResponseLogToFile(httpCon, filelResponse);
+        if _isDebug{
+/*            message('Запрос выполнен' +
+                   ''#13''+ 'ответ от директума в файле : ' +
+                   ''#13'' + filelResponse );
+*/
+           PutFileToClient(filelResponse,false);
+         }
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+   HttpConnect_Free(httpCon);
+  }
+  _lResponse := lResponse;
+  result := true;
+}
+
+end.

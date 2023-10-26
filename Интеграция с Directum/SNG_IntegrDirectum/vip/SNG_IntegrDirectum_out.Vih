@@ -10,27 +10,9 @@
 
 #component "API_DIRECTUM"
 
-
-#doc
-Класс для интеграции с Директумом.
-Содержит в себе все методы для интеграции
-#end
-objInterface ISNG_IntegrDirectum_out;
-
-end;
-
-vipInterface SNG_IntegrDirectum_out implements ISNG_IntegrDirectum_out
+vipInterface SNG_IntegrDirectum_out
   licensed(Free);
 public:
-#doc
-Зашифровать строку
-#end
- function encrypt(_str:string):string;
-
-#doc
-Расшифровать строку
-#end
- function decrypt(_str:string):string;
 
 #doc
 Создать приказ
@@ -92,5 +74,5 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
 
 
 end;
-        var _SNG_IntegrDirectum_out : SNG_IntegrDirectum_out;
+var _SNG_IntegrDirectum_out : SNG_IntegrDirectum_out;
 #end // __GLX586_VIH__

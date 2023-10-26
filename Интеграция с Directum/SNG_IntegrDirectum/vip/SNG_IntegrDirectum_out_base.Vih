@@ -1,0 +1,52 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// GLX586
+//------------------------------------------------------------------------------
+
+
+#ifndef _SNG_INTEGRDIRECTUM_OUT__BASE_INCLUDED_
+#define _SNG_INTEGRDIRECTUM_OUT__BASE_INCLUDED_
+
+#component "API_DIRECTUM"
+
+
+#doc
+Класс для интеграции с Директумом.
+Содержит в себе все методы для интеграции
+#end
+objInterface oSNG_IntegrDirectum_out_base;
+
+end;
+
+vipInterface SNG_IntegrDirectum_out_base implements oSNG_IntegrDirectum_out_base
+  licensed(Free);
+public:
+#doc
+Зашифровать строку
+#end
+ function encrypt(_str:string):string;
+
+#doc
+Расшифровать строку
+#end
+ function decrypt(_str:string):string;
+
+#doc
+костыль для экранирования - ждем решения от галактики
+#end
+function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;
+
+#doc
+set debug mode
+#end
+procedure set_debug_mode;
+
+#doc
+собственно сама отправка запроса в директум
+#end
+ Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
+
+end;
+var _SNG_IntegrDirectum_out_base : SNG_IntegrDirectum_out_base;
+#end // __GLX586_VIH__

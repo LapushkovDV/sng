@@ -6,6 +6,7 @@
 //#ifdef Atl60
 
 //#include SNG_IntegrDirectum_out.Vih
+#include SNG_IntegrDirectum_out_base.Vih
 #include SNG_IntegrDirectum_out.Vih
 #component "API_DIRECTUM"
 
@@ -14,14 +15,14 @@ interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, 
 
 Create view
 var
-   _isDebug : boolean;
+   _isDebug : boolean = false;
     API_url
   , API_Username
-  , API_Password
-  , API_methodFromTune : string;
+  , API_Password : string;
+
+   API_methodFromTune : string;
    API_method : byte;
   BodyMess   : string;
-  _getoutdir : string;
   _MainCrec : comp;
 as select
  catalogs.nrec
@@ -47,167 +48,8 @@ from
   , APPHIST
 ;
 
-/*
-эти две функции по сути своей - костыль для HttpConnect_JsonObjectAddString
-EscapeStr
-UnEscapeStr
-Шухман сказал, что исправит HttpConnect_JsonObjectAddString, вернее сделает новую...   HttpConnect_JsonObjectAddStringEsc
 
-ждемс и потом перейдем на нормальную
-*/
-function EscapeStr(Str:wideString):wideString;
-{
-  Str:=Replace(Str, '\', '\\');
-  Str:=Replace(Str, '/', '\/');
-  Str:=Replace(Str, '"', '\"');
-  Str:=Replace(Str, ''#10, '\n');
-  Str:=Replace(Str, ''#13, '\r');
 
-  result:=Str;
-}
-
-function UnEscapeStr(Str:wideString):wideString;
-{
-  Str:=Replace(Str, '\"', '"');
-  Str:=Replace(Str, '\/', '/');
-  Str:=Replace(Str, '\n', ''#10);
-  Str:=Replace(Str, '\r', ''#13);
-  Str:=Replace(Str, '\\', '\');
-
-  result:=Str;
-}
-function getoutdir : string;
-{
-  if _getoutdir = '' then {
-     _getoutdir := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0)); // ExDirectoryOut;
-//     MESSAGE('_getoutdir=' + _getoutdir + ' 0_0 ' + ExDirectoryOut);
-    }
-
-  result := _getoutdir
-}
-
-function encrypt(_str:string):string;{
-  var _strres : string = '';
-  var _i : byte = 1;
-  while _i <= length(_str)
-   {
-     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i);
-     _i++;
-   }
-   result := _strres;
-}
-function decrypt(_str:string):string;{
-  var _strres : string = '' ;
-  var _i : byte = 1;
-  while _i <= length(_str)
-   {
-     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i);
-     _i++;
-   }
-   result := _strres;
-}
-
-function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;{
-   result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
-}
-
-Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
-{
-  result := false;
- var _sfileout : string = getoutdir+ 'SNG_APIDIRECTUMOUT_DoRequest_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'_';
-
- var lResponse    : TPtr;
- var _logHttpConnect : string = _sfileout + '_logHttpConnect.log' ;
-  var httpCon: TPtr = longint(0);
-  var lHeader: TPtr = longint(0);
-
-  httpCon := HttpConnect_CreateEx(Api_url, '', '', True);
-  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
-  HttpConnect_ResponseLogEnable(httpCon);
-
-    if _isDebug{
-         var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(httpCon,bodyJSON);
-         var _sfileoutJSON : string = _sfileout + '_JSON_'+OleGenerateGUID+'.txt';
-         HttpConnect_SaveToFileEx(httpCon, JSONSJSON, _sfileoutJSON, cpUTF8, false);
-         PutFileToClient(_sfileoutJSON,false);
-      }
-  _try
-  {
-    lHeader := HttpConnect_CreateLongString(httpCon);
-    HttpConnect_AddValueToLongString(httpCon, 'Host: directumrxtst' + chr(13), lHeader);
-    HttpConnect_AddValueToLongString(httpCon, 'Username: '+ API_Username+ chr(13), lHeader);
-    HttpConnect_AddValueToLongString(httpCon, 'Password: '+ API_Password+ chr(13), lHeader);
-    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
-    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
-
-    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
-    HttpConnect_AddValueToLongString(httpCon, methodstr, lAddUrl);
-
-    _try
-    {
-      if methodstr = '---miss_http_request---' {
-        result := True;
-        exit;
-      }
-
-      var lRequest: TPtr = HttpConnect_JSONObjectToString(httpCon, bodyJSON);
-      if _isDebug{
-           var _sfileoutJSON : string = _sfileout + '_JSON_onestring_'+OleGenerateGUID+'.txt';
-           HttpConnect_SaveToFileEx(httpCon, lRequest, _sfileoutJSON, cpUTF8, false);
-           PutFileToClient(_sfileoutJSON,false);
-        }
-
-      _try
-      {
-        /*
-        <li><code>httpCon</code> - идентификатор объекта для работы с HTTP (см. статью про <a href="art--HttpConnector_Init.htm">инициализация и деинициализацию объектов для работы с HTTP</a>)</li>
-        <li><code>lAddUrl</code> - строка с адресом ресурса на сервере (например, <code>'/auth/key'</code>)</li>
-        <li><code>lHeader</code> - идентификатор длинной строки с заголовком авторизации</li>
-        <li><code>lRequest</code> - идентификатор длинной строки с телом запроса</li>
-        <li><code>Async</code> - параметр, включающий псевдоасинхронность работы. Устанавливает таймаут в 2 сек и выходит без ошибки. Во всех иных случаях - false</li>
-        */
-        lResponse := HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
-//        var jsonResponse : TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
-        if (HttpConnect_LastError(httpCon) <> 0)
-          {
-           HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
-           logstrtofile(_logHttpConnect,HttpConnect_LastErrorText(httpCon));
-           if _isDebug{
-              message('При выполнении запроса возникла ошибка' +
-                  ''#13''+  HttpConnect_LastErrorText(httpCon) +
-                  ''#13''+ 'Лог ошибок в файле : ' + _logHttpConnect,error);
-              PutFileToClient(_logHttpConnect,false);
-            }
-            Exit;
-          }
-        var filelResponse : string = _sfileout + '_Response.txt' ;
-        HttpConnect_ResponseLogToFile(httpCon, filelResponse);
-        if _isDebug{
-/*            message('Запрос выполнен' +
-                   ''#13''+ 'ответ от директума в файле : ' +
-                   ''#13'' + filelResponse );
-*/
-           PutFileToClient(filelResponse,false);
-         }
-      }
-      _finally
-      {
-        HttpConnect_DestroyLongString(httpCon, lRequest);
-      }
-    }
-    _finally
-    {
-      HttpConnect_DestroyLongString(httpCon, lHeader);
-      HttpConnect_DestroyLongString(httpCon, lAddUrl);
-    }
-  }
-  _finally
-  {
-   HttpConnect_Free(httpCon);
-  }
-  _lResponse := lResponse;
-  result := true;
-}
 procedure CreatePersonnelOrder_API_test;
 {
 /*
@@ -225,7 +67,7 @@ procedure CreatePersonnelOrder_API_test;
 //   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
 
 //   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
-   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
 
   var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
    HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00220401');
@@ -305,12 +147,6 @@ cmValue1: {
       end;
 }
 end;
-procedure gettunes;{
-    set API_url      := sgettune('DirectumIntegration_URL');
-    set API_Username := sgettune('DirectumIntegration_UserName');
-    set API_Password := decrypt(sgettune('DirectumIntegration_Password'));
-
-}
 
 Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
 {
@@ -318,9 +154,9 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
   на будущее
   просто пока есть, не используем, т.к. четкого использования поака нет
   */
- gettunes;
+ //gettunes;
  var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
- if DoRequest(methodstr, JSON, lResponse) {
+ if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSON, lResponse) {
    /*что то надо сделать*/
    result := True;
  }
@@ -340,18 +176,18 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
 */
   if getfirst TYPEPR_api where (( _cRec == TYPEPR_api.nrec)) <> tsOK then exit;
 
-   gettunes;
+//   gettunes;
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var methodstr : string = sgettune('DirectumIntegration_CreateUpdateRPD');
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelRPDStructure', JSONObj_Element);
 
 
 
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
         result := true;
        }
@@ -388,17 +224,17 @@ result := false;
 }}
   */
  if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'reasonStructure', JSONObj_Element);
 
 
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
         result := true;
        }
@@ -471,14 +307,14 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
  }
 */
  if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindTD');
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
 //    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
 //    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
 //    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTDStructure', JSONObj_Element);
     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindWorkContractStructure', JSONObj_Element);
@@ -486,7 +322,7 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
 
 
      var lResponse : TPtr;
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
         result := true;
        }
@@ -532,18 +368,18 @@ Function CreateUpdateKindTD_ALL() : boolean; {
  }
 */
  if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindDC');
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
    var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
 //    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
 //    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
 HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindAdditionalAgreementStructure', JSONObj_Element);
 
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         result := true;
        }
        else {
@@ -615,7 +451,7 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
       }
     exit;
   }
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_RPD1');
 
   _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 1 {
@@ -657,16 +493,16 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
 
     var cSpAllStaff_Nrec : comp = 0h;
@@ -677,7 +513,7 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
      var _MVHT3 : string = '0';
     if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
-                    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
+                    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_DAY', day(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_MONTH', month(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_YEAR', year(SpAllStaff_TD.RESDATE[2]));
@@ -690,26 +526,26 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
        if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
                           and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
              if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
-              my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
+              _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
               _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  'Значение РРК_место проведения работ'  );
               _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, 'РКС/МКС'  );
              }
          }
       }
     HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'MVHT1',_MVHT1); // Значение РРК_место проведения работ
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
 
     if contdoc.dat1 <> to_date(0,0,0) {
-      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
-      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
-      my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
     }
     HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'TAXRATE',apphist.taxrate);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
 
     var lResponse : tptr;
 
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
          var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
          result := true;
@@ -742,7 +578,7 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
       }
     exit;
   }
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_RPD8');
 
   _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 8 {
@@ -781,15 +617,15 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
 
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
@@ -800,30 +636,30 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
     */
     if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
-                    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
+                    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
                     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
                   }
 
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
 
      var lResponse : tptr;
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
         result := true;
@@ -854,7 +690,7 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
       }
     exit;
   }
- gettunes;
+// gettunes;
    var methodstr : string = sgettune('DirectumIntegration_RPD41');
 
   _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 41 {
@@ -890,17 +726,17 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_DAY', day(TITLEDOC.DOCDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_MONTH', month(TITLEDOC.DOCDATE));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_YEAR', year(TITLEDOC.DOCDATE));
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
 
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
 
     if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) = tsOK {
 
@@ -910,14 +746,14 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
        if getfirst KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) = tsOK {
 
          // Наименование компенсации: KlOtpusk.Notpus
-        my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
+        _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
        }
 
        // Компенсируемый отпуск:
        if getfirst PutVacation where ((PutVacCon.cPutVacation == PutVacation.nRec)) = tsOK{
           if getfirst KlOtpusk where ((PutVacation.cKlOtpusk == KlOtpusk.Nrec)) = tsOK {
           // // Компенсируемый отпуск: KlOtpusk.Notpus
-           my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
+           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
           }
          var _WorkPeriod : comp ;
           if PutVacation.wTypeVac = 0
@@ -925,16 +761,16 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
            else _WorkPeriod := PutVacation.cWPRemain;
          if getfirst WorkPeriod where ((_WorkPeriod == WorkPeriod.nrec)) = tsOK {
            // Отпуск/остаток за период : WorkPeriod.dPerBeg и WorkPeriod.dPerEnd.
-           my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' по '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
+           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' по '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
           }
        }
      }
 
 
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
-    my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
      var lResponse : tptr;
-     if DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
           var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
          result := true;
@@ -967,7 +803,7 @@ Procedure setvisiblefields;
 HandleEvent
 
 cmInit: {
-  gettunes;
+//  gettunes;
   API_method := 0;
   API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindDC');
   setvisiblefields;
@@ -976,6 +812,7 @@ cmInit: {
     set BodyMess := '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
   }
   _isDebug := true;
+  _SNG_IntegrDirectum_out_base.set_debug_mode;
   runwindowmodal(winDEBUGAPIRESTDIRECTUM);
   closeinterface(-1);
 }
