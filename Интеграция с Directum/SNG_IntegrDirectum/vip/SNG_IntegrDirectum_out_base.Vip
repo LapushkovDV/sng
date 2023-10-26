@@ -92,7 +92,8 @@ procedure gettunes;{
 }
 
 function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;{
-   result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
+//сказали убрать экранирование  result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, EscapeStr(_value));
+   result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, _value);
 }
 
 Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;

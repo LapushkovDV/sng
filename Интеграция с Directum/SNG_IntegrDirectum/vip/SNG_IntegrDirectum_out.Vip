@@ -28,6 +28,7 @@ as select
  catalogs.nrec
 from
     catalogs
+  , catalogs catalogs_2
   , catalogs catalogs_api
   , Catalogs cat_search
   , catalogs Catalogs_podr
@@ -284,9 +285,11 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
 
 // сказали, что вложенные не надо элементы result := CreateUpdateReasonForOrder_ALL_recursion(_cParent);
 //  _loop catalogs where ((_cParent == catalogs.cParent)) {
+//  теперь второй уровень надо говорят
   _loop catalogs where catalogs.cParent = _cParent {
-    var lResponse : tptr;
-     if CreateUpdateReasonForOrder_api(catalogs.nrec, lResponse) {
+    _loop catalogs_2 where catalogs_2.cParent = catalogs.nrec {
+     var lResponse : tptr;
+     if CreateUpdateReasonForOrder_api(catalogs_2.nrec, lResponse) {
        /*что то надо сделать или нет*/
         result := true;
        }
@@ -294,6 +297,7 @@ function CreateUpdateReasonForOrder_ALL(): boolean;{
          result := false;
          exit;
        }
+    }
   }
 }
 
