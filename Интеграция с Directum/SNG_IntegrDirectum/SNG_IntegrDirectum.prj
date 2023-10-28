@@ -26,7 +26,7 @@ LicenseControlInclude="ddd!.vpp"
 #include extattr.var
 
 
-#make "vip\CreateTune_SNG_IntegrDirectum_out.vip"
-#make "vip\IntrTune_SNG_IntegrDirectum_out.vip"
-#make "vip\SNG_IntegrDirectum_out_base.Vip"
 #make "vip\SNG_IntegrDirectum_out.Vip"
+#make "vip\IntrTune_SNG_IntegrDirectum_out.vip"
+#make "vip\CreateTune_SNG_IntegrDirectum_out.vip"
+#make "vip\SNG_IntegrDirectum_out_base.Vip"
