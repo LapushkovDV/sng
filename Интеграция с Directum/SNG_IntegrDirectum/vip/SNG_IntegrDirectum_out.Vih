@@ -59,18 +59,22 @@ Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
 #doc
 Сгенерировать и отправить JSON по РПД1 - переделать как дадут структуру от директума
 #end
-  function CreateJSON_RPD1(_cRec : comp) : boolean;
+  function CreateUpdate_RPD1(_cRec : comp) : boolean;
+
+#doc
+Сгенерировать и отправить JSON по трудовому договору
+#end
+function CreateUpdate_EmploymentContract(_cRec : comp): boolean;
 
 #doc
 Сгенерировать и отправить JSON по РПД8 - переделать как дадут структуру от директума
 #end
-  function CreateJSON_RPD8(_cRec : comp) : boolean;
+  function CreateUpdate_RPD8(_cRec : comp) : boolean;
 
 #doc
 Сгенерировать и отправить JSON по РПД8 - переделать как дадут структуру от директума
 #end
-  function CreateJSON_RPD41(_cRec : comp) : boolean;
-
+  function CreateUpdate_RPD41(_cRec : comp) : boolean;
 
 
 end;

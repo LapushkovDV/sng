@@ -4,15 +4,20 @@
 // CreatePersonnelOrder
 //------------------------------------------------------------------------------
 //#ifdef Atl60
-
+// 844424930131983
 //#include SNG_IntegrDirectum_out.Vih
+#include adrfunc.vih
 #include SNG_IntegrDirectum_out_base.Vih
 #include SNG_IntegrDirectum_out.Vih
 #component "API_DIRECTUM"
 
+const
+  co_unknown_value = '--не указано как заполнять--';
+end;
+
 interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, gray;
   show at (,, 90, 13);
-
+var todestroyJSON_obj: array[0..0] of TPTR;
 Create view
 var
    _isDebug : boolean = false;
@@ -24,6 +29,9 @@ var
    API_method : byte;
   BodyMess   : string;
   _MainCrec : comp;
+  _addrfunc: AddressFunc;
+  _mylog : string;
+  _sfileout : string;
 as select
  catalogs.nrec
 from
@@ -47,9 +55,22 @@ from
   , PutVacation
   , WorkPeriod
   , APPHIST
+  , TarStav
+  , katorg
+  , passports
+  , addressn
+  , klkatego
+  , klsovm
 ;
 
-
+procedure mylog(_str : string);
+ {
+   if _mylog = '' then  {
+     _sfileout := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0))+ 'SNG_APIDIRECTUMOUT_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+     _mylog := _sfileout+'.log';
+     }
+   logstrtofile(_mylog,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + '|'+_str );
+ }
 
 procedure CreatePersonnelOrder_API_test;
 {
@@ -107,9 +128,10 @@ fields
                                     , 2 'CreateUpdateKindTD'
                                     , 3 'CreateUpdateRPD'
                                     , 4 'CreateUpdateReasonForOrder'
-                                    , 5 'CreateJSON_RPD1'
-                                    , 6 'CreateJSON_RPD8'
-                                    , 7 'CreateJSON_RPD41'
+                                    , 5 'CreateUpdate_RPD1'
+                                    , 6 'CreateUpdate_RPD8'
+                                    , 7 'CreateUpdate_RPD41'
+                                    , 8 'CreateUpdate_EmploymentContract'
                                 ],protect;
   API_methodFromTune   ('Метод из настройки',,): Skip;
   _MainCrec  ('ссылка на экземпляр объекта - параметр для метода'): NoProtect;
@@ -142,9 +164,10 @@ cmValue1: {
          2 : CreateUpdateKindTD_ALL
          3 : CreateUpdateRPD_ALL
          4 : CreateUpdateReasonForOrder_ALL
-         5 : CreateJSON_RPD1(_MainCrec)
-         6 : CreateJSON_RPD8(_MainCrec)
-         7 : CreateJSON_RPD41(_MainCrec)
+         5 : CreateUpdate_RPD1(_MainCrec)
+         6 : CreateUpdate_RPD8(_MainCrec)
+         7 : CreateUpdate_RPD41(_MainCrec)
+         8 : CreateUpdate_EmploymentContract(_MainCrec)
       end;
 }
 end;
@@ -417,32 +440,37 @@ Function CreateUpdateKindDC_ALL() : boolean; {
   result :=  true;
 }
 
-function getpodrunder(_code : string; _crec , _cParent: comp) : string; {
+function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : string; {
 
   if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
    {
     if cat_search.code = _code {
         if getfirst fastfirstrow cat_search where ((_crec == cat_search.nrec)) = tsOK {
-          result := cat_search.longname ;
+          result := cat_search.nrec;
           exit;
         }
         else {
-         result := '';
+         result := 0h;
          exit;
 
         }
       }
       else {
-        result := getpodrunder(_code, cat_search.nrec, cat_search.cParent)
+        result := getpodrunder_nrec(_code, cat_search.nrec, cat_search.cParent)
       }
    }
    else {
-     result := '';
+     result := 0h;
      exit;
    }
 }
+function getpodrunder(_code : string; _crec , _cParent: comp) : string; {
+  result := '';
+  var _crec : comp = getpodrunder_nrec(_code, cat_search.nrec, cat_search.cParent);
+   if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname
+}
 
-function CreateJSON_RPD1(_cRec : comp) : boolean;{
+function CreateUpdate_RPD1(_cRec : comp) : boolean;{
   if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
     if _isDebug{
         message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
@@ -566,10 +594,781 @@ function CreateJSON_RPD1(_cRec : comp) : boolean;{
     HttpConnect_Free(m_service);
    }
   }
-}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {
+
+function getperson_passport_by_code(_cPers: comp; _code : string) : string; {
+result := '';
+ _loop Passports where ((_cPers == Passports.person))
+    and Passports.filialno = 0  { // не является предыдущим доком
+     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          if cat_search.code = _code then  {
+            result := cat_search.name ;
+            exit;
+           }
+        }
+      }
+}
+
+//Сгенерировать и отправить JSON по трудовому договору
+function CreateUpdate_EmploymentContract(_cRec : comp): boolean; {
+/*
+на вход подается NREC приказа на прием сотрудника РПД1
+*/
+   mylog('CreateUpdate_EmploymentContract   _cRec =' + string(_cRec,0,0));
+if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 1 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "Прием на работу" (РПД 1)',error)
+      }
+    exit;
+  }
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD1');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 1 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) '+
+            ''#13''+'CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) '+
+            ''#13''+'appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+      if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC)) <> tsOK  then {
+         if _isDebug{
+            message('В истории назначений не нашли ссылку на приказ (CONTDOC.nrec == APPHIST.CCONTDOC). '+
+            ''#13''+'APPHIST.CCONTDOC = ' + string(APPHIST.CCONTDOC,0,0),error)
+          }
+          continue;
+        }
+/*
+      if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В истории назначений не нашли ссылку на тарифную ставкц (AppHist.Tariff == TarStav.Nrec).'+
+            ''#13''+' AppHist.Tariff = ' + string(AppHist.Tariff,0,0),error)
+          }
+          continue;
+        }
+*/
+      if getfirst katorg where ((cogettune('myorg') == katorg.nrec)) <> tsOK then {
+         if _isDebug{
+            message('Не нашли собственную организацию по настройке "myorg" '+
+            ''#13''+' cogettune("myorg") = ' + string(cogettune('myorg'),0,0),error)
+          }
+          continue;
+        }
+
+/*
+В Галактике реализовать метод, в качестве входного параметра используется NREC приказа,
+приказ должен быть с типом РПД1, в приказе ищем ссылку на ТД и если он указан, то начинаем работу
+*/
+/*    if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
+                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) <> tsOK {
+*/
+     if getfirst SpAllStaff_TD where ((APPOINTMENTS.ResComp[1] == SpAllStaff_TD.nRec)) <> tsOK {
+         if _isDebug{
+            message('В приказе не нашли трудовой договор SpAllStaff_TD where ((APPOINTMENTS.ResComp[1] == SPALLSTAFF_TD.nRec'+
+            ''#13''+ 'APPOINTMENTS.ResComp[1] = ' + string(APPOINTMENTS.ResComp[1],0,0),error)
+          }
+          continue;
+       }
+    var cSpAllStaff_Nrec : comp = SpAllStaff_TD.nrec;
+
+     if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
+                        and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) <> tsOK {
+         if _isDebug{
+            message('В приказе не нашли связанную запись SpAllStaff с трудовым договором SpAllStaff_TD'+
+            ''#13''+'   SpAllStaff where ((16  == SpAllStaff_exp.wNoCon '+
+            ''#13''+'    and SpAllStaff_TD.nrec == SpAllStaff_exp.cBaseT))'+
+            ''#13''+ 'SpAllStaff_TD.nrec = ' + string(SpAllStaff_TD.nrec,0,0),error)
+          }
+          continue;
+       }
+
+   mylog('all checks OK');
 
 
-function CreateJSON_RPD8(_cRec : comp): boolean; {
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+
+   // шапка JSON
+     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'IdRX', 0); //ИД (ИД документа) написано EXTERNALASM. Поле NUMBERS[1], но как до него добраться ХЗ
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode'   , string(Titledoc.nrec,0,0)); // ИД РПД HR
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindEmploymentContract',string(SpAllStaff_TD.RESCOMP[1],0,0));  // Свойство <Вид договора> написано Целое число... но что то не представляю как это
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employee' , string(CONTDOC.LITABN));// свойство <Таб.номер>
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart', datetostr(SpAllStaff_TD.RESDATE[2], 'DD/MM/YYYY'));
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateEnd'  , datetostr(SpAllStaff_TD.RESDATE[3], 'DD/MM/YYYY'));
+     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Trial', calcdaysbetweendates(ContDoc.Dat1,SPALLSTAFF_TD.RESDATE[2],false));// в чем считать не сказали.... посчитаем в днях Свойство <Испытательный срок>  Вычисляемое поле: значение поля "Испытательный срок по" при заполнении РПД - дата заключения ТД ContDoc.Dat1-SPALLSTAFF.RESDATE[2]
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'UnitTrial', 'день');// также не сказали что тут писать .. Свойство <Исп. Срок (ед.изм.)>
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Shablon','-'); //в excel написано "-"
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',''); //Автор ХЗ что тут писаааать вообще... По табельному номеру вычислить работника по значению свойства <Таб.номер>: ищем записи справочника <Сотрудники> с состоянием <Действующая>
+     HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive', False);// по умолчанию  false
+
+     /*
+"Условие для параметра Notice:
+SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5
+- Запомнить значение SPALLSTAFF.NREC
+ПРи SPALLSTAFF.CBASET=SPALLSTAFF.NREC, SPALLSTAFF.WNOCON=16  SPALLSTAFF.RESWORD[1]= 32, то передать в параметр true, иначе false"
+
+
+мое мнение:
+SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошибка, но кто я такой чтобы спорить с аналитиками
+     */
+
+   var _Notice : boolean = False;
+/*
+   if getfirst SpAllStaff_tmp where ((5 == SpAllStaff_tmp.WNOCON
+                       and PERSONS.NREC == SpAllStaff_tmp.CBASET)) = tsOK {
+       var _SpAllStaff_tmp : comp = SpAllStaff_tmp.nrec;
+       if getfirst SpAllStaff_tmp where ((16 == SpAllStaff_tmp.WNOCON and
+                           _SpAllStaff_tmp == SpAllStaff_tmp.CBASET)) = tsOK {
+         if SpAllStaff_tmp.RESWORD[1]= 32 then _Notice := True;
+       }
+    }
+*/
+    if SpAllStaff_exp.RESWORD[1]= 32 then _Notice := True;
+     HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'Notice',_Notice);
+ // далее пойдет массив значений Content
+ // Param - ParamValue
+
+  var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+  mylog(' start JSONObj_Array');
+
+
+#declare addArrayElementString(param)
+  mylog(' addArrayElementString param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, '#param', _#param);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+#end
+
+#declare addArrayElementlongstring(param,longstring)
+  mylog(' addArrayElementlongstring param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, '#param', #longstring);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются     HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+// а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются    HttpConnect_DestroyLongString(m_service,#longstring);
+#end
+
+   var _rks_mks : string = '';
+   if getfirst cat_search where ((SpAllStaff_exp.ResComp[3] == cat_search.NREC)) = tsOK {
+      _rks_mks := sGetAttr(coCATALOGS, cat_search.Nrec, 'РКС/МКС'  );
+    }
+
+
+ var _DocParam, _DocKat, _DocTarifZone, _DocShablon, _Uved : string = '';
+
+      case SpAllStaff_exp.RESWORD[1] of
+       32  : _Uved := 'X'
+       64  : _DocKat := 'PR' // не описано как надо... по "галочкам" нашел так через журнал
+       128 : _DocKat := 'VOD' // не описано как надо... по "галочкам" нашел так через журнал
+      end;
+     #addArrayElementString(DocKat)
+     #addArrayElementString(Uved)
+
+     _DocParam := _rks_mks;
+     #addArrayElementString(DocParam)
+
+    if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) = tsOK  then {
+     if getfirst cat_search where ((TarStav.tarzone == cat_search.NREC)) = tsOK {
+         _DocTarifZone := cat_search.name
+       }
+     }
+     #addArrayElementString(DocTarifZone)
+
+/*
+
+"Условие для параметра DocShablon:
+1. Если DocParam=MKC и DocKat=PR, то загрузить шаблон TRUD_DOG_MKC_1512
+2. Если DocParam=MKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_MKC_VOD_1512
+3. Если DocParam=PKC и DocKat=PR, то загрузить шаблон TRUD_DOG_RKC_1512
+4. Если DocParam=PKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_RKC_VOD_1512
+5. Если DocParam=пусто и DocKat=PR и тарифная зона= ""Регион без РК"" , то загрузить шаблон TRUD_DOG_REG_1512
+6. Если DocParam=пусто и DocKat=PR и тарифная зона? ""Регион без РК"" , то загрузить шаблонили TRUD_DOG_1512
+7. Если DocParam=пусто и DocKat=VOD и тарифная зона= ""Регион без РК"", то загрузить шаблон TRUD_DOG_REG_VOD_1512
+8. Если DocParam=пусто и DocKat=VOD и тарифная зона? ""Регион без РК"", то загрузить шаблон TRUD_DOG_VOD_1512"
+*/
+// 1. Если DocParam=MKC и DocKat=PR, то загрузить шаблон TRUD_DOG_MKC_1512
+     if _DocParam = 'MKC' and _DocKat = 'PR' then _DocShablon := 'TRUD_DOG_MKC_1512';
+//2. Если DocParam=MKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_MKC_VOD_1512
+     if _DocParam = 'MKC' and _DocKat = 'VOD' then _DocShablon := 'TRUD_DOG_MKC_VOD_1512';
+//3. Если DocParam=PKC и DocKat=PR, то загрузить шаблон TRUD_DOG_RKC_1512
+     if _DocParam = 'PKC' and _DocKat = 'PR' then _DocShablon := 'TRUD_DOG_RKC_1512';
+//4. Если DocParam=PKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_RKC_VOD_1512
+     if _DocParam = 'PKC' and _DocKat = 'VOD' then _DocShablon := 'TRUD_DOG_RKC_VOD_1512';
+//5. Если DocParam=пусто и DocKat=PR и тарифная зона= ""Регион без РК"" , то загрузить шаблон TRUD_DOG_REG_1512
+     if _DocParam = '' and _DocKat = 'PR' and _DocTarifZone = 'Регион без РК' then _DocShablon := 'TRUD_DOG_REG_1512';
+//6. Если DocParam=пусто и DocKat=PR и тарифная зона <> ""Регион без РК"" , то загрузить шаблонили TRUD_DOG_1512
+     if _DocParam = '' and _DocKat = 'PR' and _DocTarifZone <> 'Регион без РК' then _DocShablon := 'TRUD_DOG_1512';
+//7. Если DocParam=пусто и DocKat=VOD и тарифная зона= ""Регион без РК"", то загрузить шаблон TRUD_DOG_REG_VOD_1512
+     if _DocParam = '' and _DocKat = 'VOD' and _DocTarifZone = 'Регион без РК' then _DocShablon := 'TRUD_DOG_REG_VOD_1512';
+//8. Если DocParam=пусто и DocKat=VOD и тарифная зона<> ""Регион без РК"", то загрузить шаблон TRUD_DOG_VOD_1512"
+     if _DocParam = '' and _DocKat = 'VOD' and _DocTarifZone <> 'Регион без РК' then _DocShablon := 'TRUD_DOG_VOD_1512';
+     #addArrayElementString(DocShablon)
+
+
+   var _NameORG, _NameOrgShort : string = '';
+     _NameORG := katorg.ShortName ;
+     _NameOrgShort := katorg.Name;
+     #addArrayElementString(NameORG)
+     #addArrayElementString(NameOrgShort)
+   var _cRec : comp = getpodrunder_nrec('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+   var _Gorod : string = sGetAttr(coCATALOGS, _cRec, 'Город');
+     #addArrayElementString(Gorod)
+   var _FioRuk  : string = ''; // как заполнять ХЗ
+     #addArrayElementString(FioRuk)
+   var _TabNum : string = '';
+     _TabNum := string(CONTDOC.LITABN);
+     #addArrayElementString(TabNum)
+   var _FIO: string = '';
+     _FIO := PERSONS.FIO;
+     #addArrayElementString(FIO)
+   var _NameWerks : string = '';
+     _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     #addArrayElementString(NameWerks)
+   var _NamePodr : string = '';
+     _NamePodr := Catalogs_podr.longname;
+     #addArrayElementString(NamePodr)
+   var _Adr :  string= '';
+      if getfirst addressn where ((persons.PASSPADDR == addressn.nrec)) = tsOK {
+        _Adr := _addrfunc.GetFullAddressInd(addressn.nrec);
+      }
+     #addArrayElementString(Adr)
+   var _AdrFakt :  string= '';
+      if getfirst addressn where ((persons.liveaddr == addressn.nrec)) = tsOK {
+        _AdrFakt := _addrfunc.GetFullAddressInd(addressn.nrec);
+      }
+     #addArrayElementString(AdrFakt)
+/*
+определение _DocTy
+"Если у работника НЕТ документа с видом=21 ""Паспорт гражданина РФ"", необходимо проверить наличие вида документа с кодом=10,
+то вывести ""Паспорт иностранного гражданина"";
+или  с кодом=12, то вывести ""Вид на жительство в РФ"".
+
+Условие для параметра:
+определить код вида документа (Данные о документе вносятся по кнопке ""Документы"" при заполнении РПД )
+Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASSPRUS == Passports.nRec and Passports.DocName == Catalogs.nRec)"
+
+*/
+
+   var _DocTy : string = '';
+      if getfirst Passports where ((Persons.PasspRus == Passports.Nrec)) = tsOK
+       and Passports.filialno = 0 { // не является предыдущим доком
+        if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          case cat_search.code of
+           '21': _DocTy := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+           '10': _DocTy := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+           '12': _DocTy := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+          end;
+        }
+      }
+      // как вариант основной документ не указан или не попадает под условия 21 10 12
+      // потому поищем просто среди доков
+#declare getperson_passport_by_code(code)
+ _loop Passports where ((persons.nrec == Passports.person))
+    and Passports.filialno = 0  { // не является предыдущим доком
+     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          if cat_search.code = #code then  {
+            case cat_search.code of
+             '21': _DocTy := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+             '10': _DocTy := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+             '12': _DocTy := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+            end;
+            break;
+           }
+        }
+      }
+#end
+      if _DocTy = '' {
+        #getperson_passport_by_code('21')
+      }
+      if _DocTy = '' {
+        #getperson_passport_by_code('21')
+      }
+      if _DocTy = '' {
+        #getperson_passport_by_code('21')
+      }
+     #addArrayElementString(DocTy)
+
+    // по идее после вышестоящего кода мы стоим как раз на нужном passports
+   var _Seriya : string= '';
+   var _Nomer  : string= '';
+   var _DateDoc : string= '';
+   var _KemVydan : string= '';
+     if _DocTy <> '' {
+       _Seriya   := passports.SER;
+       _Nomer    := passports.NMB;
+       _DateDoc  := passports.GIVENDATE;
+       _KemVydan := passports.GIVENBY;
+     }
+     #addArrayElementString(Seriya)
+     #addArrayElementString(Nomer)
+     #addArrayElementString(DateDoc)
+     #addArrayElementString(KemVydan)
+
+   var _TextShdol : string = '';
+   var _TextInstruk : string = '';
+   if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+     case klkatego.kod of
+      1,2,3 : { _TextShdol := 'на должность';
+                _TextInstruk := 'должностной';
+              }
+      4,5   : {_TextShdol := 'по профессии';
+               _TextInstruk := 'рабочей';
+              }
+     end;
+   }
+     #addArrayElementString(TextShdol)
+     #addArrayElementString(TextInstruk)
+
+   var _Shdol : string = '';
+     if getfirst cat_search where ((STAFFSTRUCT.Post == cat_search.nrec )) = tsOK {
+       _Shdol := cat_search.name;
+     }
+     #addArrayElementString(Shdol)
+
+   var _TextRab, _TextOtpusk, _TextGarant : string = '';
+   var _LongString : TPtr = HttpConnect_CreateLongString(m_service);
+     if getfirst KlSovm where ((word(ContDoc.cNew2) == KlSovm.Sovm)) = tsOK {
+         case KlSovm.Sovm of
+          0   : {_TextRab := 'Указанная в настоящем трудовом договоре работа является для Работника основной.';
+                 _TextOtpusk := 'На ежегодный оплачиваемый отпуск, предоставляемый в соответствии с графиками отпусков.';
+                 case _rks_mks of
+                  'МКС' : {HttpConnect_AddValueToLongString (m_service, 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'действующими в Обществе коллективным договором, локальными нормативными актами, в том числе ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'на гарантии и компенсации, связанные с работой и проживанием в местностях, приравненных к ра', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'йонам Крайнего Севера (оплата проезда к месту использования отпуска и обратно; оплата расход', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'ов, связанных с переездом, и другие), порядок, условия и размер предоставления которых опред', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'еляются Трудовым кодексом Российской Федерации, действующими в Обществе коллективным договор', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'ом, локальными нормативными актами.', _LongString);
+                        }
+
+                  'РКС' : {HttpConnect_AddValueToLongString (m_service, 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'действующими в Обществе коллективным договором, локальными нормативными актами, в том числе ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'на гарантии и компенсации, связанные с работой и проживанием в районах Крайнего Севера (опла', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'та проезда к месту использования отпуска и обратно; оплата расходов, связанных с переездом, ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'и другие), порядок, условия и размер предоставления которых определяются Трудовым кодексом Р', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'оссийской Федерации, действующими в Обществе коллективным договором, локальными нормативными', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, ' актами.',  _LongString);
+                        }
+                  ''    : {HttpConnect_AddValueToLongString (m_service, 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, ', _LongString);
+                           HttpConnect_AddValueToLongString (m_service, 'действующими в Обществе коллективным договором, локальными нормативными актами.',  _LongString);
+                        }
+                 end;
+              }
+          1,3 : {_TextRab := 'Указанная в настоящем трудовом договоре работа является для Работника работой по совместительству.';
+                 _TextOtpusk := 'На ежегодный оплачиваемый отпуск, предоставляемый в порядке статьи 286 Трудового кодекса Российской Федерации';
+                 if _rks_mks = '' {
+                    HttpConnect_AddValueToLongString (m_service, 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, действу', _LongString);
+                    HttpConnect_AddValueToLongString (m_service, 'ющими в Обществе коллективным договором, локальными нормативными актами, порядок, условия и размер ', _LongString);
+                    HttpConnect_AddValueToLongString (m_service, 'предоставления которых определяются Трудовым кодексом Российской Федерации, действующими в Обществе', _LongString);
+                    HttpConnect_AddValueToLongString (m_service, ' коллективным договором, локальными нормативными актами.',  _LongString);
+                 }
+              }
+         end;
+      }
+     #addArrayElementString(TextRab)
+     #addArrayElementString(TextOtpusk)
+     #addArrayElementlongstring(TextGarant,_LongString)
+
+
+   var _NameDogovor : string ='';
+    _NameDogovor := co_unknown_value;
+     #addArrayElementString(NameDogovor)
+
+   var _DogDateBegin : string = '';
+    _DogDateBegin := datetostr(SpAllStaff_TD.RESDATE[2], 'DD/MM/YYYY');
+     #addArrayElementString(DogDateBegin)
+
+   var _DogDateEnd : string = '';
+    _DogDateEnd := datetostr(SpAllStaff_TD.RESDATE[3], 'DD/MM/YYYY');
+     #addArrayElementString(DogDateEnd)
+
+   var _Trial : string = '';
+    _Trial := calcdaysbetweendates(ContDoc.Dat1,SPALLSTAFF_TD.RESDATE[2],false) ;
+     #addArrayElementString(Trial)
+
+   var _CharacRab : string = '';
+    _CharacRab := if(getfirst cat_search where ((Persons.JobNature == cat_search.nrec)) = tsOK, cat_search.name,'');
+     #addArrayElementString(CharacRab)
+
+   var _PunktSbora : string = '';
+    _PunktSbora := if(getfirst cat_search where ((SpAllStaff_exp.RESCOMP[4] == cat_search.nrec)) = tsOK, cat_search.name,'');
+     #addArrayElementString(PunktSbora)
+
+   var _TransVid : string = '';
+    _TransVid := if(getfirst cat_search where ((SpAllStaff_exp.RESCOMP[5] == cat_search.nrec)) = tsOK, cat_search.name,'');
+    #addArrayElementString(TransVid)
+
+   var _LongString_TextVred : TPtr = HttpConnect_CreateLongString(m_service);
+   var _SafeWork, _Regim, _TextVred : string = '';
+    if getfirst cat_search where ((APPOINTMENTS.WORKCOND == cat_search.nrec)) = tsOK {
+      case cat_search.code of
+       '1' : {_SafeWork := 'оптимальные - класс 1';
+              _Regim :='(до 40 часов)';
+                HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда в кол', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, 'ичестве и порядке, установленными действующим в Обществе коллективным договором и', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, ' нормативными правовыми актами Российской Федераци', _LongString_TextVred);
+
+           }
+       '2' : {_SafeWork := 'допустимые - класс 2';
+              _Regim :='(до 40 часов)';
+                HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда в кол', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, 'ичестве и порядке, установленными действующим в Обществе коллективным договором и', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, ' нормативными правовыми актами Российской Федераци', _LongString_TextVred);
+           }
+      end;
+    }
+    #addArrayElementString(SafeWork)
+    #addArrayElementString(Regim)
+
+
+   var _LongString_Regim3 : TPtr = HttpConnect_CreateLongString(m_service);
+
+   var _UnSafeWork, _RegimV, _Regim1, _Regim2, _Regim33, _Regim3 : string = '';
+    if getfirst cat_search where ((APPOINTMENTS.WORKCOND == cat_search.nrec)) = tsOK {
+      case cat_search.code of
+       '3.1' : {_UnSafeWork := 'вредные 1 степени - подкласс 3.1';
+                _Regim1 := 'в неделю в соответствии с действующим в Обществе коллективным договором;';
+                HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда в кол', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, 'ичестве и порядке, установленными действующим в Обществе коллективным договором и', _LongString_TextVred);
+                HttpConnect_AddValueToLongString (m_service, ' нормативными правовыми актами Российской Федераци', _LongString_TextVred);
+             }
+       '3.2' : {_UnSafeWork := 'вредные 2 степени - подкласс 3.2';
+                _Regim1 := 'в неделю в соответствии с действующим в Обществе коллективным договором;';
+                 HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда ____ ', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'календарных дней в порядке и на условиях, которые установлены действующим в Общес', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'тве коллективным договором и нормативными правовыми актами Российской Федерации.', _LongString_TextVred);
+
+             }
+       '3.3' : { _UnSafeWork := 'вредные 3 степени - подкласс 3.3';
+                 _RegimV := 'увеличенная продолжительность рабочего времени ______________';
+                 _Regim2 := 'максимально допустимая продолжительность ежедневной работы (смены) увеличена до _____ часов';
+                 HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда ____ ', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'календарных дней в порядке и на условиях, которые установлены действующим в Общес', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'тве коллективным договором и нормативными правовыми актами Российской Федерации.', _LongString_TextVred);
+                 _Regim33  := 'гарантированные выплаты:';
+                 HttpConnect_AddValueToLongString (m_service, 'за увеличение продолжительности рабочего времени свыше 36 часов в неделю ежемесяч',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'но выплачивается денежная компенсация в размере ____ % часовой ставки (оклада) за',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, ' каждый час работы сверх 36 до 40 часов в неделю (при суммированном учете рабочег',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'о времени - суммарно за месяц).',_LongString_Regim3);
+
+             }
+       '3.4' : {_UnSafeWork := 'вредные 4 степени - подкласс 3.4';
+                 _RegimV := 'увеличенная продолжительность рабочего времени ______________';
+                 _Regim2 := 'максимально допустимая продолжительность ежедневной работы (смены) увеличена до _____ часов';
+                 HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда ____ ', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'календарных дней в порядке и на условиях, которые установлены действующим в Общес', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'тве коллективным договором и нормативными правовыми актами Российской Федерации.', _LongString_TextVred);
+                 _Regim33  := 'гарантированные выплаты:';
+                 HttpConnect_AddValueToLongString (m_service, 'за увеличение продолжительности рабочего времени свыше 36 часов в неделю ежемесяч',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'но выплачивается денежная компенсация в размере ____ % часовой ставки (оклада) за',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, ' каждый час работы сверх 36 до 40 часов в неделю (при суммированном учете рабочег',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'о времени - суммарно за месяц).',_LongString_Regim3);
+
+             }
+       '4'   : {_UnSafeWork := 'опасные - класс 4';
+                 _RegimV := 'увеличенная продолжительность рабочего времени ______________';
+                 _Regim2 := 'максимально допустимая продолжительность ежедневной работы (смены) увеличена до _____ часов';
+                 HttpConnect_AddValueToLongString (m_service, 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда ____ ', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'календарных дней в порядке и на условиях, которые установлены действующим в Общес', _LongString_TextVred);
+                 HttpConnect_AddValueToLongString (m_service, 'тве коллективным договором и нормативными правовыми актами Российской Федерации.', _LongString_TextVred);
+                 _Regim33  := 'гарантированные выплаты:';
+                 HttpConnect_AddValueToLongString (m_service, 'за увеличение продолжительности рабочего времени свыше 36 часов в неделю ежемесяч',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'но выплачивается денежная компенсация в размере ____ % часовой ставки (оклада) за',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, ' каждый час работы сверх 36 до 40 часов в неделю (при суммированном учете рабочег',_LongString_Regim3);
+                 HttpConnect_AddValueToLongString (m_service, 'о времени - суммарно за месяц).',_LongString_Regim3);
+             }
+      end;
+    }
+    #addArrayElementString(UnSafeWork)
+    #addArrayElementString(RegimV)
+    #addArrayElementString(Regim1)
+    #addArrayElementString(Regim2)
+    #addArrayElementLongString(TextVred,_LongString_TextVred)
+    #addArrayElementString(Regim33)
+    #addArrayElementLongString(Regim3,_LongString_Regim3)
+
+   var _RegimR : string = '';
+   //написано так: по коду режима работы определить график работы  APPOINTMENTS.WORKREGIME == KLREJIM.NREC.. но что и как не написано
+    _RegimR := co_unknown_value;
+    #addArrayElementString(RegimR)
+
+   var _RegimO  : string = '';
+   //написано так: по коду режима работы определить график работы  APPOINTMENTS.WORKREGIME == KLREJIM.NREC.. но что и как не написано
+    _RegimO := co_unknown_value;
+    #addArrayElementString(RegimO)
+
+   var _Summ1 : string = '';
+    _Summ1 := '1' ;
+    #addArrayElementString(Summ1)
+
+   var _Summ2 : string = '';
+    _Summ2 := 'Годы' ;
+    #addArrayElementString(Summ2)
+
+   var _TextKadin : string = '';
+    _TextKadin := co_unknown_value;
+    #addArrayElementString(TextKadin)
+
+   var _TextKadin2 : string = '';
+    _TextKadin2 := co_unknown_value;
+    #addArrayElementString(TextKadin2)
+
+   var _Oklad_D : string = '';
+   if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+     case klkatego.kod of
+      1,2,3 : { _Oklad_D := string(Appointments.TaxRate);
+            }
+     end;
+   }
+    #addArrayElementString(Oklad_D)
+
+   var _Text1Oklad_D : string = 'должностной оклад';
+    #addArrayElementString(Text1Oklad_D)
+
+   var _Text2Oklad_D : string = 'руб. в месяц.';
+    #addArrayElementString(Text2Oklad_D)
+
+   var _Oklad_P : string = '';
+    _Oklad_P := co_unknown_value;
+/* условия написано, а что брать нет 0_о
+   if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+     case klkatego.kod of
+      1,2,3,5 : { _Oklad_P := string(Appointments.TaxRate);
+            }
+     end;
+   }
+*/
+    #addArrayElementString(Oklad_P)
+
+   var _Text1Oklad_P : string = 'персональный оклад';
+    #addArrayElementString(Text1Oklad_P)
+
+   var _Text2Oklad_P : string = 'руб. в месяц;';
+    #addArrayElementString(Text2Oklad_P)
+
+   var _Oklad_M : string = '';
+    _Oklad_M := co_unknown_value;
+/* условия написано, а что брать нет 0_о
+   if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+     case klkatego.kod of
+      5 : { _Oklad_M := string(Appointments.TaxRate);
+            }
+     end;
+   }
+*/
+
+    #addArrayElementString(Oklad_M)
+
+   var _Text1Oklad_M : string = '';
+    _Text1Oklad_M := 'месячный оклад';
+    #addArrayElementString(Text1Oklad_M)
+
+   var _Text2Oklad_M : string = '';
+    _Text2Oklad_M := 'руб. в месяц;';
+    #addArrayElementString(Text2Oklad_M)
+
+   var _Text3Oklad_M : string = '';
+    _Text3Oklad_M := 'если Работником в течение месяца полностью отработана определенная на этот период норма рабочего времени';
+    #addArrayElementString(Text3Oklad_M)
+
+   var _Text4Oklad_M : string = '';
+    _Text4Oklad_M := '(указать дату)';
+    #addArrayElementString(Text4Oklad_M)
+
+   var _Tarif : string = '';
+    if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+       case klkatego.kod of
+        4 : { _Tarif := string(Appointments.TaxRate); //рабочие-тарифники
+           }
+       end;
+     }
+    #addArrayElementString(Tarif)
+
+   var _Text1Tarif : string = 'часовую тарифную ставку';
+    #addArrayElementString(Text1Tarif)
+
+   var _Text2Tarif : string = 'руб. в ч.';
+    #addArrayElementString(Text2Tarif)
+
+   var _Tarif_P : string = '';
+    _Tarif_P := co_unknown_value;
+/* условия написано, а что брать нет 0_о
+   if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
+     case klkatego.kod of
+      4 : { _Tarif_P := string(Appointments.TaxRate);
+            }
+     end;
+*/
+    #addArrayElementString(Tarif_P)
+
+   var _Text1Tarif_P : string = 'персональную ставку';
+    #addArrayElementString(Text1Tarif_P)
+
+   var _Text2Tarif_P : string = 'руб. в час.';
+    #addArrayElementString(Text2Tarif_P)
+
+   var _RaionKoef : string = '';
+/*
+ну тут ХЗ... никак не описано, но попробуем TarStav.tarzone == cat_search.NREC
+а там подождем от АНАЛитиков замечаний
+*/
+    if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) = tsOK  then {
+     if getfirst cat_search where ((TarStav.tarzone == cat_search.NREC)) = tsOK {
+         case cat_search.code of
+          '01' : _RaionKoef := '1'    //= 01 Регион без РК - выводить значение ""-""
+          '02' : _RaionKoef := '1.2'  //= 02 Регион 20% -  выводить значение ""1.2""
+          '03' : _RaionKoef := '1.3'  //= 03 Регион 30% - выводить значение ""1.3""
+          '04' : _RaionKoef := '1.4'  //= 04 Регион 40% - выводить значение ""1.4""
+          '05' : _RaionKoef := '1.5'  //= 05 Регион 50% - выводить значение ""1.5""
+          '07' : _RaionKoef := '1.7'  //= 07 Регион 70% -  выводить значение ""1.7""
+          '08' : _RaionKoef := '1.8'  //= 08 Регион 80% -  выводить значение ""1.8""
+          '15' : _RaionKoef := '1.15' //= 15 Регион 15% -  выводить значение ""1.15""
+          '17' : _RaionKoef := '1.7'//= 17 Якутия 70% - выводить значение ""1.7""
+          '27' : _RaionKoef := '1.7'//= 27 Регион 70% (вредн.) - выводить значение ""1.7""
+          '37' : _RaionKoef := '1.5'//= 37 Регион 50% (вредн.) - выводить значение ""1.5""
+         end;
+       }
+     }
+    #addArrayElementString(RaionKoef)
+
+   var _SevKoef : string = '';
+    _SevKoef := co_unknown_value;
+    #addArrayElementString(SevKoef)
+
+   var _Sverhur : string = '';
+    _Sverhur := co_unknown_value;
+    #addArrayElementString(Sverhur)
+
+
+   var _LongString_Vahta_N : TPtr = HttpConnect_CreateLongString(m_service);
+   var _Vahta_N : string = '';
+    if getfirst cat_search where ((Persons.JobNature == cat_search.nrec)) = tsOK {
+      if upcase(cat_search.name) = upcase('вахтовый') then {
+           HttpConnect_AddValueToLongString (m_service, 'за каждый день нахождения в пути от места нахождения работодателя (пункта сбора) до места', _LongString_Vahta_N);
+           HttpConnect_AddValueToLongString (m_service, 'выполнения работы и обратно, предусмотренные графиком работы на вахте, а также за дни зад', _LongString_Vahta_N);
+           HttpConnect_AddValueToLongString (m_service, 'ержки в пути по метеорологическим условиям или вине транспортных организаций дневную став', _LongString_Vahta_N);
+           HttpConnect_AddValueToLongString (m_service, 'ку (часть оклада за день работы (дневную ставку) исходя из 8 часов,  установленную на пос', _LongString_Vahta_N);
+           HttpConnect_AddValueToLongString (m_service, 'ледний рабочий день, предшествующий дню (дням) нахождения работника в пути.', _LongString_Vahta_N);
+       }
+    }
+    #addArrayElementlongstring(Vahta_N,_LongString_Vahta_N)
+
+
+
+ /*
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+
+
+
+    var cSpAllStaff_Nrec : comp = 0h;
+
+     var _MVHT1 : double = 0;
+     var _MVHT3 : string = '0';
+    if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
+                                     and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
+                    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOG' , SpAllStaff_TD.ResString[1]);
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_DAY', day(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_MONTH', month(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DOG_YEAR', year(SpAllStaff_TD.RESDATE[2]));
+                    cSpAllStaff_Nrec := SpAllStaff_TD.nrec;
+                  }
+
+    if cSpAllStaff_Nrec <> 0h {
+       if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
+                          and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
+             if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
+              _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
+              _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  'Значение РРК_место проведения работ'  );
+              _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, 'РКС/МКС'  );
+             }
+         }
+      }
+    HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'MVHT1',_MVHT1); // Значение РРК_место проведения работ
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
+
+    if contdoc.dat1 <> to_date(0,0,0) {
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
+    }
+    HttpConnect_JsonObjectAddDouble(m_service, JSONObj, 'TAXRATE',apphist.taxrate);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN' , CONTDOC.SBOTTOM);
+
+*/
+
+    if _isDebug{
+         var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(m_service,JSONObj_Array);
+         var _sfileoutJSON : string = _sfileout + '_JSON_ARRAY_'+OleGenerateGUID+'.json';
+         HttpConnect_SaveToFileEx(m_service, JSONSJSON, _sfileoutJSON, cpUTF8, false);
+         PutFileToClient(_sfileoutJSON,false);
+      }
+
+
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'Content', JSONObj_Array);
+    mylog('after HttpConnect_JsonObjectAddObject(m_service, JSONObj, "Content", JSONObj_Array);')
+
+    var lResponse : tptr;
+
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+         result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Array);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}
+
+function CreateUpdate_RPD8(_cRec : comp): boolean; {
   if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
     if _isDebug{
         message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
@@ -679,9 +1478,9 @@ function CreateJSON_RPD8(_cRec : comp): boolean; {
     HttpConnect_Free(m_service);
    }
   }
-}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {
 
-function CreateJSON_RPD41(_cRec : comp): boolean; {
+function CreateUpdate_RPD41(_cRec : comp): boolean; {
   if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
     if _isDebug{
         message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
@@ -790,7 +1589,7 @@ function CreateJSON_RPD41(_cRec : comp): boolean; {
     HttpConnect_Free(m_service);
    }
   }
-}   //end function CreateJSON_RPD1(_cRec : comp): string; {
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {
 
 
 
@@ -799,7 +1598,7 @@ Procedure setvisiblefields;
   var _isVisible: boolean = False;
        case API_method of
          0,1,2,3,4 : _isVisible := False;
-         5,6,7 : _isVisible := true;
+         5,6,7,8 : _isVisible := true;
        end;
  cfssetprop('L_SCRDEBUGAPIRESTDIRECTUM_cREC','Visible', _isVisible) ;
  cfssetprop('i_SCRDEBUGAPIRESTDIRECTUM_MAINCREC','Visible', _isVisible)
@@ -835,11 +1634,13 @@ cmCheckField: {
               }
          4 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
               }
-         5 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD1');//CreateJSON_RPD1
+         5 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD1');//CreateUpdate_RPD1
               }
-         6 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD8');//CreateJSON_RPD8
+         6 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD8');//CreateUpdate_RPD8
               }
-         7 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD41');//CreateJSON_RPD41
+         7 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD41');//CreateUpdate_RPD41
+              }
+         8 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateEmploymentContract');//CreateUpdate_RPD41
               }
        end;
    end;
