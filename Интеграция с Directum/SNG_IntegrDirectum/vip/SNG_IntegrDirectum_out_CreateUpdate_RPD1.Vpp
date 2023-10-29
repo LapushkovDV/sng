@@ -57,9 +57,9 @@ function CreateUpdate_RPD1(_cRec : comp) : boolean;{
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, co_formatdatetostr));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, co_formatdatetostr));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, co_formatdatetostr)));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
@@ -83,9 +83,9 @@ function CreateUpdate_RPD1(_cRec : comp) : boolean;{
        какие то поля MVHT -_-
      */
     if cSpAllStaff_Nrec <> 0h {
-       if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
-                          and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
-             if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
+       if getfirst SpAllStaff_16 where (( 16  == SpAllStaff_16.wNoCon // cgAllStaffExp = 16
+                          and cSpAllStaff_Nrec == SpAllStaff_16.cBaseT)) = tsOK {
+             if getfirst Catalogs_api where ((SpAllStaff_16.ResComp[3] == Catalogs_api.NREC)) = tsOK {
               _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
               _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  'Значение РРК_место проведения работ'  );
               _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, 'РКС/МКС'  );
@@ -96,7 +96,7 @@ function CreateUpdate_RPD1(_cRec : comp) : boolean;{
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
 
     if contdoc.dat1 <> to_date(0,0,0) {
-      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,co_formatdatetostr));
       _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
       _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
     }

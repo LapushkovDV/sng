@@ -83,7 +83,7 @@ function CreateUpdate_RPD41(_cRec : comp): boolean; {
            else _WorkPeriod := PutVacation.cWPRemain;
          if getfirst WorkPeriod where ((_WorkPeriod == WorkPeriod.nrec)) = tsOK {
            // Отпуск/остаток за период : WorkPeriod.dPerBeg и WorkPeriod.dPerEnd.
-           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' по '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
+           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,co_formatdatetostr) + ' по '+ datetostr(WorkPeriod.dPerEnd,co_formatdatetostr));
           }
        }
      }

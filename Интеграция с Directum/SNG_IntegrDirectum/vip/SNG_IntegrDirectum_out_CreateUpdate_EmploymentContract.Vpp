@@ -87,12 +87,12 @@ if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
        }
     var cSpAllStaff_Nrec : comp = SpAllStaff_TD.nrec;
 
-     if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
-                        and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) <> tsOK {
+     if getfirst SpAllStaff_16 where (( 16  == SpAllStaff_16.wNoCon // cgAllStaffExp = 16
+                        and cSpAllStaff_Nrec == SpAllStaff_16.cBaseT)) <> tsOK {
          if _isDebug{
             message('В приказе не нашли связанную запись SpAllStaff с трудовым договором SpAllStaff_TD'+
-            ''#13''+'   SpAllStaff where ((16  == SpAllStaff_exp.wNoCon '+
-            ''#13''+'    and SpAllStaff_TD.nrec == SpAllStaff_exp.cBaseT))'+
+            ''#13''+'   SpAllStaff where ((16  == SpAllStaff_16.wNoCon '+
+            ''#13''+'    and SpAllStaff_TD.nrec == SpAllStaff_16.cBaseT))'+
             ''#13''+ 'SpAllStaff_TD.nrec = ' + string(SpAllStaff_TD.nrec,0,0),error)
           }
           continue;
@@ -109,8 +109,8 @@ if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode'   , string(Titledoc.nrec,0,0)); // ИД РПД HR
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindEmploymentContract',string(SpAllStaff_TD.RESCOMP[1],0,0));  // Свойство <Вид договора> написано Целое число... но что то не представляю как это
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employee' , string(CONTDOC.LITABN));// свойство <Таб.номер>
-     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart', datetostr(SpAllStaff_TD.RESDATE[2], 'DD/MM/YYYY'));
-     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateEnd'  , datetostr(SpAllStaff_TD.RESDATE[3], 'DD/MM/YYYY'));
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart', datetostr(SpAllStaff_TD.RESDATE[2], co_formatdatetostr));
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateEnd'  , datetostr(SpAllStaff_TD.RESDATE[3], co_formatdatetostr));
      HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Trial', calcdaysbetweendates(ContDoc.Dat1,SPALLSTAFF_TD.RESDATE[2],false));// в чем считать не сказали.... посчитаем в днях Свойство <Испытательный срок>  Вычисляемое поле: значение поля "Испытательный срок по" при заполнении РПД - дата заключения ТД ContDoc.Dat1-SPALLSTAFF.RESDATE[2]
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'UnitTrial', 'день');// также не сказали что тут писать .. Свойство <Исп. Срок (ед.изм.)>
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Shablon','-'); //в excel написано "-"
@@ -139,7 +139,7 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошиб
        }
     }
 */
-    if SpAllStaff_exp.RESWORD[1]= 32 then _Notice := True;
+    if SpAllStaff_16.RESWORD[1]= 32 then _Notice := True;
      HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'Notice',_Notice);
  // далее пойдет массив значений Content
  // Param - ParamValue
@@ -166,14 +166,14 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошиб
 #end
 
    var _rks_mks : string = '';
-   if getfirst cat_search where ((SpAllStaff_exp.ResComp[3] == cat_search.NREC)) = tsOK {
+   if getfirst cat_search where ((SpAllStaff_16.ResComp[3] == cat_search.NREC)) = tsOK {
       _rks_mks := sGetAttr(coCATALOGS, cat_search.Nrec, 'РКС/МКС'  );
     }
 
 
  var _DocParam, _DocKat, _DocTarifZone, _DocShablon, _Uved : string = '';
 
-      case SpAllStaff_exp.RESWORD[1] of
+      case SpAllStaff_16.RESWORD[1] of
        32  : _Uved := 'X'
        64  : _DocKat := 'PR' // не описано как надо... по "галочкам" нашел так через журнал
        128 : _DocKat := 'VOD' // не описано как надо... по "галочкам" нашел так через журнал
@@ -267,42 +267,8 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
 */
 
    var _DocTy : string = '';
-      if getfirst Passports where ((Persons.PasspRus == Passports.Nrec)) = tsOK
-       and Passports.filialno = 0 { // не является предыдущим доком
-        if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
-          case cat_search.code of
-           '21': _DocTy := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
-           '10': _DocTy := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
-           '12': _DocTy := 'Вид на жительство в РФ' // а я бы делал cat_search.name
-          end;
-        }
-      }
-      // как вариант основной документ не указан или не попадает под условия 21 10 12
-      // потому поищем просто среди доков
-#declare getperson_passport_by_code(code)
- _loop Passports where ((persons.nrec == Passports.person))
-    and Passports.filialno = 0  { // не является предыдущим доком
-     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
-          if cat_search.code = #code then  {
-            case cat_search.code of
-             '21': _DocTy := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
-             '10': _DocTy := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
-             '12': _DocTy := 'Вид на жительство в РФ' // а я бы делал cat_search.name
-            end;
-            break;
-           }
-        }
-      }
-#end
-      if _DocTy = '' {
-        #getperson_passport_by_code('21')
-      }
-      if _DocTy = '' {
-        #getperson_passport_by_code('21')
-      }
-      if _DocTy = '' {
-        #getperson_passport_by_code('21')
-      }
+   _DocTy := getpassport_string(Passports.DocName,persons.nrec);
+
      #addArrayElementString(DocTy)
 
     // по идее после вышестоящего кода мы стоим как раз на нужном passports
@@ -392,11 +358,11 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
      #addArrayElementString(NameDogovor)
 
    var _DogDateBegin : string = '';
-    _DogDateBegin := datetostr(SpAllStaff_TD.RESDATE[2], 'DD/MM/YYYY');
+    _DogDateBegin := datetostr(SpAllStaff_TD.RESDATE[2], co_formatdatetostr);
      #addArrayElementString(DogDateBegin)
 
    var _DogDateEnd : string = '';
-    _DogDateEnd := datetostr(SpAllStaff_TD.RESDATE[3], 'DD/MM/YYYY');
+    _DogDateEnd := datetostr(SpAllStaff_TD.RESDATE[3], co_formatdatetostr);
      #addArrayElementString(DogDateEnd)
 
    var _Trial : string = '';
@@ -408,11 +374,11 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
      #addArrayElementString(CharacRab)
 
    var _PunktSbora : string = '';
-    _PunktSbora := if(getfirst cat_search where ((SpAllStaff_exp.RESCOMP[4] == cat_search.nrec)) = tsOK, cat_search.name,'');
+    _PunktSbora := if(getfirst cat_search where ((SpAllStaff_16.RESCOMP[4] == cat_search.nrec)) = tsOK, cat_search.name,'');
      #addArrayElementString(PunktSbora)
 
    var _TransVid : string = '';
-    _TransVid := if(getfirst cat_search where ((SpAllStaff_exp.RESCOMP[5] == cat_search.nrec)) = tsOK, cat_search.name,'');
+    _TransVid := if(getfirst cat_search where ((SpAllStaff_16.RESCOMP[5] == cat_search.nrec)) = tsOK, cat_search.name,'');
     #addArrayElementString(TransVid)
 
    var _LongString_TextVred : TPtr = HttpConnect_CreateLongString(m_service);
@@ -677,9 +643,9 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, 'DD/MM/YYYY'));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, 'DD/MM/YYYY')));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, co_formatdatetostr));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DPRIEM', datetostr(CONTDOC.DPRIK, co_formatdatetostr));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DKON'  , if(APPOINTMENTS.DATEEND = to_date(0,0,0),'',datetostr(APPOINTMENTS.DATEEND, co_formatdatetostr)));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
@@ -701,9 +667,9 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
                   }
 
     if cSpAllStaff_Nrec <> 0h {
-       if getfirst SpAllStaff_exp where (( 16  == SpAllStaff_exp.wNoCon // cgAllStaffExp = 16
-                          and cSpAllStaff_Nrec == SpAllStaff_exp.cBaseT)) = tsOK {
-             if getfirst Catalogs_api where ((SpAllStaff_exp.ResComp[3] == Catalogs_api.NREC)) = tsOK {
+       if getfirst SpAllStaff_16 where (( 16  == SpAllStaff_16.wNoCon // cgAllStaffExp = 16
+                          and cSpAllStaff_Nrec == SpAllStaff_16.cBaseT)) = tsOK {
+             if getfirst Catalogs_api where ((SpAllStaff_16.ResComp[3] == Catalogs_api.NREC)) = tsOK {
               _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT2', Catalogs_api.name); // Наименование места проведения работ
               _MVHT1 := doGetAttr(coCATALOGS, Catalogs_api.Nrec,  'Значение РРК_место проведения работ'  );
               _MVHT3 := sGetAttr(coCATALOGS, Catalogs_api.Nrec, 'РКС/МКС'  );
@@ -714,7 +680,7 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'MVHT3', _MVHT3); // РКС/МКС
 
     if contdoc.dat1 <> to_date(0,0,0) {
-      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,'DD.MM.YYYY'));
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SROK_ISP', datetostr(contdoc.dat1,co_formatdatetostr));
       _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT1', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
       _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRBZT2', 'НЕ СКАЗАЛИ, ЧТО ПЕРЕДАВАТЬ');
     }

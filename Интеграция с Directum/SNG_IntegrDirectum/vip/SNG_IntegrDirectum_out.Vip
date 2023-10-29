@@ -13,6 +13,7 @@
 
 const
   co_unknown_value = '--не указано как заполнять--';
+  co_formatdatetostr = 'DD/MM/YYYY'; // никто не сказал в каком виде передавать...
 end;
 
 interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, gray;
@@ -49,7 +50,9 @@ from
   , TYPEPR TYPEPR_api
   , staffStruct
   , SpAllStaff SpAllStaff_TD
-  , SpAllStaff SpAllStaff_exp
+  , SpAllStaff SpAllStaff_16
+  , SpAllStaff SpAllStaff_pers
+  , SpAllStaff SpAllStaff_6
   , PutVacCon
   , KlOtpusk
   , PutVacation
@@ -61,6 +64,8 @@ from
   , addressn
   , klkatego
   , klsovm
+  , externalasm
+  , raise
 ;
 
 procedure mylog(_str : string);
@@ -117,6 +122,62 @@ result := '';
         }
       }
 }
+
+function getsumraise(_cPers, _appoint: comp; _date : date): double; {
+//надбавка RAISE.SUM при RAISE.FROMDATE<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= RAISE.TODATE"
+  var _result : double = 0;
+  _loop RAISE where ((_cPers == RAISE.PERSON
+                and _appoint == RAISE.APPOINT
+                  and _date >>= RAISE.FROMDATE )) {
+         if RAISE.todate = to_date(0,0,0) or RAISE.todate >= _date {
+           _result := _result + RAISE.sum;
+         }
+       }
+ result := _result;
+}
+
+Function getpassport_string(_passRus,_cPers: comp) : string; {
+
+  var _result : string = '';
+      if getfirst Passports where ((_passRus == Passports.Nrec)) = tsOK
+       and Passports.filialno = 0 { // не является предыдущим доком
+        if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          case cat_search.code of
+           '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+           '10': _result := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+           '12': _result := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+          end;
+        }
+      }
+      // как вариант основной документ не указан или не попадает под условия 21 10 12
+      // потому поищем просто среди доков
+#declare getperson_passport_by_code(code)
+ _loop Passports where ((_cPers == Passports.person))
+    and Passports.filialno = 0  { // не является предыдущим доком
+     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          if cat_search.code = #code then  {
+            case cat_search.code of
+             '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+             '10': _result := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+             '12': _result := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+            end;
+            break;
+           }
+        }
+      }
+#end
+      if _result = '' {
+        #getperson_passport_by_code('21')
+      }
+      if _result = '' {
+        #getperson_passport_by_code('21')
+      }
+      if _result = '' {
+        #getperson_passport_by_code('21')
+      }
+  result := _result
+}
+
 #include SNG_IntegrDirectum_out_CreatePersonnelOrder_API.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateRPD_API.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateReasonForOrder_api.Vpp
@@ -126,7 +187,7 @@ result := '';
 #include SNG_IntegrDirectum_out_CreateUpdate_RPD8.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdate_RPD41.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateKindDC_API.Vpp
-
+#include SNG_IntegrDirectum_out_CreateAdditionalAgreement.Vpp
 
 Window winDEBUGAPIRESTDIRECTUM;
 screen scrDEBUGAPIRESTDIRECTUM 'API DIRECTUM';
@@ -145,6 +206,7 @@ fields
                                     , 6 'CreateUpdate_RPD8'
                                     , 7 'CreateUpdate_RPD41'
                                     , 8 'CreateUpdate_EmploymentContract'
+                                    , 9 'CreateAdditionalAgreement'
                                 ],protect;
   API_methodFromTune   ('Метод из настройки',,): Skip;
   _MainCrec  ('ссылка на экземпляр объекта - параметр для метода'): NoProtect;
@@ -181,6 +243,7 @@ cmValue1: {
          6 : CreateUpdate_RPD8(_MainCrec)
          7 : CreateUpdate_RPD41(_MainCrec)
          8 : CreateUpdate_EmploymentContract(_MainCrec)
+         9 : CreateAdditionalAgreement(_MainCrec)
       end;
 }
 end;
@@ -190,7 +253,7 @@ Procedure setvisiblefields;
   var _isVisible: boolean = False;
        case API_method of
          0,1,2,3,4 : _isVisible := False;
-         5,6,7,8 : _isVisible := true;
+         5,6,7,8,9 : _isVisible := true;
        end;
  cfssetprop('L_SCRDEBUGAPIRESTDIRECTUM_cREC','Visible', _isVisible) ;
  cfssetprop('i_SCRDEBUGAPIRESTDIRECTUM_MAINCREC','Visible', _isVisible)
@@ -233,6 +296,8 @@ cmCheckField: {
          7 :  { API_methodFromTune := sgettune('DirectumIntegration_RPD41');//CreateUpdate_RPD41
               }
          8 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateEmploymentContract');//CreateUpdate_RPD41
+              }
+         9 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateAdditionalAgreement');//CreateUpdate_RPD41
               }
        end;
    end;
