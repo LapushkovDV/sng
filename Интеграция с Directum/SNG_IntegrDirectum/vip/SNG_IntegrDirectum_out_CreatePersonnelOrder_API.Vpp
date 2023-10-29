@@ -1,0 +1,60 @@
+procedure CreatePersonnelOrder_API_test;
+{
+/*
+ '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
+*/
+  var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+  var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+   var stringNULL : TPtr =  HttpConnect_CreateLongString(m_service);
+
+   HttpConnect_AddValueToLongString(m_service, '{"Id":null,"DocumentKind":"PersOrder"}',stringNULL);
+   JSONObj_Element :=  HttpConnect_JSONObjectByLongString(m_service, stringNULL);
+
+//   HttpConnect_JsonObjectAddLongString(m_service, JSONObj_Element, 'Id', stringNULL);
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
+
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+
+  var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00220401');
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00076778');
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj_Element, 'Employees', JSONObj_Array);
+
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelOrder', JSONObj_Element);
+
+var lResponse : TPtr;
+   if CreatePersonnelOrder_API(JSONObj, lResponse) {
+     /*что то делаем*/
+   }
+   else {
+     /*что то делаем*/
+   }
+
+  HttpConnect_JSONArrayDestroy( m_service, JSONObj_Array);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj_Element);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj);
+  HttpConnect_Free(m_service);
+
+
+}
+
+
+Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
+{
+  /*
+  на будущее
+  просто пока есть, не используем, т.к. четкого использования поака нет
+  */
+ //gettunes;
+ var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
+ if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSON, lResponse) {
+   /*что то надо сделать*/
+   result := True;
+ }
+ else {
+   result := False;
+   exit;
+ }
+}

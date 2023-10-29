@@ -1,0 +1,111 @@
+function CreateUpdate_RPD8(_cRec : comp): boolean; {
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 8 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "Увольнение" (РПД 8)',error)
+      }
+    exit;
+  }
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD8');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 8 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+
+
+    /*
+      Структуру не дали... сказали делать просто чтобы было.
+      Потом дадут структуру  и "ЧУТЬ ЧУТЬ" надо будет переделать 0_о
+    */
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, 'DD/MM/YYYY'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_YEAR', year(CONTDOC.DDISDATE));
+
+    /*
+    трудовой договор
+    */
+    if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
+                                     and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
+                    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
+                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
+                  }
+
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+
+     var lResponse : tptr;
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {

@@ -1,0 +1,47 @@
+ function CreateUpdateRPD_API( _cRec : comp; var lResponse :TPtr) : boolean; {
+/*
+{"personnelRPDStructure": {
+"HRCode": "1234658905489",
+"Name": "Прием на работу"
+}}
+*/
+  if getfirst TYPEPR_api where (( _cRec == TYPEPR_api.nrec)) <> tsOK then exit;
+
+//   gettunes;
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateRPD');
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(TYPEPR_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', + lpadch(TYPEPR_api.codoper,'0',3) +'|'+ TYPEPR_api.noper);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelRPDStructure', JSONObj_Element);
+
+
+
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+
+Function CreateUpdateRPD_ALL() : boolean; {
+result := false;
+  _loop TYPEPR {
+    var lReponse : tptr;
+     if CreateUpdateRPD_API( TYPEPR.nrec, lReponse) {
+        /*чято то надо сделать или нет*/
+
+     }
+     else {
+       exit;
+     }
+   }
+  result := true;
+}

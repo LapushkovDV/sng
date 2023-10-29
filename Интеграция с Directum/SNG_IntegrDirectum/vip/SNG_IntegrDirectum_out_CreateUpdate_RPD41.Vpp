@@ -1,0 +1,111 @@
+
+function CreateUpdate_RPD41(_cRec : comp): boolean; {
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 41 ) <> tsOK {
+    if _isDebug{
+        message('В приказе нет разделов "компенсация за неиспользованные дни отпуска" (РПД 41)',error)
+      }
+    exit;
+  }
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_RPD41');
+
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 41 {
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+
+    /*
+      Структуру не дали... сказали делать просто чтобы было.
+      Потом дадут структуру  и "ЧУТЬ ЧУТЬ" надо будет переделать 0_о
+    */
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_DAY', day(TITLEDOC.DOCDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_MONTH', month(TITLEDOC.DOCDATE));
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'DDOC_YEAR', year(TITLEDOC.DOCDATE));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+
+    if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) = tsOK {
+
+       // Комп.дней: PutVacCon.wDayCount
+        HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'KOMP_DAYS',PutVacCon.wDayCount);
+
+       if getfirst KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) = tsOK {
+
+         // Наименование компенсации: KlOtpusk.Notpus
+        _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_SN',KlOtpusk.Notpus);
+       }
+
+       // Компенсируемый отпуск:
+       if getfirst PutVacation where ((PutVacCon.cPutVacation == PutVacation.nRec)) = tsOK{
+          if getfirst KlOtpusk where ((PutVacation.cKlOtpusk == KlOtpusk.Nrec)) = tsOK {
+          // // Компенсируемый отпуск: KlOtpusk.Notpus
+           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KOMP_DOP',KlOtpusk.Notpus);
+          }
+         var _WorkPeriod : comp ;
+          if PutVacation.wTypeVac = 0
+           then _WorkPeriod := PutVacation.cWorkPeriod
+           else _WorkPeriod := PutVacation.cWPRemain;
+         if getfirst WorkPeriod where ((_WorkPeriod == WorkPeriod.nrec)) = tsOK {
+           // Отпуск/остаток за период : WorkPeriod.dPerBeg и WorkPeriod.dPerEnd.
+           _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD', 'c '+datetostr(WorkPeriod.dPerBeg,'DD.MM.YYYY') + ' по '+ datetostr(WorkPeriod.dPerEnd,'DD.MM.YYYY'));
+          }
+       }
+     }
+
+
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'INIC','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NACHN','НЕ СКАЗАЛИ КАК ЗАПОЛНЯТЬ');
+     var lResponse : tptr;
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+          var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+         result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+  }
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {
