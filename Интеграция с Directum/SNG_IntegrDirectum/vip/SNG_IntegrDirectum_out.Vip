@@ -79,6 +79,7 @@ procedure mylog(_str : string);
  }
 
 
+
 function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : string; {
 
   if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
@@ -136,6 +137,17 @@ function getsumraise(_cPers, _appoint: comp; _date : date): double; {
  result := _result;
 }
 
+Procedure FillPersonnelOrder_API_header(_m_service: TPtr; _JSONObj : TPtr); {
+/*
+ВНИМАНИЕ!!
+для использования функции разработчик обязан предварительно спозиционироваться на все таблицы используемые в процедуре
+
+пока пусто.... нет фактуры..
+
+но идея есть идея, и не икеа
+*/
+}
+
 Function getpassport_string(_passRus,_cPers: comp) : string; {
 
   var _result : string = '';
@@ -178,16 +190,42 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
   result := _result
 }
 
-#include SNG_IntegrDirectum_out_CreatePersonnelOrder_API.Vpp
+#declare addArrayElementString(param)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+  mylog(' addArrayElementString param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, '#param', _#param);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+#end
+
+#declare addArrayElementlongstring(param,longstring)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+
+  mylog(' addArrayElementlongstring param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, '#param', #longstring);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются     HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+// а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются    HttpConnect_DestroyLongString(m_service,#longstring);
+#end
+
+
 #include SNG_IntegrDirectum_out_CreateUpdateRPD_API.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateReasonForOrder_api.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateKindTD_API.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdate_RPD1.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdate_EmploymentContract.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdate_RPD8.Vpp
+#include SNG_IntegrDirectum_out_CreateUpdate_RPD6.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdate_RPD41.Vpp
 #include SNG_IntegrDirectum_out_CreateUpdateKindDC_API.Vpp
 #include SNG_IntegrDirectum_out_CreateAdditionalAgreement.Vpp
+#include SNG_IntegrDirectum_out_CreatePersonnelOrder_API.Vpp
 
 Window winDEBUGAPIRESTDIRECTUM;
 screen scrDEBUGAPIRESTDIRECTUM 'API DIRECTUM';

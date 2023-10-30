@@ -47,6 +47,16 @@ procedure set_debug_mode;
 #end
  Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
 
+#doc
+Возвращает срок использования в формате
+  год, года, лет
+  месяц, месяца, месяцев
+  неделя,недели,недель
+  день, дня, дней
+#end
+function Get_SrokIsp( dBeg, dEnd : date) : string;
+
+
 end;
 var _SNG_IntegrDirectum_out_base : SNG_IntegrDirectum_out_base;
 #end // __GLX586_VIH__

@@ -96,6 +96,59 @@ function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element 
    result := HttpConnect_JsonObjectAddString(_m_service, _JSONObj_Element, _parent, _value);
 }
 
+function Get_SrokIsp( dBeg, dEnd : date) : string;
+{
+  result := 0;
+
+  var ii : integer;
+
+  for(ii:=1; ii<=200; ii++)
+  {
+     if Add_months(dBeg, ii * 12) = dEnd
+     {
+       case ii of
+         1      :  result := ii + ' год'  ;
+         2..4   :  result := ii + ' года' ;
+         5..200 :  result := ii + ' лет'  ;
+       end;
+       Exit;
+     }
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_months(dBeg, ii ) = dEnd
+  {
+       case ii of
+         1      :  result := ii + ' месяц'  ;
+         2..4   :  result := ii + ' месяца' ;
+         5..200 :  result := ii + ' месяцев'  ;
+       end;
+       Exit;
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_day(dBeg, ii * 7) = dEnd
+  {
+       case ii of
+         1      :  result := ii + ' неделя'  ;
+         2..4   :  result := ii + ' недели' ;
+         5..200 :  result := ii + ' недель'  ;
+       end;
+       Exit;
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_day(dBeg, ii ) = dEnd
+  {
+       case ii of
+         1      :  result := ii + ' день'  ;
+         2..4   :  result := ii + ' дня'   ;
+         5..200 :  result := ii + ' дней'  ;
+       end;
+       Exit;
+  }
+
+  result := CalcDaysBetweenDates(dBeg, dEnd, false ) + ' дней'
+
+}
+
 Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
 {
 

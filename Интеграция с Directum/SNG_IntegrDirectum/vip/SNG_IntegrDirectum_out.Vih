@@ -1,7 +1,6 @@
 //------------------------------------------------------------------------------
 //                                                      (c) корпорация Галактика
 // Галактика 9.1 - Управление персоналом
-// GLX586
 //------------------------------------------------------------------------------
 
 
@@ -16,8 +15,10 @@ public:
 
 #doc
 Создать приказ
+входной параметр - Titledoc.nrec
+внутри функции цикл по разделам приказа и вызов соответствующих функций по номерам РПД
 #end
-Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
+Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
 
 #doc
 Синхронизировать весь каталог "Виды дополнительных соглашений"
@@ -75,6 +76,15 @@ function CreateUpdate_EmploymentContract(_cRec : comp): boolean;
 Сгенерировать и отправить JSON по РПД8 - переделать как дадут структуру от директума
 #end
   function CreateUpdate_RPD41(_cRec : comp) : boolean;
+
+#doc
+Сгенерировать и отправить JSON по приказу по персоналу "приказ на отпуск" РПД6
+входной параметр - Partdoc.nrec
+
+Для работы целиком по приказу используйте
+Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
+#end
+function CreateUpdate_RPD6(_cPartdoc : comp): boolean;
 
 
 end;

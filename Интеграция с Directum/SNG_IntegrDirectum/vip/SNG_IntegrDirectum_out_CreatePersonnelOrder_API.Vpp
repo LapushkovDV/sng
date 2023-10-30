@@ -24,14 +24,14 @@ procedure CreatePersonnelOrder_API_test;
 
    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelOrder', JSONObj_Element);
 
-var lResponse : TPtr;
-   if CreatePersonnelOrder_API(JSONObj, lResponse) {
-     /*что то делаем*/
+ var lResponse : TPtr;
+   var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
+   if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+     /*что то надо сделать*/
+
    }
    else {
-     /*что то делаем*/
    }
-
   HttpConnect_JSONArrayDestroy( m_service, JSONObj_Array);
   HttpConnect_JSONObjectDestroy(m_service, JSONObj_Element);
   HttpConnect_JSONObjectDestroy(m_service, JSONObj);
@@ -41,20 +41,40 @@ var lResponse : TPtr;
 }
 
 
-Function CreatePersonnelOrder_API(JSON: TPtr; var lResponse :TPtr) : boolean;
+Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
 {
-  /*
-  на будущее
-  просто пока есть, не используем, т.к. четкого использования поака нет
-  */
- //gettunes;
- var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
- if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSON, lResponse) {
-   /*что то надо сделать*/
-   result := True;
- }
- else {
-   result := False;
-   exit;
- }
+//по идее это входная точка. далее определяем тип РПД и вызываем соответствующую функцию
+  if getfirst Titledoc where ((_cTitledoc == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ c Titledoc.nrec = ' + string(_cTitledoc, 0, 0),error)
+      }
+    exit;
+  }
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC))) <> tsOK {
+    if _isDebug{
+        message('В приказе (titledoc.nrec ='+string(titledoc.nrec,0,0)+') нет разделов (таблица partdoc)'+
+        ''#13'' + 'partdoc where ((titledoc.nrec == partdoc.CDOC))',error)
+      }
+    exit;
+  }
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) {
+      if getfirst TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER)) <> tsOK then {
+         if _isDebug{
+            message('В приказе указан несуществующий тип приказа в БД: '+
+            ''#13''+ 'TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER))'+
+            ''#13''+ 'Partdoc.TYPEOPER = ' + Partdoc.TYPEOPER,error)
+          }
+        continue;
+      }
+      case Partdoc.TYPEOPER of
+       6: result := CreateUpdate_RPD6(partdoc.nrec);
+       else {
+          if _isDebug{
+              message('Для РПД'+String(Partdoc.TYPEOPER)+' не предусмотрена обработка в этом методе' ,error)
+            }
+          exit;
+       }
+      end;
+  }
+
 }

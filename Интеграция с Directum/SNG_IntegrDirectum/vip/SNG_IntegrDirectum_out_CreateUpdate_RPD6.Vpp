@@ -1,0 +1,187 @@
+function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
+
+  if(getfirst partdoc where ((_cPartdoc == partdoc.nrec)) and Partdoc.TYPEOPER = 6 ) <> tsOK {
+    if _isDebug{
+        message('В функцию передан partdoc.nrec = '+string(partdoc.nrec,0,0)+
+        ''#13''+', но этот раздел не является "Приказ на отпуск" (РПД 6)',error)
+      }
+    exit;
+  }
+
+  if getfirst Titledoc where ((partdoc.CDOC == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ Titledoc where ((partdoc.CDOC == Titledoc.nrec))  ' + string(partdoc.CDOC, 0, 0),error)
+      }
+    exit;
+  }
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder'); // все через одну точку походу будет...
+
+    _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
+      if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
+         if _isDebug{
+            message('В приказе раздел РПД6 (partdoc.nrec = '+string(partdoc.nrec,0,0)+' CONTDOC.nrec = '+string(CONTDOC.nrec,0,0)+')'+
+            ''#13'' + 'не нашли сотрудника (CONTDOC.PERSON == PERSONS.nrec) CONTDOC.PERSON = ' + string(CONTDOC.PERSON,0,0),error)
+          }
+        continue;
+      }
+
+      if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then {
+        if _isDebug{
+            message('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec) CONTDOC.CDOPREF = ' + string(CONTDOC.CDOPREF,0,0),error)
+          }
+         continue;
+        }
+      if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then  {
+           if _isDebug{
+            message('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) contdoc.CSTR = ' + string(contdoc.CSTR,0,0),error)
+          }
+          continue;
+        }
+
+      if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then {
+         if _isDebug{
+            message('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) appointments.STAFFSTR = ' + string(appointments.STAFFSTR,0,0),error)
+          }
+         continue;
+        }
+
+      if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) <> tsOK {
+         if _isDebug{
+            message('Не нашли PutVacCon Where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) '+
+             ''#13''+ 'ContDoc.nrec = '+string(ContDoc.nrec,0,0),error)
+          }
+         continue;
+        }
+       if getfirst KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) <> tsOK {
+         if _isDebug{
+            message('Не нашли KlOtpusk where ((PutVacCon.ResComp[1] == KlOtpusk.NRec)) '+
+             ''#13'' + 'PutVacCon.nrec = '+ string(PutVacCon.nrec,0,0)+
+             ''#13''+ 'PutVacCon.ResComp[1] = '+string(PutVacCon.ResComp[1],0,0),error)
+          }
+         continue;
+       }
+
+
+
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+/*
+теоретически шапка будет одинаковая.. т.е. ]
+    FillPersonnelOrder_API_header(m_service, JSONObj);
+*/
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode', string(TYPEPR.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeRPD',string(CONTDOC.NREC,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEvent',co_unknown_value); // поле CATALOGS.CODE при CATALOGS.CPARENT=CATALOGS.NREC, где CATALOGS.NREC - значение для записи CATALOGS.SYSCODE=-31699
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeAbsence', string(KLOTPUSK.KOTPUS));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeReason',if(getfirst cat_search where ((PARTDOC.CPREF == cat_search.NREC)) = tsOK, string(cat_search.NREC,0,0),''));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', string(CONTDOC.LITABN));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DissmissalDate', datetostr(APPOINTMENTS.DORDERDISDATE,co_formatdatetostr));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',co_unknown_value); // Значение PERSONS.TABNMB создающего РПД
+    HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive',False);
+     var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+     mylog(' start JSONObj_Array');
+
+    var _DocShablon : string = 'PRIKAZ_OTPUSK';
+      #addArrayElementString(DocShablon)
+
+   var _NameOrgShort : string = '';
+     _NameOrgShort := katorg.Name;
+     #addArrayElementString(NameOrgShort)
+
+   var _NameWerks : string = '';
+     _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     #addArrayElementString(NameWerks)
+
+   var _NDOC : string = TITLEDOC.DOCNMB;
+     #addArrayElementString(NDOC)
+
+   var _DDOC : string = strtodate(TITLEDOC.DOCDATE, co_formatdatetostr);
+     #addArrayElementString(DDOC)
+
+   var _Employees : string = string(persons.TABNMB);
+     #addArrayElementString(Employees)
+
+   var _Fio : string = persons.Fio;
+     #addArrayElementString(Fio)
+
+   var _NameOrgeh : string = '';
+    _NameOrgeh := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     #addArrayElementString(NameOrgeh)
+
+   var _Shdol : string = '';
+    _Shdol := STAFFSTRUCT.sCodeSt+' '+STAFFSTRUCT.sNameSt;
+     #addArrayElementString(Shdol)
+
+   var _T1 : string = '';
+    _T1 := co_unknown_value;
+     #addArrayElementString(T1)
+
+   var _Desc1_1 : string = '';
+     if KlOtpusk.Kotpus = 10 then { // Основной отпуск
+       _Desc1_1 := 'A. '+KlOtpusk.Notpus + ' на ' + string(PutVacCon.wDayCount) + ' календарных дня';
+      }
+     #addArrayElementString(Desc1_1)
+
+   var _DateSTR1_1 : string = '';
+     if KlOtpusk.Kotpus <> 10 then { // НЕ Основной отпуск
+       _DateSTR1_1 := 'A. Ежегодный основной оплачиваемый отпуск на _-_ календарных дней c <__> ________ 20__ г. по <___> ________ 20__ г.';
+      }
+     #addArrayElementString(DateSTR1_1)
+
+   var _Desc2_1 : string = '';
+     case KlOtpusk.Kotpus of
+        11,14: _Desc2_1 := 'Б. Ежегодный дополнительный оплачиваемый отпуск за работу в районах Крайнего Севера и местностях, приравненных к ним';
+        12,15: _Desc2_1 := 'Б. Ежегодный дополнительный оплачиваемый отпуск работникам с ненормированным рабочим днем';
+           13: _Desc2_1 := 'Б. Ежегодный дополнительный оплачиваемый отпуск за работу с вредными и (или) опасными условиями труда';
+     end;
+     #addArrayElementString(Desc2_1)
+
+   var _Under1 : string = '___________________________________________________________________________________________________________________________';
+     #addArrayElementString(Under1)
+
+   var _VidOTP1 : string = '';
+    _VidOTP1 := co_unknown_value;
+     #addArrayElementString(VidOTP1)
+
+   var _na1  : string = '';
+    _na1 := co_unknown_value;
+     #addArrayElementString(na1)
+
+   var _Kolvo21_1  : string = '';
+    _Kolvo21_1 := co_unknown_value;
+     #addArrayElementString(Kolvo21_1)
+
+   var _Kolvo2_1  : string = '';
+    _Kolvo2_1 := co_unknown_value;
+     #addArrayElementString(Kolvo2_1)
+
+   var _DateSTR2_1  : string = '';
+    _DateSTR2_1 := co_unknown_value;
+     #addArrayElementString(DateSTR2_1)
+
+
+
+
+
+
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'Content', JSONObj_Array);
+     var lResponse : tptr;
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Array);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+   }
+
+}   //end function CreateUpdate_RPD1(_cRec : comp): string; {

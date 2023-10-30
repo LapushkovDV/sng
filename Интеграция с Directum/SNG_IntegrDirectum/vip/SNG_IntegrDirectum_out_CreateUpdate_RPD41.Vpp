@@ -1,4 +1,3 @@
-
 function CreateUpdate_RPD41(_cRec : comp): boolean; {
   if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
     if _isDebug{

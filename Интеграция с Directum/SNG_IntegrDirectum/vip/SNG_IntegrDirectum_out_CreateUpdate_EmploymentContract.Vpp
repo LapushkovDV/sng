@@ -111,8 +111,8 @@ if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employee' , string(CONTDOC.LITABN));// свойство <Таб.номер>
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart', datetostr(SpAllStaff_TD.RESDATE[2], co_formatdatetostr));
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateEnd'  , datetostr(SpAllStaff_TD.RESDATE[3], co_formatdatetostr));
-     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Trial', calcdaysbetweendates(ContDoc.Dat1,SPALLSTAFF_TD.RESDATE[2],false));// в чем считать не сказали.... посчитаем в днях Свойство <Испытательный срок>  Вычисляемое поле: значение поля "Испытательный срок по" при заполнении РПД - дата заключения ТД ContDoc.Dat1-SPALLSTAFF.RESDATE[2]
-     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'UnitTrial', 'день');// также не сказали что тут писать .. Свойство <Исп. Срок (ед.изм.)>
+     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Trial', _SNG_IntegrDirectum_out_base.Get_SrokIsp(ContDoc.Dat1,SPALLSTAFF_TD.RESDATE[2]));// в чем считать не сказали.... посчитаем в днях Свойство <Испытательный срок>  Вычисляемое поле: значение поля "Испытательный срок по" при заполнении РПД - дата заключения ТД ContDoc.Dat1-SPALLSTAFF.RESDATE[2]
+     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'UnitTrial', '');// также не сказали что тут писать .. Свойство <Исп. Срок (ед.изм.)>
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Shablon','-'); //в excel написано "-"
      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',''); //Автор ХЗ что тут писаааать вообще... По табельному номеру вычислить работника по значению свойства <Таб.номер>: ищем записи справочника <Сотрудники> с состоянием <Действующая>
      HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive', False);// по умолчанию  false
@@ -148,23 +148,6 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошиб
   mylog(' start JSONObj_Array');
 
 
-#declare addArrayElementString(param)
-  mylog(' addArrayElementString param = #param');
-   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, '#param', _#param);
-    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
-//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
-#end
-
-#declare addArrayElementlongstring(param,longstring)
-  mylog(' addArrayElementlongstring param = #param');
-   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, '#param', #longstring);
-    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
-//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются     HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
-// а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются    HttpConnect_DestroyLongString(m_service,#longstring);
-#end
-
    var _rks_mks : string = '';
    if getfirst cat_search where ((SpAllStaff_16.ResComp[3] == cat_search.NREC)) = tsOK {
       _rks_mks := sGetAttr(coCATALOGS, cat_search.Nrec, 'РКС/МКС'  );
@@ -173,11 +156,10 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошиб
 
  var _DocParam, _DocKat, _DocTarifZone, _DocShablon, _Uved : string = '';
 
-      case SpAllStaff_16.RESWORD[1] of
-       32  : _Uved := 'X'
-       64  : _DocKat := 'PR' // не описано как надо... по "галочкам" нашел так через журнал
-       128 : _DocKat := 'VOD' // не описано как надо... по "галочкам" нашел так через журнал
-      end;
+      if (SpAllStaff_16.RESWORD[1] and 32) = 32   then _Uved := 'X';
+      if (SpAllStaff_16.RESWORD[1] and 64) = 64   then _DocKat := 'PR'; // не описано как надо... по "галочкам" нашел так через журнал
+      if (SpAllStaff_16.RESWORD[1] and 128) = 128 then _DocKat := 'VOD'; // не описано как надо... по "галочкам" нашел так через журнал
+
      #addArrayElementString(DocKat)
      #addArrayElementString(Uved)
 
@@ -354,7 +336,7 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
 
 
    var _NameDogovor : string ='';
-    _NameDogovor := co_unknown_value;
+    _NameDogovor := if(getfirst cat_search where ((SpAllStaff_TD.RESCOMP[1] == cat_search.Nrec)) = tsOK, cat_search.name,'');//  вит ТД;
      #addArrayElementString(NameDogovor)
 
    var _DogDateBegin : string = '';
