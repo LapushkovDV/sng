@@ -215,17 +215,17 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
 #end
 
 
-#include SNG_IntegrDirectum_out_CreateUpdateRPD_API.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdateReasonForOrder_api.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdateKindTD_API.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdate_RPD1.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdate_EmploymentContract.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdate_RPD8.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdate_RPD6.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdate_RPD41.Vpp
-#include SNG_IntegrDirectum_out_CreateUpdateKindDC_API.Vpp
-#include SNG_IntegrDirectum_out_CreateAdditionalAgreement.Vpp
-#include SNG_IntegrDirectum_out_CreatePersonnelOrder_API.Vpp
+#include CreateUpdateRPD_API.Vpp
+#include CreateUpdateReasonForOrder_api.Vpp
+#include CreateUpdateKindTD_API.Vpp
+#include CreateUpdate_RPD1.Vpp
+#include CreateUpdate_EmploymentContract.Vpp
+#include CreateUpdate_RPD8.Vpp
+#include CreateUpdate_RPD6.Vpp
+#include CreateUpdate_RPD41.Vpp
+#include CreateUpdateKindDC_API.Vpp
+#include CreateAdditionalAgreement.Vpp
+#include CreatePersonnelOrder_API.Vpp
 
 Window winDEBUGAPIRESTDIRECTUM;
 screen scrDEBUGAPIRESTDIRECTUM 'API DIRECTUM';
