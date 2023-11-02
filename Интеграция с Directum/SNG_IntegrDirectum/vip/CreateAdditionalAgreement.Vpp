@@ -115,21 +115,32 @@ SPALLSTAFF. RESCOMP[7]
           continue;
       }
 
-     if getfirst SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON
-                    and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) <> tsOK {
+//     if getfirst SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON
+//                    and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) <> tsOK {
+//         if _isDebug{
+//            message('Не нашли SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON'+
+//            ''#13''+'          and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) '+
+//            ''#13''+'SpAllStaff_6.nrec = '+ string(SpAllStaff_6.nrec, 0, 0),error)
+//          }
+//          continue;
+//      }
+
+    var NOAA: NumberOfAddAgreement new;
+    var tmpLink: comp =  NOAA.GetFirstAgreementByLink(coAppHist, AppHist.NRec);
+
+     if getfirst SpAllStaff_aggreement where ((tmpLink == SpAllStaff_aggreement.nrec )) <> tsOK {
          if _isDebug{
-            message('Не нашли SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON'+
-            ''#13''+'          and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) '+
-            ''#13''+'SpAllStaff_6.nrec = '+ string(SpAllStaff_6.nrec, 0, 0),error)
+            message('Не нашли SpAllStaff_aggreement where ((tmpLink == SpAllStaff_aggreement ))'+
+            ''#13''+ ' NOAA.GetFirstAgreementByLink(coAppHist, AppHist.NRec);'+
+            ''#13''+ 'AppHist.NRec  = '+ string(AppHist.NRec, 0, 0)+
+            ''#13''+ 'tmpLink  = '+ string(tmpLink , 0, 0),error)
           }
           continue;
-      }
-
-
-     if getfirst cat_search where ((SpAllStaff_16.RESCOMP[7] == cat_search.nrec)) <> tsOK {
+       }
+     if getfirst cat_search where ((SpAllStaff_aggreement.RESCOMP[7] == cat_search.nrec)) <> tsOK {
          if _isDebug{
-            message('Не нашли значение для HRCodeKindAdditionalAgreement:  cat_search where ((SpAllStaff_16.RESCOMP[7] == cat_search.nrec))'+
-            ''#13''+'SpAllStaff_16.RESCOMP[7] = '+ string(SpAllStaff_16.RESCOMP[7], 0, 0),error)
+            message('Не нашли значение для HRCodeKindAdditionalAgreement:  cat_search where ((SpAllStaff_aggreement.RESCOMP[7] == cat_search.nrec))'+
+            ''#13''+'SpAllStaff_aggreement.RESCOMP[7] = '+ string(SpAllStaff_aggreement.RESCOMP[7], 0, 0),error)
           }
           continue;
      }
@@ -156,7 +167,7 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStartDC',datetostr(SPALLSTAFF_6.RESDATE[2],co_formatdatetostr));
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', CONTDOC.LITABN);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','D_SOGTD010123');
 
    var _NameORG, _NameOrgShort : string = '';
      _NameORG := katorg.ShortName ;

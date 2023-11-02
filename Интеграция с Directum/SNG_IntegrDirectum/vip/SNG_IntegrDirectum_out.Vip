@@ -6,6 +6,7 @@
 //#ifdef Atl60
 // 844424930131983
 //#include SNG_IntegrDirectum_out.Vih
+#include NumberOfAddAgreement.vih
 #include adrfunc.vih
 #include SNG_IntegrDirectum_out_base.Vih
 #include SNG_IntegrDirectum_out.Vih
@@ -53,6 +54,7 @@ from
   , SpAllStaff SpAllStaff_16
   , SpAllStaff SpAllStaff_pers
   , SpAllStaff SpAllStaff_6
+  , SpAllStaff SpAllStaff_aggreement
   , PutVacCon
   , KlOtpusk
   , PutVacation
