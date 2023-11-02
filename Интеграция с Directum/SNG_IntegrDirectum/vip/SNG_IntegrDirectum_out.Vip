@@ -245,6 +245,7 @@ fields
                                     , 7 'CreateUpdate_RPD41'
                                     , 8 'CreateUpdate_EmploymentContract'
                                     , 9 'CreateAdditionalAgreement'
+                                    , 10 'CreatePersonnelOrder_API'
                                 ],protect;
   API_methodFromTune   ('Метод из настройки',,): Skip;
   _MainCrec  ('ссылка на экземпляр объекта - параметр для метода'): NoProtect;
@@ -282,6 +283,7 @@ cmValue1: {
          7 : CreateUpdate_RPD41(_MainCrec)
          8 : CreateUpdate_EmploymentContract(_MainCrec)
          9 : CreateAdditionalAgreement(_MainCrec)
+        10 : CreatePersonnelOrder_API(_MainCrec)
       end;
 }
 end;
@@ -291,7 +293,7 @@ Procedure setvisiblefields;
   var _isVisible: boolean = False;
        case API_method of
          0,1,2,3,4 : _isVisible := False;
-         5,6,7,8,9 : _isVisible := true;
+         5,6,7,8,9,10 : _isVisible := true;
        end;
  cfssetprop('L_SCRDEBUGAPIRESTDIRECTUM_cREC','Visible', _isVisible) ;
  cfssetprop('i_SCRDEBUGAPIRESTDIRECTUM_MAINCREC','Visible', _isVisible)
@@ -337,6 +339,9 @@ cmCheckField: {
               }
          9 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateAdditionalAgreement');//CreateUpdate_RPD41
               }
+        10 :  { API_methodFromTune := sgettune('DirectumIntegration_CreatePersonnelOrder');//CreateUpdate_RPD41
+              }
+
        end;
    end;
    setvisiblefields;
