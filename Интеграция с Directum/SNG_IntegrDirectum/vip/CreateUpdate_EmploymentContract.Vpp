@@ -687,7 +687,25 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
      if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
          var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
-         result := true;
+          if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success') {
+              if _isDebug{
+                 message('DirectunRX вернул ошибку: ' +
+                      ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'),error);
+                }
+           result := false;
+         }
+         else {
+
+              var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
+
+
+              if _isDebug{
+                 message('DirectunRX ТД успешно передан: Id = "' + Id+'"'+
+                      ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'));
+                }
+
+           result := true;
+         }
        }
        else {
          result := false;

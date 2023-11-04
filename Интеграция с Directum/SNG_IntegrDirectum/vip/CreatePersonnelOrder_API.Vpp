@@ -67,7 +67,10 @@ Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
         continue;
       }
       case Partdoc.TYPEOPER of
-       6: result := CreateUpdate_RPD6(partdoc.nrec);
+         1: result := CreateUpdate_RPD1(Titledoc.nrec); // тут так то есть развилка с формированием трудового договора
+         6: result := CreateUpdate_RPD6(partdoc.nrec);
+         8: result := CreateUpdate_RPD1(Titledoc.nrec);
+        50: result := CreateAdditionalAgreement(Titledoc.nrec);
        else {
           if _isDebug{
               message('Для РПД'+String(Partdoc.TYPEOPER)+' не предусмотрена обработка в этом методе' ,error)

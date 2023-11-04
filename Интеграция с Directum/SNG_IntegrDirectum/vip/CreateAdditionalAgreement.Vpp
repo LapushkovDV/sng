@@ -53,6 +53,34 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
           }
          continue;
         }
+
+     if getfirst SpAllStaff_pers where ((5 == SpAllStaff_pers.WNOCON
+                          and PERSONS.NREC == SpAllStaff_pers.CBASET)) <> tsOK {
+         if _isDebug{
+            message('Не нашли SpAllStaff_pers where ((5 == SpAllStaff_pers.WNOCON'+
+            ''#13''+'                  and PERSONS.NREC == SpAllStaff_pers.CBASET)) '+
+            ''#13''+'PERSONS.NREC = '+ string(PERSONS.NREC,0,0),error)
+          }
+          continue;
+      }
+
+
+     if getfirst SpAllStaff_6 where ((6 == SpAllStaff_6.WNOCON
+               and SpAllStaff_pers.nrec == SpAllStaff_6.CBASET)) <> tsOK {
+         if _isDebug{
+            message('Не нашли SpAllStaff_pers where ((6 == SpAllStaff_6.WNOCON'+
+            ''#13''+'          and SpAllStaff_pers.nrec == SpAllStaff_6.CBASET)) '+
+            ''#13''+'SpAllStaff_pers.nrec = '+ string(SpAllStaff_pers.nrec,0,0),error)
+          }
+          continue;
+      }
+
+/* сказали искать не напрямуююю.....\
+а
+APPHIST.DREC<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= APPHIST.DEND
+
+
+
       if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC)) <> tsOK  then {
          if _isDebug{
             message('В истории назначений не нашли ссылку на приказ (CONTDOC.nrec == APPHIST.CCONTDOC). '+
@@ -60,6 +88,10 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
           }
           continue;
         }
+*/
+
+
+
 /*
       if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) <> tsOK  then {
          if _isDebug{
@@ -95,25 +127,6 @@ SPALLSTAFF. RESCOMP[7]
 - Для SPALLSTAFF. RESCOMP[7] в CATALOGS при CATALOGS.NREC=SPALLSTAFF. RESCOMP[7] найти CALALOGS.CODE (этот код передать в RX)
 "
 */
-     if getfirst SpAllStaff_pers where ((5 == SpAllStaff_pers.WNOCON
-                          and PERSONS.NREC == SpAllStaff_pers.CBASET)) <> tsOK {
-         if _isDebug{
-            message('Не нашли SpAllStaff_pers where ((5 == SpAllStaff_pers.WNOCON'+
-            ''#13''+'                  and PERSONS.NREC == SpAllStaff_pers.CBASET)) '+
-            ''#13''+'PERSONS.NREC = '+ string(PERSONS.NREC,0,0),error)
-          }
-          continue;
-      }
-
-     if getfirst SpAllStaff_6 where ((6 == SpAllStaff_6.WNOCON
-               and SpAllStaff_pers.nrec == SpAllStaff_6.CBASET)) <> tsOK {
-         if _isDebug{
-            message('Не нашли SpAllStaff_pers where ((6 == SpAllStaff_6.WNOCON'+
-            ''#13''+'          and SpAllStaff_pers.nrec == SpAllStaff_6.CBASET)) '+
-            ''#13''+'SpAllStaff_pers.nrec = '+ string(SpAllStaff_pers.nrec,0,0),error)
-          }
-          continue;
-      }
 
 //     if getfirst SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON
 //                    and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) <> tsOK {
@@ -244,6 +257,8 @@ TarifShtat_P
 если категория сотрудника=04 (рабочие-тарифники)
 рассчитать значение персональной тарифной ставки : тариф APPOINMENTS.TAXRATE+ надбавка RAISE.SUM при RAISE.FROMDATE<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= RAISE.TODAT"
 */
+
+//AppHist
    if getfirst KlKatego  where ((AppHist.cSpr4 == KlKatego.Nrec)) = tsOK {
      case klkatego.kod of
       1,2,3 : { _OkladShtat := string(APPHIST.TAXRATE,0,0);
@@ -271,7 +286,34 @@ TarifShtat_P
      if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
-        result := true;
+/*
+{
+ "@odata.context": "https://directumrxtst/odata/$metadata#Sungero.IntegrationService.Models.Generated.HRDocflow.IResultResponseDto",
+ "Id": 10704156,
+ "TypeMessage": "Success",
+ "Message": "Personnel order with Id 10704156 created successfully.",
+ "Url": "https://directumrxtst/DirectumRx?type=05a72ca1-2759-4a92-b461-d5ea5c8906fa&id=10704156"
+ }
+*/
+        if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success') {
+              if _isDebug{
+                 message('DirectunRX вернул ошибку: ' +
+                      ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'),error);
+                }
+           result := false;
+         }
+         else {
+
+              var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
+
+
+              if _isDebug{
+                 message('DirectunRX приказ успешно передан: Id = "' + Id+'"'+
+                      ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'));
+                }
+
+           result := true;
+         }
        }
        else {
          result := false;
