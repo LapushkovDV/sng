@@ -1,0 +1,136 @@
+//Сохранить ID из DirectRx по документу
+function SetIdDirectRx( parTableDoc : word; parNrecDoc : comp; parId : string ): boolean;
+{
+   result := false;
+
+   if ( Insert EXTERNALASM set
+           EXTERNALASM.nrec       := 0
+         , EXTERNALASM.ASM_TYPE   := 101
+         , EXTERNALASM.WTABLE     := parTableDoc
+         , EXTERNALASM.CREC       := parNrecDoc
+         , EXTERNALASM.Numbers[1] := parId
+         , EXTERNALASM.DLOAD      := cur_date()
+         , EXTERNALASM.DESCR      := sGetTune('USER.DESCR')
+
+      ) = tsOk
+     result := true;
+
+}
+//Получить ID из DirectRx по документу
+function GetIdDirectRxByDoc( parTableDoc : word; parNrecDoc : comp ): string;
+{
+   result := '';
+
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) = tsOk
+
+   result := EXTERNALASM.Numbers[1];
+
+}
+//Получить документ по ID из DirectRx вариант 1
+//здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+function GetDocDirectRxById( parId : string; var parTableDoc : word; var parNrecDoc : comp ): boolean;
+{
+   result := false;
+
+   if GetFirst EXTERNALASM  where ((          101   == EXTERNALASM.ASM_TYPE
+                                       and  parId   == EXTERNALASM.Numbers[1] (noindex)
+                                  )) = tsOk
+   {
+      parTableDoc := EXTERNALASM.WTABLE;
+      parNrecDoc  := EXTERNALASM.CREC;
+
+      result := true;
+   }
+}
+//Получить документ по ID из DirectRx вариант 2
+//здесь не рассчитываем на то, что ID будет уникальный по всему DirectRx
+//тогда позже придется определиться, как по будут передавать тип документа
+//, а мы соотв определять тип parTableDoc по parTableType
+function GetDocDirectRxByIdType( parId, parTableType : string;  var parTableDoc : word; var parNrecDoc : comp  ): boolean;
+{
+   result := false;
+
+   // пока в тестовой версии имеем только такой тип???
+   parTableDoc := coTitleDoc;
+
+ /*
+   case parTableType of
+     'TD', 'DS'  :  parTableDoc := coSpAllStaff;
+     'RPD'       :  parTableDoc := coTitleDoc;
+     else Exit;
+   end;
+*/
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parId       == EXTERNALASM.Numbers[1]
+                                  )) = tsOk
+   {
+      parTableDoc := EXTERNALASM.WTABLE;
+      parNrecDoc  := EXTERNALASM.CREC;
+
+      result := true;
+   }
+}
+//Сохранить статус, номер, дату документа по ID из DirectRx вариант 1
+//здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+function SetDocStateDirectRxById( parId : string; parState, parNumDoc, parDateDoc : string ): boolean;
+{  //здесь по типам  параметров parState, parNumDoc, parDateDoc посмотрим по факту, что в нас пришлют
+
+   result := false;
+
+   if GetFirst EXTERNALASM  where ((          101   == EXTERNALASM.ASM_TYPE
+                                       and  parId   == EXTERNALASM.Numbers[1] (noindex)
+                                  )) = tsOk
+   {
+      update current EXTERNALASM set
+           EXTERNALASM.Numbers[2] := parState
+         , EXTERNALASM.Numbers[3] := parNumDoc
+         , EXTERNALASM.Numbers[4] := parDateDoc
+         , EXTERNALASM.DUPLOAD    := cur_date()
+         , EXTERNALASM.DESCR      := sGetTune('USER.DESCR')
+         ;
+      result := true;
+   }
+}
+//Получить шаблон ДС - параметр DocShablon
+//пока передаем Сatalogs.Nrec - Вид ДС
+function GetDocShablonDS ( parNrec : comp ) : string;
+{
+   result := sGetAttr( coCatalogs, parNrec, 'Шаблон Directum-RX');
+}
+//Получить шаблон ТД  - параметр DocShablon
+//пока черновик
+function GetDocShablonTD( parDocParam, parDocKat, parTarZona : string ) : string;
+{
+  result := '';
+
+  //здесь будет создан справочник шаблонов ТД
+/* //
+  1. Если DocParam=MKC и DocKat=PR, то загрузить шаблон TRUD_DOG_MKC_1512
+2. Если DocParam=MKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_MKC_VOD_1512
+3. Если DocParam=PKC и DocKat=PR, то загрузить шаблон TRUD_DOG_RKC_1512
+4. Если DocParam=PKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_RKC_VOD_1512
+5. Если DocParam=пусто и DocKat=PR и тарифная зона= "Регион без РК" , то загрузить шаблон TRUD_DOG_REG_1512
+6. Если DocParam=пусто и DocKat=PR и тарифная зона? "Регион без РК" , то загрузить шаблонили TRUD_DOG_1512
+7. Если DocParam=пусто и DocKat=VOD и тарифная зона= "Регион без РК", то загрузить шаблон TRUD_DOG_REG_VOD_1512
+8. Если DocParam=пусто и DocKat=VOD и тарифная зона? "Регион без РК", то загрузить шаблон TRUD_DOG_VOD_1512
+*/
+}
+//Получить табельный номер пользователя, заполнившего документ, параметр  Author
+//пока черновик
+function GetDocUserTabN : string;
+{
+  result := '';
+
+  var cPers  : comp = coGetTune('USER.PERSON');  //здесь конечно будет не настройка по факту, а по документу
+
+  if cPers <> 0
+  if GetFirst Persons where (( cPers == Persons.Nrec ))  = tsOk
+  {
+     result := SubStr(String(Persons.TABNMB),1,10);
+  }
+
+}

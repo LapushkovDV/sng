@@ -698,6 +698,8 @@ Catalogs.Code (код документа), Catalogs.Name (наименование док-та) (PERSONS.PASS
 
               var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
 
+              //тут конечно вопрос.. Titledoc ли?
+              _SNG_IntegrDirectum_out_base.SetIdDirectRx(coTitleDoc,Titledoc.nrec,Id);
 
               if _isDebug{
                  message('DirectunRX ТД успешно передан: Id = "' + Id+'"'+

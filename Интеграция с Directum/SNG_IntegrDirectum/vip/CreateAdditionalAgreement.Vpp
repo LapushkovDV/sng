@@ -305,7 +305,7 @@ TarifShtat_P
          else {
 
               var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
-
+              _SNG_IntegrDirectum_out_base.SetIdDirectRx(coTitleDoc,Titledoc.nrec,Id);
 
               if _isDebug{
                  message('DirectunRX приказ успешно передан: Id = "' + Id+'"'+

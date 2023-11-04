@@ -19,6 +19,9 @@ var
   , API_Username
   , API_Password : string;
   _getoutdir : string;
+from
+  Persons
+ ,EXTERNALASM
 ;
 
 /*
@@ -50,6 +53,9 @@ function UnEscapeStr(Str:wideString):wideString;
 
   result:=Str;
 }
+
+#include SNG_IntegrDirectum_Func.vpp
+
 function getoutdir : string;
 {
   if _getoutdir = '' then {
