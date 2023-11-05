@@ -1,4 +1,49 @@
+/*
+ {
+  "Adr" : "",
+  "DateDoc" : "",
+  "DateStartDC" : "20/10/2023",
+  "DocShablon" : "DOP_TRUD_DOST",
+  "DocTy" : "",
+  "Employees" : 1234569995,
+  "Gorod" : "",
+  "HRCode" : "000000000000000Eh",
+  "HRCodeEmploymentContract" : "",
+  "HRCodeKindAdditionalAgreement" : "21",
+  "IdMainDoc" : "",
+  "KemVydan" : "",
+  "Name" : "Михаил",
+  "NameORG" : "Публичное акционерное общество \"Сургутнефтегаз\"",
+  "NameOrgShort" : " ПАО \"Сургутнефтегаз\"",
+  "NameWerks" : "",
+  "Nomer" : "",
+  "OkladShtat" : "150000",
+  "Oklad_M" : "",
+  "Oklad_P" : "100000.00",
+  "Seriya" : "",
+  "Surname" : "Горшенев",
+  "Surname2" : "Юрьевич",
+  "TarifShtat" : "",
+  "TarifShtat_P" : ""
+}
+*/
+
 function CreateAdditionalAgreement(_cRec : comp): boolean; {
+
+ // gettunes;
+ //вставила блок  //Шалухо АИ 05112023
+  var methodstr : string = sgettune('DirectumIntegration_CreateAdditionalAgreement');
+  if methodstr = ''
+         if true{
+                 message('Не заполнена настройка "Метод создания доп.соглашения на изменение оклада"'  ,error);
+                 exit;
+                }
+  //вставила блок  //Шалухо АИ 05112023  для возможности тестирования
+  if methodstr = '---miss_http_request---'   //  /DrxIntegration/odata/HRDocflow/CreateAdditionalAgreement
+    _isDebug := true;
+
+
+  //-----
   if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
     if _isDebug{
         message('Не найден приказ c Titledoc.nrec = ' + string(_cRec, 0, 0),error)
@@ -11,8 +56,6 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
       }
     exit;
   }
-// gettunes;
-   var methodstr : string = sgettune('DirectumIntegration_CreateAdditionalAgreement');
 
   _loop partdoc where ((titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 50 {
     _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
@@ -54,6 +97,7 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
          continue;
         }
 
+ /*    //закоментировала блок  //Шалухо АИ 05112023
      if getfirst SpAllStaff_pers where ((5 == SpAllStaff_pers.WNOCON
                           and PERSONS.NREC == SpAllStaff_pers.CBASET)) <> tsOK {
          if _isDebug{
@@ -63,8 +107,9 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
           }
           continue;
       }
+ /**/
 
-
+/*  //закоментировала блок  //Шалухо АИ 05112023
      if getfirst SpAllStaff_6 where ((6 == SpAllStaff_6.WNOCON
                and SpAllStaff_pers.nrec == SpAllStaff_6.CBASET)) <> tsOK {
          if _isDebug{
@@ -74,13 +119,11 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
           }
           continue;
       }
+/**/
 
-/* сказали искать не напрямуююю.....\
-а
-APPHIST.DREC<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= APPHIST.DEND
-
-
-
+//раскоментировала блок  //Шалухо АИ 05112023
+/**/
+// сказали искать не напрямуююю.....\  а   APPHIST.DREC<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= APPHIST.DEND
       if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC)) <> tsOK  then {
          if _isDebug{
             message('В истории назначений не нашли ссылку на приказ (CONTDOC.nrec == APPHIST.CCONTDOC). '+
@@ -88,8 +131,7 @@ APPHIST.DREC<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= APPHIST.D
           }
           continue;
         }
-*/
-
+/**/
 
 
 /*
@@ -128,34 +170,40 @@ SPALLSTAFF. RESCOMP[7]
 "
 */
 
-//     if getfirst SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON
-//                    and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) <> tsOK {
-//         if _isDebug{
-//            message('Не нашли SpAllStaff_16 where ((16 == SpAllStaff_16.WNOCON'+
-//            ''#13''+'          and SpAllStaff_6.nrec == SpAllStaff_16.CBASET)) '+
-//            ''#13''+'SpAllStaff_6.nrec = '+ string(SpAllStaff_6.nrec, 0, 0),error)
-//          }
-//          continue;
-//      }
+
 
     var NOAA: NumberOfAddAgreement new;
     var tmpLink: comp =  NOAA.GetFirstAgreementByLink(coAppHist, AppHist.NRec);
-
+    //ссылка на ДС
      if getfirst SpAllStaff_aggreement where ((tmpLink == SpAllStaff_aggreement.nrec )) <> tsOK {
          if _isDebug{
-            message('Не нашли SpAllStaff_aggreement where ((tmpLink == SpAllStaff_aggreement ))'+
+            message('Не нашли ДС'+
             ''#13''+ ' NOAA.GetFirstAgreementByLink(coAppHist, AppHist.NRec);'+
             ''#13''+ 'AppHist.NRec  = '+ string(AppHist.NRec, 0, 0)+
             ''#13''+ 'tmpLink  = '+ string(tmpLink , 0, 0),error)
           }
-          continue;
+          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
        }
-     if getfirst cat_search where ((SpAllStaff_aggreement.RESCOMP[7] == cat_search.nrec)) <> tsOK {
+    //ссылка на Вид ДС
+     if getfirst SpAllStaff_16 where ((     16 == SpAllStaff_16.WNOCON
+                                       and SpAllStaff_aggreement.nrec == SpAllStaff_16.CBASET)) <> tsOK {
          if _isDebug{
-            message('Не нашли значение для HRCodeKindAdditionalAgreement:  cat_search where ((SpAllStaff_aggreement.RESCOMP[7] == cat_search.nrec))'+
-            ''#13''+'SpAllStaff_aggreement.RESCOMP[7] = '+ string(SpAllStaff_aggreement.RESCOMP[7], 0, 0),error)
+             message('Не нашли Вид ДС по ДС '
+             +''#13''+'SpAllStaff_aggreement.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
+             +''#13''+'SpAllStaff_16.nrec = '+ string(SpAllStaff_16.nrec, 0, 0),error)
+           }
+          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
+       }
+
+     if getfirst cat_search where ((SpAllStaff_16.RESCOMP[7] == cat_search.nrec)) <> tsOK {
+         if _isDebug{
+            message('Не нашли значение для "Вид ДС"'
+            +''#13''+'ДС SpAllStaff_aggreement.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
+            +''#13''+'вид ДС SpAllStaff_16.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
+            +''#13''+'каталог видов ДС SpAllStaff_16.RESCOMP[7] = '+ string(SpAllStaff_aggreement.RESCOMP[7], 0, 0)
+            ,error)
           }
-          continue;
+          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
      }
 
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindAdditionalAgreement',cat_search.code);
@@ -170,17 +218,37 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5
 EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALASM.NUMBER[1] (передать значение в RX)
 */
    var _HRCodeEmploymentContract: string = '';
+  //закоментировала блок  //Шалухо АИ 05112023
+  //_HRCodeEmploymentContract := _SNG_IntegrDirectum_out_base.GetIdDirectRxByDoc( coSpAllStaff, SpAllStaff_aggreement.Nrec)
+  //пока работаем по TitleDoc
+  _HRCodeEmploymentContract := _SNG_IntegrDirectum_out_base.GetIdDirectRxByDoc(coTitleDoc,Titledoc.nrec );
+  /* //закоментировала блок  //Шалухо АИ 05112023
     if getfirst EXTERNALASM where ((101 ==  EXTERNALASM.ASM_TYPE
                               and 32211 == EXTERNALASM.WTABLE
                and SpAllStaff_pers.nrec == EXTERNALASM.CREC)) = tsOK {
       _HRCodeEmploymentContract := EXTERNALASM.NUMBERS[1];
     }
+  /**/
+
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEmploymentContract',_HRCodeEmploymentContract);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode',string(TYPEPR.nrec,0,0));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStartDC',datetostr(SPALLSTAFF_6.RESDATE[2],co_formatdatetostr));
-    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', CONTDOC.LITABN);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStartDC',datetostr(SpAllStaff_aggreement.RESDATE[2],co_formatdatetostr));
+
+    //закоментировала блок  //Шалухо АИ 05112023
+    //HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', CONTDOC.LITABN);
+
+    //вставила блок  //Шалухо АИ 05112023
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
+
+
+    /*//закоментировала блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','D_SOGTD010123');
+    /**/
+    //вставила блок  //Шалухо АИ 05112023
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon', _SNG_IntegrDirectum_out_base.GetDocShablonDS(cat_search.Nrec));
+
+
 
    var _NameORG, _NameOrgShort : string = '';
      _NameORG := katorg.ShortName ;
@@ -190,13 +258,23 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
 
    var _NameWerks : string = '';
      _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     mylog('_NameWerks = ' + _NameWerks);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameWerks',_NameWerks);
    var _cRec : comp = getpodrunder_nrec('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
    var _Gorod : string = sGetAttr(coCATALOGS, _cRec, 'Город');
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Gorod',_Gorod);
-   var _FIO: string = '';
-     _FIO := PERSONS.FIO;
+
+
+
+    /*//закоментировала блок  //Шалухо АИ 05112023
+    var _FIO: string = PERSONS.FIO;
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO',_FIO);
+    */
+    //вставила блок  //Шалухо АИ 05112023
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Surname',  _PersFunc.Get_LastName(PERSONS.nrec)  ); //выделить фамилию
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Name',     _PersFunc.Get_FirstName(PERSONS.nrec) ); //выделить имя
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Surname2', _PersFunc.GetPatronymic(PERSONS.nrec) ); //выделить отчество
+
    var _Adr :  string= '';
       if getfirst addressn where ((persons.PASSPADDR == addressn.nrec)) = tsOK {
         _Adr := _addrfunc.GetFullAddressInd(addressn.nrec);
@@ -279,9 +357,6 @@ TarifShtat_P
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat',_TarifShtat);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat_P',_TarifShtat_P);
 
-
-
-
      var lResponse : tptr;
      if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
         /*чтот то надо сделать*/
@@ -295,6 +370,8 @@ TarifShtat_P
  "Url": "https://directumrxtst/DirectumRx?type=05a72ca1-2759-4a92-b461-d5ea5c8906fa&id=10704156"
  }
 */
+
+
         if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success') {
               if _isDebug{
                  message('DirectunRX вернул ошибку: ' +
@@ -318,6 +395,10 @@ TarifShtat_P
        else {
          result := false;
        }
+
+   if _isDebug
+     result := true;
+
 
 /*
 _Oklad_P

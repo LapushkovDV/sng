@@ -8,6 +8,7 @@
 //#include SNG_IntegrDirectum_out.Vih
 #include NumberOfAddAgreement.vih
 #include adrfunc.vih
+#include PsnFuncs.vih
 #include SNG_IntegrDirectum_out_base.Vih
 #include SNG_IntegrDirectum_out.Vih
 #component "API_DIRECTUM"
@@ -32,6 +33,7 @@ var
   BodyMess   : string;
   _MainCrec : comp;
   _addrfunc: AddressFunc;
+  _PersFunc : PersonsFunctions;
   _mylog : string;
   _sfileout : string;
 as select
@@ -82,17 +84,21 @@ procedure mylog(_str : string);
 
 
 
-function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : string; {
+function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : comp; {
 
+  mylog(' getpodrunder_nrec   _code = '  + _code+'  _crec = '+_crec + '  _cParent = '+ _cParent);
   if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
    {
+    mylog(' getpodrunder_nrec   cat_search.code = ' + cat_search.code);
     if cat_search.code = _code {
         if getfirst fastfirstrow cat_search where ((_crec == cat_search.nrec)) = tsOK {
           result := cat_search.nrec;
+          mylog(' getpodrunder_nrec   result = '  +result);
           exit;
         }
         else {
          result := 0h;
+         mylog(' getpodrunder_nrec   result = '  +result);
          exit;
 
         }
@@ -103,13 +109,17 @@ function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : string; {
    }
    else {
      result := 0h;
+     mylog(' getpodrunder_nrec   result = '  +result);
      exit;
    }
 }
 function getpodrunder(_code : string; _crec , _cParent: comp) : string; {
   result := '';
-  var _crec : comp = getpodrunder_nrec(_code, cat_search.nrec, cat_search.cParent);
-   if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname
+  mylog(' getpodrunder   _code = ' +_code   +'  _crec = '  +_crec+ '  _cParent = ' +_cParent);
+  var _crec : comp = getpodrunder_nrec(_code, _crec, _cParent);
+  mylog(' getpodrunder   _crec = '  +_crec);
+   if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname ;
+   mylog(' getpodrunder   result = '  +result);
 }
 
 
@@ -184,10 +194,10 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
         #getperson_passport_by_code('21')
       }
       if _result = '' {
-        #getperson_passport_by_code('21')
+        #getperson_passport_by_code('10')
       }
       if _result = '' {
-        #getperson_passport_by_code('21')
+        #getperson_passport_by_code('12')
       }
   result := _result
 }

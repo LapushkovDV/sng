@@ -6,6 +6,7 @@
 //#ifdef Atl60
 
 //#include SNG_IntegrDirectum_out.Vih
+
 #include SNG_IntegrDirectum_out_base.Vih
 #component "API_DIRECTUM"
 
@@ -158,6 +159,14 @@ function Get_SrokIsp( dBeg, dEnd : date) : string;
 Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : boolean;
 {
 
+ var lbIsOnlyJSON : boolean = false;
+
+ if methodstr = '---miss_http_request---'
+ {
+   lbIsOnlyJSON := true;
+   _isDebug := true;
+ }
+
  gettunes;
  result := false;
  var _sfileout : string = getoutdir+ 'SNG_APIDIRECTUMOUT_DoRequest_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'_';
@@ -191,7 +200,7 @@ Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : bo
 
     _try
     {
-      if methodstr = '---miss_http_request---' {
+      if lbIsOnlyJSON {
         result := True;
         exit;
       }
