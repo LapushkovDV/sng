@@ -208,7 +208,8 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
 */
   mylog(' addArrayElementString param = #param');
    var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, '#param', _#param);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Value', _#param);
     HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
 //а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
 #end
@@ -220,7 +221,8 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
 
   mylog(' addArrayElementlongstring param = #param');
    var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, '#param', #longstring);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, 'Value', #longstring);
     HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
 //а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются     HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
 // а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются    HttpConnect_DestroyLongString(m_service,#longstring);

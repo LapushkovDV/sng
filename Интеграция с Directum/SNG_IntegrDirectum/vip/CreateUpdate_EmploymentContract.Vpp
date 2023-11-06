@@ -217,9 +217,21 @@ SPALLSTAFF.CBASET= PERSONS.NREC (ссылка на таб№), SPALLSTAFF.WNOCON=5 - это ошиб
    var _TabNum : string = '';
      _TabNum := string(CONTDOC.LITABN);
      #addArrayElementString(TabNum)
-   var _FIO: string = '';
-     _FIO := PERSONS.FIO;
-     #addArrayElementString(FIO)
+//   var _FIO: string = '';
+//     _FIO := PERSONS.FIO;
+//     # addArrayElementString(FIO)
+   var _Surname: string = ''  ;
+     _Surname := _PersFunc.Get_LastName(PERSONS.nrec);
+     #addArrayElementString(Surname)
+
+   var _Name: string = ''   ;
+     _Name:= _PersFunc.Get_FirstName(PERSONS.nrec);
+     #addArrayElementString(Name)
+
+   var _Surname2: string = '';
+     _Surname2:= _PersFunc.GetPatronymic(PERSONS.nrec);
+     #addArrayElementString(Surname2)
+
    var _NameWerks : string = '';
      _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
      #addArrayElementString(NameWerks)

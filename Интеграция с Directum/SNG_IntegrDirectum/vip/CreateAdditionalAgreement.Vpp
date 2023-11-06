@@ -1,4 +1,4 @@
-/*
+  /*
  {
   "Adr" : "",
   "DateDoc" : "",
@@ -182,7 +182,8 @@ SPALLSTAFF. RESCOMP[7]
             ''#13''+ 'AppHist.NRec  = '+ string(AppHist.NRec, 0, 0)+
             ''#13''+ 'tmpLink  = '+ string(tmpLink , 0, 0),error)
           }
-          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
+          //на тестовой/пустой БД закомментировать строку ниже
+          continue;
        }
     //ссылка на Вид ДС
      if getfirst SpAllStaff_16 where ((     16 == SpAllStaff_16.WNOCON
@@ -192,7 +193,8 @@ SPALLSTAFF. RESCOMP[7]
              +''#13''+'SpAllStaff_aggreement.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
              +''#13''+'SpAllStaff_16.nrec = '+ string(SpAllStaff_16.nrec, 0, 0),error)
            }
-          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
+                    //на тестовой/пустой БД закомментировать строку ниже
+          continue;
        }
 
      if getfirst cat_search where ((SpAllStaff_16.RESCOMP[7] == cat_search.nrec)) <> tsOK {
@@ -203,10 +205,11 @@ SPALLSTAFF. RESCOMP[7]
             +''#13''+'каталог видов ДС SpAllStaff_16.RESCOMP[7] = '+ string(SpAllStaff_aggreement.RESCOMP[7], 0, 0)
             ,error)
           }
-          //"""!!!!!!!!!!!!!!!!!!! убрать комментарийц прежде чем в ит класть как в continue;
+                    //на тестовой/пустой БД закомментировать строку ниже
+          continue;
      }
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindAdditionalAgreement',cat_search.code);
+     var _HRCodeKindAdditionalAgreement : string = cat_search.code;
 
 /* HRCodeEmploymentContract
 Условие для параметра:
@@ -230,39 +233,58 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     }
   /**/
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEmploymentContract',_HRCodeEmploymentContract);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdRX','null'); //не сказано как искать и заполнять
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode',string(TYPEPR.nrec,0,0));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStartDC',datetostr(SpAllStaff_aggreement.RESDATE[2],co_formatdatetostr));
-
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindAdditionalAgreement',_HRCodeKindAdditionalAgreement);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEmploymentContract',_HRCodeEmploymentContract);
     //закоментировала блок  //Шалухо АИ 05112023
     //HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', CONTDOC.LITABN);
 
     //вставила блок  //Шалухо АИ 05112023
     HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
-
-
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart',datetostr(SpAllStaff_aggreement.RESDATE[2],co_formatdatetostr)); // сначала был DateStartDC
     /*//закоментировала блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','D_SOGTD010123');
     /**/
     //вставила блок  //Шалухо АИ 05112023
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon', _SNG_IntegrDirectum_out_base.GetDocShablonDS(cat_search.Nrec));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Shablon', _SNG_IntegrDirectum_out_base.GetDocShablonDS(cat_search.Nrec)); // сначала был DocShablon
 
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',''); // тут по идее _SNG_IntegrDirectum_out_base.GetDocUserTabN(с каким то параметром)
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IsArhive','0');
+
+
+/*
+далее переделываем линейную структуру на массив из JSON
+Param
+Value
+
+*опой чуял, что будет так и потому название переменных заранее делал как название параметра
+*/
+  var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+  mylog(' start JSONObj_Array');
 
 
    var _NameORG, _NameOrgShort : string = '';
      _NameORG := katorg.ShortName ;
      _NameOrgShort := katorg.Name;
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameORG',_NameORG);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameOrgShort',_NameOrgShort);
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameORG',_NameORG);
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameOrgShort',_NameOrgShort);
+
+     #addArrayElementString(NameORG)
+     #addArrayElementString(NameOrgShort)
 
    var _NameWerks : string = '';
      _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
      mylog('_NameWerks = ' + _NameWerks);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameWerks',_NameWerks);
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameWerks',_NameWerks);
+    #addArrayElementString(NameWerks)
+
    var _cRec : comp = getpodrunder_nrec('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
    var _Gorod : string = sGetAttr(coCATALOGS, _cRec, 'Город');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Gorod',_Gorod);
+    //_SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Gorod',_Gorod);
+    #addArrayElementString(Gorod)
 
 
 
@@ -271,20 +293,36 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO',_FIO);
     */
     //вставила блок  //Шалухо АИ 05112023
-   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Surname',  _PersFunc.Get_LastName(PERSONS.nrec)  ); //выделить фамилию
+/*   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Surname',  _PersFunc.Get_LastName(PERSONS.nrec)  ); //выделить фамилию
    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Name',     _PersFunc.Get_FirstName(PERSONS.nrec) ); //выделить имя
    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Surname2', _PersFunc.GetPatronymic(PERSONS.nrec) ); //выделить отчество
+*/
+
+   var _Surname: string = '';
+     _Surname := _PersFunc.Get_LastName(PERSONS.nrec);
+     #addArrayElementString(Surname)
+
+   var _Name: string = '';
+     _Name:= _PersFunc.Get_FirstName(PERSONS.nrec);
+     #addArrayElementString(Name)
+
+   var _Surname2: string = '';
+     _Surname2:= _PersFunc.GetPatronymic(PERSONS.nrec);
+     #addArrayElementString(Surname2)
+
 
    var _Adr :  string= '';
       if getfirst addressn where ((persons.PASSPADDR == addressn.nrec)) = tsOK {
         _Adr := _addrfunc.GetFullAddressInd(addressn.nrec);
       }
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Adr',_Adr);
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Adr',_Adr);
+     #addArrayElementString(Adr)
 
    var _DocTy : string = '';
    _DocTy := getpassport_string(Passports.DocName,persons.nrec) ;
 
-   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocTy',_DocTy);
+//   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocTy',_DocTy);
+     #addArrayElementString(DocTy)
 
     // по идее после вышестоящего кода мы стоим как раз на нужном passports
    var _Seriya : string= '';
@@ -297,10 +335,14 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
        _DateDoc  := passports.GIVENDATE;
        _KemVydan := passports.GIVENBY;
      }
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Seriya',_Seriya);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Nomer',_Nomer);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateDoc',_DateDoc);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KemVydan',_KemVydan);
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Seriya',_Seriya);
+     #addArrayElementString(Seriya)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Nomer',_Nomer);
+     #addArrayElementString(Nomer)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateDoc',_DateDoc);
+     #addArrayElementString(DateDoc)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'KemVydan',_KemVydan);
+     #addArrayElementString(KemVydan)
 
    var _OkladShtat, _Oklad_M, _Oklad_P, _TarifShtat, _TarifShtat_P  : string = '';
 /*
@@ -351,14 +393,28 @@ TarifShtat_P
      end;
    }
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OkladShtat',_OkladShtat);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Oklad_M',_Oklad_M);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Oklad_P',_Oklad_P);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat',_TarifShtat);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat_P',_TarifShtat_P);
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OkladShtat',_OkladShtat);
+       #addArrayElementString(OkladShtat)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Oklad_M',_Oklad_M);
+       #addArrayElementString(Oklad_M)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Oklad_P',_Oklad_P);
+       #addArrayElementString(Oklad_P)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat',_TarifShtat);
+       #addArrayElementString(TarifShtat)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TarifShtat_P',_TarifShtat_P);
+       #addArrayElementString(TarifShtat_P)
+
+
+
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'Content', JSONObj_Array);
+
+   var JSONObjAdditionalAgreementStructure : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObjAdditionalAgreementStructure, 'AdditionalAgreementStructure', JSONObj);
+
+
 
      var lResponse : tptr;
-     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObjAdditionalAgreementStructure, lResponse) {
         /*чтот то надо сделать*/
         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
 /*
@@ -400,13 +456,6 @@ TarifShtat_P
      result := true;
 
 
-/*
-_Oklad_P
-"Условие для параметра:
-если категория сотрудника=01-03, 05
-рассчитать значение персонального оклада : оклад APPOINMENTS.TAXRATE+ надбавка RAISE.SUM при RAISE.FROMDATE<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= RAISE.TODATE"
-
-*/
 
 
    // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
