@@ -164,8 +164,8 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
 
   var _result : string = '';
       if getfirst Passports where ((_passRus == Passports.Nrec)) = tsOK
-       and Passports.filialno = 0 { // не является предыдущим доком
-        if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+    // and Passports.filialno = 0 { // не является предыдущим доком    //закоментировала условие  //Шалухо АИ 06112023
+     {  if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
           case cat_search.code of
            '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
            '10': _result := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
@@ -177,8 +177,8 @@ Function getpassport_string(_passRus,_cPers: comp) : string; {
       // потому поищем просто среди доков
 #declare getperson_passport_by_code(code)
  _loop Passports where ((_cPers == Passports.person))
-    and Passports.filialno = 0  { // не является предыдущим доком
-     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+ // and Passports.filialno = 0  { // не является предыдущим доком   //закоментировала условие  //Шалухо АИ 06112023
+      { if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
           if cat_search.code = #code then  {
             case cat_search.code of
              '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name

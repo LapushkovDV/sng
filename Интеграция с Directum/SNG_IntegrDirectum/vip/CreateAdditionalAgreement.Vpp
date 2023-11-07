@@ -30,6 +30,11 @@
 
 function CreateAdditionalAgreement(_cRec : comp): boolean; {
 
+ //вставила блок  //Шалухо АИ 05112023   для возможности тестирования
+  var lsTest : string = sgettune('DirectumIntegration_Test')
+  if lsTest <> ''
+     _isDebug := true;
+
  // gettunes;
  //вставила блок  //Шалухо АИ 05112023
   var methodstr : string = sgettune('DirectumIntegration_CreateAdditionalAgreement');
@@ -38,7 +43,7 @@ function CreateAdditionalAgreement(_cRec : comp): boolean; {
                  message('Не заполнена настройка "Метод создания доп.соглашения на изменение оклада"'  ,error);
                  exit;
                 }
-  //вставила блок  //Шалухо АИ 05112023  для возможности тестирования
+  //вставила блок  //Шалухо АИ 05112023
   if methodstr = '---miss_http_request---'   //  /DrxIntegration/odata/HRDocflow/CreateAdditionalAgreement
     _isDebug := true;
 
@@ -233,7 +238,7 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     }
   /**/
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdRX','null'); //не сказано как искать и заполнять
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'IdRX', 0); //не сказано как искать и заполнять
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode',string(TYPEPR.nrec,0,0));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeKindAdditionalAgreement',_HRCodeKindAdditionalAgreement);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEmploymentContract',_HRCodeEmploymentContract);
@@ -241,7 +246,7 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     //HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', CONTDOC.LITABN);
 
     //вставила блок  //Шалухо АИ 05112023
-    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart',datetostr(SpAllStaff_aggreement.RESDATE[2],co_formatdatetostr)); // сначала был DateStartDC
     /*//закоментировала блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','D_SOGTD010123');
@@ -249,9 +254,9 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
     //вставила блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Shablon', _SNG_IntegrDirectum_out_base.GetDocShablonDS(cat_search.Nrec)); // сначала был DocShablon
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',''); // тут по идее _SNG_IntegrDirectum_out_base.GetDocUserTabN(с каким то параметром)
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IsArhive','0');
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'IdMainDoc', 0);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author', _SNG_IntegrDirectum_out_base.GetDocUserTabN ); // тут по идее _SNG_IntegrDirectum_out_base.GetDocUserTabN(с каким то параметром)
+    HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive',  false);
 
 
 /*
@@ -319,7 +324,9 @@ Value
      #addArrayElementString(Adr)
 
    var _DocTy : string = '';
-   _DocTy := getpassport_string(Passports.DocName,persons.nrec) ;
+ //закоментировала //Шалухо АИ 06112023
+// _DocTy := getpassport_string(Passports.DocName,persons.nrec) ;
+   _DocTy := getpassport_string(PERSONS.PASSPRUS,persons.nrec) ;
 
 //   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocTy',_DocTy);
      #addArrayElementString(DocTy)
@@ -429,7 +436,7 @@ TarifShtat_P
 
 
         if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success') {
-              if _isDebug{
+              if true { //_isDebug{  //закоментировала условие  //Шалухо АИ 06112023
                  message('DirectunRX вернул ошибку: ' +
                       ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'),error);
                 }
@@ -440,7 +447,7 @@ TarifShtat_P
               var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
               _SNG_IntegrDirectum_out_base.SetIdDirectRx(coTitleDoc,Titledoc.nrec,Id);
 
-              if _isDebug{
+              if true { //_isDebug{ //закоментировала условие  //Шалухо АИ 06112023
                  message('DirectunRX приказ успешно передан: Id = "' + Id+'"'+
                       ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'));
                 }
@@ -451,11 +458,6 @@ TarifShtat_P
        else {
          result := false;
        }
-
-   if _isDebug
-     result := true;
-
-
 
 
    // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);

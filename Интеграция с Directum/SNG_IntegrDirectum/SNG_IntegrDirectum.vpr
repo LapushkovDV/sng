@@ -108,13 +108,13 @@
 			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 3" Line="333" NumIndex="3" MarkerType="mtNumBookmark" Comment="API_method: set"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 2" Line="303" NumIndex="2" MarkerType="mtNumBookmark" Comment="var _TextRab, _TextOtpusk, _TextGarant : string = '';"/>
 			<Marker FileName="vip\SNG_IntegrDirectum_out.Vih" Caption="Нумерованная закладка 1" Line="85" NumIndex="1" MarkerType="mtNumBookmark" Comment="Для работы целиком по приказу используйте"/>
 			<Marker FileName="vip\SNG_IntegrDirectum_out_CreateUpdate_RPD6.Vpp" Caption="Нумерованная закладка 1" Line="101" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\CreateUpdate_RPD1.Vpp" Caption="Нумерованная закладка 1" Line="121" NumIndex="1" MarkerType="mtNumBookmark" Comment="SetIdDirectRx"/>
-			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 1" Line="89" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\CreateAdditionalAgreement.Vpp" Caption="Нумерованная закладка 1" Line="413" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 1" Line="89" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 2" Line="303" NumIndex="2" MarkerType="mtNumBookmark" Comment="var _TextRab, _TextOtpusk, _TextGarant : string = '';"/>
+			<Marker FileName="vip\SNG_IntegrDirectum_out.Vip" Caption="Нумерованная закладка 3" Line="333" NumIndex="3" MarkerType="mtNumBookmark" Comment="API_method: set"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -126,7 +126,7 @@
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="SNG_IntegrDirectum.prj" PosX="14" PosY="29" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="1" PosY="54" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="84" PosY="41" OpenEditor="True" Active="True"/>
 			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="12" PosY="24" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out_base.Vip" PosX="31" PosY="58" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="103" PosY="79" OpenEditor="True"/>
@@ -142,7 +142,7 @@
 			</ProjectCompileFile>
 		</ProjectItems>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45237,5038165046" DateTimeCompile="6,08101836405694E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45237,5040103241" DateTimeCompile="8,68981442181394E-5" StateHistory="False">
 				<CompileMessageList>
 					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\GALAKTIKA\_GIT\SNG\ИНТЕГРАЦИЯ С DIRECTUM\SNG_INTEGRDIRECTUM\VIP\SNG_IntegrDirectum_out.Vih" SourceLine="26" SourceColumn="35">
 						<StackIncludeList>
@@ -246,8 +246,7 @@
 					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT_BASE.EscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip(36), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip" SourceLine="267" SourceColumn="5"/>
 					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT_BASE.UnEscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip(47), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip" SourceLine="267" SourceColumn="5"/>
 					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_REST.Vip" SourceLine="20" SourceColumn="1"/>
-					<CompileMessage MessageType="mtError" MessageText="Обнаружена директива #end макропроцессора, не являющаяся частью условной директивы" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_REST.Vip" SourceLine="55" SourceColumn="1"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="07.11.2023 12:05:35"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="07.11.2023 12:05:54"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
