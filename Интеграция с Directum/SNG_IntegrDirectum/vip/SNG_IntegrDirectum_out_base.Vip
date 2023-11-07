@@ -162,7 +162,7 @@ Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr) : bo
  var lbIsOnlyJSON : boolean = false;
 
  //вставила блок  //Шалухо АИ 05112023   для возможности тестирования
- var lsTest : string = sgettune('DirectumIntegration_Test')
+ var lsTest : string = sgettune('DirectumIntegration_Test');
  if lsTest <> ''
      _isDebug := true;
 

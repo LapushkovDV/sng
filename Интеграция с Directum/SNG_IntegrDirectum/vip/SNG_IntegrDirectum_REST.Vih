@@ -1,4 +1,4 @@
-#ifdef Atl60
+//#ifdef Atl60
 
 #ifndef __SNG_IntegrDirectum_REST_VIH__
 #define __SNG_IntegrDirectum_REST_VIH__
@@ -45,4 +45,4 @@ end;
 
 #end // __TestREST_VIH__
 
-#endif
+//#endif

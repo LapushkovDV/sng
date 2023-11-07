@@ -1,6 +1,29 @@
-function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
+function CreateUpdate_RPD6(_cRec : comp): boolean; {
 
-  if(getfirst partdoc where ((_cPartdoc == partdoc.nrec)) and Partdoc.TYPEOPER = 6 ) <> tsOK {
+   //вставила блок  //Шалухо АИ 07112023   для возможности тестирования
+  var lsTest : string = sgettune('DirectumIntegration_Test')
+  if lsTest <> ''
+     _isDebug := true;
+
+// gettunes;
+  var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder'); // все через одну точку походу будет...
+  if methodstr = ''
+         if true{
+                 message('Не заполнена настройка "Метод создания приказа"'  ,error);
+                 exit;
+                }
+  //вставила блок  //Шалухо АИ 07112023
+  if methodstr = '---miss_http_request---'   //
+    _isDebug := true;
+
+  if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK {
+    if _isDebug{
+        message('Не найден приказ Titledoc по Titledoc.nrec ' + string(_cRec, 0, 0),error)
+      }
+    exit;
+  }
+
+  if(getfirst partdoc where (( Titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = 6 ) <> tsOK {
     if _isDebug{
         message('В функцию передан partdoc.nrec = '+string(partdoc.nrec,0,0)+
         ''#13''+', но этот раздел не является "Приказ на отпуск" (РПД 6)',error)
@@ -8,14 +31,6 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
     exit;
   }
 
-  if getfirst Titledoc where ((partdoc.CDOC == Titledoc.nrec)) <> tsOK {
-    if _isDebug{
-        message('Не найден приказ Titledoc where ((partdoc.CDOC == Titledoc.nrec))  ' + string(partdoc.CDOC, 0, 0),error)
-      }
-    exit;
-  }
-// gettunes;
-   var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder'); // все через одну точку походу будет...
 
     _loop contdoc where ((partdoc.nrec == contdoc.CPART)) {
       if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then {
@@ -75,11 +90,13 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEvent',co_unknown_value); // поле CATALOGS.CODE при CATALOGS.CPARENT=CATALOGS.NREC, где CATALOGS.NREC - значение для записи CATALOGS.SYSCODE=-31699
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeAbsence', string(KLOTPUSK.KOTPUS));
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeReason',if(getfirst cat_search where ((PARTDOC.CPREF == cat_search.NREC)) = tsOK, string(cat_search.NREC,0,0),''));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', string(CONTDOC.LITABN));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DissmissalDate', datetostr(APPOINTMENTS.DORDERDISDATE,co_formatdatetostr));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'IdMainDoc','');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author',co_unknown_value); // Значение PERSONS.TABNMB создающего РПД
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DissmissalDate', _SNG_IntegrDirectum_out_base.SetDateToHeader(APPOINTMENTS.DORDERDISDATE) );
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'IdMainDoc', 0);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author', _SNG_IntegrDirectum_out_base.GetDocUserTabN ); // тут по идее _SNG_IntegrDirectum_out_base.GetDocUserTabN(с каким то параметром)
     HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive',False);
+
+
      var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
      mylog(' start JSONObj_Array');
 
@@ -91,13 +108,13 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
      #addArrayElementString(NameOrgShort)
 
    var _NameWerks : string = '';
-     _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     _NameWerks := getpodrunder(_SNG_IntegrDirectum_out_base.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
      #addArrayElementString(NameWerks)
 
    var _NDOC : string = TITLEDOC.DOCNMB;
      #addArrayElementString(NDOC)
 
-   var _DDOC : string = strtodate(TITLEDOC.DOCDATE, co_formatdatetostr);
+   var _DDOC : string = _SNG_IntegrDirectum_out_base.SetDateToValue(TITLEDOC.DOCDATE);
      #addArrayElementString(DDOC)
 
    var _Employees : string = string(persons.TABNMB);
@@ -107,7 +124,7 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
      #addArrayElementString(Fio)
 
    var _NameOrgeh : string = '';
-    _NameOrgeh := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+    _NameOrgeh := getpodrunder(_SNG_IntegrDirectum_out_base.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
      #addArrayElementString(NameOrgeh)
 
    var _Shdol : string = '';
@@ -172,7 +189,7 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
         /*чтот то надо сделать*/
         var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
           if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success') {
-              if _isDebug{
+              if  true { //_isDebug{
                  message('DirectunRX вернул ошибку: ' +
                       ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'),error);
                 }
@@ -183,7 +200,7 @@ function CreateUpdate_RPD6(_cPartdoc : comp): boolean; {
               var Id : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
               _SNG_IntegrDirectum_out_base.SetIdDirectRx(coTitleDoc,Titledoc.nrec,Id);
 
-              if _isDebug{
+              if  true { //_isDebug{
                  message('DirectunRX приказ успешно передан: Id = "' + Id+'"'+
                       ''#13''+ HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message'));
                 }

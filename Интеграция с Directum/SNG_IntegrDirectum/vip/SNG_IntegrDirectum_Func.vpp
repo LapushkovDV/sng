@@ -93,6 +93,11 @@ function SetDocStateDirectRxById( parId : string; parState, parNumDoc, parDateDo
          , EXTERNALASM.DESCR      := sGetTune('USER.DESCR')
          ;
       result := true;
+
+      //здесь дальше требуется обработать статус самого приказа
+      //и далее отправку зависимого документа при его наличии
+      //??? либо очистку ID обоих документов ??? если на правку
+
    }
 }
 //Получить шаблон ДС - параметр DocShablon
@@ -133,4 +138,19 @@ function GetDocUserTabN : string;
      result := SubStr(String(Persons.TABNMB),1,10);
   }
 
+}
+//код главного структурного ПАО СНГ
+function GetMainCode_PAOSNG : string;
+{
+    result := 'ПАО СНГ'; //'0000';
+}
+//получить дату в формате для заголовков
+function SetDateToHeader( parDate : date) : string;
+{
+    result := datetostr(parDate, 'YYYY-MM-DD') + 'T00:00:00.000Z' ;
+}
+//получить дату в формате для параметров
+function SetDateToValue( parDate : date) : string;
+{
+    result := datetostr(parDate, 'DD.MM.YYYY');
 }

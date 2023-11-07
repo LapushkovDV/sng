@@ -84,7 +84,7 @@ function CreateUpdate_EmploymentContract(_cRec : comp): boolean;
 Для работы целиком по приказу используйте
 Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
 #end
-function CreateUpdate_RPD6(_cPartdoc : comp): boolean;
+function CreateUpdate_RPD6(_cRec : comp): boolean;
 
 
 end;

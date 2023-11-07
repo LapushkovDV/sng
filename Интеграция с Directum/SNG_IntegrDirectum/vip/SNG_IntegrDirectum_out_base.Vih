@@ -104,6 +104,20 @@ function GetDocShablonTD( parDocParam, parDocKat, parTarZona : string ) : string
 #end
 function GetDocUserTabN : string;
 
+#doc
+код главного структурного ПАО СНГ
+#end
+function GetMainCode_PAOSNG : string;
+#doc
+получить дату в формате для заголовков
+#end
+function SetDateToHeader( parDate : date) : string;
+#doc
+получить дату в формате для параметров
+#end
+function SetDateToValue( parDate : date) : string;
+
+
 end;
 var _SNG_IntegrDirectum_out_base : SNG_IntegrDirectum_out_base;
 #end // __GLX586_VIH__

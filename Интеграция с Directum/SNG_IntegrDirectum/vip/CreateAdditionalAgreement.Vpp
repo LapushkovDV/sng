@@ -247,7 +247,7 @@ EXTERNALASM.WTABLE=32211, EXTERNALASM.ASM_TYPE=101 запомнить значение EXTERNALAS
 
     //вставила блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart',datetostr(SpAllStaff_aggreement.RESDATE[2],co_formatdatetostr)); // сначала был DateStartDC
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DateStart', _SNG_IntegrDirectum_out_base.SetDateToHeader(SpAllStaff_aggreement.RESDATE[2])); // сначала был DateStartDC
     /*//закоментировала блок  //Шалухо АИ 05112023
     _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DocShablon','D_SOGTD010123');
     /**/
@@ -280,13 +280,13 @@ Value
      #addArrayElementString(NameOrgShort)
 
    var _NameWerks : string = '';
-     _NameWerks := getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+     _NameWerks := getpodrunder(_SNG_IntegrDirectum_out_base.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
      mylog('_NameWerks = ' + _NameWerks);
 
 //    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NameWerks',_NameWerks);
     #addArrayElementString(NameWerks)
 
-   var _cRec : comp = getpodrunder_nrec('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+   var _cRec : comp = getpodrunder_nrec(_SNG_IntegrDirectum_out_base.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
    var _Gorod : string = sGetAttr(coCATALOGS, _cRec, 'Город');
     //_SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Gorod',_Gorod);
     #addArrayElementString(Gorod)
@@ -339,7 +339,7 @@ Value
      if _DocTy <> '' {
        _Seriya   := passports.SER;
        _Nomer    := passports.NMB;
-       _DateDoc  := passports.GIVENDATE;
+       _DateDoc  := _SNG_IntegrDirectum_out_base.SetDateToValue(passports.GIVENDATE);
        _KemVydan := passports.GIVENBY;
      }
 //    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Seriya',_Seriya);
