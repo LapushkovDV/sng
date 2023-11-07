@@ -125,14 +125,12 @@
 		</BreakPointList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_IntegrDirectum.prj" PosX="25" PosY="32" OpenEditor="True"/>
-			<File Name="vip\CreateAdditionalAgreement.Vpp" PosX="56" PosY="432" OpenEditor="True" Active="True"/>
-			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="65" PosY="223" OpenEditor="True"/>
-			<File Name="vip\CreatePersonnelOrder_API.Vpp" PosX="33" PosY="70" OpenEditor="True"/>
-			<File Name="..\..\..\..\..\Users\Дмитрий\YandexDisk\Work\!Gal_Source\Z_M_L_F_C_20230112\CompSrc\Z\Z_GTP\vip\OkladTransneft.vip" PosX="47" PosY="141" OpenEditor="True"/>
-			<File Name="vip\CreateUpdate_EmploymentContract.Vpp" PosX="31" PosY="231" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_out_base.Vip" PosX="23" PosY="58" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="24" PosY="124" OpenEditor="True"/>
+			<File Name="SNG_IntegrDirectum.prj" PosX="14" PosY="29" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="1" PosY="54" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="12" PosY="24" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out_base.Vip" PosX="31" PosY="58" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="103" PosY="79" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="34" PosY="211" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_IntegrDirectum.prj" Priority="0">
@@ -144,7 +142,7 @@
 			</ProjectCompileFile>
 		</ProjectItems>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45236,4429134491" DateTimeCompile="7,26620419300161E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\SNG_IntegrDirectum.prj" DateTimeStart="45237,5038165046" DateTimeCompile="6,08101836405694E-5" StateHistory="False">
 				<CompileMessageList>
 					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\GALAKTIKA\_GIT\SNG\ИНТЕГРАЦИЯ С DIRECTUM\SNG_INTEGRDIRECTUM\VIP\SNG_IntegrDirectum_out.Vih" SourceLine="26" SourceColumn="35">
 						<StackIncludeList>
@@ -247,7 +245,9 @@
 					</CompileMessage>
 					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT_BASE.EscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip(36), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip" SourceLine="267" SourceColumn="5"/>
 					<CompileMessage MessageType="mtInfo" MessageText="Метод интерфейса &quot;SNG_INTEGRDIRECTUM_OUT_BASE.UnEscapeStr&quot;, объявленный в C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip(47), не был использован" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_out_base.Vip" SourceLine="267" SourceColumn="5"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="06.11.2023 10:37:54"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_REST.Vip" SourceLine="20" SourceColumn="1"/>
+					<CompileMessage MessageType="mtError" MessageText="Обнаружена директива #end макропроцессора, не являющаяся частью условной директивы" SourceFileName="C:\Galaktika\_git\sng\Интеграция с Directum\SNG_IntegrDirectum\VIP\SNG_IntegrDirectum_REST.Vip" SourceLine="55" SourceColumn="1"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="07.11.2023 12:05:35"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

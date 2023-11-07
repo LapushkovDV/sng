@@ -1,0 +1,54 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+#include SNG_IntegrDirectum_out_base.Vih
+#include SNG_IntegrDirectum_REST.Vih
+#component "API_DIRECTUM"
+
+interface SNG_IntegrDirectum_REST 'API REST для вызова из Directum' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+Create view
+var
+  Api        : string;
+  HeaderMess : string;
+  BodyMess   : string;
+  _getoutdir : string;
+;
+function ISNG_IntegrDirectum_REST.Test(_id : string; _Name : string): TResultTest;
+{
+  var res: TResultTest;
+    res.returnCode := 0 ;
+    res.returntMessage := 'В сервис передали _id  = ' + _id  + ' _Name ' + _Name;
+  result := res;
+}
+
+//ИД документа (ссылочное значение), по которому пользователь из Галактики сможет открыть карточку документа RX
+//рег.номер;
+//рег.дата; (формат DD.MM.YYYY)
+//статус документа.
+function ISNG_IntegrDirectum_REST.SetRPDStatus(idRX, reg_number, reg_date, current_status : string): TResultTest; {
+
+
+
+  var res: TResultTest;
+
+    if _SNG_IntegrDirectum_out_base.SetDocStateDirectRxById(idRX,current_status,reg_number,reg_date) {
+       res.returnCode := 0 ;
+       res.returntMessage := 'Success'
+    }
+    else {
+       res.returnCode := 1 ;
+       res.returntMessage := 'ERROR'
+    }
+
+
+  result := res;
+}
+
+HandleEvent
+end; // HandleEvent
+
+end.
