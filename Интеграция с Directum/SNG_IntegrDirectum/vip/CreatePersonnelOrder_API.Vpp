@@ -68,7 +68,7 @@ Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
       }
       case Partdoc.TYPEOPER of
          1: result := CreateUpdate_RPD1(Titledoc.nrec); // тут так то есть развилка с формированием трудового договора
-         6: result := CreateUpdate_RPD6(partdoc.nrec);
+         6: result := CreateUpdate_RPD6(Titledoc.nrec); // . Анна Шахуло переделала этот метод... все на TITLEDOC перенесла... аналогично - развилка по самому приказу и записке-расчету
          8: result := CreateUpdate_RPD1(Titledoc.nrec);
         50: result := CreateAdditionalAgreement(Titledoc.nrec);
        else {

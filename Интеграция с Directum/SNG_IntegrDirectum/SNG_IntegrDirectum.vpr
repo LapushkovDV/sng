@@ -127,11 +127,12 @@
 		<FileList>
 			<File Name="SNG_IntegrDirectum.prj" PosX="14" PosY="29" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="41" PosY="25" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="24" PosY="24" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="60" PosY="13" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out_base.Vip" PosX="61" PosY="165" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="103" PosY="79" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="11" PosY="326" OpenEditor="True"/>
 			<File Name="vip\CreateAdditionalAgreement.Vpp" PosX="37" PosY="456" OpenEditor="True"/>
+			<File Name="vip\CreatePersonnelOrder_API.Vpp" PosX="113" PosY="18" OpenEditor="True" Active="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_IntegrDirectum.prj" Priority="0">

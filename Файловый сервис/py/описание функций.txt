@@ -1,0 +1,89 @@
+def load_key():
+Загружаем ключ 'crypto.key' из каталога cryptokeypath (указан в параметрах)
+Шифрование идет с помощью библиотеки  Fernet
+
+def encrypt(filename, key):
+Зашифруем файл и записываем его в папку-хранилище
+Шифрование идет с помощью библиотеки  Fernet
+
+def decrypt(filename, key):
+Расшифруем файл и записываем его во временную папку
+
+def cleartempdir():
+очищаем все файлы из временной папки старше 15 минут
+
+def get_db_connection():
+получить подключение к БД
+
+@app.errorhandler(404)
+def not_found(error):
+функция API - возвращает ошибку 404 при обращении к несуществующей странице
+
+
+@app.route('/fileservice/api/v1.0/loadfile', methods=['POST'])
+def load_file():
+функция API - по загрузке файла в сервис.
+Входные проверки
+ - если структура входного JSON некорректная то возвращает
+     {'message': 'Wrong JSON structure in body', 'status': '0', 'UUID': ''}, 401
+- если название файла пустое, то возвращает
+     {'message': 'Empty filename', 'status': '0', 'UUID': ''}, 401
+- если передат пустой файл, то возвращает
+        {'message': 'Empty data in file', 'status': '0', 'UUID': ''}, 401
+
+Далее пытаемся записать файл на диск в директорию-хранилище, имя файлу присваивается уникальное (GUID) без расширения
+ -Если запись не удалась , то возврашщает
+        {'message': 'Errror write data to disk', 'status': '0', 'UUID': ''}, 401
+
+Далее записанный файл зашифровываем функцией encrypt
+ - Если зашифровать и перезаписать файл не удалось, то возвращает
+        {'message': 'Errror encrypt file on disk', 'status': '0', 'UUID': ''}, 401
+
+Далее записываем в БД имя файла на диске (сгенерированный GUID), изначальное имя, расширение файла и его описание
+ - если запись в БД не удалась, то возвращает
+        {'message': 'DB exception','status': '0','UUID':''}, 401
+
+Если все прошло успешно, то возвращает GUID  файла
+        {'message': 'OK','status': '1','UUID': guid}, 200
+
+
+@app.route('/fileservice/api/v1.0/getfile/<file_uuid>', methods=['GET'])
+def get_file(file_uuid):
+получение файла по его GUID
+ -Если передан пустой GUID, то возвращает
+        {'error': 'empty guid'}, 401
+Далее ищем в БД файл по GUID
+ - Если ошибка запроса в БД, то возвращает
+        {'status': '0','message':'DB Exception','URL':''}, 401
+ - Если по GUID не нашли в БД запись, то возвращает
+        {'status': '0','message':'file not exists','url':''} , 401
+Далее копируем файл во временную папку, переименовывая его str(uuid.uuid4())+'_'+file_name+'.'+file_ext (file_name, file_ext берутся из БД) и расшифровываем его функцией decrypt
+ - Если не удалось скопировать, то возвращает
+        {'status': '0','message':'OS IO error','URL':''}, 401
+Если все прошло хорошо, то возвращаем временную ссылку на файл
+  {'status': '1','message':'','url':httpfileserver+ '/fileservice/api/v1.0/tmpfiles/'+tmp_file_name}, 200
+
+@app.route("/fileservice/api/v1.0/tmpfiles/<path>")
+def DownloadFile (path = None):
+функция скачивает файл по ссылке
+Если файл не найден, то возвращает
+    return {'error': 'File not exists'}
+
+
+@app.route('/fileservice/api/v1.0/deletefile/<file_uuid>', methods=['DELETE'])
+def delete_file(file_uuid):
+Удаляет файл в хранилище и в БД
+Делаем запрос на удаление записи в БД по GUID,
+- если ошибка запроса, то возвращает
+         {'status': '0','message':'DB exception'},401 #error #{'error': 'DB exception'}
+- если запись по GUID не найдена, то возвращает
+        {'status': '0','message':'File not exists'},401
+Удаляем фйл на диске.
+ - Если удалить не удалось, то возвращает
+        {'status': '0', 'message': 'OS IO error'}, 401
+ - Если все прошло хорошо, то возвращает
+        {'status': '1','message':''},200
+
+@app.route('/')
+def index():
+показывает страницу сервиса в веб-браузере

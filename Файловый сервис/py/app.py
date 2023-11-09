@@ -51,6 +51,7 @@ def decrypt(filename, key):
 
 
 def cleartempdir():
+    # очищаем все файлы из временной папки старше 15 минут
 	while 1:
 		for fname in os.listdir(dirpathtmp):
 			timetodelete = datetime.now() + timedelta(minutes=-15)
@@ -63,6 +64,7 @@ def cleartempdir():
 
 
 def get_db_connection():
+    # получить подключение к БД
     conn = psycopg2.connect(host=pg_server,
                             database=pg_database,
                             user=pg_user,
@@ -83,6 +85,7 @@ def get_db_connection():
 
 @app.errorhandler(404)
 def not_found(error):
+    # функция API - возвращает ошибку 404 при обращении к несуществующей странице
     return make_response(jsonify({'error': 'Page not found'}), 404)
 
 @app.route('/fileservice/api/v1.0/loadfile', methods=['POST'])
