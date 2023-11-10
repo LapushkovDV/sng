@@ -1,5 +1,52 @@
 //#ifdef Atl60
+/*
+запрос в Галактику
+{
 
+    "action":"atmcall"
+
+  , "jsonrpc":"2.0"
+
+  , "id":3
+
+  , "class": "API_DIRECTUM::SNG_IntegrDirectum_REST"
+
+  , "method": "ISNG_IntegrDirectum_REST_SetRPDStatus"
+
+  , "params":{
+
+"idRX":"111",
+
+"reg_number":"333-333",
+
+"reg_date"01.01.2023",
+
+"current_status ": "В работе"
+
+}
+
+}
+
+
+возврат от гаалктики
+{
+
+    "reaction": "atmresult",
+
+    "jsonrpc": "2.0",
+
+    "result": {
+
+        "returnCode": 0,
+
+        "returntMessage": "Success"
+
+    },
+
+    "id": 3
+
+}
+*/
 #ifndef __SNG_IntegrDirectum_REST_VIH__
 #define __SNG_IntegrDirectum_REST_VIH__
 
