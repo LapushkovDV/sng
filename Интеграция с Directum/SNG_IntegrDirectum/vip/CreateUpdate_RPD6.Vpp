@@ -1,7 +1,7 @@
 function CreateUpdate_RPD6(_cRec : comp): boolean; {
 
    //вставила блок  //Шалухо АИ 07112023   для возможности тестирования
-  var lsTest : string = sgettune('DirectumIntegration_Test')
+  var lsTest : string = sgettune('DirectumIntegration_Test') ;
   if lsTest <> ''
      _isDebug := true;
 

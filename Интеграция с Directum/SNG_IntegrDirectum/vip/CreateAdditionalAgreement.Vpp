@@ -31,7 +31,7 @@
 function CreateAdditionalAgreement(_cRec : comp): boolean; {
 
  //вставила блок  //Шалухо АИ 05112023   для возможности тестирования
-  var lsTest : string = sgettune('DirectumIntegration_Test')
+  var lsTest : string = sgettune('DirectumIntegration_Test');
   if lsTest <> ''
      _isDebug := true;
 

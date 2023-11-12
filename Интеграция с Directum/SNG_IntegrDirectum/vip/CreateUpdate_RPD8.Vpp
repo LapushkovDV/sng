@@ -50,46 +50,148 @@ function CreateUpdate_RPD8(_cRec : comp): boolean; {
     */
    var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, co_formatdatetostr));
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+/*‡ £®«®¢®ª ¢§ï« ¯®ª  çâ® ¨§ „6*/
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCode', string(TYPEPR.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeRPD',string(CONTDOC.NREC,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeEvent',co_unknown_value); // ¯®«¥ CATALOGS.CODE ¯à¨ CATALOGS.CPARENT=CATALOGS.NREC, £¤¥ CATALOGS.NREC - §­ ç¥­¨¥ ¤«ï § ¯¨á¨ CATALOGS.SYSCODE=-31699
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeAbsence', string(KLOTPUSK.KOTPUS));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'HRCodeReason',if(getfirst cat_search where ((PARTDOC.CPREF == cat_search.NREC)) = tsOK, string(cat_search.NREC,0,0),''));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Employees', PERSONS.TABNMB);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DissmissalDate', _SNG_IntegrDirectum_out_base.SetDateToHeader(APPOINTMENTS.DORDERDISDATE) );
+    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'IdMainDoc', 0);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'Author', _SNG_IntegrDirectum_out_base.GetDocUserTabN ); // âãâ ¯® ¨¤¥¥ _SNG_IntegrDirectum_out_base.GetDocUserTabN(á ª ª¨¬ â® ¯ à ¬¥âà®¬)
+    HttpConnect_JsonObjectAddBoolean(m_service, JSONObj, 'IsArhive',False);
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+        var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+     mylog(' start JSONObj_Array');
 
-    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
-    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
-    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_YEAR', year(CONTDOC.DDISDATE));
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME_ORG_SHORT', sgettune('myorg'));
+    var _NAME_ORG_SHORT: string = sgettune('myorg');
+      #addArrayElementString(NAME_ORG_SHORT)
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAME'  , getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent));
+    var _NAME: string = getpodrunder('0000', Catalogs_podr.nrec, Catalogs_podr.cParent);
+      #addArrayElementString(NAME)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PODR'  , if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname));
+    var _PODR: string = if(Catalogs_podr.longname = '', Catalogs_podr.name,Catalogs_podr.longname);
+      #addArrayElementString(PODR)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NDOC'  , TITLEDOC.DOCNMB);
+    var _NDOC: string = TITLEDOC.DOCNMB;
+      #addArrayElementString(NDOC)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'DDOC'  , datetostr(TITLEDOC.DOCDATE, co_formatdatetostr));
+    var _DDOC : string = datetostr(TITLEDOC.DOCDATE, co_formatdatetostr);
+      #addArrayElementString(DDOC)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'FIO'   , PERSONS.FIO);
+    var _FIO : string = PERSONS.FIO;
+      #addArrayElementString(FIO)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERNR' , string(PERSONS.TABNMB));
+    var _PERNR: string = string(PERSONS.TABNMB);
+      #addArrayElementString(PERNR)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'SHDOL' , STAFFSTRUCT.SNAMEST);
+    var _SHDOL: string = STAFFSTRUCT.SNAMEST;
+      #addArrayElementString(SHDOL)
+
+//    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_DAY', day(CONTDOC.DDISDATE));
+    var _UVO_DAY: string = string(day(CONTDOC.DDISDATE));
+      #addArrayElementString(UVO_DAY)
+
+//    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_MONTH', month(CONTDOC.DDISDATE));
+    var _UVO_MONTH: string = string(month(CONTDOC.DDISDATE));
+      #addArrayElementString(UVO_MONTH)
+
+//    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'UVO_YEAR', year(CONTDOC.DDISDATE));
+    var _UVO_YEAR: string = string(year(CONTDOC.DDISDATE));
+      #addArrayElementString(UVO_YEAR)
 
     /*
     âàã¤®¢®© ¤®£®¢®à
     */
     if getfirst SpAllStaff_TD where ((cgAllStaffContract == SpAllStaff_TD.wNoCon
                                      and Persons.NREC   == SpAllStaff_TD.cBaseT)) = tsOK {
-                    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
-                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
-                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
-                    HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
-                  }
+//              _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'CTNUM' , SpAllStaff_TD.ResString[1]);
+              var _CTNUM: string = SpAllStaff_TD.ResString[1];
+                #addArrayElementString(CTNUM)
 
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'NAVANS','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
-    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+//                HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_DAY', day(SpAllStaff_TD.RESDATE[2]));
+              var _TD_DAY: string = string(day(SpAllStaff_TD.RESDATE[2]));
+                #addArrayElementString(TD_DAY)
+
+//                HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_MONTH', month(SpAllStaff_TD.RESDATE[2]));
+              var _TD_MONTH: string = string(month(SpAllStaff_TD.RESDATE[2]));
+                #addArrayElementString(TD_MONTH)
+
+//                 HttpConnect_JsonObjectAddInteger(m_service, JSONObj, 'TD_YEAR', year(SpAllStaff_TD.RESDATE[2]));
+              var _TD_YEAR: string = string(year(SpAllStaff_TD.RESDATE[2]));
+                #addArrayElementString(TD_YEAR)
+
+       }
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OBST','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _OBST: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(OBST)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH1: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH1)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH2: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH2)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH3','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH3: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH3)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH4','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH4: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH4)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH5','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH5: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH5)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PRICH6','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PRICH6: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PRICH6)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'OSN2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _OSN2: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(OSN2)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _TEXT_AVANS1: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(TEXT_AVANS1)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'AVANS','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _AVANS: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(AVANS)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_AVANS2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _TEXT_AVANS2: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(TEXT_AVANS2)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _NAVANS: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(NAVANS)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS1','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _TEXT_NAVANS1: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(TEXT_NAVANS1)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'TEXT_NAVANS2','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _TEXT_NAVANS2: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(TEXT_NAVANS2)
+
+//    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj, 'PERIOD','… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ');
+    var _PERIOD: string = '… ‘Š€‡€‹ˆ Š€Š ‡€‹Ÿ’œ';
+      #addArrayElementString(PERIOD)
+
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'Content', JSONObj_Array);
 
      var lResponse : tptr;
      if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
