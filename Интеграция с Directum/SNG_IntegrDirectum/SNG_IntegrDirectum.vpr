@@ -127,9 +127,10 @@
 		<FileList>
 			<File Name="SNG_IntegrDirectum.prj" PosX="27" PosY="33" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="14" PosY="7" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="27" PosY="32" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="11" PosY="326" OpenEditor="True"/>
 			<File Name="vip\CreateUpdate_RPD6.Vpp" PosX="27" PosY="1" OpenEditor="True"/>
+			<File Name="vip\CreateUpdate_EmploymentContract.Vpp" PosX="41" PosY="523" OpenEditor="True" Active="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_IntegrDirectum.prj" Priority="0">

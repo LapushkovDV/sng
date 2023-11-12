@@ -1,0 +1,82 @@
+/*************************************************************************************************\
+* Наименование:  Функции используемые на проекте                                                          *
+* Контур/Модуль: Утилиты                                                                          *
+* Примечание:
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+\*************************************************************************************************/
+
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+//------------------------------------------------------------------------------
+#include Query.vih
+#component "SNG_Common"
+#include SNG_static_Function.Vih
+InterFace SNG_static_Function;
+
+//------------------------------------------------------------------------------
+//  Получить позицию справа
+//------------------------------------------------------------------------------
+function PosR(_substr: string; _s: string): byte;
+var ww_str:string;
+    ii :word;
+    len_sub:word;
+{ ww_str:='';
+  Result:=0;
+  len_sub:=length(_substr);
+  for(ii:=length(_s);ii>0;ii--)
+  { ww_str:=substr(_s,ii,1)+ww_str;
+    if substr(ww_str,1,len_sub)=_substr
+    { Result:=ii;
+      break
+    }
+  }
+} //function PosR(substr: string; s: string): byte;
+
+//------------------------------------------------------------------------------
+//  Получить подстроку справа
+//------------------------------------------------------------------------------
+function SubStrPosR(_substr: string;_s:string) : string;
+var ii :word;
+{ Result:=_s;
+  ii:=PosR(_substr,_s);
+  if ii>0
+  { Result:=SubStr(_s,1,ii-1);
+  } //if ii>0
+} //function SubStrPosR(substr: string;s:string) : string;
+
+sql query queryCountRecordWithTerms =
+      select
+       count(1) as CNT
+       from %Table
+      where %Terms
+;
+function GetCountRecordsInTableWithterms(_TableName, _Terms : string) : longint;
+{
+  var qCountRecordWithTerms : iQuery = queryManager.createQuery(queryCountRecordWithTerms);
+
+  var qTableName : longint= 0;
+  sqlAddStr(qTableName, _TableName);
+  qCountRecordWithTerms.setMacro('Table', qTableName);
+  var qTerms : longint= 0;
+  sqlAddStr(qTerms, _Terms);
+
+  qCountRecordWithTerms.setMacro('Terms', qTerms);
+  _Try {
+     var iRes : IResultSet = qCountRecordWithTerms.getResultSet;
+      if NullVipRef(iRes) then {
+        result := 0;
+        exit;
+      }
+     if iRes.getFirst <>  tsOk {
+        result := 0;
+        exit;
+       }
+       result :=longint(iRes.row.val('CNT'));
+    }
+  _except
+    else {
+      result := 0;
+    }
+}
+
+end.

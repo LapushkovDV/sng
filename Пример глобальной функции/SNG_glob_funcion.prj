@@ -1,0 +1,30 @@
+#define Atl60
+#statusline "statgal"
+#include GalNet.inc end;
+#include GloVars.inc
+const
+#include Tunes.inc
+#include AllStaff.inc
+end;
+
+//--------------------
+//--------------------
+
+//#include OBJINTPL.VIN
+
+//--------------------
+#params
+[vip]
+LicenseControlInclude="ddd!.vpp"
+#end
+
+#component "SNG"
+//-------------------------------
+#DEFINE _SNG_
+//-------------------------------
+#include extattr.vih
+#include extattr.var
+
+
+#make "source\SNG_static_Function.Vip"
+#make "source\SNG_epAppInit.vip"
