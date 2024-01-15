@@ -1,0 +1,427 @@
+Function JFromFile(sFileName: string; Encoding: longint = 0): TPtr;
+{
+  Result := 0;
+  if (not existfile(sFileName)) Exit;
+  var long: TPtr = HttpConnect_LoadFromFile(fn, sFileName, Encoding);
+  if (long>0) and (HttpConnect_GetLongStringLength(fn, long)>0)
+  {
+    Result := HttpConnect_JSONObjectByLongString(fn, long);
+    if (HttpConnect_JsonCount(fn, Result)=0)
+      Result := 0;
+  }
+}
+Function JValueByIndex(TJsonObject: TPtr; I : longint): string;
+{
+  Result := HttpConnect_JsonObjectValueByIndex(fn,	TJsonObject, I);
+}
+Function StrByIndex(jObject: TPtr; ind: longint): String;
+{
+  Result := HttpConnect_StringByIndexOfArray(fn, jObject, ind);
+}
+Function JByIndex(jObject: TPtr; ind: longint): TPtr;
+{
+  Result := HttpConnect_JSONObjectByIndexOfArray(fn, jObject, ind);
+}
+Function JObjByName(longValue: TPtr; aName: String): TPtr;
+{
+  Result := HttpConnect_JsonObjectLongValueByName(fn, longValue, aName);
+}
+Function JByName(jObject: TPtr; aName: string): TPtr;
+{
+  Result := HttpConnect_JSONObjectByName(fn, jObject, aName);
+}
+Function JAByName(jObject: TPtr; aName: string): TPtr;
+{ // массив
+  Result := HttpConnect_JSONArrayByName(fn, jObject, aName);
+}
+function getJsonStrValue(sNameParam: string; lJsonObject : TPtr): string;
+{
+  result := HttpConnect_JsonObjectValueByName(fn, lJsonObject, sNameParam);
+}
+//----------
+//#include UpdateDataDecl.vpp
+//Операторы прямого SQL   //Коды ошибок обращения к БД  //Работа с БД и SQL
+Function GetQueryForUpdateData( parObj : comp ) : word;
+{
+    result := 0;
+
+    q1:= 0;
+    var  que:iQuery;
+    var  ResultRow:IResultRow;
+    var  ResultSet:IResultSet;
+    var  ResultCol:IResultCol;
+
+    _loop MyTableQueryForObj where (( parObj == MyTableQueryForObj.cObject ))
+       SqlAddStrLog( MyTableQueryForObj.SqlAddStr );
+
+   _try
+   {
+      //соберем запрос
+		  que:=queryManager.createQuery(q1);
+
+      ResultSet:=que.GetResultSet;
+
+      if (que.errorCode = tsOk )  //= 0
+      or (que.errorCode = 369 )   //почему это позитив????
+		  {
+       //SqlAddStrLog(' +++ good ' +que.errorCode)
+      }
+      else
+      {
+         SqlAddStrLog(' --- update ' +que.errorCode)
+      }
+
+      sqlFreeStr(q1);
+
+   }
+   _except   //Стандартные исключения
+    else
+    {
+       Message('Ошибка запроса обновления данных  '+ExploreException);
+       LogStrToFile( lsSQLLogFile, 'Ошибка запроса обновления данных  '+ExploreException);
+    }
+
+}
+Function GetQueryIsDataInTableByNrec(  parTableName, patTableFld  : string; var parTableNrec : string ) : word;
+{
+    result := 0;
+
+    q1:= 0;
+    var  que:iQuery;
+    var  ResultRow:IResultRow;
+    var  ResultSet:IResultSet;
+    var  ResultCol:IResultCol;
+    var  ResultValue : string = '';
+
+    SqlAddStrLog('')
+    SqlAddStrLog('select '+patTableFld+ ' from '+ parTableName + ' where '+ patTableFld +'='+parTableNrec  )
+                               //+'= #COMP('+ parTableNrec +')' )
+
+ // parTableNrec := 0;
+
+   _try
+   {
+
+      //соберем запрос
+	  	que:=queryManager.createQuery(q1);
+
+      ResultSet:=que.GetResultSet;
+
+      if(que.errorCode = 0)
+      if ResultSet.getFirst()=TsOk
+     // do
+	  	{
+         ResultRow   := ResultSet.row;
+   //    ResultCol   := ResultRow.colAt(1);
+         ResultValue := ResultRow.valAt(1); //Nrec записи
+
+         SqlAddStrLog( '   ResultValue==' +ResultValue)
+
+         parTableNrec := ResultValue;
+
+         result := result + 1;
+      }
+    //  while ResultSet.getNext()=TsOk
+
+      sqlFreeStr(q1);
+
+      result := result + 1;
+
+    }
+   _except   //Стандартные исключения
+    else
+    {
+       Message('Ошибка запроса наличия данных  '+ExploreException);
+       LogStrToFile( lsSQLLogFile, 'Ошибка запроса наличия данных  '+ExploreException);
+    }
+
+}
+
+//----------
+Function  GetObjectByVer( parJObject : TPtr; var parObj : comp; var parObjTableName : string ) : boolean;
+{
+   result := false;
+
+   var parObjCode : string = getJsonStrValue('ObjectCode',  parJObject)
+
+   if parObjCode = ''
+      Exit;
+
+   if getFirst JOBJECTS1 where ((  parObjCode == JOBJECTS1.Code )) <> TsOk
+      Exit;
+
+   parObj := JOBJECTS1.Nrec;
+
+//--
+   var parObjTableCode : string = getJsonStrValue('ObjectTableCode',  parJObject) ;
+
+   if parObjTableCode = ''
+      Exit;
+
+   if parObjTableCode <> JOBJECTS1.TABLECODE
+      Exit;
+
+   if GetFirst X$FILES where (( parObjTableCode == X$FILES.XF$CODE )) <> tsOk
+      Exit;
+
+//---
+   parObjTableName := getJsonStrValue('ObjectTableName',  parJObject)
+
+   if parObjTableName = ''
+      Exit;
+
+   if parObjTableName <> X$FILES.XF$NAME
+      Exit;
+
+   //--
+// LogStrToFile( lsImportLog, '-- Object          '+ parObjTableCode+ ' '+parObjTableName );
+// LogStrToFile( lsImportLog, '   ObjectName      '+ getJsonStrValue('ObjectName',      parJObject));
+// LogStrToFile( lsImportLog, '   ObjectValCount  '+ getJsonStrValue('ObjectValCount',  parJObject));
+
+   result := true;
+
+}
+Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableName : string  );
+{
+  // _errDataDeclKol :=0;
+
+   DelMyTableQueryForObj;
+
+   if parJObjectData = 0
+   {
+ //   LogStrToFile( lsImportLog, '   parJObjectData=000000')
+      Exit;
+   }
+
+   if getFirst JOBJECTS1 where ((  parObj == JOBJECTS1.Nrec )) <> TsOk
+      Exit;
+
+/*
+  //генерируемые живые ключи
+  _loop JObjectsKey1 where (( parObj == JObjectsKey1.cRec and 0 == JObjectsKey1.FIELDCODE ))
+  if TRIM(UPCASE(JObjectsKey1.KeyVal))  <> ''
+  if TRIM(UPCASE(JObjectsKey1.KeyName)) <> ''
+      if JObjectsKey1.KeyVal   = '[*]'
+*/
+  // ' as ADDMainKey ' as ObjectDataMainKey
+ //if GetFirst JObjectsKey1 where (( parObj == JObjectsKey1.cRec and  1 == JObjectsKey1.CODE )) = tsOk
+
+    var lsFldJson, lsFieldName, lsFieldVal, lsTableName : string;
+    var lnUpdate    : word;
+    var lbUpdate    : boolean = false;
+    var lsFinishStr : string  = '';
+    var lsToSql, lsToSql0  : string  = '';
+    var lnToSql, ii : integer = 0;
+
+   //ключевые поля //поля БД
+   if GetFirst JObjectsKey1 where (( parObj == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE )) = tsOk
+   {
+      lsTableName := UPCASE( X$FILES_Key1.xf$Name )
+      lsFieldName := UPCASE( X$FILES_Key1.xf$Name+'.'+JOBJECTS1.MainKey ); // UPCASE( x$Fields_Key1.xe$Name )
+      lsFldJson   := UPCASE( 'ObjectDataMainKey');
+
+      //значение по полю из JSON
+      lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
+
+ //  LogStrToFile( lsImportLog, ' ObjectDataMainKey == '+lsTableName+ ' ' +  lsFieldName +' '+lsFieldVal )
+
+      //проверим наличие данных по условию в БД
+      lnUpdate := GetQueryIsDataInTableByNrec( lsTableName, lsFieldName, lsFieldVal )
+
+      if lnUpdate <= 0
+      {
+       //ошибка
+         Exit;
+      }
+
+      if lnUpdate = 2
+         lbUpdate := true;
+
+      if GetFldValToSql(lsFieldName, lsFieldVal, x$Fields_Key1.buffer  )
+      if lbUpdate
+      {
+         lnToSql := 0;
+         InsMyTableQueryForObj( parObj, 'update ' + lsTableName + ' set ' )
+         lsFinishStr := ' where ' + lsFieldVal
+
+                  //lsFieldName +'= #COMP('+ lsFieldVal +')  set ' )
+      }
+      else
+      {
+
+         InsMyTableQueryForObj( parObj,  'insert into ' +lsTableName  ) //+ ' values ' +lsFieldVal )
+         lsToSql0 := ' ('
+         lsToSql  := ') values('
+
+         lsFinishStr := ')'
+      }
+
+      _loop JObjectsKey1 where (( parObj == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE ))
+      {
+         //главный ключ  в update вообще не нужен
+         if lbUpdate
+         if x$Fields_Key1.xe$Name = JOBJECTS1.MainKey
+            continue;
+
+         lsFldJson   := UPCASE(JObjectsKey1.KeyName)
+         if lsFldJson = ''
+         lsFldJson   := UPCASE( x$Fields_Key1.xe$Name )
+
+         lsFieldName := UPCASE( x$Fields_Key1.xe$Name ) //UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
+         //значение по полю из JSON
+         lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
+
+    //   LogStrToFile( lsImportLog, 'lsFldJson='+lsFldJson+'; lsFieldName=' +lsFieldName)
+    //   LogStrToFile( lsImportLog, 'lsFieldVal='+lsFieldVal+';');
+
+         if Length(lsFieldVal) > 0
+         if GetFldValToSql( if(lbUpdate, lsFieldName, ''), lsFieldVal, x$Fields_Key1.buffer )
+         {
+            lsToSql  := lsToSql  + if(lnToSql>0, ', ', ' ') + lsFieldVal
+
+            if NOT lbUpdate
+            lsToSql0 := lsToSql0 + if(lnToSql>0, ', ', ' ') + lsFieldName
+
+            lnToSql++;
+         }
+         if Length(lsToSql)  > 150
+         or Length(lsToSql0) > 150
+         {
+            if NOT lbUpdate
+            InsMyTableQueryForObj( parObj, lsToSql0);
+
+            InsMyTableQueryForObj( parObj, lsToSql, 1);
+
+            lsToSql := lsToSql0 := '';
+         }
+      }
+
+         if Length(lsToSql)  > 0
+         or Length(lsToSql0) > 0
+         {
+            if NOT lbUpdate
+            InsMyTableQueryForObj( parObj, lsToSql0);
+
+            InsMyTableQueryForObj( parObj, lsToSql, 1);
+
+            lsToSql := lsToSql0 := '';
+         }
+
+      if lsTableName <> ''
+      if lnToSql > 0  //выполнить запрос обновления записи
+      {
+         InsMyTableQueryForObj( parObj, lsFinishStr, 1)
+
+   //   #GetFirstTab( '#'+lsTableName)
+         GetQueryForUpdateData(parObj)
+
+      }
+   }
+}
+
+procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
+{
+
+  if parJObject = 0
+  {
+ //  LogStrToFile( lsImportLog, '   GetObjectIn=000000')
+     Exit;
+  }
+
+  var ii_1, ii_2 : longint = 0;
+  var lnJCount_1, lnJCount_2 : longint;
+  var lJsonObjectArray, lJsonObjectArray_1, lJsonObjectArray_2, lJsonObjectArray_3 : TPtr = 0;
+  var lJsonObjectArray_Data, lJsonObjectArray_ObjIn : TPtr = 0;
+  var lnJCount_Data, lnJCount_ObjIn : longint;
+  var lsObjTableName : string;
+  var lcObjNrec : comp;
+
+  lJsonObjectArray := parJObject;
+
+  lnJCount_1 := JCount(lJsonObjectArray);
+//LogStrToFile( lsImportLog, 'lnJCount_1='+lnJCount_1)
+
+  for (ii_1 := 0; ii_1 < lnJCount_1; ii_1++)
+  {
+
+    lJsonObjectArray_1 := JByIndex(lJsonObjectArray, ii_1);
+//  LogStrToFile( lsImportLog, CHR(13)+CHR(13)+'- lJsonObjectArray  объект N ' +ii_1)
+
+    //---- проверка версии и структуры объекта перед импортом
+    if NOT GetObjectByVer(lJsonObjectArray_1, lcObjNrec, lsObjTableName)
+       continue;
+
+    //---- данные внутри объекта // lnJCount_2 строк данных
+    lJsonObjectArray_2 := JAByName(lJsonObjectArray_1, 'ObjectValues');
+    lnJCount_2         := JCount(lJsonObjectArray_2);
+//  LogStrToFile( lsImportLog, '   в объекте lJsonObjectArray_2 строк lnJCount_2='+lnJCount_2)
+    //строки данных объекта
+    for (ii_2 := 0; ii_2 < lnJCount_2; ii_2++)
+    {
+      //LogStrToFile( lsImportLog, CHR(13)+'--  lJsonObjectArray_2  строка N ' +ii_2)
+      //lJsonObjectArray_3 = строка ii_2 объекта lJsonObjectArray_2
+        lJsonObjectArray_3 := JByIndex(lJsonObjectArray_2, ii_2);
+
+        //данные непосредственно объекта в строке
+      //LogStrToFile( lsImportLog, '    ObjectData')
+        lJsonObjectArray_Data  := JByName(lJsonObjectArray_3, 'ObjectData');
+        //обработка и запись в БД  из строки данных объекта
+        UpdateDataByObject(lJsonObjectArray_Data, lcObjNrec, lsObjTableName)
+
+        //вложенный объект в строке
+      //LogStrToFile( lsImportLog, '    ObjectIn')
+        lJsonObjectArray_ObjIn := JAByName(lJsonObjectArray_3, 'ObjectIn');
+        //здесь будет цикличная обработка вложенного объекта
+        GetObjectIn(lJsonObjectArray_ObjIn, lcObjNrec );
+    }
+  }
+/*
+  DestroyJSONObject(lJsonObjectArray);
+  DestroyJSONObject(lJsonObjectArray_1);
+  DestroyJSONObject(lJsonObjectArray_2);
+  DestroyJSONObject(lJsonObjectArray_3);
+  DestroyJSONObject(lJsonObjectArray_Data);
+  DestroyJSONObject(lJsonObjectArray_ObjIn)
+*/
+}
+
+//************************************************************
+procedure LoadJsonFile( parFileName : string = '');
+{
+
+  if parFileName = ''
+     parFileName := GetFileName('*.json', 'Выберите файл JSON для разбора')
+
+  if parFileName = ''
+  or Not ExistFile(parFileName)
+     Exit;
+
+  lsImportLog  := parFileName +'_log.txt';     deletefile(lsImportLog);
+  lsSQLLogFile := parFileName +'_logSQL.Log';  DeleteFile(lsSQLLogFile)
+
+
+  fn := HttpConnect_Create('','','');
+
+  var lJsonObjectDocument: TPtr = JFromFile(parFileName, cpUTF8);
+
+//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectName',     lJsonObjectDocument));
+//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectValCount', lJsonObjectDocument));
+
+  var lJsonObjectMain : TPtr = JAByName(lJsonObjectDocument, 'MainObjectValues');
+
+  //разбор объектов из файла
+  GetObjectIn( lJsonObjectMain, 0);
+
+//var lJsonObject: TPtr = JObjByName(lJsonObjectDocument, 'product_document')
+//HttpConnect_GetLongStringSubString(fn, lJsonObjectArray_3, 251, 250);
+//lJsonObject_4 := JByIndex(lJsonObjectArray_3, ii_4);
+//LogStrToFile( lsImportLog, StrByIndex(lJsonObjectArray_3, 0) )
+
+  DestroyJSONObject(lJsonObjectMain);
+  DestroyJSONObject(lJsonObjectDocument);
+
+
+  LogStrToFile(lsImportLog, '==== загрузка завершена  '+parFileName);
+  ProcessText(lsImportLog, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
+
+}

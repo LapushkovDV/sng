@@ -1,0 +1,128 @@
+/*
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º              ‘“„ €’‹€’ˆ‘ (c) 1997, €/  "‚›‰ €’‹€’"              º
+º      ‘¨áâ¥¬ : CORPO                                                   º
+º      ‚¥àá¨ï : 3.1                                                     º
+º       §­ ç¥­¨¥: ˆ­â¥àä¥©áë, ®¤­ ª®.                                  º
+º                                                                       º
+º       §à ¡®â «: •«ë¡®¢ €.€.                                          º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+*/
+
+#include GetField.vih
+
+/* ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ */
+
+Interface AbstractFields '‚ë¡®à ¯®«ï' (,,scDef) DoAccept, Cyan;
+  Show at ( 1, 1, 80, 25);
+
+  var mField  : IMarker(Marker) new;
+// var m_FTFunc: FTFunc;
+
+  Create view
+  var aTableCode: Word;
+  as select
+  * from x$Fields
+  where (( aTableCode == x$Fields.xe$FileCode ))
+  ;
+
+// ÄÄÄÄ  €  … ‹ ˆ ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Browse bwField;
+    Table x$Fields;
+    RecMarker = mField { x$Fields.xe$Code };
+    Fields
+      x$Fields.xe$Code  'Š®¤' ('®¬¥à ¯®«ï ¢ â ¡«¨æ¥') :[5], Protect, NoDel, NoAutosize;
+      x$Fields.xe$Name  'ˆ¬ï ¯®«ï' ('ˆ¬ï ¯®«ï ¢ â ¡«¨æ¥') : [20], Protect, NoDel; //, BrowseImage(GetFieldTypeIcon(x$Fields.xe$DataType));
+      x$Fields.xe$Title '‡ £®«®¢®ª ¯®«ï' ('‡ £®«®¢®ª ¯®«ï ¢ â ¡«¨æ¥') : Protect, NoDel;
+//    [fType] m_FTFunc.GetTypeStrByCode(x$Fields.xe$DataType) '’¨¯':[8], Skip, Centered, NoAutosize;
+  end;
+
+end.
+
+
+
+/* ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ */
+Interface GetOneField '‚ë¡®à ¯®«ï' (,hciGetOneField,);
+
+
+  Create view
+  var mField  : IMarker(Marker) new;
+      aType, aFldCode : Word;
+
+  as select * from x$Files
+  condition ByType as (x$Fields.xe$DataType = aType)
+  ;
+
+  Parameters aTableCode, aFldCode, aType;
+
+  QuickChoice qcSelectField
+  {
+     AcceptField = x$Fields.xe$Code; 
+     SearchField = x$Fields.xe$Name;
+     ViewField   = x$Fields.xe$Name;
+     OnClose:      aFldCode := x$Fields.xe$Code;
+  };
+
+// ÄÄÄÄ    €   ’ — ˆ Š ˆ ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  HandleEvent
+    cmInit : 
+      {
+         mField.Disable := true;
+         if GetFirst x$Files where ((aTableCode == x$Files.xf$Code)) = tsOk
+            SetTitle(FormatStr_1('‚ë¡®à ¯®«ï ¨§ â ¡«¨æë "%s"', x$Files.xf$Name));
+         if aType <> 0
+            PushConditionForLeave(tcByType, tnx$Fields);
+
+      }
+   cmDefault: aFldCode := x$Fields.xe$Code;
+  end;
+end.
+
+
+/* ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ */
+/*
+Interface GetTableFields '‚ë¡®à ¯®«¥©' (,hciGetFields,);
+
+  Create view
+  var Markers: Pointer;
+      mField  : IMarker(Marker) new;
+      aTableCode : word;
+  as Select * from x$Files;
+
+  Parameters Markers, aTableCode;
+
+// ÄÄÄÄ    €   ’ — ˆ Š ˆ ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  HandleEvent
+    cmDefault:
+      {
+         SortedContainer_DeleteAll(Markers);
+  //   ResetBounds(tnmField);
+         if mField.Count = 0 mField.Mark;
+         _loop mField SortedContainer_Insert(Markers, mField.pNRec);
+         SetBounds(tnmField);
+      }
+    cmInit : 
+      {
+         if GetFirst x$Files where ((aTableCode == x$Files.xf$Code)) = tsOk
+         {
+            SetTitle(FormatStr_1('‚ë¡®à ¯®«¥© ¨§ â ¡«¨æë "%s"', x$Files.xf$Name));
+            if Assigned(Markers)
+            {
+               var i: LongInt = SortedContainer_GetCount(Markers);
+               if i > 0
+               {
+                  var aFCode: word;
+                  while SortedContainer_At(Markers, --i, aFCode) do
+                  {
+                     mField.pNRec := comp(aFCode);
+                     Insert current mField;
+                  }
+               }
+            }
+         }
+         mField.Caption := 'â¬¥ç¥­®: %d';
+      }
+  end;
+
+end.
+  */

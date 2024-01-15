@@ -1,0 +1,20 @@
+#ifndef __AbsTables_vih__
+#define __AbsTables_vih__
+
+  VipInterface AbstractFields
+    SourceFile = "GetField.vip"
+    licensed(free);
+
+
+  VipInterface GetOneField (AbstractFields)
+    SourceFile = "GetField.vip"
+    licensed(free)
+    parameters (aTableCode : Word;  aFldCode : Word;  aType : word);
+
+  VipInterface GetTableFields (AbstractFields)
+    SourceFile = "GetField.vip"
+    licensed(free)
+    parameters (aPnt: Pointer; aTableCode: Word);
+
+
+#endif

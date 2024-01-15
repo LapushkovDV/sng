@@ -1,0 +1,107 @@
+/*
+…ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕª
+∫              ëìÅÑ ÄíãÄçíàë (c) 2006, Ä/é  "çéÇõâ ÄíãÄçí"              ∫
+∫      ë®·‚•¨†: Support                                                 ∫
+∫      Ç•‡·®Ô : 5.2                                                     ∫
+»ÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕÕº
+*/
+#include absTables.vih
+
+/* ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ */
+Interface AbstractTables 'ÇÎ°Æ‡ ‚†°´®Ê' (,, scDef) DoAccept, Cyan;
+  Show at ( 3, 1, 76, 26);
+  var  pMarker : IMarker(Marker) new;
+
+  Create view
+  var Mode: String;
+  As Select X$Files.* from X$Files, FilialObjects
+    where (X$Files.XF$Code > 0) 
+/*
+  bounds LinkCrossRights as X$Files.XF$Code == FilialObjects.wObject 
+                               and sotTable == FilialObjects.ObjType
+  condition NoCrossRights as (not IsValid(tnFilialObjects))
+
+  Condition FilialTables    as ((X$Files.XF$Flags and ttyBranched) <> 0) 
+  Condition EnterprTables   as ((X$Files.XF$Flags and ttyUser) = 0) and (X$Files.XF$Code >= 200)
+  Condition NoEnterprTables as ((X$Files.XF$Flags and ttyUser) = 0) and (UpCase(X$Files.XF$Loc2) = UpCase(GetStringParameter(csDataBase, isDataBaseID, ifFirstParameter)))
+  Condition HeaderTables    as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyHeader)<> 0) 
+  Condition CorpoTables     as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyCorpo) <> 0) 
+  Condition JournalTables   as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyCorpo) <> 0) or ((X$Files.XF$Flags and ttyJournal) <> 0) 
+  Condition RepairTables    as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyCorpo) <> 0) or ((X$Files.XF$Flags and ttyJournal) <> 0) 
+                                                                    and  (X$Files.XF$Code <> coX$Resources)
+  Condition ProtectTables   as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyNoProtect) = 0) and (X$Files.XF$Code >= 200)
+  Condition ProtectTablesEx as ((X$Files.XF$Flags and ttyUser) = 0) and ((X$Files.XF$Flags and ttyNoProtect) = 0) or  (X$Files.XF$Code = coX$Rights) or 
+                                                                        ((X$Files.XF$Code >= coX$JournalConfig) and (X$Files.XF$Code <= coX$Journal))
+  Condition DemoTables      as ((X$Files.XF$Code >= dmMinTabCode) and (X$Files.XF$Code <= dmMaxTabCode))
+  Condition NotCommon       as ((X$Files.XF$Flags2 and tf2_PublicBranched) = 0) 
+  Condition NotCommonNotMono as ((X$Files.XF$Flags2 and (tf2_PublicBranched or tf2_MonoBranched)) = 0) 
+  Condition NotUser         as ((X$Files.XF$Flags and ttyUser) = 0)
+*/
+  ;
+
+
+  Browse bwTable;
+    Table x$Files;
+    RecMarker = pMarker { x$Files.xf$Code };
+    Fields
+      x$Files.xf$Code  'äÆ§'        ('ì≠®™†´Ï≠Î© ≠Æ¨•‡ ‚†°´®ÊÎ ¢ ·´Æ¢†‡•'):  [5], Protect, NoDel, NoAutoSize;
+      x$Files.xf$Name  'à¨Ô ‚†°´®ÊÎ'             ('à¨Ô ‚†°´®ÊÎ ¢ ·´Æ¢†‡•'): [20], Protect, NoDel;
+      x$Files.xf$Title 'á†£Æ´Æ¢Æ™ ‚†°´®ÊÎ' ('á†£Æ´Æ¢Æ™ ‚†°´®ÊÎ ¢ ·´Æ¢†‡•'):       Protect, NoDel;
+  end;
+
+  HandleEvent
+    cmInit :
+    begin
+
+ /*
+      if DemoMode PushCondition(tcDemoTables);
+      Mode := UpCase(Mode);
+      if (Mode = _NoLoc('CORPO')) or (Mode = _NoLoc('JOURNAL'))
+        if GetFirst X$Files where (( 0 == X$Files.XF$Code )) = tsOk
+          if X$Files.XF$Flags = ttyData PushCondition(tcNoEnterprTables);
+
+
+      case Mode of
+        'HEADER'    : PushCondition(tcHeaderTables);
+        'JOURNAL'   : PushCondition(tcJournalTables);
+        'REPAIR'    : PushCondition(tcRepairTables);
+        'CORPO'     : PushCondition(tcCorpoTables);
+        'PROTECT'   : if GetBooleanParameter(csProtect, isExtAccess, ifFirstParameter) PushCondition(tcProtectTablesEx);
+                                                                                  else PushCondition(tcProtectTables);
+        'ENTERPRISE': PushCondition(tcEnterprTables);
+        'FILIAL'    : PushCondition(tcFilialTables);
+        'CAN_MONO_FILIAL' : begin
+                            // ë§•´†‚Ï ¨Æ≠Æ‰®´®†´Ï≠Æ© ¨Æ¶≠Æ ‚†°´®Ê„, ™Æ‚Æ‡†Ô •ÈÒ ≠• ¨Æ≠Æ‰®´®†´Ï≠†Ô, ≠• Æ°È†Ô, ≠• ØÆ´ÏßÆ¢†‚•´Ï·™†Ô
+                            //  ≠† ≠•Ò ≠• ‡Æß§†≠† ™‡Æ··-‰®´®†´Ï≠†Ô ¢®§®¨Æ·‚Ï, ®, ≠†™Æ≠•Ê, Æ≠† ®¨••‚ ATL_BRANCH
+                            PushConditionForLeave(tcFilialTables, tnX$Files);
+                            PushConditionForLeave(tcNotCommonNotMono, tnX$Files);
+                            PushConditionForLeave(tcNotUser, tnX$Files);
+                            AddBounds(tbLinkCrossRights);
+                            PushCondition(tcNoCrossRights);
+                          end;
+        'CAN_COMMON_FILIAL' : begin
+                            // ë§•´†‚Ï Æ°È•© ¨Æ¶≠Æ ‚†°´®Ê„, ™Æ‚Æ‡†Ô •ÈÒ ≠• Æ°È†Ô, ® Æ≠† ®¨••‚ ATL_BRANCH
+                            PushConditionForLeave(tcFilialTables, tnX$Files);
+                            PushConditionForLeave(tcNotCommon, tnX$Files);
+                          end;
+        'CAN_CROSS_FILIAL' : begin
+                            // ÑÆ°†¢®‚Ï ™‡Æ··‰®´®†´Ï≠„Ó ¢®§®¨Æ·‚Ï ¨Æ¶≠Æ ‚†°´®Ê•, ™Æ‚Æ‡†Ô ≠• ¨Æ≠Æ‰®´®†´Ï≠†Ô, ≠• Æ°È†Ô,
+                            //  ®, ≠†™Æ≠•Ê, Æ≠† ®¨••‚ ATL_BRANCH
+                            PushConditionForLeave(tcFilialTables, tnX$Files);
+                            PushConditionForLeave(tcNotCommonNotMono, tnX$Files);
+                          end;
+      end;
+*/
+      RereadRecord(tnx$Files);
+      if GetFirst x$Files <> tsOk
+      {
+         Message('ç•‚ ØÆ§ÂÆ§ÔÈ®Â ‚†°´®Ê §´Ô ¢Î°Æ‡†', mfInformation);
+         abort;
+      }
+      else
+         pMarker.Caption := 'ÇÎ°‡†≠Æ: %d';
+    end;
+
+    cmDelete: abort;
+  end;
+end.

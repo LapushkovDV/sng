@@ -1,0 +1,82 @@
+/*
+ษอออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออป
+บ              ‘“ €’€’‘ (c) 1997, €/  " €’€’"              บ
+บ      ‘จแโฅฌ : CORPO                                                   บ
+บ      ฅเแจ๏ : 3.1                                                     บ
+บ       งญ ็ฅญจฅ: ญโฅเไฅฉแ๋, ฎคญ ชฎ.                                  บ
+บ                                                                       บ
+บ       งเ กฎโ ซ: •ซ๋กฎข €.€.                                          บ
+ศอออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ
+*/
+
+#include absTables.vih
+/* ฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ */
+Interface GetOneTable '๋กฎเ โ กซจๆ๋' (, hciGetOneTable,);
+
+  var sMode : String;
+      cTable: Word;
+  ;
+  Parameters cTable, sMode;
+
+  QuickChoice qcSelectTable
+  {
+     AcceptField = x$Files.xf$Code; 
+     SearchField = x$Files.xf$Name;
+     ViewField   = x$Files.xf$Name;
+     OnClose:      cTable := x$Files.xf$Code;
+  };
+
+  HandleEvent
+    cmInit:
+      {
+        Mode := sMode;
+        if Inherited :: HandleEvent(cmInit) = heAbort abort;
+        else
+        {
+           pMarker.Disable := true;
+           if cTable <> 0
+              if GetFirst x$Files where ((cTable == x$Files.xf$Code)) = tsOk {};
+        }
+      }
+    cmDefault: cTable := x$Files.xf$Code;
+  end;
+end.
+
+
+/* ฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ */
+Interface GetTables '๋กฎเ โ กซจๆ' (, hciGetTables,);
+
+  var  sMode   : String;
+       Markers : pointer;
+  ;
+  Parameters Markers, sMode;
+
+  HandleEvent
+    cmInit:
+      {
+        Mode := sMode;
+        if Inherited :: HandleEvent(cmInit) = heAbort abort;
+        else
+        {
+           if Markers <> 0
+           {
+              pMarker.UnselectAll;
+              var wCode: word = 0;
+              var i: longint = SortedContainer_GetCount(Markers);
+              while SortedContainer_At(Markers, --i, wCode) do
+                 pMarker.MarkUnMarkRec(wCode);
+           }
+        }
+      }
+    cmDefault:
+      {
+        if pMarker.Count = 0 
+           pMarker.MarkUnMarkRec(x$Files.xf$Code);
+        SortedContainer_DeleteAll(Markers);
+        ResetBounds(tnpMarker);
+        _Loop pMarker
+           SortedContainer_Insert(Markers, word(pMarker.pNRec));
+        SetBounds(tnpMarker);
+      }
+  end;
+end.

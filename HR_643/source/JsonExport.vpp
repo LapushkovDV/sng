@@ -1,0 +1,486 @@
+function EscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\', '\\');
+  Str:=Replace(Str, '/', '\/');
+  Str:=Replace(Str, '"', '\"');
+  Str:=Replace(Str, ''#10, '\n');
+  Str:=Replace(Str, ''#13, '\r');
+
+  result:=Str;
+}
+
+function UnEscapeStr(Str:wideString):wideString;
+{
+  Str:=Replace(Str, '\"', '"');
+  Str:=Replace(Str, '\/', '/');
+  Str:=Replace(Str, '\n', ''#10);
+  Str:=Replace(Str, '\r', ''#13);
+  Str:=Replace(Str, '\\', '\');
+
+  result:=Str;
+}
+
+function LastPosChr(wc:wideChar; SrcStr:wideString):word;
+{
+  result:=0;
+
+  var i:word = 0;
+  for(i:=Length(SrcStr); i > 0; i--)
+    if (wc = SrcStr[i]) {
+      result:=i;
+      break;
+    }
+}
+
+// Функции парсинга даты в формат JSon и обратно
+//************************************************************
+//справка Функции прямого SQL для работы с датами и временем
+
+// Дата в JSON (конвертация из строки формата даты в строку с форматом yyyy-MMdd'T'HH:mm:ss.SSS'Z Пример: 2019-01-01T03:00:00.000Z)
+Function SetJSonDateTime( var parVal: string): boolean;
+{ // Jdt дата/время  00/00/0000 00:00
+  result := false;
+
+  if SubStr(parVal,  3, 1)='/'
+  if SubStr(parVal,  6, 1)='/'
+  if SubStr(parVal, 14, 1)=':'
+  {
+     result := true;
+     if ( SubStr(parVal, 1, 2 )='00')
+           parVal := '0000-00-00T00:00:00.000Z'
+     else  parVal := DateToStr( StrToDate( parVal, 'DD/MM/YYYY'), 'YYYY-MM-DD') + 'T' + SubStr(parVal, 12, 5) + ':00.0000Z';
+  }
+}
+// Дата из JSON (конвертация из строки формата даты JSon в строку с форматом 'DD/MM/YY HH:NN:SS:SSS' Пример: '10/06/99 13:38:55:011')
+Function GetJSonDateTime(Jdt: string ): _DateTime;
+{
+   var TPos: byte = Pos('T', Jdt);
+   var ZPos: byte = Pos('Z', Jdt);
+   var dDate: date = StrToDate(SubStr(Jdt, 0, TPos), 'YYYY-MM-DD');
+   var tTime: time = StrToTime(SubStr(Jdt, TPos + 1, ZPos - TPos - 5), 'HH:MM:SS');
+   result := _DateTime1(dDate, tTime);
+}
+Function GetJSonDate( Jdt: string ): string;
+{
+   var TPos: byte = Pos('T', Jdt);
+   var dDate: date = StrToDate(SubStr(Jdt, 0, TPos), 'YYYY-MM-DD');
+
+   if dDate = 0
+         result := 'to_date(0,0,0)'
+   else  result := 'to_date('+ Replace( String( dDate ), '/', ',')   +')'
+
+}
+//---
+Function StrValByString ( parStr : string ) : string;
+{
+   result := parStr; //String( parStr, 30, 10) ;
+}
+Function GetFldFormatForJSON( parVal : string ) : string;
+{
+   Result := parVal;
+
+   //ЕСЛИ дата/время  00/00/0000 00:00
+   if SetJSonDateTime(parVal)
+   {
+      Result := parVal;
+      Exit;
+   }
+
+   //обработка других типов????
+}
+//---- Стандартные исключения    ExNumberConvert   //!!!!! Константы прямого SQL
+Function GetFldValToSql( parFld: string; var parVal : string; parFldBuff : type$x$Fields ) : boolean;
+{
+   Result := false;
+
+   case word(parFldBuff.XE$DATATYPE) of
+     1  : {  Result := true; //boolean     //10041 ACTIVE
+             case UPCASE(parVal) of
+                'TRUE'  :  parVal := 1
+                'FALSE' :  parVal := 0
+                else
+                {  if longInt(parVal) > 0    //   ExNumberConvert
+                           parVal := 1
+                   else    parVal := 0
+                }
+             end;
+          }
+    //---
+     3  : {  Result   := true; //byte      // 10047 SERIAL   38 REPEATCOUNT
+             parVal   := byte(parVal)
+          }
+     4  : {  Result   := true; //word
+             parVal   := word(parVal)
+          }
+     5  : {  Result   := true; //integer
+             parVal   := integer(parVal)
+          }
+     6  : {  Result   := true; //longInt
+             parVal   := longInt(parVal)
+          }
+    //--- Числа с плавающей точкой
+     11 : {  Result   := true; //double
+             parVal   := double(parVal)
+          }
+     10 : {  Result   := true;   //single //32081 CURRSINGLVALUE  9402 SNGLPARAM
+             parVal   := single(parVal)
+          }
+    //---  Десятичные числа с фиксированной точкой
+     27 : {  Result   := true; //decimal(parFldBuff.XE$PREC, parFldBuff.XE$DEC)
+             parVal   := double(parVal)//parFldBuff.XE$PREC, parFldBuff.XE$DEC)
+          }
+    //---
+     17 : {  Result   := true; //comp
+            //parVal оставляем прежним
+          }
+     12 : {  Result   := true; // string[ parFldBuff.XE$SIZE-1]
+             parVal   := chr(39)+if( parFldBuff.XE$SIZE > 1, SubStr( parVal, 1, parFldBuff.XE$SIZE-1), '') + chr(39);
+          }
+   //---
+     7  : {  Result   := true; //date
+             parVal   := GetJSonDate(parVal);
+          }
+   18,8 : {  Result   := true; // _DateTime     #date
+             parVal   := '_StrToDateTime('+chr(39)+ parVal +chr(39)+','+chr(39)+'YYYY-MM-DD HH:MM:SS'+chr(39)+')'
+          }
+    81  : {  Result   := true; // time  #time
+             parVal   := '_GetTime( '+GetJSonDateTime(parVal)+')'
+          }
+  //---
+  // 14 :  parVal := ''//memo
+   end;
+
+   if result
+   if parFld <> ''
+   {
+      parVal := parFld+'=' +parVal
+   }
+
+}
+//------
+Function JCount(jObject: TPtr): longint;
+{ // количество значений в json-объекте или в json-массиве
+  Result := HttpConnect_JsonCount(fn, jObject);
+}
+Function JCreate: TPtr;
+{
+  Result := HttpConnect_JsonObjectCreate(fn);
+}
+procedure DestroyJSONObject(var lJsonObject: TPtr);
+{
+  HttpConnect_JSONObjectDestroy(fn, lJsonObject);
+  lJsonObject := 0;
+}
+procedure DestroyJSONArray(var lJsonArray: TPtr);
+{
+  HttpConnect_JSONArrayDestroy(fn, lJsonArray);
+  lJsonArray := 0;
+}
+//-----------------
+Function ConvertFile(EncFrom, EncTo: word; fileFrom: string; fileTo: string=''): string;
+// функция должна возвращать результат конвертации - т.е. имя файла
+{
+  var bReplace: boolean = false;
+
+  Result := '';
+  if (not FileExist(fileFrom)) Exit;
+  if (fileFrom = fileTo)
+  or (fileTo = '')
+  {
+    fileTo  := CreateTmpFileName;
+    bReplace := true;
+  }
+  if (ConvertFileToCoding(fileFrom, fileTo, EncFrom, EncTo, false, ecmfClientFrom+ecmfClientTo) = 0)
+    Result := fileTo;
+
+  if (bReplace)
+    if (CopyMoveFile(fileTo, fileFrom, true, ecmfClientFrom+ecmfClientTo))
+      Result := fileFrom;
+}
+Function ConvertFileANSIUTF8(fileFrom: string; fileTo: string=''): String;
+{
+  Result := ConvertFile(cpACP, cpUTF8, fileFrom, fileTo);
+}
+Function JToFile(json: TPtr; sFileName: string = ''; Encoding: longint = 0; Minimize: boolean = false; NoCarriageReturn: boolean = false): string;
+var long: TPtr;
+{
+  Result := '';
+
+  if (json = 0) Exit;
+  if (JCount(json)=0) Exit;
+
+  if (sFileName = '') then sFileName := CreateTmpFileName;
+  if (not Minimize)
+    long := HttpConnect_JSONObjectToJSON(fn, json); // красивый JSON
+  else
+    long := HttpConnect_JSONObjectToString(fn, json);
+
+  if (not HttpConnect_SaveToFileEx(fn, long, sFileName, Encoding, NoCarriageReturn))
+    Exit;
+  Result := sFileName;
+}
+//************
+Function JAAddObject(TJSONArray: TPtr; JSONObject: TPtr): TPtr;
+{
+  Result := HttpConnect_JsonArrayAddObject(fn,	TJSONArray, JSONObject	);
+}
+Function JAddObject(var TJSONObject: TPtr; aName: String; JSonObj: TPtr): TPtr;
+{
+  if TJSONObject = 0
+    TJSONObject := HttpConnect_JsonObjectCreate(fn);
+  Result := HttpConnect_JsonObjectAddObject(fn, TJSONObject, aName, JSonObj);
+}
+Function JACreate: TPtr;
+{
+  Result := HttpConnect_JsonArrayCreate(fn);
+}
+Function JAddString(var TJSONObject: TPtr; aName: String; Val: String): TPtr;
+{
+  if TJSONObject = 0
+    TJSONObject := HttpConnect_JsonObjectCreate(fn);
+  Result := HttpConnect_JsonObjectAddString(fn,	TJSONObject, aName, Val);
+}
+Function JAddLong(var TJSONObject: TPtr; aName: String; Val: TPtr): TPtr;
+{
+  if TJSONObject = 0
+    TJSONObject := HttpConnect_JsonObjectCreate(fn);
+  Result := HttpConnect_JsonObjectAddLongString(fn, TJSONObject, aName, Val);
+}
+//************************************************************
+
+Function GetJsonObjBoby2 ( parcRec : comp; var parKolVals : longInt ) : TPtr;
+{
+   var ii          : integer;
+   var lnKolVals, lnKolValsIn   : longInt = 0;
+   var lcRec       : comp = 0;
+   var jsonArrM    : TPtr = JACreate;
+   var jsonObjArrM : TPtr = 0;
+   var jsonArr     : TPtr = 0;
+   var jsonObjArr  : TPtr = 0;
+   var lcObject    : comp = 0;
+   var jsonObjIn, jsonObjVal   : TPtr = 0;
+
+   parKolVals := 0;
+
+   //по объектам
+   while GetFirst MyTableTreeFlt2 where (( parcRec == MyTableTreeFlt2.crec )) = tsOk   // bycRec =  cRec + CObject
+   {
+      if GetFirst fastFirstRow MyTableDataTree2 where ((        MyTableTreeFlt2.cObject   == MyTableDataTree2.cObject
+                                                           and  MyTableTreeFlt2.TableNrec == MyTableDataTree2.nRec
+                                                      )) = tsOk
+      {
+         //формирование нового объекта //шапка
+         if lcObject <> MyTableTreeFlt2.cObject
+         if GetFirst MyTableFldDataFlt2 where (( MyTableTreeFlt2.cObject == MyTableFldDataFlt2.cObject )) = tsOk
+         {
+            if jsonObjArrM <> 0
+            if jsonArr <> 0
+            {
+               JAddObject(jsonObjArrM, 'ObjectValues',   jsonArr   );
+               JAddString(jsonObjArrM, 'ObjectValCount', lnKolVals );
+               JAAddObject(jsonArrM, jsonObjArrM);
+               parKolVals++;
+            }
+
+            lcObject := MyTableTreeFlt2.cObject
+
+            lnKolVals   := 0;
+
+            jsonObjArrM := JCreate;
+            //заголовок объекта
+            JAddString(jsonObjArrM, 'ObjectCode',      MyTableFldDataFlt2.ObjCode   );
+            JAddString(jsonObjArrM, 'ObjectName',      MyTableFldDataFlt2.ObjName   );
+            JAddString(jsonObjArrM, 'ObjectTableCode', MyTableFldDataFlt2.TableCode );
+            JAddString(jsonObjArrM, 'ObjectTableName', MyTableFldDataFlt2.TableName );
+
+            jsonArr :=  JACreate;
+         }
+
+         lcRec := MyTableTreeFlt2.Nrec;
+         delete current MyTableTreeFlt2;
+
+         //вывод строк данных объекта
+          /*
+             LogStrToFile(csSQLLogFile, 'MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
+             +' cObject='+ MyTableTreeFlt1.cObject
+             +' TableNrec='+MyTableTreeFlt1.TableNrec
+               )
+          */
+             jsonObjArr := JCreate;
+
+             //---------- выгрузка строки данных этого объекта
+             jsonObjVal := JCreate
+             for(ii:=1;ii<= (MyTableFldDataFlt2.ColCount+ MyTableFldDataFlt2.GenKeyCount) ;ii++)
+             JAddString(jsonObjVal, MyTableFldDataFlt2.Name[ii],  StrValByString(MyTableDataTree2.FieldString[ii])  );
+
+          //   JAddString(jsonObjArr, MyTableFldDataFlt2.Name[ii], MyTableDataTree2.FieldString[ii]);
+        // LogStrToFile('aesdfg.txt', '11) '+ String(MyTableDataTree2.FieldString[ii], 30,15) )
+        // LogStrToFile('aesdfg.txt', '21) '+ String( StrValByString(MyTableDataTree2.FieldString[ii]), 30,15) )
+
+             JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
+
+             //---------- формирование вложенного объекта
+             jsonObjIn := GetJsonObjBoby2( lcRec, lnKolValsIn );
+             if lnKolValsIn > 0
+             JAddObject(jsonObjArr, 'ObjectIn',    jsonObjIn );
+
+             //----------
+         //  JAddString(jsonObjArr, 'ObjectValCount2', lnKolValsIn);
+             JAAddObject(jsonArr, jsonObjArr);
+             lnKolVals++;
+      }
+      else
+        delete current MyTableTreeFlt2;
+
+   }
+   if jsonObjArrM <> 0
+   if jsonArr <> 0
+   {
+             JAddObject(jsonObjArrM, 'ObjectValues',   jsonArr   );
+             JAddString(jsonObjArrM, 'ObjectValCount', lnKolVals );
+             JAAddObject(jsonArrM, jsonObjArrM);
+             parKolVals++;
+   }
+
+   result := jsonArrM;
+}
+Function GetJsonObjData ( parcRec : comp; var parKolVals : longInt ) : TPtr;
+{
+   var ii         : integer;
+   var lnKolVals  : longInt = 0;
+   var lcRec      : comp = 0;
+   var jsonArr    : TPtr = JACreate;
+   var jsonObjArr : TPtr;
+   var jsonObjIn, jsonObjVal  : TPtr = 0;
+
+   parKolVals := 0;
+
+   //непосредственно строки
+   while GetFirst MyTableTreeFlt1 where (( parcRec == MyTableTreeFlt1.cRec )) = tsOk
+   {
+      if GetFirst fastFirstRow MyTableDataTree where ((       MyTableTreeFlt1.cObject   == MyTableDataTree.cObject
+                                                         and  MyTableTreeFlt1.TableNrec == MyTableDataTree.nRec
+                                                      )) = tsOk
+      {
+
+             LogStrToFile(csSQLLogFile, 'MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
+             +' cObject='+ MyTableTreeFlt1.cObject
+             +' TableNrec='+MyTableTreeFlt1.TableNrec
+               )
+
+             jsonObjArr := JCreate;
+
+             //---------- выгрузка строки данных этого объекта
+             jsonObjVal := JCreate
+
+             for(ii:=1;ii<= (MyTableFldDataFlt.ColCount + MyTableFldDataFlt.GenKeyCount) ;ii++)
+             JAddString(jsonObjVal, MyTableFldDataFlt.Name[ii], StrValByString(MyTableDataTree.FieldString[ii]) );
+           //JAddString(jsonObjArr, MyTableFldDataFlt.Name[ii], MyTableDataTree.FieldString[ii]);
+           // LogStrToFile('aesdfg.txt', '10) '+ String(MyTableDataTree.FieldString[ii], 30,15) )
+           // LogStrToFile('aesdfg.txt', '20) '+ String( StrValByString(MyTableDataTree.FieldString[ii]), 30,15) )
+
+             JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
+
+             lcRec := MyTableTreeFlt1.Nrec;
+             delete current MyTableTreeFlt1;
+
+             //----------  формирование вложенного объекта
+             jsonObjIn := GetJsonObjBoby2( lcRec, lnKolVals );
+             if lnKolVals > 0
+             JAddObject(jsonObjArr, 'ObjectIn', jsonObjIn );
+
+             //------
+          // JAddString(jsonObjArr, 'ObjectValCount', lnKolVals);
+         //  JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
+             JAAddObject(jsonArr, jsonObjArr);
+             parKolVals++;
+
+        }
+        else
+        delete current MyTableTreeFlt1;
+
+   }
+
+   result := jsonArr;
+
+
+}
+Function GetJsonObjBoby ( parcRec, parObject : comp; var parKolVals : longInt ) : TPtr;
+{
+   var lnKolVals   : longInt = 0;
+   var lcRec       : comp = 0;
+   var jsonArrM    : TPtr = JACreate;
+   var jsonObjArrM : TPtr = 0;
+
+   parKolVals := 0;
+
+   //по объектам
+  // while GetFirst MyTableTreeFlt where (( parcRec == MyTableTreeFlt.crec )) = tsOk
+   _loop MyTableTreeFlt where (( parcRec == MyTableTreeFlt.crec ))
+   //фильтр по объекту
+   if   parObject =  0
+   or ( parObject <> 0  and  parObject = MyTableTreeFlt.Nrec )
+   {
+
+      if GetFirst MyTableFldDataFlt where (( MyTableTreeFlt.cObject == MyTableFldDataFlt.cObject )) = tsOk
+      {
+         jsonObjArrM := JCreate;
+         //заголовок объекта
+         JAddString(jsonObjArrM, 'ObjectCode',       MyTableFldDataFlt.ObjCode   );
+         JAddString(jsonObjArrM, 'ObjectName',       MyTableFldDataFlt.ObjName   );
+         JAddString(jsonObjArrM, 'ObjectTableCode',  MyTableFldDataFlt.TableCode );
+         JAddString(jsonObjArrM, 'ObjectTableName',  MyTableFldDataFlt.TableName );
+
+         lcRec := MyTableTreeFlt.Nrec;
+      //   delete current MyTableTreeFlt;
+
+         //вывод строк данных объекта
+         JAddObject(jsonObjArrM, 'ObjectValues',   GetJsonObjData( lcRec, lnKolVals ) );
+         JAddString(jsonObjArrM, 'ObjectValCount', lnKolVals);
+
+         JAAddObject(jsonArrM, jsonObjArrM);
+         parKolVals++;
+
+      }
+    //  else
+    //     delete current MyTableTreeFlt;
+
+   //   //фильтр по объекту
+   //   if parObject <> 0
+    //     break;
+
+   }
+
+   result := jsonArrM;
+}
+function GetJsonDoc( parFileName : string; parObject : comp = 0 ) : string;
+{
+/*
+  MyTableFld.Name[i]
+ for(ii:=1;ii<=lnColCountMax;ii++)
+  MyTable.FieldString[ii]
+
+  JOBJECTS.TABLECODE    x$Files_Obj.xf$Name
+*/
+
+
+   fn := HttpConnect_Create('','','');
+
+   var lnKolVals : longInt;
+   var tmpFileJ  : string = 'd:\'+parFileName+'.json';
+
+   var jsonObj64 : TPtr   = JCreate;
+
+   JAddString(jsonObj64, 'MainObjectName',     parFileName);
+   //по корневым объектам
+   JAddObject(jsonObj64, 'MainObjectValues',   GetJsonObjBoby( 0, parObject, lnKolVals ) );
+   JAddString(jsonObj64, 'MainObjectValCount', lnKolVals);
+
+
+   JToFile(jsonObj64, tmpFileJ, 0, true, true);
+   tmpFileJ := ConvertFileANSIUTF8(tmpFileJ);
+
+// Message('tmpFileJ '+tmpFileJ)
+
+   result := tmpFileJ
+}

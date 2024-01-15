@@ -1,0 +1,151 @@
+Set type
+(
+  String_x10  = Array [1..10] of string ,
+  s80  = string[80],
+  s20  = string[20]
+);
+
+Create Table  JObjects "Объекты обмена"
+  With Table_CODE = 32150
+  With Replace
+  With TableOptions Branched
+(
+  NRec       : comp    "Номер записи"
+, CRec       : comp    "Номер родительской записи"
+, TABLECODE  : word    "Код таблицы объекта"
+, Name       : string  "Наименование объекта"
+, CODE       : word    "Номер объекта"
+, NameKey    : string  "Ключи наименования объекта"
+, MainKey    : string  "Поле первичного ключа журнализации"
+, NOTES      : LVar    "Примечание объекта"
+)
+with Index
+(
+  JObjects01 = NRec (unique, surrogate, journal)
+ ,JObjects02 = CRec + CODE
+ ,JObjects03 = CODE
+ ,JObjects04 = Name
+);
+
+Create Table  JObjectsSp "Данные по объектам обмена"
+  With Table_CODE = 32151
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp    "Номер записи"
+, CRec        : comp    "Номер родительской записи"
+, TablenRec   : comp    "Номер записи отслеживаемой таблицы"
+, TABLECODE   : word    "Код отслеживаемой таблицы"
+, CObject     : comp    "Номер объекта"
+, CObjMain    : comp        "Номер корневого объекта"
+, CrecObjMain : comp        "Номер записи корневого объекта"
+, Name        : string      "Наименование"
+, CODE        : word        "Номер"
+, KeyVal      : String_x10  "Значения ключей"
+, GenKeyVal   : String_x10  "Значения живых ключей"
+, PacketVal   : string    "Признаки выгрузки в пакет"
+, PacketDate  : Date      "Дата выгрузки в пакет"
+, PacketTime  : Time      "Время выгрузки в пакет"
+)
+with Index
+(
+  JObjectsSp01 = NRec (unique, surrogate, journal)
+ ,JObjectsSp02 = CRec
+ ,JObjectsSp03 = CODE
+ ,JObjectsSp04 = Name
+ ,JObjectsSp05 = TABLECODE + TablenRec + CODE
+ ,JObjectsSp06 = CObject + TABLECODE + TablenRec + CODE
+ ,JObjectsSp07 = PacketVal + TABLECODE + TablenRec
+ ,JObjectsSp08 = PacketVal + CObject + TABLECODE + TablenRec
+ ,JObjectsSp09 = CObjMain + CObject + TABLECODE + TablenRec + CODE
+ ,JObjectsSp10 = CObjMain + CRec
+ ,JObjectsSp11 = CObject + TABLECODE + CRec + PacketVal
+ ,JObjectsSp12 = PacketVal + CObjMain + CRec
+ ,JObjectsSp13 = PacketVal + CRec
+ ,JObjectsSp14 = PacketVal + CObjMain + CrecObjMain
+ ,JObjectsSp15 = PacketVal + CrecObjMain
+ ,JObjectsSp16 = CObject + CrecObjMain
+ ,JObjectsSp17 = CObjMain + CrecObjMain
+ ,JObjectsSp21 = TABLECODE + CRec + PacketVal
+
+);
+
+Create Table  JObjectsKey "Ключи объектов обмена"
+  With Table_CODE = 32153
+  With Replace
+  With TableOptions Branched
+(
+  NRec       : comp    "Номер записи"
+, CREC       : comp    "Номер объекта"
+, CODE       : word    "Номер"
+, TABLECODE  : word    "Код таблицы"
+, FIELDCODE  : word    "Код поля таблицы"
+, KeyName    : s80     "Наименования ключей"
+, KeyType    : s20     "Типы ключей"
+, KeyVal     : String  "Значения ключей"
+)
+with Index
+(
+  JObjectsSp01 = NRec (unique, surrogate, journal)
+ ,JObjectsSp02 = CRec + CODE
+ ,JObjectsSp03 = CODE
+ ,JObjectsSp04 = KeyName
+ ,JObjectsSp05 = TABLECODE + CRec + CODE
+ ,JObjectsSp06 = CRec
+ ,JObjectsSp07 = CRec + KeyType
+ ,JObjectsSp08 = CRec + FIELDCODE
+
+);
+
+#info Создание структуры таблицы "JObjectsOffice"
+Create Table  JObjectsOffice "Изменения по объектам обмена по офисам"
+  With Table_CODE = 32154
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp    "Номер записи"
+, CRec        : comp    "Номер родительской записи"
+, CObject     : comp    "Номер корневого объекта"
+, CrecObj     : comp    "Номер записи корневого объекта"
+, PacketVal   : string    "Признаки выгрузки в офис"
+, PacketDate  : Date      "Дата выгрузки в офис"
+, PacketTime  : Time      "Время выгрузки в офис"
+)
+with Index
+(
+  JObjectsOf01 = NRec (unique, surrogate, journal)
+ ,JObjectsOf02 = CRec
+ ,JObjectsOf03 = CObject
+ ,JObjectsOf04 = CObject + CRec
+ ,JObjectsOf05 = CRec + CObject
+ ,JObjectsOf06 = CObject + cRecObj +CRec
+ ,JObjectsOf07 = CRec + CObject + cRecObj
+ ,JObjectsOf08 = cRecObj
+
+);
+
+
+#info Создание структуры таблицы "JObjectsPackets"
+Create Table  JObjectsPackets "Включение объектов в пакеты"
+  With Table_CODE = 32155
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp      "Номер записи"
+, CRec        : comp      "Номер родительской записи"
+, CObject     : comp      "Номер корневого объекта"
+, CrecObj     : comp      "Номер записи корневого объекта"
+, PacketVal   : string    "Признаки включения в пакет"
+, PacketDate  : Date      "Дата выгрузки пакета"
+, PacketTime  : Time      "Время выгрузки пакета"
+)
+with Index
+(
+  JObjectsPack01 = NRec (unique, surrogate, journal)
+ ,JObjectsPack02 = CObject + CRec + cRecObj
+ ,JObjectsPack03 = CObject + cRecObj +CRec
+ ,JObjectsPack04 = CRec + CObject + cRecObj
+ ,JObjectsPack05 = CRec + cRecObj + CObject
+ ,JObjectsPack06 = cRecObj + CRec + CObject
+ ,JObjectsPack07 = cRecObj + CObject + CRec
+);

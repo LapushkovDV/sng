@@ -1,0 +1,55 @@
+table struct TmpDataJSON
+(
+    nrec      : comp
+  , cowner    : comp
+  , nLevel    : longInt
+  , KeyValue  : string
+  , StrValue  : string
+  , FileValue : string
+
+)
+with index
+(
+    byNREC = Nrec (Unique,Surrogate),
+    byOwner = cOwner,
+    byKeyValue = KeyValue+StrValue,
+    byOwnernam = cOwner+KeyValue+nLevel,
+    byKeyNlev  = KeyValue+nLevel
+)
+;
+table struct MyTableTreeBr
+(
+  TableNrec   : comp,
+  Nrec        : comp,
+  cRec        : comp,
+  cRecObjMain : comp,
+  cObject     : comp,
+  cObjMain    : comp,
+  Name        : string
+)
+with index
+(
+   bycrec = cRec + CObject
+,  bycObjMain = cObjMain + cRec
+,  byObjects = CObjMain + CObject
+)
+;
+
+table struct MyTableTreeFlt
+(
+  TableNrec   : comp,
+  Nrec        : comp,
+  cRec        : comp,
+  cRecObjMain : comp,
+  cObject     : comp,
+  cObjMain    : comp,
+  Name        : string
+)
+with index
+(
+   bycRec =  cRec + CObject
+ , bynRec =  nRec
+,  bycObjMain = cObjMain + cRec
+,  byObjects = CObjMain + CObject
+)
+;

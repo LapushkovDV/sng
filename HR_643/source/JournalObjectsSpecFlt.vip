@@ -1,0 +1,373 @@
+
+interface  JournalObjectsSpecFlt 'Объекты отслеживания';
+
+//  признаки корневой записи
+//     JOBJECTSSP.CObject = JOBJECTSSP.CObjMain
+// или JOBJECTSSP.crec = 0
+
+create view
+ var
+
+   parTypeFlt : word;
+   parName    : string;
+
+   pMarker: IMarker(Marker) new;
+
+   curMyTable, lcPacketNrec : comp;
+   TreeView : boolean;
+
+  As Select
+    JOBJECTSSP.nrec, JOBJECTSSP.crec, JOBJECTSSP.Tablenrec, JOBJECTSSP.CrecObjMain
+  From
+    MyTableTreeFlt,
+
+    JOBJECTSSP,
+    JOBJECTSSP  JOBJECTSSPFnd,
+
+	  JOBJECTS,
+    JOBJECTS  JOBJECTSHead,
+    JObjectsOffice,
+
+    JObjectsPackets,
+    JObjectsPackets  JObjectsPackHead,
+    JObjectsPackets  JObjectsPackNames,
+    JObjectsPackets  JObjectsPackHeadN,
+    JObjectsPackets  JObjectsPackets1,
+
+    X$FILES   X$FILES_Sp    (readonly),
+    X$FILES   X$FILES_Key   (readonly),
+    x$Fields  x$Fields_Key  (readonly),
+    ABONENTS  (readonly)
+  where
+   ((
+          MyTableTreeFlt.Nrec   == JOBJECTSSP.Nrec
+
+      and JOBJECTSSP.TABLECODE  == X$FILES_Sp.XF$CODE
+      and JOBJECTSSP.CObject    == JOBJECTS.Nrec
+      and JOBJECTSSP.CObjMain   == JOBJECTSHead.Nrec
+
+      and JOBJECTS.Nrec         == JObjectsKey.Crec
+      and JObjectsKey.TABLECODE == X$FILES_Key.XF$CODE
+      and X$FILES_Key.XF$CODE   == x$Fields_Key.xe$FileCode
+      and JObjectsKey.FIELDCODE == x$Fields_Key.xe$Code
+
+      and JOBJECTSSP.CObjMain    == JObjectsOffice.cObject
+      and JOBJECTSSP.Nrec        == JObjectsOffice.cRecObj
+      and JObjectsOffice.cRec    == ABONENTS.ATL_NREC
+
+      and JOBJECTSSP.CObjMain    == JObjectsPackets.cObject
+      and JOBJECTSSP.Nrec        == JObjectsPackets.cRecObj
+      and JObjectsPackets.cRec   == JObjectsPackHead.NREC
+
+      and JOBJECTSSP.CObjMain    == JObjectsPackNames.cObject
+      and      0                 == JObjectsPackNames.cRecObj
+      and JObjectsPackNames.cRec == JObjectsPackHeadN.NREC
+
+	 ))
+//Bounds  myObjMain  =  parJObj == JOBJECTSSP.CObjMain
+//Bounds  myTreeNode =  curMyTable == JOBJECTSSP.crec
+  Bounds  myTreeNode =  curMyTable == MyTableTreeFlt.crec
+
+;
+
+Parameters parTypeFlt, parName;
+
+//-------------------------
+#include JObjectsFunc.vpp
+
+//-------------------------
+Tree trResp  (,,sciEnEscTreeI);
+ show at ( , ,,15)
+  table MyTableTreeFlt;
+    recMarker = pMarker{MyTableTreeFlt.nRec};
+ Fields
+  MyTableTreeFlt.Name          'Наименование','объекта'             : [30], Protect, NoDel, NoPickButton, LessNull;
+/*
+  MyTableTreeFlt.Nrec  +''         'Nrec'                               : [20], Protect, NoDel, NoPickButton, LessNull;
+  MyTableTreeFlt.crec  +''         'crec'                               : [20], Protect, NoDel, NoPickButton, LessNull;
+  MyTableTreeFlt.CObject +''       'CObject'                            : [20], Protect, NoDel, NoPickButton, LessNull;
+  MyTableTreeFlt.CObjMain +''      'CObjMain'                           : [20], Protect, NoDel, NoPickButton, LessNull;
+  MyTableTreeFlt.CrecObjMain +''   'CrecObjMain'                        : [20], Protect, NoDel, NoPickButton, LessNull;
+  MyTableTreeFlt.TableNrec  +''    'Объект (TableNrec)'                 : [20], Protect, NoDel, NoPickButton, LessNull;
+
+  JOBJECTSSP.TableNrec  +''    'Объект (TableNrec)'                 : [20], Protect, NoDel, NoPickButton, LessNull;
+/**/
+  JOBJECTSSP.PacketVal         'Признак','обновления объекта'       : [10], Protect, NoDel, NoPickButton, Centered;
+  JOBJECTSSP.PacketDate        'Дата','обновления объекта'          : [12], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.PacketTime        'Время','обновления объекта'         : [12], Protect, NoDel, NoPickButton, LessNull;
+
+  JOBJECTSSP.KeyVal[1]         'Ключ1'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.KeyVal[2]         'Ключ2'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.KeyVal[3]         'Ключ3'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+/*
+  JOBJECTSSP.KeyVal[4]         'Ключ4'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.KeyVal[5]         'Ключ5'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.KeyVal[6]         'Ключ6'                              : [10], Protect, NoDel, NoPickButton, LessNull;
+/**/
+  JOBJECTSSP.GenKeyVal[1]      'Живой Ключ1'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[2]      'Живой Ключ2'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[3]      'Живой Ключ3'                        : [10], Protect, NoDel, NoPickButton;
+/*
+  JOBJECTSSP.GenKeyVal[4]      'Живой Ключ4'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[5]      'Живой Ключ5'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[6]      'Живой Ключ6'                        : [10], Protect, NoDel, NoPickButton;
+/**/
+  JOBJECTSSP.TABLECODE         'Код','таблицы'                      : [10], Protect, NoDel, NoPickButton, NoAutoSize;
+  X$FILES_Sp.xf$Name           'Имя таблицы'                        : [20], Protect, NoDel, NoPickButton;
+	JOBJECTS.Name                'Наименование','запроса'             : [20], Protect, NoDel, NoPickButton;
+  JOBJECTSHead.Name            'Наименование','корневого объекта'   :       Protect, NoDel, NoPickButton;
+
+end;
+browse brResp  (,,sciEnEscI);
+ show at ( , ,,15)
+  table MyTableTreeFlt;
+   recMarker = pMarker{MyTableTreeFlt.nRec};
+ Fields
+  MyTableTreeFlt.Name          'Наименование','объекта'             : [30], Protect, NoDel, NoPickButton, LessNull;
+  JOBJECTSSP.Name              'Наименование','объекта'             : [30], Protect, NoDel, NoPickButton;
+
+  JOBJECTSSP.PacketVal         'Признак','обновления объекта'       : [10], Protect, NoDel, NoPickButton, NoAutoSize, Centered;
+  JOBJECTSSP.PacketDate        'Дата','обновления объекта'          : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+  JOBJECTSSP.PacketTime        'Время','обновления объекта'         : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+
+  JOBJECTSSP.KeyVal[1]         'Ключ1'                              : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.KeyVal[2]         'Ключ2'                              : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.KeyVal[3]         'Ключ3'                              : [10], Protect, NoDel, NoPickButton;
+/*
+  JOBJECTSSP.KeyVal[4]         'Ключ4'                              : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.KeyVal[5]         'Ключ5'                              : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.KeyVal[6]         'Ключ6'                              : [10], Protect, NoDel, NoPickButton;
+/**/
+  JOBJECTSSP.GenKeyVal[1]      'Живой Ключ1'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[2]      'Живой Ключ2'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[3]      'Живой Ключ3'                        : [10], Protect, NoDel, NoPickButton;
+/*
+  JOBJECTSSP.GenKeyVal[4]      'Живой Ключ4'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[5]      'Живой Ключ5'                        : [10], Protect, NoDel, NoPickButton;
+  JOBJECTSSP.GenKeyVal[6]      'Живой Ключ6'                        : [10], Protect, NoDel, NoPickButton;
+/**/
+  JOBJECTSSP.TABLECODE         'Код','таблицы'                      : [10], Protect, NoDel, NoPickButton, NoAutoSize;
+  X$FILES_Sp.xf$Name           'Имя таблицы'                        : [20], Protect, NoDel, NoPickButton;
+	JOBJECTS.Name                'Наименование','запроса'             : [20], Protect, NoDel, NoPickButton;
+  JOBJECTSHead.Name            'Наименование','корневого объекта'   :       Protect, NoDel, NoPickButton;
+end;
+browse brRKey (,,scDef);
+ show at ( ,16,35,)
+  table JObjectsKey;
+ Fields
+  JObjectsKey.CODE             'Код'                   : [10], Protect, NoDel, NoPickButton, LessNull;
+  X$FILES_Key.xf$Name          'Имя','таблицы'         : [20], Protect, NoDel, NoPickButton;
+  x$Fields_Key.xe$Name         'Имя','поля'            : [20], Protect, NoDel, NoPickButton;
+  JObjectsKey.KeyName          'Наименование','ключа'  : [20], Protect, NoDel, NoPickButton;
+//JObjectsKey.KeyType          'Тип ключа'             : [20], Protect, NoDel, NoPickButton;
+//JObjectsKey.KeyVal           'Значение ключа'        : [20], Protect, NoDel, NoPickButton;
+end;
+browse brOffice (,,scDef);
+ show at (36,16,64,)
+  table JObjectsOffice;
+ Fields
+  ABONENTS.OFFICENO            'Код','офиса'                        : [10], Protect, NoDel, NoPickButton, LessNull;
+  ABONENTS.Name                'Имя','офиса'                        : [20], Protect, NoDel, NoPickButton;
+  JObjectsOffice.PacketVal     'Признак','обновления объекта'       : [10], Protect, NoDel, NoPickButton, Centered;
+  JObjectsOffice.PacketDate    'Дата','выгрузки объекта'            : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+  JObjectsOffice.PacketTime    'Время','выгрузки объекта'           : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+end;
+browse brPack  (,,scDef);
+ show at (65,16,,)
+  table JObjectsPackets;
+ Fields
+   JObjectsPackHead.PacketVal   'Имя','пакета'                 : [30], Protect, NoDel, NoPickButton;
+// JObjectsPackets.PacketVal    'Признак'                      : [10], Protect, NoDel, NoPickButton, Centered;
+   JObjectsPackets.PacketDate   'Дата','включения в пакет'     : [15], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+   JObjectsPackets.PacketTime   'Время','включения в пакет'    : [15], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+/*
+  JObjectsPackets.cObject +''       'cObject';
+  JObjectsPackets.cRecObj+''        'cRecObj';
+  JObjectsPackets.cRec  +''         'cRec';
+/**/
+end;
+//-----------
+
+window wndPackets 'Выбор пакета'  DoAccept, Cyan;
+  Show at ( 1, 1, 80, 25);
+
+Browse bwField  (,,sciDef);
+ Table JObjectsPackNames;
+ Fields
+   JObjectsPackHeadN.PacketVal      'Имя','пакета'                : [30], NoProtect, NoDel, NoPickButton;
+   JObjectsPackNames.PacketDate     'Дата','создания пакета'      : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+   JObjectsPackNames.PacketTime     'Время','создания пакета'     : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
+end;
+HandleEvent
+cmDefault: lcPacketNrec := JObjectsPackHeadN.Nrec;
+
+end;
+end;
+//-----------
+
+HandleEvent
+cmInit:
+{
+
+   TreeView := true;
+   AddBounds(tbmyTreeNode);
+
+   pMarker.IsMarkTreeNodeUp     := False;
+   pMarker.IsMarkNestedTreeNode := False;
+
+
+   if getFirst MyTableTreeFlt = tsok{}
+ //if getFirst JOBJECTSSP = tsok{}
+
+   case parTypeFlt of
+     1 : SetTitle('Объекты отслеживания по пакету "' + parName +  '"')
+     2 : SetTitle('Объекты отслеживания по фильтру: ' + parName )
+   end;
+
+
+
+}
+cmValue8:
+{
+   PushPos(#MyTableTreeFlt)
+   RunWindowModal(wndPackets);
+
+   if lcPacketNrec <> 0
+   if pMarker.Count > 0
+   if Message('Добавить ' +pMarker.Count+ ' объектов в пакет?', YesNo) = cmYes
+   {
+      var lnKolObj : longint = 0;
+
+      subbounds(tbRMMyTableTreeFlt1);
+      addbounds(tbRMMyTableTreeFlt2);
+
+      _Loop pMarker
+      if getFirst JOBJECTSSPFnd where (( pMarker.pnRec  == JOBJECTSSPFnd.Nrec )) = tsOk
+      if JOBJECTSSPFnd.crec = 0  //только корневой  объект!!!
+      {
+         SetObjectSpToPacket( JOBJECTSSPFnd.CObjMain, JOBJECTSSPFnd.Nrec, lcPacketNrec);
+         lnKolObj++;
+      }
+
+      subbounds(tbRMMyTableTreeFlt2);
+      addbounds(tbRMMyTableTreeFlt1);
+
+      Message('Добавлено корневых объектов: '+lnKolObj)
+   }
+
+   PopPos(#MyTableTreeFlt)
+   RescanPanel(#MyTableTreeFlt)
+
+   if GetFirst JObjectsPackets = tsOk {}
+   ReReadRecord(#JObjectsPackets)
+
+}
+cmAccording:
+  {
+    TreeView := not TreeView;
+
+    if TreeView
+    {
+       AddBounds(tbmyTreeNode);
+       SetFormat(trResp);
+    }
+    else
+    {
+       SubBounds(tbmyTreeNode);
+       SetFormat(brResp);
+    }
+
+  }
+cmTreeTop:
+  {
+     curMyTable:=0;
+  }
+cmTreeUp:
+  {
+  // curMyTable:=JOBJECTSSP.cRec;
+     curMyTable:=MyTableTreeFlt.cRec;
+  }
+cmTreeDown:
+  {
+  // curMyTable:=JOBJECTSSP.nRec;
+     curMyTable:=MyTableTreeFlt.nRec;
+  }
+cmTreeNodeType:
+  {
+     if (TreeIsTerminal(trResp) OR IsNew)
+        TreeSetNodeType(trResp, 2);
+  }
+cmTreeNeedOwner:
+  {
+ //  TreeJumpToRecord (trResp, JOBJECTSSP.CRec);
+     TreeJumpToRecord (trResp, MyTableTreeFlt.CRec);
+
+  }
+cmAttrib:
+   {
+     if not TreeNodeIsOpen(FocusedFormat)
+		 {
+			  PutCommand(cmTreeOpenNode);
+		 }
+		 else
+		 {
+			  PutCommand(cmTreeCloseNode);
+		 }
+
+   }
+cmCompressLevel:
+   {
+      PutCommand(cmTreeCloseNode);
+   }
+cmShowAll :  // Раскрыть все папки
+{
+  var ForCounter : boolean;
+  TreePushPos(trResp);
+  StartNewVisual(vtRotateVisual, vfTimer + vfBreak + vfScreenBottom,'Раскрытие всех папок',0);
+  _try {
+    for(ForCounter := TreeGetFirstEx(trResp);
+        ForCounter;
+        ForCounter := TreeGetNextEx(trResp)) {
+      NextVisual;
+      if (not TreeNodeIsOpen(trResp))
+        TreeOpenNode(trResp);
+    }
+  }
+  _except
+    on ExUserBreak : {};
+  _finally {
+    TreePopPos(trResp);
+    RescanPanel(#MyTableTreeFlt);  // RescanPanel(#JOBJECTSSP);
+
+    StopVisual('',0);
+  }
+}
+cmHideAll :  // Закрыть все папки
+{
+  // Поднимемся к ближайшему корню
+  while JOBJECTSSP.CRec <> 0 {
+    TreeJumpToRecord(trResp, MyTableTreeFlt.CRec); // TreeJumpToRecord(trResp, JOBJECTSSP.CRec);
+  }
+  TreeCloseAllOpenedNode(trResp);
+  RereadRecord(#MyTableTreeFlt);  //RereadRecord(#JOBJECTSSP);
+
+}
+
+cmHotKeys:
+{
+   PutHotCommand(RunMenu('mnuJournalObjectsSpecif'));
+}
+end;
+
+End.
+
+mnuJournalObjectsSpecif Menu
+{
+  - 'Добавить помеченные объекты в пакет',   cmValue8;
+------------;
+  - 'Режим представления: линейный/иерархический', cmAccording,
+            'Переключение представления иерархии подразделений (дерево/список)', hcGKatalLocMPodr, 'Alt+S', kbAltS, sci1Esc;
+  - 'Раскрыть все папки',cmShowAll,'Развернуть все уровни иерархии',,'Ctrl+GrayPlus',kbCtrlGrayPlus,sci1Esc;
+  - 'Закрыть все папки',cmHideAll,'Свернуть все уровни иерархии',,'Ctrl+GrayMinus',kbCtrlGrayMinus,sci1Esc;
+
+}

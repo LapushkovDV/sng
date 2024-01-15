@@ -1,0 +1,23 @@
+#statusline "statgal"
+
+#include galnet.inc end;
+#include glovars.inc
+#INCLUDE galaktika.vil
+
+
+#define CompTitle
+#doc
+  #CompTitle
+#end
+
+!#define  Atl60
+
+#include source\TempTablesGlob.vpp
+//#make  "source\*.vip"
+
+#make "source\absTables.vip"
+#make "source\GetField.vip"
+#make "source\GetTable.vip"
+#make "source\JOBJECTS_Main.vip"
+#make "source\JournalObjectsSpecFlt.vip"
+#make "source\JournalObjectsSpecif.vip"

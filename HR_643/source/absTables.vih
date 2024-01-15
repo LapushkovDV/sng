@@ -1,0 +1,20 @@
+#ifndef __AbsTables_vih__
+#define __AbsTables_vih__
+
+  VipInterface AbstractTables 
+    SourceFile = "absTables.vip"
+    licensed(free);
+
+
+  VipInterface GetTables (AbstractTables)
+    SourceFile = "GetTable.vip"
+    licensed(free)
+    parameters (aPnt: Pointer; aString: String);
+
+  VipInterface GetOneTable (AbstractTables)
+    SourceFile = "GetTable.vip"
+    licensed(free)
+    parameters (aWord: Word; aString: String);
+
+
+#endif
