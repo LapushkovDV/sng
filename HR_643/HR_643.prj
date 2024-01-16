@@ -15,6 +15,11 @@
 #include source\TempTablesGlob.vpp
 //#make  "source\*.vip"
 
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
 #make "source\absTables.vip"
 #make "source\GetField.vip"
 #make "source\GetTable.vip"

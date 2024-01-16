@@ -14,7 +14,7 @@ del Atlantis*.res
 
 @set exedir=C:\Galaktika\ATL6\Update_10.1.2230\support
 
-@%exedir%\vip.EXE S_ALter643.prj /r:S_ALter643.res /c:vip.cfg /u:lapus /p:Zraeqw123
+@%exedir%\vip.EXE HR_643.prj /r:HR_643.res /c:vip.cfg /u:lapus /p:Zraeqw123
 
 del *.crf
 del *.tmp
