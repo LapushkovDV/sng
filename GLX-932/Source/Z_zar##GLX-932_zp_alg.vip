@@ -1,0 +1,162 @@
+/**************************************************************************************************\
+* Наименование: ZarAPI алгоритм "Среднемесячная норма рабочего времени"                            *
+* Контур/Модуль: Заработная плата                                                                  *
+* Пункт меню: Настройка / Заполнение каталогов / Виды оплат и скидок                               *
+* Примечание:                                                                                      *
+* Необходимо настроить VIP-алгоритмы расчета премии по нарядам рабочим-сдельщикам, в зависимости от*
+* параметров в пункте 7. <Сопоставление алгоритмов и параметров> ФТТ.                              *
+* Первый будет учитывать при расчете премии вид оплаты <Работа в ночные> во втором алгоритме к     *
+* ночным должны добавляться все доплаты с входимостью 36. Входимость настраивается в классификаторе*
+* видов оплат и скидок.                                                                            *
+*                                                                                                  *
+*                                                                                                  *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                            *
+* -------------------------------------------------------------------------------------------------*
+* Разработка  |GLX-932       |        |                         |СНГ                    *
+\**************************************************************************************************/
+
+
+#include ZarAlg.vih
+
+#component "Z_Zar"
+
+VipInterface zarAlgorithm_GLX_932_zp_alg implements IzarAlgorithm;
+
+interface zarAlgorithm_GLX_932_zp_alg cacheable;
+// посомтреть  Z_zar##ZarAlgorithm_58vo.Vip
+  create view
+   var _log_OUT : string;
+     PeriodBegin
+   , PeriodEnd : date;
+    pLschet : comp;
+      wMes
+    , wYear : word;
+
+    from
+      KlRejim
+where ((
+       pLschet == Lschet.Nrec
+    //---------------------
+   and lschet.nrec==lstab.clschet
+   and wYear      ==lstab.yearn
+   and wMes       ==lstab.mesn
+
+   and  pLschet == prnaryad.clsch
+   and  (  wYear=Year (prnaryad.DataN)
+       and wMes =Month(prnaryad.DataN)
+        )
+       ))
+
+;
+  var
+    pShowLog: Boolean;
+    pRejim: Word;
+    pYear: Word;
+
+Function GenerateNewOutFile: string;
+{
+ _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+ result := _log_OUT;
+}
+
+function GetLogFile : string;
+{
+  if _log_OUT = '' then _log_OUT := GenerateNewOutFile+'.log';
+  result := _log_OUT;
+}
+
+Procedure MyLog(_str: string);
+{
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+}
+
+procedure ParseAlgParams(ParamStr: String);
+{
+  var I: Word;
+  var P: Byte;
+  var Value: String;
+
+    pShowLog := false;
+    pRejim := 0;
+    pYear := 0;
+    I := 0;
+    do
+    {
+      I++;
+      P := InStr(',', ParamStr);
+      if P > 0 then {
+        Value := SubStr(ParamStr, 1, P - 1);
+        ParamStr := SubStr(ParamStr, P + 1, Length(ParamStr) - P);
+      } else {
+        Value := ParamStr;
+       }
+      Value := LoCase(Trim(Value));
+      if Value != '' then
+        case I of
+          1: pRejim := Word(Value);
+          2: pYear := Word(Value);
+          3: pShowLog := (Value = 'on' or Value = 'true');
+        end;
+    } while P > 0;
+    // По умолчанию берём режим из предварительной разноски
+    if pRejim = 0 then
+      pRejim := UCH_REJIM;
+    // По умолчанию берём год из предварительной разноски
+    if pYear = 0 then
+      pYear := UCH_YEAR;
+}
+
+function CalcSum(Parameter: String): Double;
+{
+    result := 0;
+    result := 0;
+
+  	PeriodBegin:=uch_datan;
+	  PeriodEnd  :=uch_datok;
+    pLschet:=uch_lsch;
+    wMes  :=month(uch_datan);
+    wYear :=year (uch_datan);
+  	if getfirst lschet<>tsok // where ((uch_lsch==lschet.nrec))=tsok
+    { exit;
+    }
+
+
+
+    Loadworkingtable(pLschet,wMes,wYear);
+    var _chasf: double = WT_GHBD(1,0,0,1,PeriodBegin,PeriodEnd);
+    var _chasgr : double = 0;
+     var ii : byte = 0;
+     if getfirst LsTab=tsok
+     for(ii:=1;ii<=31;ii++)
+     { if (LSTAB.DAYCHF[ii]>0 and LSTAB.DAYCHF[ii]<25)
+       or LSTAB.DAYS[ii]='В'
+       or LSTAB.DAYS[ii]='ЛЧ'
+       { if KLNDR.DAYCHAS[ii]>0
+          _chasgr+=KLNDR.DAYCHAS[ii]+KLNDR.DAYMIN[ii]/60;
+       }
+     }
+
+    //нормо-часы из нарядов
+    var _chas01 : double = 0;
+    _Loop prnaryad
+    { _chas01+=Prnaryad.NRMTIME;
+    }
+
+    ParseAlgParams(Parameter);
+    mylog('Алгоритм GLX_932_zp_alg:');
+    mylog(' Режим: ' + To_Char(pRejim));
+    mylog(' Год: ' + To_Char(pYear));
+    if GetFirst KlRejim where ((pRejim == KlRejim.Rejim)) != tsOk then
+    {
+      mylog('Не найден режим с кодом ' + To_Char(pRejim));
+      exit;
+    }
+    result := 555;
+}
+
+function GetDescription: String;
+{
+    GetDescription := 'Среднемесячная норма рабочего времени';
+}
+
+end.

@@ -1,0 +1,22 @@
+#statusline "statgal"
+
+#include galnet.inc end;
+#include glovars.inc
+#INCLUDE galaktika.vil
+
+
+#define CompTitle
+#doc
+  #CompTitle
+#end
+
+!#define  Atl60
+
+//#make  "source\*.vip"
+
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
+#make "source\Z_zar##GLX-932_zp_alg.vip"

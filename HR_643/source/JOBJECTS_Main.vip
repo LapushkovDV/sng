@@ -124,6 +124,7 @@ var
 
    _errDataDecl    : integer;
    _errDataDeclKol : longInt;
+   _log_OUT : string;
 
 create view
  var
@@ -239,10 +240,27 @@ Bounds  myTreeNode =  curMyTable == JOBJECTS.CREC
 
 Parameters parMode, parRespHead;
 
+Function GenerateNewOutFile: string;
+{
+ _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log';
+ result := _log_OUT;
+}
+
+function GetLogFile : string;
+{
+  if _log_OUT = '' then _log_OUT := GenerateNewOutFile;
+  result := _log_OUT;
+}
+
+Procedure MyLog(_str: string);
+{
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+}
 //-----------
 Procedure SqlAddStrLog( parStrQ : string);
 {
-    SqlAddStr(q1, parStrQ);   LogStrToFile(lsSQLLogFile, parStrQ)
+    MyLog('SQL: ' + parStrQ);
+    SqlAddStr(q1, parStrQ);
 }
 //-----------
 Procedure DelMyTableQueryForObj;
@@ -261,7 +279,7 @@ Procedure InsMyTableQueryForObj ( parObject : comp; parStr : string; parBlock : 
     , MyTableQueryForObj.cObject   := parObject
     , MyTableQueryForObj.SqlAddStr := parStr
     , MyTableQueryForObj.Block     := parBlock
-    ;
+   ;
 }
 
 //-----------
@@ -332,7 +350,7 @@ function GetJournalRow( parTableCode : word; parTableNrec : comp; parUpDate : da
       Exit;
    }
 
-  // LogStrToFile(csLogFile, result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
+  MyLog('GetJournalRow: ' + result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
 }
 function GetJournalRowByUser( parTableCode : word; parTableNrec, parUser : comp; parUpDateFrom, parUpdateTo : date ) : word;
 {
@@ -356,7 +374,7 @@ function GetJournalRowByUser( parTableCode : word; parTableNrec, parUser : comp;
       Exit;
    }
 
-  // LogStrToFile(csLogFile, result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
+  MyLog('GetJournalRowByUser: '+ result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
 }
 
 //-----------
@@ -407,7 +425,7 @@ Function  GetQueryResForObject( parObj : comp ) : word;
 				        {
                    ResultCol:=ResultRow.colAt(i);
                    set MyTableFldDataTree.Name[i] := ResultCol.Name;
-        // LogStrToFile(lsSQLLogFile, 'MyTableFldDataTree.Name['+i+ '] = '+MyTableFldDataTree.Name[i])
+                   MyLog('for(i:=1;i<=lnColCountMax;i++): '+'MyTableFldDataTree.Name['+i+ '] = '+MyTableFldDataTree.Name[i]);
                 }
 
                 //генерируемые живые ключи
@@ -447,11 +465,11 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
                 lsStrValue := String( ResultRow.valAt(i), 255, 10);
                 //форматирование для типов (дата/время)
-                lsStrValue := GetFldFormatForJSON(lsStrValue)
+                lsStrValue := GetFldFormatForJSON(lsStrValue);
 
-                set MyTableDataTree.FieldString[i]:= lsStrValue
+                set MyTableDataTree.FieldString[i]:= lsStrValue;
 
-         //LogStrToFile('aesdfg.txt', '00) ' +String( MyTableDataTree.FieldString[i] ,30,10))
+                MyLog('for(i:=1;i<=lnColCountMax;i++): '+String( MyTableDataTree.FieldString[i] ,30,10));
 
                 //сформируем генерируемые живые ключи из значений ключей=полей
                 for(ii:=1; ii<=lnGenKey; ii++)
@@ -495,12 +513,12 @@ if MyTableFldDataTree.GenKeyCount > 0
     else
     {
    //   Message('Ошибка № '+que.errorCode);
-        LogStrToFile(lsSQLLogFile, 'Ошибка № '+que.errorCode)
-        LogStrToFile(lsSQLLogFile, JOBJECTSResp.CODE+' '+JOBJECTSResp.Name)
+        MyLog( 'Ошибка № '+que.errorCode);
+        MyLog( JOBJECTSResp.CODE+' '+JOBJECTSResp.Name);
 
         lsErrToLogFile := 'запрос не сформирован. Ошибка № '+que.errorCode;
 
-        ProcessText(lsSQLLogFile, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
+        ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
     }
 
     sqlFreeStr(q1);
@@ -580,15 +598,15 @@ procedure ExportObjectsToJson;
    var lsJsonLogFile  : string = JObjectsPacketsFnd.Nrec+'_PacketJson.Log'  //пока имя файла как nrec
    deletefile(lsJsonLogFile);
 
-   lsSQLLogFile := JObjectsPacketsFnd.Nrec+'_PacketJsonSQL.Log'; DeleteFile(lsSQLLogFile)
+   lsSQLLogFile := JObjectsPacketsFnd.Nrec+'_PacketJsonSQL.Log'; DeleteFile(lsSQLLogFile);
 
-   LogStrToFile(lsJsonLogFile, 'Выгрузка пакета "'+ JObjectsPacketsFnd.PacketVal+'"'  )
+   MyLog('ExportObjectsToJson: Выгрузка пакета "'+ JObjectsPacketsFnd.PacketVal+'"'  );
 
    lbExportByPacket := true;
    if Message('Выгрузить объекты в отдельные файлы?', YesNo) = cmYes
       lbExportByPacket := false;
 
-   LogStrToFile(lsJsonLogFile, 'Выгрузка объектов в '+if( lbExportByPacket, ' один файл ', ' отдельные файлы') )
+   MyLog('ExportObjectsToJson: Выгрузка объектов в '+if( lbExportByPacket, ' один файл ', ' отдельные файлы') );
 
    DelMyTableQueryForObj;
 
@@ -598,7 +616,7 @@ procedure ExportObjectsToJson;
    _loop MyTableTreeFlt0 where (( 0 == MyTableTreeFlt0.crec ))
    {
 
-  // LogStrToFile(lsSQLLogFile, 'MyTableTreet '+  cObject+ ' MyTableTree='+parPackNrec)
+ //     MyLog('ExportObjectsToJson: MyTableTreeFlt0 '+  cObject+ ' MyTableTree='+parPackNrec);
 
         if NOT lbExportByPacket // выгрузка каждого корневого объекта + его дерево детей в отдельный файл
         {
@@ -610,7 +628,7 @@ procedure ExportObjectsToJson;
        //непосредственно строки // будут сразу все уровни по объекту
        _loop MyTableTreeFlt1  where (( MyTableTreeFlt0.cObject == MyTableTreeFlt1.CObjMain )) ordered by index byObjects
        {
-
+          MyLog('ExportObjectsToJson: MyTableTreeFlt1.CObject= '+  MyTableTreeFlt1.CObject);
           //при смене объекта
           if MyTableTreeFlt1.CObject <> lcObjCurr
           {
@@ -651,7 +669,7 @@ procedure ExportObjectsToJson;
        {
           lsJsonFileName := MyTableFldDataTree.ObjCode;
           lsJsonFileName := GetJsonDoc( lsJsonFileName, MyTableTreeFlt0.Nrec );
-          LogStrToFile(lsJsonLogFile, PAD(' объект "'+MyTableTreeFlt0.name + '" ',30)+'  файл '+lsJsonFileName )
+//          MyLog('ExportObjectsToJson: if NOT lbExportByPacket lsJsonLogFile, PAD( объект "'+MyTableTreeFlt0.name + '" ',30)+'  файл '+lsJsonFileName );
        }
 
    }
@@ -661,12 +679,12 @@ procedure ExportObjectsToJson;
    {
       lsJsonFileName := JObjectsPacketsFnd.Nrec ;  //пока имя файла как nrec
       lsJsonFileName := GetJsonDoc( lsJsonFileName );
-      LogStrToFile(lsJsonLogFile, 'сформирован файл '+lsJsonFileName)
+      MyLog('ExportObjectsToJson: if lbExportByPacket сформирован файл '+lsJsonFileName)
 
    }
 
 
-   ProcessText(lsJsonLogFile, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
 }
 
 procedure FilterObjectsByPacket( parPackNrec : comp );
@@ -684,7 +702,7 @@ procedure FilterObjectsByPacket( parPackNrec : comp );
    if getFirst JOBJECTSFnd where (( JObjectsPacketsFnd.cObject  == JOBJECTSFnd.Nrec )) = tsOk
    {
 
-  // LogStrToFile(lsSQLLogFile, 'Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec)
+      MyLog('Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec)
        lnNrecVal++;
        lcNrecVal := comp(lnNrecVal);
 
@@ -713,7 +731,7 @@ procedure FilterObjectsByPacket( parPackNrec : comp );
                                            and   lcRecObj                     == JObjectsPackets1.cRecObj
                                              )) = tsOk
           {
-      //    LogStrToFile(lsSQLLogFile, 'Paket CObjMain '+ JOBJECTSSP1.CObjMain +'  Nrec '+JOBJECTSSP1.Nrec)
+             MyLog('Paket CObjMain '+ JOBJECTSSP1.CObjMain +'  Nrec '+JOBJECTSSP1.Nrec)
 
              //сохраним структуру связей выбранных данных
              clearBuffer(#MyTableTreeFlt);
@@ -815,7 +833,7 @@ procedure FilterObjectsByFields( parObj : comp );
    _loop JOBJECTSSP1  where (( parObj == JOBJECTSSP1.CObject ))
    {
 
-  // LogStrToFile(lsSQLLogFile, 'Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec)
+//     MyLog('_loop JOBJECTSSP1  where (( parObj == JOBJECTSSP1.CObject )) : Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec);
   //    lnNrecVal++;
   //    lcNrecVal := comp(lnNrecVal);
 
@@ -1114,7 +1132,7 @@ procedure GetJournalUpdate( parObjMain : comp);
       }
    }
 
-   LogStrToFile(csLogFile, '  Обновлений для объекта по журналу: '+lnKolUp);
+   MyLog('  Обновлений для объекта по журналу: '+lnKolUp);
 }
 
 Procedure SetJournalSpCurKeys;
@@ -1350,7 +1368,7 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
                       ResultCol:=ResultRow.colAt(i);
                       set MyTableFld.Name[i] := ResultCol.Name;
 
-                  //LogStrToFile(lsSQLLogFile, 'MyTableFld.Name['+i+ '] = '+MyTableFld.Name[i])
+                    MyLog( 'MyTableFld.Name['+i+ '] = '+MyTableFld.Name[i])
                    }
                    insert current MyTableFld;
                 }
@@ -1363,7 +1381,7 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
                 //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
                 set MyTableTemp.FieldString[i] := String( ResultRow.valAt(i), 255, 10);
 
-                //LogStrToFile('aesdfg.txt', '01) '+String( MyTableTemp.FieldString[i] ,30,10))
+                MyLog(String( MyTableTemp.FieldString[i] ,30,10));
                 //LogStrToFile(lsSQLLogFile, 'MyTableTemp.FieldString['+i+ '] = '+MyTableTemp.FieldString[i] )
 					   }
 				     insert current MyTableTemp;
@@ -1385,8 +1403,8 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
      else
      {
    //   Message('Ошибка № '+que.errorCode);
-        LogStrToFile(lsSQLLogFile, 'Ошибка № '+que.errorCode)
-        LogStrToFile(lsSQLLogFile, JOBJECTSResp.CODE+' '+JOBJECTSResp.Name)
+        MyLog( 'Ошибка № '+que.errorCode);
+        MyLog(JOBJECTSResp.CODE+' '+JOBJECTSResp.Name);
 
         lsErrToLogFile := 'запрос не сформирован. Ошибка № '+que.errorCode;
 
@@ -1425,7 +1443,7 @@ procedure GetObjectsTree( parObj: comp; parInsMainObj : boolean = false );
     if GetFirst  JOBJECTS_Tree where (( parObj == JOBJECTS_Tree.Nrec )) <> tsOk
        Exit;
 
-    LogStrToFile(csLogFile, CHR(13)+'--- Дерево объекта: '+PAD(JOBJECTS_Tree.Code,10) +' '+SubStr(JOBJECTS_Tree.Name,1,150))
+    MyLog( CHR(13)+'--- Дерево объекта: '+PAD(JOBJECTS_Tree.Code,10) +' '+SubStr(JOBJECTS_Tree.Name,1,150));
     if parInsMainObj
     {
        insert current MyTableObj set
@@ -1578,9 +1596,9 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
     PushPos(#JOBJECTS)
 
     GetCurrObjectResp;
-    LogStrToFile(csLogFile, PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) )
-    LogStrToFile(csLogFile, '      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
-    if lsErrToLogFile <> ''  LogStrToFile(csLogFile, '      '+lsErrToLogFile);
+    MyLog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) );
+    MyLog( '      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
+    if lsErrToLogFile <> ''  MyLog('      '+lsErrToLogFile);
 
     if lbObjUpdate
     {
@@ -1591,9 +1609,9 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
        if GetFirst JOBJECTS where (( MyTableObj.Nrec == JOBJECTS.Nrec )) = tsOk
        {
           GetCurrObjectResp;
-          LogStrToFile(csLogFile, SubStr(MyTableObj.name,1, 150) )
-          LogStrToFile(csLogFile, '      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
-          if lsErrToLogFile <> ''  LogStrToFile(csLogFile, '      '+lsErrToLogFile);
+          MyLog(SubStr(MyTableObj.name,1, 150) );
+          MyLog('      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
+          if lsErrToLogFile <> ''  MyLog('      '+lsErrToLogFile);
        }
 
     }
@@ -2276,8 +2294,8 @@ cmValue20:  //'Экспорт структуры объекта',
       GetObjectsTree(lcObjMain, true);
       lsJsonFileName := ExportObjToJsonByTree(JOBJECTS.Nrec, JOBJECTS.Nrec); //пока имя файла как nrec
 
-      LogStrToFile(lsJsonLogFile, 'сформирован файл '+lsJsonFileName)
-      ProcessText( lsJsonLogFile, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
+      MyLog( 'сформирован файл '+lsJsonFileName)
+      ProcessText( _log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
    }
 
    PopPos(#JOBJECTS)

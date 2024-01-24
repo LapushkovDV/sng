@@ -206,17 +206,29 @@ var long: TPtr;
 {
   Result := '';
 
-  if (json = 0) Exit;
-  if (JCount(json)=0) Exit;
+  if (json = 0) {
+     mylog('json = 0');
+     Exit;
+   }
+  if (JCount(json)=0) {
+    mylog('JCount(json)=0');
+    Exit;
+   }
 
   if (sFileName = '') then sFileName := CreateTmpFileName;
+
+
+  mylog('sFileName = ' + sFileName);
+
   if (not Minimize)
     long := HttpConnect_JSONObjectToJSON(fn, json); // красивый JSON
   else
     long := HttpConnect_JSONObjectToString(fn, json);
 
-  if (not HttpConnect_SaveToFileEx(fn, long, sFileName, Encoding, NoCarriageReturn))
-    Exit;
+  if (not HttpConnect_SaveToFileEx(fn, long, sFileName, Encoding, NoCarriageReturn)) {
+      mylog('not HttpConnect_SaveToFileEx(');
+      Exit;
+    }
   Result := sFileName;
 }
 //************
@@ -466,10 +478,14 @@ function GetJsonDoc( parFileName : string; parObject : comp = 0 ) : string;
 
    fn := HttpConnect_Create('','','');
 
-   var lnKolVals : longInt;
-   var tmpFileJ  : string = 'd:\'+parFileName+'.json';
+   mylog('fn = ' + fn);
 
+   var lnKolVals : longInt;
+   var tmpFileJ  : string = GenerateNewOutFile+'.json'; //'d:\'+parFileName+'.json';
+   mylog('GenerateNewOutFile = ' + GenerateNewOutFile);
    var jsonObj64 : TPtr   = JCreate;
+
+   mylog('jsonObj64 = ' + jsonObj64);
 
    JAddString(jsonObj64, 'MainObjectName',     parFileName);
    //по корневым объектам
@@ -477,7 +493,7 @@ function GetJsonDoc( parFileName : string; parObject : comp = 0 ) : string;
    JAddString(jsonObj64, 'MainObjectValCount', lnKolVals);
 
 
-   JToFile(jsonObj64, tmpFileJ, 0, true, true);
+   JToFile(jsonObj64, tmpFileJ, 0, false, true);
    tmpFileJ := ConvertFileANSIUTF8(tmpFileJ);
 
 // Message('tmpFileJ '+tmpFileJ)

@@ -330,7 +330,10 @@ function ExportObjToJsonByTree( parFileName : string; parObject : comp) : string
    fn     := HttpConnect_Create('','','');
 
    var lnKolVals : longInt;
-   var tmpFileJ  : string = 'd:\Obj_'+parFileName+'.json';
+//   var tmpFileJ  : string = 'd:\Obj_'+parFileName+'.json';
+
+   var tmpFileJ  : string = GenerateNewOutFile+'_OBJ.json'; //'d:\'+parFileName+'.json';
+   mylog('GenerateNewOutFile = ' + GenerateNewOutFile);
 
    var jsonObj64 : TPtr   = JCreate;
 
