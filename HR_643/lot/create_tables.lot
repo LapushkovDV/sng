@@ -18,6 +18,7 @@ Create Table  JObjects "Объекты обмена"
 , NameKey    : string  "Ключи наименования объекта"
 , MainKey    : string  "Поле первичного ключа журнализации"
 , NOTES      : LVar    "Примечание объекта"
+, SynonimName : string "Наименование синонима таблицы"
 )
 with Index
 (

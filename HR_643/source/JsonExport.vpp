@@ -311,13 +311,6 @@ Function GetJsonObjBoby2 ( parcRec : comp; var parKolVals : longInt ) : TPtr;
          lcRec := MyTableTreeFlt2.Nrec;
          delete current MyTableTreeFlt2;
 
-         //вывод строк данных объекта
-          /*
-             LogStrToFile(csSQLLogFile, 'MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
-             +' cObject='+ MyTableTreeFlt1.cObject
-             +' TableNrec='+MyTableTreeFlt1.TableNrec
-               )
-          */
              jsonObjArr := JCreate;
 
              //---------- выгрузка строки данных этого объекта
@@ -326,8 +319,6 @@ Function GetJsonObjBoby2 ( parcRec : comp; var parKolVals : longInt ) : TPtr;
              JAddString(jsonObjVal, MyTableFldDataFlt2.Name[ii],  StrValByString(MyTableDataTree2.FieldString[ii])  );
 
           //   JAddString(jsonObjArr, MyTableFldDataFlt2.Name[ii], MyTableDataTree2.FieldString[ii]);
-        // LogStrToFile('aesdfg.txt', '11) '+ String(MyTableDataTree2.FieldString[ii], 30,15) )
-        // LogStrToFile('aesdfg.txt', '21) '+ String( StrValByString(MyTableDataTree2.FieldString[ii]), 30,15) )
 
              JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
 
@@ -375,7 +366,7 @@ Function GetJsonObjData ( parcRec : comp; var parKolVals : longInt ) : TPtr;
                                                       )) = tsOk
       {
 
-             LogStrToFile(csSQLLogFile, 'MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
+             mylog('MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
              +' cObject='+ MyTableTreeFlt1.cObject
              +' TableNrec='+MyTableTreeFlt1.TableNrec
                )
@@ -388,8 +379,6 @@ Function GetJsonObjData ( parcRec : comp; var parKolVals : longInt ) : TPtr;
              for(ii:=1;ii<= (MyTableFldDataFlt.ColCount + MyTableFldDataFlt.GenKeyCount) ;ii++)
              JAddString(jsonObjVal, MyTableFldDataFlt.Name[ii], StrValByString(MyTableDataTree.FieldString[ii]) );
            //JAddString(jsonObjArr, MyTableFldDataFlt.Name[ii], MyTableDataTree.FieldString[ii]);
-           // LogStrToFile('aesdfg.txt', '10) '+ String(MyTableDataTree.FieldString[ii], 30,15) )
-           // LogStrToFile('aesdfg.txt', '20) '+ String( StrValByString(MyTableDataTree.FieldString[ii]), 30,15) )
 
              JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
 
@@ -482,7 +471,7 @@ function GetJsonDoc( parFileName : string; parObject : comp = 0 ) : string;
 
    var lnKolVals : longInt;
    var tmpFileJ  : string = GenerateNewOutFile+'.json'; //'d:\'+parFileName+'.json';
-   mylog('GenerateNewOutFile = ' + GenerateNewOutFile);
+   mylog('GenerateNewOutFile = ' + tmpFileJ);
    var jsonObj64 : TPtr   = JCreate;
 
    mylog('jsonObj64 = ' + jsonObj64);

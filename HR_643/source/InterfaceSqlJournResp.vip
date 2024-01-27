@@ -5,8 +5,8 @@ const
   cnColMyTable   = 150;
   cnKeyMax = 10;
   cbBrResp=false; //показать результаты запроса
-  csLogFile = 'GetObjToJournal.log';
-  csSQLLogFile = 'sqlReload.txt';
+//  csLogFile = 'GetObjToJournal.log';
+//  csSQLLogFile = 'sqlReload.txt';
 
   coJObjects        = 32150;
   coJOBJECTSSP      = 32151;
@@ -203,6 +203,12 @@ create view
 
     X$JOURNAL (readonly)
 
+  , jobjects jobjects_syn
+  , JObjectsKey JObjectsKey_syn
+  , JOBJECTSSP JOBJECTSSP_syn
+  , X$FILES X$FILES_syn
+  , x$Fields x$Fields_syn
+
   where
    ((
           JOBJECTS.TABLECODE    == x$Files_Obj.XF$CODE
@@ -242,13 +248,13 @@ Parameters parMode, parRespHead;
 
 Function GenerateNewOutFile: string;
 {
- _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log';
+ _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
  result := _log_OUT;
 }
 
 function GetLogFile : string;
 {
-  if _log_OUT = '' then _log_OUT := GenerateNewOutFile;
+  if _log_OUT = '' then _log_OUT := GenerateNewOutFile+'.log';
   result := _log_OUT;
 }
 
@@ -415,8 +421,8 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 lnColCountMax := ResultRow.count;
                 if lnColCountMax > cnColMyTable
                 {
-                   lsErrToLogFile :=            'Количество столбцов ограничено :'+cnColMyTable
-                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax
+                   MyLog(            'Количество столбцов ограничено :'+cnColMyTable
+                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
 
                    lnColCountMax := cnColMyTable
                 }
@@ -487,14 +493,6 @@ Function  GetQueryResForObject( parObj : comp ) : word;
              set MyTableDataTree.cObject := parObj;
              set MyTableDataTree.nRec    := MyTableDataTree.FieldString[1]; //!!!! всегда первое в запросе!!!
 				     insert current MyTableDataTree;
-/*
-if MyTableFldDataTree.GenKeyCount > 0
-   LogStrToFile(lsSQLLogFile, 'MyTableDataTree cObject='+MyTableDataTree.cObject+' Nrec='+MyTableDataTree.Nrec
-       +' ColCount=' +MyTableFldDataTree.ColCount + ' GenKeyCount='+ MyTableFldDataTree.GenKeyCount
-                                  +' FieldString[lnColCountMax+1] = '+MyTableDataTree.FieldString[lnColCountMax+1]
-
-              )
-/* */
 
              result := 1;
 
@@ -516,9 +514,9 @@ if MyTableFldDataTree.GenKeyCount > 0
         MyLog( 'Ошибка № '+que.errorCode);
         MyLog( JOBJECTSResp.CODE+' '+JOBJECTSResp.Name);
 
-        lsErrToLogFile := 'запрос не сформирован. Ошибка № '+que.errorCode;
+        MyLog( 'запрос не сформирован. Ошибка № '+que.errorCode);
 
-        ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
+        ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос 1')
     }
 
     sqlFreeStr(q1);
@@ -1069,9 +1067,6 @@ procedure GetJournalUpdate( parObjMain : comp);
                                          //  and  0 == JOBJECTSSP1.CRecObjMain  ))
    {
 
-   /*   LogStrToFile(csLogFile, '     GetJournalUpdate Nrec='+JOBJECTSSP1.Nrec+' CObject='+JOBJECTSSP.CObject
-       +' CObjMain='+JOBJECTSSP.CObjMain +' CrecObjMain='+JOBJECTSSP.CrecObjMain
-      ); */
 
       lbUpOwner := false;
 
@@ -1240,6 +1235,45 @@ Procedure SetRespToJournal( parObjMain, parCrecObjMain, parObj, parCRec : comp; 
    }
 }
 
+function ReplaceSynonims(_Str : string; _JOBJECTSSP_nrec : comp) : string; // пойдем по заполненным уже данным вверх
+{
+ result := _Str;
+         mylog('ReplaceSynonims _Str =' + _Str);
+         mylog('ReplaceSynonims _JOBJECTSSP_nrec =' + _JOBJECTSSP_nrec);
+        if GetFirst fastfirstRow JOBJECTSSP_syn where (( _JOBJECTSSP_nrec == JOBJECTSSP_syn.Nrec )) <> tsOk
+           then {
+               mylog('ReplaceSynonims if GetFirst fastfirstRow JOBJECTSSP_syn where (( _JOBJECTSSP_nrec == JOBJECTSSP_syn.Nrec )) <> tsOk');
+               mylog('exit');
+              exit;
+             }
+
+        if getfirst fastfirstRow jobjects_syn where ((JOBJECTSSP_syn.cObject == jobjects_syn.nrec)) <> tsOK
+           then {
+             mylog('ReplaceSynonims if getfirst fastfirstRow jobjects_syn where ((JOBJECTSSP_syn.cObject == jobjects_syn.nrec)) <> tsOK');
+             mylog('exit');
+             exit;
+            }
+
+        var lnKey : word = 0;
+        _loop JObjectsKey_syn where ((JOBJECTSSP_syn.cObject  == JObjectsKey_syn.cRec and 0 << JObjectsKey_syn.FIELDCODE )) //поля БД
+         if getfirst fastfirstrow X$FILES_syn where ((JObjectsKey_syn.TABLECODE == X$FILES_syn.XF$CODE)) = tsOK
+         if getfirst fastfirstrow x$Fields_syn where ((X$FILES_syn.XF$CODE   == x$Fields_syn.xe$FileCode
+                                               and JObjectsKey_syn.FIELDCODE == x$Fields_syn.xe$Code)) = tsOK
+        {
+           lnKey++;
+           if lnKey <= cnKeyMax
+           mylog('ReplaceSynonims JObjectsKey_syn.KeyVal['+lnKey+']' + JOBJECTSSP_syn.KeyVal[lnKey]);
+           if trim(jobjects_syn.synonimName) <> ''
+            {
+              var _TableField : string = UPCASE(jobjects_syn.synonimName+'.'+x$Fields_syn.xe$Name);
+              _Str := REPLACE( UPCASE(_Str), _TableField, JOBJECTSSP_syn.KeyVal[lnKey] ) ;
+              mylog('ReplaceSynonims _Str = ' + JOBJECTSSP_syn.KeyVal[lnKey]);
+            }
+        }
+    _Str := ReplaceSynonims(_Str,JOBJECTSSP_syn.Crec) // пойдем по заполненным уже данным вверх
+
+ result := _Str;
+}
 //------
 Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : word;
 {
@@ -1269,8 +1303,8 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
      }
      if lnGenKey > cnKeyMax
      {
-        lsErrToLogFile :=           'Количество живых ключей ограничено :'+cnKeyMax
-                        + CHR(13) + 'Количество живых ключей в запросе  :'+lnGenKey
+        MyLog(           'Количество живых ключей ограничено :'+cnKeyMax
+                        + CHR(13) + 'Количество живых ключей в запросе  :'+lnGenKey);
      }
 
      //ключевые поля добавим в запрос
@@ -1283,12 +1317,12 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
      }
      if lnKey > cnKeyMax
      {
-        lsErrToLogFile :=           'Количество ключевых полей БД ограничено :'+cnKeyMax
-                        + CHR(13) + 'Количество ключевых полей БД в запросе  :'+lnKey
+        MyLog(           'Количество ключевых полей БД ограничено :'+cnKeyMax
+                        + CHR(13) + 'Количество ключевых полей БД в запросе  :'+lnKey);
      }
      if lnKey = 0
      {
-        lsErrToLogFile := 'не указано ни одного ключа. запрос не сформирован'
+        MyLog( 'не указано ни одного ключа. запрос не сформирован');
         Exit;
      }
 
@@ -1304,27 +1338,39 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
         if trim(StringValue1) = ''
            continue;
 
+        mylog('StringValue1 = ' + StringValue1);
         //собрали ключи родителя и их значения для подстановки в запрос
         lnKey := 0;
 
         //условие в запрос
         if lnRow = 0   //1 раз
         SqlAddStrLog( ' where ');
+        mylog('parOwner = ' + parOwner);
+        mylog('parSpNrec = ' + parSpNrec);
+
 
         if parOwner  <> 0
         if parSpNrec <> 0
+           StringValue1 := ReplaceSynonims(StringValue1,parSpNrec); // пойдем по заполненным уже данным вверх
+/*
         if GetFirst fastfirstRow JOBJECTSSP2 where (( parSpNrec == JOBJECTSSP2.Nrec )) = tsOk
         _loop JObjectsKey1 where (( parOwner == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE )) //поля БД
         {
            lnKey++;
-
            if lnKey <= cnKeyMax
-           StringValue1 := REPLACE( UPCASE(StringValue1), UPCASE(X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name), JOBJECTSSP2.KeyVal[lnKey] ) ;
+           mylog('JOBJECTSSP2.KeyVal['+lnKey+']' + JOBJECTSSP2.KeyVal[lnKey]);
+           var _TableField : string = UPCASE(X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name);
+           StringValue1 := REPLACE( UPCASE(StringValue1), _TableField, JOBJECTSSP2.KeyVal[lnKey] ) ;
+
+
         }
+
+*/
+
         if lnKey > cnKeyMax
         {
-           lsErrToLogFile :=          'Количество ключей ограничено :'+cnKeyMax
-                          + CHR(13) + 'Количество ключей в запросе  :'+lnKey
+           MyLog(         'Количество ключей ограничено :'+cnKeyMax
+                          + CHR(13) + 'Количество ключей в запросе  :'+lnKey);
         }
 
 	      SqlAddStrLog( StringValue1 );
@@ -1353,8 +1399,8 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
                 lnColCountMax := ResultRow.count;
                 if lnColCountMax > cnColMyTable
                 {
-                   lsErrToLogFile :=            'Количество столбцов ограничено :'+cnColMyTable
-                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax
+                   MyLog(           'Количество столбцов ограничено :'+cnColMyTable
+                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
 
                    lnColCountMax := cnColMyTable
 
@@ -1381,8 +1427,7 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
                 //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
                 set MyTableTemp.FieldString[i] := String( ResultRow.valAt(i), 255, 10);
 
-                MyLog(String( MyTableTemp.FieldString[i] ,30,10));
-                //LogStrToFile(lsSQLLogFile, 'MyTableTemp.FieldString['+i+ '] = '+MyTableTemp.FieldString[i] )
+                MyLog('MyTableTemp.FieldString['+i+'] = '+String( MyTableTemp.FieldString[i] ,30,10));
 					   }
 				     insert current MyTableTemp;
 
@@ -1406,9 +1451,9 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
         MyLog( 'Ошибка № '+que.errorCode);
         MyLog(JOBJECTSResp.CODE+' '+JOBJECTSResp.Name);
 
-        lsErrToLogFile := 'запрос не сформирован. Ошибка № '+que.errorCode;
+        MyLog('запрос не сформирован. Ошибка № '+que.errorCode);
 
-        ProcessText(lsSQLLogFile, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
+        ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
      }
 
      sqlFreeStr(q1);
@@ -1486,9 +1531,7 @@ procedure GetObjectsTree( parObj: comp; parInsMainObj : boolean = false );
 
     update MyTableObj set MyTableObj.Npp := PADCH(MyTableObj.Npp, '0', 200)
 
- /*  _loop MyTableObj ordered by Index byNpp
-   LogStrToFile(csLogFile, SubStr(MyTableObj.Npp,1,50)+' '+SubStr(MyTableObj.name,1, 150) )
-   LogStrToFile(csLogFile, CHR(13))  */
+
 }
 
 Procedure GetCurrObjectResp;
@@ -1503,7 +1546,6 @@ Procedure GetCurrObjectResp;
     }
 
     lnKolInResp := lnKolInRespKey := 0;
-    lsErrToLogFile := '';
 
     //-------------
     if JOBJECTS.CREC = 0  //корневой объект
@@ -1598,7 +1640,7 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
     GetCurrObjectResp;
     MyLog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) );
     MyLog( '      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
-    if lsErrToLogFile <> ''  MyLog('      '+lsErrToLogFile);
+
 
     if lbObjUpdate
     {
@@ -1611,7 +1653,6 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
           GetCurrObjectResp;
           MyLog(SubStr(MyTableObj.name,1, 150) );
           MyLog('      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
-          if lsErrToLogFile <> ''  MyLog('      '+lsErrToLogFile);
        }
 
     }
@@ -1780,6 +1821,7 @@ fields
    JOBJECTS.Name        : NoProtect, NoPickButton;
    JOBJECTS.NameKey     : NoProtect, NoPickButton;
    JOBJECTS.MainKey     : Protect, NoPickButton;
+   JOBJECTS.SynonimName : NoProtect, NoPickButton;
 buttons
    cmVal1;              //C_TUNE::RGHUSERGR      30508 TUNERGH    30502 TUNEVAL
    cmVal2;
@@ -1788,6 +1830,7 @@ buttons
   Наименование запроса    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <.     Обновить данные     .>
   Ключи заголовка объекта .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <. Обновить данные и ключи .>
   Поле уникального ключа  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Наименование синонима таблицы (для вложенных запросов)  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 >>
 end;
 
@@ -1805,7 +1848,7 @@ end;
 
 tabbedSheet  bottom tab
  show at ( ,10,,)
-text JOBJECTS.Notes 'Запрос'
+ text JOBJECTS.Notes 'Запрос';
 end;
 
 handleevent
@@ -1820,22 +1863,22 @@ cmVal1:
 {
    lbObjUpdate := true;
    lbKeyUpdate := false;
-   deleteFile(csLogFile)
+//   deleteFile(csLogFile)
 
    GetRespBrowse;
 
-   ProcessText(csLogFile, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 
 }
 cmVal2:
 {
    lbObjUpdate := true;
    lbKeyUpdate := true;
-   deleteFile(csLogFile)
+   //deleteFile(csLogFile)
 
    GetRespBrowse;
 
-   ProcessText(csLogFile, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 
 }
 cmPick:
@@ -1902,6 +1945,7 @@ Tree trResp  (,,sci13478EnEscTreeI);
   JOBJECTS.TABLECODE          'Код','таблицы'              : [10], Protect, NoDel, NoPickButton, LessNull, NoAutoSize;
   x$Files_Obj.xf$Name         'Имя таблицы'                : [20], Protect, NoDel, NoPickButton;
   x$Files_Obj.xf$Title        'Заголовок таблицы'          : [25], Protect, NoDel, NoPickButton;
+  JOBJECTS.SynonimName        'Наименование','Синонима'    : [10], Protect, NoDel, NoPickButton ;
 end;
 browse brResp  (,,sci13478EnEscI);
  show at ( ,,,15)
@@ -1915,6 +1959,7 @@ browse brResp  (,,sci13478EnEscI);
   JOBJECTS.TABLECODE          'Код','таблицы'              : [10], Protect, NoDel, NoPickButton, LessNull, NoAutoSize;
   x$Files_Obj.xf$Name         'Имя таблицы'                : [20], Protect, NoDel, NoPickButton;
   x$Files_Obj.xf$Title        'Заголовок таблицы'          : [25], Protect, NoDel, NoPickButton;
+  JOBJECTS.SynonimName        'Наименование','Синонима'    : [10], Protect, NoDel, NoPickButton ;
 end;
 
 //-----------
@@ -2084,7 +2129,7 @@ cmValue5:   //'Отслеживание изменений данных объекта',
 
    lbKeyUpdate := false;
    lbObjUpdate := true;
-   deleteFile(csLogFile)
+//   deleteFile(csLogFile)
    //сборка запроса и данных по нему
    //от корневого объекта по отношению к текущему объекту
    //от текущего объекта вниз по дереву
@@ -2101,7 +2146,7 @@ cmValue5:   //'Отслеживание изменений данных объекта',
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
    RescanPanel(#JOBJECTS)
 
-   ProcessText(csLogFile, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 
 }
 cmValue6:  //'Добавить объект в офис'
@@ -2234,20 +2279,20 @@ cmValue4:
 {
    lbKeyUpdate := true;
    lbObjUpdate := true;
-   deleteFile(csLogFile)
+   //deleteFile(csLogFile)
    //сборка запроса и данных по нему
    //с пересборкой ключевых полей
    //от текущего объекта вниз по дереву
    GetRespBrowse;
 
-   ProcessText(csLogFile, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 }
 cmValue3:
 {
    var lcCurPos : comp = JOBJECTS.nrec;
 
    lbKeyUpdate := false;
-   deleteFile(csLogFile)
+   //deleteFile(csLogFile)
 
    //все объекты, начиная с корневых
    _loop JOBJECTSFnd where (( 0 == JOBJECTSFnd.cRec ))
@@ -2261,7 +2306,7 @@ cmValue3:
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
    RescanPanel(#JOBJECTS)
 
-   ProcessText(csLogFile, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 
 }
 
@@ -2503,48 +2548,3 @@ mnuInterfaceSqlJournResp Menu
   - 'Раскрыть все папки',cmShowAll,'Развернуть все уровни иерархии',,'Ctrl+GrayPlus',kbCtrlGrayPlus,sci1Esc;
   - 'Закрыть все папки',cmHideAll,'Свернуть все уровни иерархии',,'Ctrl+GrayMinus',kbCtrlGrayMinus,sci1Esc;
 }
-
-//-----------
-#include UserReport.vih
-
-vipinterface UserReport_InterfaceSqlJournRespHead implements IUserReport;
-
-interface UserReport_InterfaceSqlJournRespHead;
-
-create view
-  var
-    Dummy: Byte;
-;
-
-procedure Run;
-begin
-  RunInterfaceNoModal('InterfaceSqlJournResp', 990);
-end;
-
-function GetReportName: String;
-begin
-  GetReportName := '_Корневые запросы';
-end;
-
-function GetGroupName(Level: Word): String;
-begin
-  GetGroupName := '';
-  case Level of
-    1: GetGroupName := '';
-  end;
-end;
-
-function GetPriority: Integer;
-begin
-  GetPriority := 0;
-end;
-
-function VisibleInModule(Ind: Byte): String;
-begin
-  VisibleInModule := '';
-  case Ind of
-    1: VisibleInModule := 'MENUZARP';
-  end;
-end;
-
-end.

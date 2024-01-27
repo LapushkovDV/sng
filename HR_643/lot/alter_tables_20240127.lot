@@ -1,0 +1,7 @@
+Alter dictionary;
+alter Table  JObjects
+add (
+   SynonimName : string "Наименование синонима таблицы"
+)
+;
+

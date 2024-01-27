@@ -60,7 +60,7 @@
 		</CoreVip>
 		<ActiveIndex>1</ActiveIndex>
 		<ProjectItems>
-			<ProjectCompileFile FileName="S_ALter643.prj" Priority="0">
+			<ProjectCompileFile FileName="HR_643.prj" Priority="0">
 				<CoreVip>
 					<VipParameters>
 						<StrictVip>True</StrictVip>
@@ -82,14 +82,19 @@
 					<Password>Zraeqw123</Password>
 					<HwKeyTransport>1</HwKeyTransport>
 					<HwKeyDirectory>localhost:55555</HwKeyDirectory>
-					<LicFileName>..\..\..\..\..\..\..\Galaktika\ATL6\lic\Support.lic</LicFileName>
+					<LicFileName>..\..\..\ATL6\lic\Support.lic</LicFileName>
 				</VipDatabase>
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="S_ALter643.prj" PosX="26" PosY="21" OpenEditor="True"/>
-			<File Name="source\JOBJECTS_Main.vip" PosX="30" PosY="1044" OpenEditor="True" Active="True"/>
-			<File Name="source\JournalObjectsSpecif.vip" PosX="1" PosY="352" OpenEditor="True"/>
+			<File Name="HR_643.prj" PosX="28" PosY="28" OpenEditor="True"/>
+			<File Name="source\JournalObjectsSpecif.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="source\JsonExpImpObjStruct.vpp" PosX="23" PosY="380" OpenEditor="True"/>
+			<File Name="source\JsonExport.vpp" PosX="1" PosY="382" OpenEditor="True"/>
+			<File Name="source\JsonImport.vpp" PosX="135" PosY="382" OpenEditor="True"/>
+			<File Name="source\InterfaceSqlJournResp.vip" PosX="98" PosY="1901" OpenEditor="True" Active="True"/>
+			<File Name="source\InterfaceSqlJournResp_userreport.vip" PosX="70" PosY="19" OpenEditor="True"/>
+			<File Name="source\absTables.vip" PosX="139" PosY="34" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -132,6 +137,7 @@
 			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 2" Line="625" NumIndex="2" MarkerType="mtNumBookmark" Comment="_ckatBox_to := _iSHK_InOut.GetKATBOXNRECByIdent(_ActionSpName, _tElements.value);"/>
 			<Marker FileName="Source\SHK_MakeMove.vip" Caption="Нумерованная закладка 1" Line="984" NumIndex="1" MarkerType="mtNumBookmark" Comment="MTov := ShowNalMKRMsg2Log(ResTov);"/>
 			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="650" NumIndex="1" MarkerType="mtNumBookmark" Comment=", SpBox_makeAction.cSALDOBOX := SaldoBox_makeAction.nrec"/>
+			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 1" Line="1321" NumIndex="1" MarkerType="mtNumBookmark" Comment="StringValue1 := REPLACE( UPCASE(StringValue1), UPCASE(X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name), JOBJECTSSP2.KeyVal[lnKey] ) ;"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

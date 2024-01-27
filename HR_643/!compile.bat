@@ -1,8 +1,8 @@
 rem это год-месяц-день YYYYMMDD для WINXP
 @set DD=%DATE:~6,4%%DATE:~3,2%%DATE:~0,2%
 
-del res\*.res
-del res\*.tmp
+del *.res
+del *.tmp
 del *.crf
 del *.tmp
 del temp\tmp\*.* /f /s /q

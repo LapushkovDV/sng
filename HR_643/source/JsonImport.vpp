@@ -78,7 +78,7 @@ Function GetQueryForUpdateData( parObj : comp ) : word;
     else
     {
        Message('Ошибка запроса обновления данных  '+ExploreException);
-       LogStrToFile( lsSQLLogFile, 'Ошибка запроса обновления данных  '+ExploreException);
+       mylog('Ошибка запроса обновления данных  '+ExploreException);
     }
 
 }
@@ -132,7 +132,7 @@ Function GetQueryIsDataInTableByNrec(  parTableName, patTableFld  : string; var 
     else
     {
        Message('Ошибка запроса наличия данных  '+ExploreException);
-       LogStrToFile( lsSQLLogFile, 'Ошибка запроса наличия данных  '+ExploreException);
+       mylog('Ошибка запроса наличия данных  '+ExploreException);
     }
 
 }
@@ -174,9 +174,6 @@ Function  GetObjectByVer( parJObject : TPtr; var parObj : comp; var parObjTableN
       Exit;
 
    //--
-// LogStrToFile( lsImportLog, '-- Object          '+ parObjTableCode+ ' '+parObjTableName );
-// LogStrToFile( lsImportLog, '   ObjectName      '+ getJsonStrValue('ObjectName',      parJObject));
-// LogStrToFile( lsImportLog, '   ObjectValCount  '+ getJsonStrValue('ObjectValCount',  parJObject));
 
    result := true;
 
@@ -189,7 +186,6 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
 
    if parJObjectData = 0
    {
- //   LogStrToFile( lsImportLog, '   parJObjectData=000000')
       Exit;
    }
 
@@ -223,7 +219,6 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
       //значение по полю из JSON
       lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
 
- //  LogStrToFile( lsImportLog, ' ObjectDataMainKey == '+lsTableName+ ' ' +  lsFieldName +' '+lsFieldVal )
 
       //проверим наличие данных по условию в БД
       lnUpdate := GetQueryIsDataInTableByNrec( lsTableName, lsFieldName, lsFieldVal )
@@ -271,8 +266,6 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
          //значение по полю из JSON
          lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
 
-    //   LogStrToFile( lsImportLog, 'lsFldJson='+lsFldJson+'; lsFieldName=' +lsFieldName)
-    //   LogStrToFile( lsImportLog, 'lsFieldVal='+lsFieldVal+';');
 
          if Length(lsFieldVal) > 0
          if GetFldValToSql( if(lbUpdate, lsFieldName, ''), lsFieldVal, x$Fields_Key1.buffer )
@@ -324,7 +317,6 @@ procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
 
   if parJObject = 0
   {
- //  LogStrToFile( lsImportLog, '   GetObjectIn=000000')
      Exit;
   }
 
@@ -339,13 +331,11 @@ procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
   lJsonObjectArray := parJObject;
 
   lnJCount_1 := JCount(lJsonObjectArray);
-//LogStrToFile( lsImportLog, 'lnJCount_1='+lnJCount_1)
 
   for (ii_1 := 0; ii_1 < lnJCount_1; ii_1++)
   {
 
     lJsonObjectArray_1 := JByIndex(lJsonObjectArray, ii_1);
-//  LogStrToFile( lsImportLog, CHR(13)+CHR(13)+'- lJsonObjectArray  объект N ' +ii_1)
 
     //---- проверка версии и структуры объекта перед импортом
     if NOT GetObjectByVer(lJsonObjectArray_1, lcObjNrec, lsObjTableName)
@@ -354,22 +344,18 @@ procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
     //---- данные внутри объекта // lnJCount_2 строк данных
     lJsonObjectArray_2 := JAByName(lJsonObjectArray_1, 'ObjectValues');
     lnJCount_2         := JCount(lJsonObjectArray_2);
-//  LogStrToFile( lsImportLog, '   в объекте lJsonObjectArray_2 строк lnJCount_2='+lnJCount_2)
     //строки данных объекта
     for (ii_2 := 0; ii_2 < lnJCount_2; ii_2++)
     {
-      //LogStrToFile( lsImportLog, CHR(13)+'--  lJsonObjectArray_2  строка N ' +ii_2)
       //lJsonObjectArray_3 = строка ii_2 объекта lJsonObjectArray_2
         lJsonObjectArray_3 := JByIndex(lJsonObjectArray_2, ii_2);
 
         //данные непосредственно объекта в строке
-      //LogStrToFile( lsImportLog, '    ObjectData')
         lJsonObjectArray_Data  := JByName(lJsonObjectArray_3, 'ObjectData');
         //обработка и запись в БД  из строки данных объекта
         UpdateDataByObject(lJsonObjectArray_Data, lcObjNrec, lsObjTableName)
 
         //вложенный объект в строке
-      //LogStrToFile( lsImportLog, '    ObjectIn')
         lJsonObjectArray_ObjIn := JAByName(lJsonObjectArray_3, 'ObjectIn');
         //здесь будет цикличная обработка вложенного объекта
         GetObjectIn(lJsonObjectArray_ObjIn, lcObjNrec );
@@ -404,8 +390,6 @@ procedure LoadJsonFile( parFileName : string = '');
 
   var lJsonObjectDocument: TPtr = JFromFile(parFileName, cpUTF8);
 
-//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectName',     lJsonObjectDocument));
-//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectValCount', lJsonObjectDocument));
 
   var lJsonObjectMain : TPtr = JAByName(lJsonObjectDocument, 'MainObjectValues');
 
@@ -415,13 +399,12 @@ procedure LoadJsonFile( parFileName : string = '');
 //var lJsonObject: TPtr = JObjByName(lJsonObjectDocument, 'product_document')
 //HttpConnect_GetLongStringSubString(fn, lJsonObjectArray_3, 251, 250);
 //lJsonObject_4 := JByIndex(lJsonObjectArray_3, ii_4);
-//LogStrToFile( lsImportLog, StrByIndex(lJsonObjectArray_3, 0) )
 
   DestroyJSONObject(lJsonObjectMain);
   DestroyJSONObject(lJsonObjectDocument);
 
 
-  LogStrToFile(lsImportLog, '==== загрузка завершена  '+parFileName);
-  ProcessText(lsImportLog, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
+  mylog( '==== загрузка завершена  '+parFileName);
+  ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
 
 }

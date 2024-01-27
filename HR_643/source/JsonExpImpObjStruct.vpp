@@ -7,12 +7,12 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
 
    if parObjCode = 0
    {
-      LogStrToFile( lsImportLog, 'не указан код объекта parObj='+parObjCode)
+      mylog('не указан код объекта parObj='+parObjCode)
       Exit;
    }
    if getFirst JOBJECTS1 where ((  parObjCode == JOBJECTS1.Code )) = TsOk
    {
-      LogStrToFile( lsImportLog, 'уже существует объекта с кодом '+parObjCode)
+      mylog('уже существует объекта с кодом '+parObjCode)
       Exit;
    }
 
@@ -22,13 +22,13 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
 
    if parObjCRecCode = 0
    {
-      LogStrToFile( lsImportLog, 'не указан код объекта-родителя  для объекта с кодом '+parObjCode)
+      mylog('не указан код объекта-родителя  для объекта с кодом '+parObjCode)
       Exit;
    }
    if parObjCRecCode <> parObjCode
    if getFirst JOBJECTS1 where ((  parObjCRecCode == JOBJECTS1.Code )) <> TsOk
    {
-      LogStrToFile( lsImportLog, 'не найден объекта-родитель по коду '+parObjCRecCode+' для объекта с кодом '+parObjCode)
+      mylog('не найден объекта-родитель по коду '+parObjCRecCode+' для объекта с кодом '+parObjCode)
       Exit;
    }
    else
@@ -39,13 +39,13 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
 
    if parObjTableCode = ''
    {
-      LogStrToFile( lsImportLog, 'не указан код таблицы для объекта с кодом '+parObjCode)
+      mylog('не указан код таблицы для объекта с кодом '+parObjCode)
       Exit;
    }
 
    if GetFirst X$FILES where (( parObjTableCode == X$FILES.XF$CODE )) <> tsOk
    {
-      LogStrToFile( lsImportLog, 'не найдена таблица '+parObjTableCode +' для объекта с кодом '+parObjCode)
+      mylog('не найдена таблица '+parObjTableCode +' для объекта с кодом '+parObjCode)
       Exit;
    }
 
@@ -53,12 +53,12 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
    var parObjectMainKey : string = getJsonStrValue('ObjectMainKey',  parJObject)
    if parObjectMainKey = ''
    {
-      LogStrToFile( lsImportLog, 'не указано поле уникального ключа таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
+      mylog('не указано поле уникального ключа таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
       Exit;
    }
    if GetFirst x$Fields where ((  parObjTableCode == x$Fields.xe$FileCode  and parObjectMainKey== x$Fields.XE$NAME )) <> tsOk
    {
-      LogStrToFile( lsImportLog, 'не найдено поле уникального ключа '+parObjectMainKey+' таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
+      mylog('не найдено поле уникального ключа '+parObjectMainKey+' таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
       Exit;
    }
    //--
@@ -77,7 +77,7 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
        insert MyTableObj set MyTableObj.Nrec := JOBJECTS.nrec
        result := true;
 
-       LogStrToFile( lsImportLog, 'Создан объект с кодом '+parObjCRecCode)
+       mylog('Создан объект с кодом '+parObjCRecCode)
 
     }
   // NOTES      : LVar    "Примечание объекта"
@@ -91,7 +91,7 @@ Function  ImportObjectKeys( parJObject : TPtr ) : boolean;
    if  parFIELDCODE <> 0
    if  GetFirst x$Fields where ((  JOBJECTS.TableCode == x$Fields.xe$FileCode  and  parFIELDCODE == x$Fields.XE$CODE )) <> tsOk
    {
-      LogStrToFile( lsImportLog, 'не найдено поле '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
+      mylog('не найдено поле '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
       Exit;
    }
    else
@@ -113,12 +113,12 @@ Function  ImportObjectKeys( parJObject : TPtr ) : boolean;
      _except   //Стандартные исключения
      else
      {
-        LogStrToFile( lsSQLLogFile, 'Ошибка '+ExploreException+' при сравнении структуры поля '+ parFIELDCODE
+        mylog( 'Ошибка '+ExploreException+' при сравнении структуры поля '+ parFIELDCODE
                                    +' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code );
      }
      if not lbGoodField
      {
-          LogStrToFile( lsImportLog, 'не совпадает структура поля '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
+          mylog('не совпадает структура поля '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
           Exit;
      }
    }
@@ -143,7 +143,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
 
   if parJObject = 0
   {
- //  LogStrToFile( lsImportLog, '   GetObjectIn=000000')
+     mylog('   parJObject = 0 GetObjectIn=000000')
      Exit;
   }
 
@@ -157,13 +157,11 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
   lJsonObjectArray := parJObject;
 
   lnJCount_1 := JCount(lJsonObjectArray);
-//LogStrToFile( lsImportLog, 'lnJCount_1='+lnJCount_1)
 
   for (ii_1 := 0; ii_1 < lnJCount_1; ii_1++)
   {
 
     lJsonObjectArray_1 := JByIndex(lJsonObjectArray, ii_1);
-  //LogStrToFile( lsImportLog, CHR(13)+CHR(13)+'- lJsonObjectArray  объект N ' +ii_1)
 
     //---- проверка версии и структуры объекта перед импортом
     lnGoodObj := ImportObjectByCode(lJsonObjectArray_1 )
@@ -174,11 +172,10 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
     //---- данные внутри объекта // lnJCount_2 строк данных
     lJsonObjectArray_2 := JAByName(lJsonObjectArray_1, 'ObjectKeys');
     lnJCount_2         := JCount(lJsonObjectArray_2);
-  //LogStrToFile( lsImportLog, '   в объекте lJsonObjectArray_2 строк lnJCount_2='+lnJCount_2)
     //строки ключей объекта
     for (ii_2 := 0; ii_2 < lnJCount_2; ii_2++)
     {
-      //LogStrToFile( lsImportLog, CHR(13)+'--  lJsonObjectArray_2  строка N ' +ii_2)
+
       //lJsonObjectArray_3 = строка ii_2 объекта lJsonObjectArray_2
         lJsonObjectArray_3 := JByIndex(lJsonObjectArray_2, ii_2);
         lnGoodObj := ImportObjectKeys(lJsonObjectArray_3)
@@ -200,7 +197,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
         _loop JObjectsKey
           delete current JObjectsKey;
 
-        LogStrToFile( lsImportLog, 'Создан объект с кодом '+JOBJECTS.Code)
+        Mylog('Создан объект с кодом '+JOBJECTS.Code)
         delete current JOBJECTS;
      }
   }
@@ -276,7 +273,7 @@ Function GetJsonObjStructBoby ( parcRec, parObject : comp; var parKolVals : long
    _loop MyTableObj ordered by Index byNpp
    if GetFirst JOBJECTS where (( MyTableObj.Nrec == JOBJECTS.Nrec )) = tsOk
    {
-      LogStrToFile(csLogFile, PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) )
+      Mylog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) )
 
          jsonObjArrM := JCreate;
          //заголовок объекта
@@ -302,7 +299,7 @@ Function GetJsonObjStructBoby ( parcRec, parObject : comp; var parKolVals : long
          _except   //Стандартные исключения
          else
          {
-            LogStrToFile( lsSQLLogFile, 'Ошибка '+ExploreException+' экспорта мемо-поля для объекта с кодом '+JOBJECTS.Code );
+            Mylog('Ошибка '+ExploreException+' экспорта мемо-поля для объекта с кодом '+JOBJECTS.Code );
          }
 
          //вывод ключей объекта
@@ -333,7 +330,7 @@ function ExportObjToJsonByTree( parFileName : string; parObject : comp) : string
 //   var tmpFileJ  : string = 'd:\Obj_'+parFileName+'.json';
 
    var tmpFileJ  : string = GenerateNewOutFile+'_OBJ.json'; //'d:\'+parFileName+'.json';
-   mylog('GenerateNewOutFile = ' + GenerateNewOutFile);
+   mylog('GenerateNewOutFile = ' + tmpFileJ);
 
    var jsonObj64 : TPtr   = JCreate;
 
@@ -369,8 +366,6 @@ procedure ImportObjFromJson( parFileName : string = '');
 
   var lJsonObjectDocument: TPtr = JFromFile(parFileName, cpUTF8);
 
-//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectName',     lJsonObjectDocument));
-//LogStrToFile( lsImportLog, getJsonStrValue('MainObjectValCount', lJsonObjectDocument));
 
   var lJsonObjectMain : TPtr = JAByName(lJsonObjectDocument, 'MainObjectValues');
 
@@ -381,7 +376,7 @@ procedure ImportObjFromJson( parFileName : string = '');
   DestroyJSONObject(lJsonObjectDocument);
 
 
-  LogStrToFile(lsImportLog, '==== загрузка завершена  '+parFileName);
-  ProcessText(lsImportLog, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
+  Mylog('==== загрузка завершена  '+parFileName);
+  ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
 
 }

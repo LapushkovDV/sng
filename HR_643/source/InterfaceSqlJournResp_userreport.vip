@@ -1,0 +1,43 @@
+#include UserReport.vih
+
+vipinterface UserReport_InterfaceSqlJournResp implements IUserReport;
+
+interface UserReport_InterfaceSqlJournResp;
+
+create view
+  var
+    Dummy: Byte;
+;
+
+procedure Run;
+begin
+  RunInterfaceNoModal('InterfaceSqlJournResp', 990);
+end;
+
+function GetReportName: String;
+begin
+  GetReportName := 'Построение запросов регистрации данных для обмена';
+end;
+
+function GetGroupName(Level: Word): String;
+begin
+  GetGroupName := '';
+  case Level of
+    1: GetGroupName := '';
+  end;
+end;
+
+function GetPriority: Integer;
+begin
+  GetPriority := 0;
+end;
+
+function VisibleInModule(Ind: Byte): String;
+begin
+  VisibleInModule := '';
+  case Ind of
+    1: VisibleInModule := 'MENUZARP';
+  end;
+end;
+
+end.
