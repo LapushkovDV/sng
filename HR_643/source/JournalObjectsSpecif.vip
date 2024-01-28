@@ -70,7 +70,7 @@ Parameters parJObj;
 
 //-------------------------
 Tree trResp  (,,sciEnEscTreeI);
- show at ( , ,,15)
+ show at ( , ,,15);
   table JOBJECTSSP;
     recMarker = pMarker{JOBJECTSSP.nRec};
  Fields
@@ -110,7 +110,7 @@ Tree trResp  (,,sciEnEscTreeI);
 
 end;
 browse brResp  (,,sciEnEscI);
- show at ( , ,,15)
+ show at ( , ,,15);
   table JOBJECTSSP;
    recMarker = pMarker{JOBJECTSSP.nRec};
  Fields
@@ -143,7 +143,7 @@ browse brResp  (,,sciEnEscI);
   JOBJECTSHead.Name            'Наименование','корневого объекта'   :       Protect, NoDel, NoPickButton;
 end;
 browse brRKey (,,scDef);
- show at ( ,16,35,)
+ show at ( ,16,35,);
   table JObjectsKey;
  Fields
   JObjectsKey.CODE             'Код'                   : [10], Protect, NoDel, NoPickButton, LessNull;
@@ -154,7 +154,7 @@ browse brRKey (,,scDef);
 //JObjectsKey.KeyVal           'Значение ключа'        : [20], Protect, NoDel, NoPickButton;
 end;
 browse brOffice (,,scDef);
- show at (36,16,64,)
+ show at (36,16,64,);
   table JObjectsOffice;
  Fields
   ABONENTS.OFFICENO            'Код','офиса'                        : [10], Protect, NoDel, NoPickButton, LessNull;
@@ -164,7 +164,7 @@ browse brOffice (,,scDef);
   JObjectsOffice.PacketTime    'Время','выгрузки объекта'           : [12], Protect, NoDel, NoPickButton, NoAutoSize, LessNull;
 end;
 browse brPack  (,,scDef);
- show at (65,16,,)
+ show at (65,16,,);
   table JObjectsPackets;
  Fields
    JObjectsPackHead.PacketVal   'Имя','пакета'                 : [30], Protect, NoDel, NoPickButton;
@@ -201,7 +201,7 @@ cmInit:
 {
 
    if parJObj <> 0
-   AddBounds(tbmyObjMain)
+    then AddBounds(tbmyObjMain);
 
    TreeView := true;
    AddBounds(tbmyTreeNode);
@@ -214,7 +214,7 @@ cmInit:
 }
 cmValue8:
 {
-   PushPos(#JOBJECTSSP)
+   PushPos(#JOBJECTSSP);
    RunWindowModal(wndPackets);
 
    if lcPacketNrec <> 0
@@ -237,14 +237,14 @@ cmValue8:
       subbounds(tbRMJOBJECTSSP2);
       addbounds(tbRMJOBJECTSSP1);
 
-      Message('Добавлено корневых объектов: '+lnKolObj)
+      Message('Добавлено корневых объектов: '+lnKolObj);
    }
 
-   PopPos(#JOBJECTSSP)
-   RescanPanel(#JOBJECTSSP)
+   PopPos(#JOBJECTSSP);
+   RescanPanel(#JOBJECTSSP);
 
    if GetFirst JObjectsPackets = tsOk {}
-   ReReadRecord(#JObjectsPackets)
+   ReReadRecord(#JObjectsPackets);
 
 }
 cmAccording:

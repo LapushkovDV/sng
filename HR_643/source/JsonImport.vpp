@@ -66,13 +66,10 @@ Function GetQueryForUpdateData( parObj : comp ) : word;
 		  {
        //SqlAddStrLog(' +++ good ' +que.errorCode)
       }
-      else
-      {
+      else {
          SqlAddStrLog(' --- update ' +que.errorCode)
       }
-
       sqlFreeStr(q1);
-
    }
    _except   //Стандартные исключения
     else
@@ -93,15 +90,14 @@ Function GetQueryIsDataInTableByNrec(  parTableName, patTableFld  : string; var 
     var  ResultCol:IResultCol;
     var  ResultValue : string = '';
 
-    SqlAddStrLog('')
-    SqlAddStrLog('select '+patTableFld+ ' from '+ parTableName + ' where '+ patTableFld +'='+parTableNrec  )
+    SqlAddStrLog('');
+    SqlAddStrLog('select '+patTableFld+ ' from '+ parTableName + ' where '+ patTableFld +'='+parTableNrec  );
                                //+'= #COMP('+ parTableNrec +')' )
 
  // parTableNrec := 0;
 
    _try
    {
-
       //соберем запрос
 	  	que:=queryManager.createQuery(q1);
 
@@ -115,7 +111,7 @@ Function GetQueryIsDataInTableByNrec(  parTableName, patTableFld  : string; var 
    //    ResultCol   := ResultRow.colAt(1);
          ResultValue := ResultRow.valAt(1); //Nrec записи
 
-         SqlAddStrLog( '   ResultValue==' +ResultValue)
+         SqlAddStrLog( '   ResultValue==' +ResultValue);
 
          parTableNrec := ResultValue;
 
@@ -142,13 +138,13 @@ Function  GetObjectByVer( parJObject : TPtr; var parObj : comp; var parObjTableN
 {
    result := false;
 
-   var parObjCode : string = getJsonStrValue('ObjectCode',  parJObject)
+   var parObjCode : string = getJsonStrValue('ObjectCode',  parJObject);
 
    if parObjCode = ''
-      Exit;
+     then Exit;
 
    if getFirst JOBJECTS1 where ((  parObjCode == JOBJECTS1.Code )) <> TsOk
-      Exit;
+     then Exit;
 
    parObj := JOBJECTS1.Nrec;
 
@@ -156,22 +152,22 @@ Function  GetObjectByVer( parJObject : TPtr; var parObj : comp; var parObjTableN
    var parObjTableCode : string = getJsonStrValue('ObjectTableCode',  parJObject) ;
 
    if parObjTableCode = ''
-      Exit;
+     then Exit;
 
    if parObjTableCode <> JOBJECTS1.TABLECODE
-      Exit;
+     then Exit;
 
    if GetFirst X$FILES where (( parObjTableCode == X$FILES.XF$CODE )) <> tsOk
-      Exit;
+     then Exit;
 
 //---
-   parObjTableName := getJsonStrValue('ObjectTableName',  parJObject)
+   parObjTableName := getJsonStrValue('ObjectTableName',  parJObject);
 
    if parObjTableName = ''
-      Exit;
+     then Exit;
 
    if parObjTableName <> X$FILES.XF$NAME
-      Exit;
+     then Exit;
 
    //--
 
@@ -212,16 +208,16 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
    //ключевые поля //поля БД
    if GetFirst JObjectsKey1 where (( parObj == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE )) = tsOk
    {
-      lsTableName := UPCASE( X$FILES_Key1.xf$Name )
+      lsTableName := UPCASE( X$FILES_Key1.xf$Name );
       lsFieldName := UPCASE( X$FILES_Key1.xf$Name+'.'+JOBJECTS1.MainKey ); // UPCASE( x$Fields_Key1.xe$Name )
       lsFldJson   := UPCASE( 'ObjectDataMainKey');
 
       //значение по полю из JSON
-      lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
+      lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData);
 
 
       //проверим наличие данных по условию в БД
-      lnUpdate := GetQueryIsDataInTableByNrec( lsTableName, lsFieldName, lsFieldVal )
+      lnUpdate := GetQueryIsDataInTableByNrec( lsTableName, lsFieldName, lsFieldVal );
 
       if lnUpdate <= 0
       {
@@ -236,19 +232,19 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
       if lbUpdate
       {
          lnToSql := 0;
-         InsMyTableQueryForObj( parObj, 'update ' + lsTableName + ' set ' )
-         lsFinishStr := ' where ' + lsFieldVal
+         InsMyTableQueryForObj( parObj, 'update ' + lsTableName + ' set ' );
+         lsFinishStr := ' where ' + lsFieldVal;
 
                   //lsFieldName +'= #COMP('+ lsFieldVal +')  set ' )
       }
       else
       {
 
-         InsMyTableQueryForObj( parObj,  'insert into ' +lsTableName  ) //+ ' values ' +lsFieldVal )
-         lsToSql0 := ' ('
-         lsToSql  := ') values('
+         InsMyTableQueryForObj( parObj,  'insert into ' +lsTableName  ); //+ ' values ' +lsFieldVal )
+         lsToSql0 := ' (';
+         lsToSql  := ') values(';
 
-         lsFinishStr := ')'
+         lsFinishStr := ')';
       }
 
       _loop JObjectsKey1 where (( parObj == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE ))
@@ -256,32 +252,32 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
          //главный ключ  в update вообще не нужен
          if lbUpdate
          if x$Fields_Key1.xe$Name = JOBJECTS1.MainKey
-            continue;
+           then continue;
 
-         lsFldJson   := UPCASE(JObjectsKey1.KeyName)
+         lsFldJson   := UPCASE(JObjectsKey1.KeyName);
          if lsFldJson = ''
-         lsFldJson   := UPCASE( x$Fields_Key1.xe$Name )
+          then lsFldJson   := UPCASE( x$Fields_Key1.xe$Name );
 
-         lsFieldName := UPCASE( x$Fields_Key1.xe$Name ) //UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
+         lsFieldName := UPCASE( x$Fields_Key1.xe$Name ); //UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
          //значение по полю из JSON
-         lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData)
+         lsFieldVal  := getJsonStrValue( lsFldJson, parJObjectData);
 
 
          if Length(lsFieldVal) > 0
          if GetFldValToSql( if(lbUpdate, lsFieldName, ''), lsFieldVal, x$Fields_Key1.buffer )
          {
-            lsToSql  := lsToSql  + if(lnToSql>0, ', ', ' ') + lsFieldVal
+            lsToSql  := lsToSql  + if(lnToSql>0, ', ', ' ') + lsFieldVal;
 
             if NOT lbUpdate
-            lsToSql0 := lsToSql0 + if(lnToSql>0, ', ', ' ') + lsFieldName
+             then lsToSql0 := lsToSql0 + if(lnToSql>0, ', ', ' ') + lsFieldName;
 
             lnToSql++;
          }
-         if Length(lsToSql)  > 150
-         or Length(lsToSql0) > 150
+         if   Length(lsToSql)  > 150
+           or Length(lsToSql0) > 150
          {
             if NOT lbUpdate
-            InsMyTableQueryForObj( parObj, lsToSql0);
+             then InsMyTableQueryForObj( parObj, lsToSql0);
 
             InsMyTableQueryForObj( parObj, lsToSql, 1);
 
@@ -303,10 +299,10 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
       if lsTableName <> ''
       if lnToSql > 0  //выполнить запрос обновления записи
       {
-         InsMyTableQueryForObj( parObj, lsFinishStr, 1)
+         InsMyTableQueryForObj( parObj, lsFinishStr, 1);
 
    //   #GetFirstTab( '#'+lsTableName)
-         GetQueryForUpdateData(parObj)
+         GetQueryForUpdateData(parObj);
 
       }
    }
@@ -314,9 +310,7 @@ Procedure UpdateDataByObject( parJObjectData : TPtr; parObj : comp; parObjTableN
 
 procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
 {
-
-  if parJObject = 0
-  {
+  if parJObject = 0 {
      Exit;
   }
 
@@ -339,7 +333,7 @@ procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
 
     //---- проверка версии и структуры объекта перед импортом
     if NOT GetObjectByVer(lJsonObjectArray_1, lcObjNrec, lsObjTableName)
-       continue;
+       then continue;
 
     //---- данные внутри объекта // lnJCount_2 строк данных
     lJsonObjectArray_2 := JAByName(lJsonObjectArray_1, 'ObjectValues');
@@ -353,7 +347,7 @@ procedure GetObjectIn( parJObject : TPtr; parObjMain : comp );
         //данные непосредственно объекта в строке
         lJsonObjectArray_Data  := JByName(lJsonObjectArray_3, 'ObjectData');
         //обработка и запись в БД  из строки данных объекта
-        UpdateDataByObject(lJsonObjectArray_Data, lcObjNrec, lsObjTableName)
+        UpdateDataByObject(lJsonObjectArray_Data, lcObjNrec, lsObjTableName);
 
         //вложенный объект в строке
         lJsonObjectArray_ObjIn := JAByName(lJsonObjectArray_3, 'ObjectIn');
@@ -376,20 +370,19 @@ procedure LoadJsonFile( parFileName : string = '');
 {
 
   if parFileName = ''
-     parFileName := GetFileName('*.json', 'Выберите файл JSON для разбора')
+    then parFileName := GetFileName('*.json', 'Выберите файл JSON для разбора');
 
-  if parFileName = ''
-  or Not ExistFile(parFileName)
-     Exit;
+  if   parFileName = ''
+    or Not ExistFile(parFileName)
+     then Exit;
 
   lsImportLog  := parFileName +'_log.txt';     deletefile(lsImportLog);
-  lsSQLLogFile := parFileName +'_logSQL.Log';  DeleteFile(lsSQLLogFile)
+  lsSQLLogFile := parFileName +'_logSQL.Log';  DeleteFile(lsSQLLogFile);
 
 
   fn := HttpConnect_Create('','','');
 
   var lJsonObjectDocument: TPtr = JFromFile(parFileName, cpUTF8);
-
 
   var lJsonObjectMain : TPtr = JAByName(lJsonObjectDocument, 'MainObjectValues');
 
@@ -405,6 +398,6 @@ procedure LoadJsonFile( parFileName : string = '');
 
 
   mylog( '==== загрузка завершена  '+parFileName);
-  ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта')
+  ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения импорта');
 
 }

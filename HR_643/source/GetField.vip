@@ -1,3 +1,53 @@
+//всю требуху закомментировал и убрал вниз
+//не понимаю, зачем оо тут было  0_0    , ощущение, что выдрали откуда то не разбираясь
+Interface GetOneField 'Выбор поля' (,hciGetOneField,)  DoAccept, Cyan;
+
+
+  Create view
+  var
+     aType
+   , aFldCode : Word;
+     aTableCode: Word;
+  as select
+     x$Files.XF$CODE
+  from x$Files
+  where (( aTableCode == x$Fields.xe$FileCode ))
+
+   condition ByType as (x$Fields.xe$DataType = aType)
+  ;
+
+  Parameters aTableCode, aFldCode, aType;
+
+  QuickChoice qcSelectField
+  {
+     AcceptField = x$Fields.xe$Code; 
+     SearchField = x$Fields.xe$Name;
+     ViewField   = x$Fields.xe$Name;
+     OnClose:      aFldCode := x$Fields.xe$Code;
+  };
+
+  Browse bwField;
+    Table x$Fields;
+    Fields
+      x$Fields.xe$Code  'Код' ('Номер поля в таблице') :[5], Protect, NoDel, NoAutosize, nopickbutton;
+      x$Fields.xe$Name  'Имя поля' ('Имя поля в таблице') : [20], Protect, NoDel, nopickbutton; //, BrowseImage(GetFieldTypeIcon(x$Fields.xe$DataType));
+      x$Fields.xe$Title 'Заголовок поля' ('Заголовок поля в таблице') : Protect, NoDel, nopickbutton;
+  end;
+// ──── О Б Р А Б О Т Ч И К И ────────────────────────────────
+  HandleEvent
+    cmInit : 
+      {
+         if GetFirst x$Files where ((aTableCode == x$Files.xf$Code)) = tsOk
+            SetTitle(FormatStr_1('Выбор поля из таблицы "%s"', x$Files.xf$Name));
+         if aType <> 0
+            PushConditionForLeave(tcByType, tnx$Fields);
+
+      }
+   cmDefault: aFldCode := x$Fields.xe$Code;
+  end;
+end.
+
+
 /*
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║              СУБД АТЛАНТИС (c) 1997, А/О  "НОВЫЙ АТЛАНТ"              ║
@@ -9,10 +59,10 @@
 ╚═══════════════════════════════════════════════════════════════════════╝
 */
 
-#include GetField.vih
+//#include GetField.vih
 
 /* ────────────────────────────────────────────────────────────────────────── */
-
+/*
 Interface AbstractFields 'Выбор поля' (,,scDef) DoAccept, Cyan;
   Show at ( 1, 1, 80, 25);
 
@@ -38,45 +88,7 @@ Interface AbstractFields 'Выбор поля' (,,scDef) DoAccept, Cyan;
   end;
 
 end.
-
-
-
-/* ────────────────────────────────────────────────────────────────────────── */
-Interface GetOneField 'Выбор поля' (,hciGetOneField,);
-
-
-  Create view
-  var mField  : IMarker(Marker) new;
-      aType, aFldCode : Word;
-
-  as select * from x$Files
-  condition ByType as (x$Fields.xe$DataType = aType)
-  ;
-
-  Parameters aTableCode, aFldCode, aType;
-
-  QuickChoice qcSelectField
-  {
-     AcceptField = x$Fields.xe$Code; 
-     SearchField = x$Fields.xe$Name;
-     ViewField   = x$Fields.xe$Name;
-     OnClose:      aFldCode := x$Fields.xe$Code;
-  };
-
-// ──── О Б Р А Б О Т Ч И К И ────────────────────────────────
-  HandleEvent
-    cmInit : 
-      {
-         mField.Disable := true;
-         if GetFirst x$Files where ((aTableCode == x$Files.xf$Code)) = tsOk
-            SetTitle(FormatStr_1('Выбор поля из таблицы "%s"', x$Files.xf$Name));
-         if aType <> 0
-            PushConditionForLeave(tcByType, tnx$Fields);
-
-      }
-   cmDefault: aFldCode := x$Fields.xe$Code;
-  end;
-end.
+*/
 
 
 /* ────────────────────────────────────────────────────────────────────────── */

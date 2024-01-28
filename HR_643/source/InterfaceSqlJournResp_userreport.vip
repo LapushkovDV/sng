@@ -11,7 +11,7 @@ create view
 
 procedure Run;
 begin
-  RunInterfaceNoModal('InterfaceSqlJournResp', 990);
+  RunInterfaceNoModal('InterfaceSqlJournResp', 990,0); //хз, что за второй параметр
 end;
 
 function GetReportName: String;

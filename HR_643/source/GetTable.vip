@@ -1,22 +1,18 @@
-/*
-╔═══════════════════════════════════════════════════════════════════════╗
-║              СУБД АТЛАНТИС (c) 1997, А/О  "НОВЫЙ АТЛАНТ"              ║
-║      Система: CORPO                                                   ║
-║      Версия : 3.1                                                     ║
-║      Назначение: Интерфейсы, однако.                                  ║
-║                                                                       ║
-║      Разработал: Хлыбов А.А.                                          ║
-╚═══════════════════════════════════════════════════════════════════════╝
-*/
-
-#include absTables.vih
+//#include absTables.vih
 /* ────────────────────────────────────────────────────────────────────────── */
-Interface GetOneTable 'Выбор таблицы' (, hciGetOneTable,);
+// аналогично как с полями таблиц, никто не разбирался что и зачем..
+//почистил, убрал лишнее
+Interface GetOneTable 'Выбор таблицы' (, hciGetOneTable,) DoAccept, Cyan;
 
-  var sMode : String;
-      cTable: Word;
-  ;
-  Parameters cTable, sMode;
+  Create view
+  var cTable : word;
+   As
+  Select X$Files.XF$CODE
+  from X$Files
+    where (X$Files.XF$Code > 0)
+    ;
+
+  Parameters cTable;
 
   QuickChoice qcSelectTable
   {
@@ -25,18 +21,24 @@ Interface GetOneTable 'Выбор таблицы' (, hciGetOneTable,);
      ViewField   = x$Files.xf$Name;
      OnClose:      cTable := x$Files.xf$Code;
   };
+  Browse bwTable;
+    Table x$Files;
+    Fields
+      x$Files.xf$Code  'Код'        ('Уникальный номер таблицы в словаре'):  [5], Protect, NoDel, NoPickbutton;
+      x$Files.xf$Name  'Имя таблицы'             ('Имя таблицы в словаре'): [20], Protect, NoDel, NoPickbutton;
+      x$Files.xf$Title 'Заголовок таблицы' ('Заголовок таблицы в словаре'): [30], Protect, NoDel, NoPickbutton;
+  end;
 
   HandleEvent
     cmInit:
       {
-        Mode := sMode;
-        if Inherited :: HandleEvent(cmInit) = heAbort abort;
-        else
-        {
-           pMarker.Disable := true;
-           if cTable <> 0
-              if GetFirst x$Files where ((cTable == x$Files.xf$Code)) = tsOk {};
-        }
+          if GetFirst x$Files <> tsOk
+          {
+             Message('Нет таблиц для выбора', error);
+             abort;
+          }
+         if cTable <> 0
+            if GetFirst x$Files where ((cTable == x$Files.xf$Code)) = tsOk {};
       }
     cmDefault: cTable := x$Files.xf$Code;
   end;
@@ -44,6 +46,7 @@ end.
 
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/*
 Interface GetTables 'Выбор таблиц' (, hciGetTables,);
 
   var  sMode   : String;
@@ -80,3 +83,4 @@ Interface GetTables 'Выбор таблиц' (, hciGetTables,);
       }
   end;
 end.
+*/

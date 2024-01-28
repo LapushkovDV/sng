@@ -8,16 +8,16 @@ procedure SetObjectSpToPacket( parObj, parNrec, parPackNrec : comp; parUpDate : 
           {
              clearBuffer(#JObjectsPackets1);
 
-             set JObjectsPackets1.Nrec        := 0
-             set JObjectsPackets1.cRec        := parPackNrec
-             set JObjectsPackets1.cObject     := parObj
-             set JObjectsPackets1.cRecObj     := parNrec
+             set JObjectsPackets1.Nrec        := 0;
+             set JObjectsPackets1.cRec        := parPackNrec;
+             set JObjectsPackets1.cObject     := parObj;
+             set JObjectsPackets1.cRecObj     := parNrec;
              //признак обновления
-             set JObjectsPackets1.PacketVal   :=  'I'
+             set JObjectsPackets1.PacketVal   :=  'I';
              //заполняем дату только при вставке нового объекта
              //для понимания времени его появления для офиса
-             set JObjectsPackets1.PacketDate  :=  Cur_Date()
-             set JObjectsPackets1.PacketTime  :=  Cur_Time()
+             set JObjectsPackets1.PacketDate  :=  Cur_Date();
+             set JObjectsPackets1.PacketTime  :=  Cur_Time();
 
              insert current JObjectsPackets1;
           }

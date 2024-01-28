@@ -107,20 +107,36 @@ with index
 ;
 
 var
-   parMode     : comp;
-   parRespHead : comp;
+    parMode     : comp;
+    parRespHead : comp;
 
-   m_service       : TPtr;
-   fn, fnMemo : TPtr;
-   fnL: longint;
-   _JSF: JSONFuncs new;
-   pMarker: IMarker(Marker) new;
+    m_service       : TPtr;
+    fn
+  , fnMemo : TPtr;
+    fnL: longint;
+    _JSF: JSONFuncs new;
+    pMarker: IMarker(Marker) new;
 
-   TreeView, lbKeyUpdate, lbObjUpdate, lbBrResp, lbJsonExp : boolean;
-   lnColCountMax, lnKolInResp, lnKolInRespKey, lnKolQR : longInt;
-   lsNameVal, lsErrToLogFile, lsImportLog, lsSQLLogFile : string;
-   lnKey, lnGenKey : integer;
-   lbExportByPacket : boolean;
+    TreeView
+  , lbKeyUpdate
+  , lbObjUpdate
+  , lbBrResp
+  , lbJsonExp : boolean;
+
+    lnColCountMax
+  , lnKolInResp
+  , lnKolInRespKey
+  , lnKolQR : longInt;
+
+    lsNameVal
+  , lsErrToLogFile
+  , lsImportLog
+  , lsSQLLogFile : string;
+
+    lnKey
+  , lnGenKey : integer;
+
+    lbExportByPacket : boolean;
 
    _errDataDecl    : integer;
    _errDataDeclKol : longInt;
@@ -128,80 +144,85 @@ var
 
 create view
  var
-    q1:longint ;
-		StringValue1 :string;
-    curMyTable, lcSetOwn, lcOfficeNrec, lcPacketNrec : comp;
+    q1:tptr ;
+    StringValue1 :string;
+    curMyTable
+  , lcSetOwn
+  , lcOfficeNrec
+  , lcPacketNrec : comp;
     lbSetOwn : boolean;
     lcUserFlt : comp;
     lsUserFlt : string;
-    ldDateDateFromFlt, ldDateDateToFlt : date;
+    ldDateDateFromFlt
+  , ldDateDateToFlt : date;
 
   As Select
       JOBJECTS.nrec
   From
-    MyTable,
-    MyTable MyTableTemp,
-    MyTableFld,
-    MyTableObj,
-    MyTableObj  MyTableObj1,
+    MyTable
+  , MyTable MyTableTemp
+  , MyTableFld
+  , MyTableObj
+  , MyTableObj  MyTableObj1
 
-    MyTableTreeFlt,
-    MyTableTreeFlt  MyTableTreeFlt0,
-    MyTableTreeFlt  MyTableTreeFlt1,
-    MyTableTreeFlt  MyTableTreeFlt2,
-    MyTableTreeBr,
+  , MyTableTreeFlt
+  , MyTableTreeFlt  MyTableTreeFlt0
+  , MyTableTreeFlt  MyTableTreeFlt1
+  , MyTableTreeFlt  MyTableTreeFlt2
+//   MyTableTreeBr
 
-    MyTableDataTree,
-    MyTableDataTree     MyTableDataFlt,
-    MyTableDataTree     MyTableDataTree2,
+  , MyTableDataTree
+//  MyTableDataTree     MyTableDataFlt
+  , MyTableDataTree     MyTableDataTree2
 
-    MyTableFldDataTree,
-    MyTableFldDataTree  MyTableFldDataFlt,
-    MyTableFldDataTree  MyTableFldDataFlt2,
+  , MyTableFldDataTree
+  , MyTableFldDataTree  MyTableFldDataFlt
+  , MyTableFldDataTree  MyTableFldDataFlt2
+  , MYTABLEQUERYFOROBJ
 
-	  JOBJECTS  (JOBJECTS02),
-	  JOBJECTS  JOBJECTS1,
-	  JOBJECTS  JOBJECTS2,
-    JOBJECTS  JOBJECTSResp,
-    JOBJECTS  JOBJECTSHead,
-    JOBJECTS  JOBJECTSFnd,
-    JOBJECTS  JOBJECTS_Tree (JObjects02) ,
+	, JOBJECTS  (JOBJECTS02)
+	, JOBJECTS  JOBJECTS1
+//	  JOBJECTS  JOBJECTS2
+  , JOBJECTS  JOBJECTSResp
+  , JOBJECTS  JOBJECTSHead
+  , JOBJECTS  JOBJECTSFnd
+  , JOBJECTS  JOBJECTS_Tree (JObjects02)
 
-    JObjectsKey   (JObjectsSp02),
-    JObjectsKey   JObjectsKey1,
+  , JObjectsKey   (JObjectsSp02)
+  , JObjectsKey   JObjectsKey1
 
-    JOBJECTSSP,
-    JOBJECTSSP    JOBJECTSSP1,
-    JOBJECTSSP    JOBJECTSSP2,
-    JOBJECTSSP    JOBJECTSSPFnd,
+  , JOBJECTSSP
+  , JOBJECTSSP    JOBJECTSSP1
+  , JOBJECTSSP    JOBJECTSSP2
+//   JOBJECTSSP    JOBJECTSSPFnd
 
-    JObjectsOffice,
-    JObjectsOffice   JObjectsOfficeFnd,
-    JObjectsOffice   JObjectsOffice1,
+  , JObjectsOffice
+  , JObjectsOffice   JObjectsOfficeFnd
+  , JObjectsOffice   JObjectsOffice1
 
-    JObjectsPackets,
-    JObjectsPackets  JObjectsPacketsFnd,
-    JObjectsPackets  JObjectsPackets1,
-    JObjectsPackets  JObjectsPackNames,
-    JObjectsPackets  JObjectsPackHead,
+  , JObjectsPackets
+  , JObjectsPackets  JObjectsPacketsFnd
+  , JObjectsPackets  JObjectsPackets1
+  , JObjectsPackets  JObjectsPackNames
+  , JObjectsPackets  JObjectsPackHead
 
-    X$FILES  (readonly),
-    X$FILES  x$Files_Obj  (readonly),
-    X$FILES  X$FILES_Sp   (readonly),
-    X$FILES  X$FILES_Key  (readonly),
-    X$FILES  X$FILES_Key1 (readonly),
+  , X$FILES  (readonly)
+  , X$FILES  x$Files_Obj  (readonly)
+  , X$FILES  X$FILES_Sp   (readonly)
+  , X$FILES  X$FILES_Key  (readonly)
+  , X$FILES  X$FILES_Key1 (readonly)
 
 
-    x$Fields  (readonly),
-    x$Fields  x$Fields_Key   (readonly),
-    x$Fields  x$Fields_Key1  (readonly),
+  , x$Fields  (readonly)
+  , x$Fields  x$Fields_Key   (readonly)
+  , x$Fields  x$Fields_Key1  (readonly)
 
-    X$INDEXES (readonly),
+  , X$INDEXES (readonly)
 
-    ABONENTS  (readonly),
-    ABONENTS  ABONENTSR (readonly),
+  , ABONENTS  (readonly)
+  , ABONENTS  ABONENTSR (readonly)
 
-    X$JOURNAL (readonly)
+  , X$JOURNAL (readonly)
 
   , jobjects jobjects_syn
   , JObjectsKey JObjectsKey_syn
@@ -248,8 +269,7 @@ Parameters parMode, parRespHead;
 
 Function GenerateNewOutFile: string;
 {
- _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
- result := _log_OUT;
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
 }
 
 function GetLogFile : string;
@@ -260,6 +280,7 @@ function GetLogFile : string;
 
 Procedure MyLog(_str: string);
 {
+  //exit; в проде отключать надо логирование - тормозит  , по хорошему настройку сделать лучше
   LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
 }
 //-----------
@@ -356,7 +377,7 @@ function GetJournalRow( parTableCode : word; parTableNrec : comp; parUpDate : da
       Exit;
    }
 
-  MyLog('GetJournalRow: ' + result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
+  MyLog('GetJournalRow: ' + result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec);
 }
 function GetJournalRowByUser( parTableCode : word; parTableNrec, parUser : comp; parUpDateFrom, parUpdateTo : date ) : word;
 {
@@ -380,7 +401,7 @@ function GetJournalRowByUser( parTableCode : word; parTableNrec, parUser : comp;
       Exit;
    }
 
-  MyLog('GetJournalRowByUser: '+ result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec)
+  MyLog('GetJournalRowByUser: '+ result+' '+JOBJECTSSP1.TABLECODE+' '+JOBJECTSSP1.TableNrec);
 }
 
 //-----------
@@ -421,10 +442,10 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 lnColCountMax := ResultRow.count;
                 if lnColCountMax > cnColMyTable
                 {
-                   MyLog(            'Количество столбцов ограничено :'+cnColMyTable
-                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
+                   MyLog('Количество столбцов ограничено :'+cnColMyTable
+                          + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
 
-                   lnColCountMax := cnColMyTable
+                   lnColCountMax := cnColMyTable;
                 }
 
                 for(i:=1;i<=lnColCountMax;i++)
@@ -441,7 +462,7 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 _loop JObjectsKey1 where (( parObj == JObjectsKey1.cRec and 0 == JObjectsKey1.FIELDCODE ))
                 if TRIM(UPCASE(JObjectsKey1.KeyVal))  <> ''
                 if TRIM(UPCASE(JObjectsKey1.KeyName)) <> ''
-                {
+                 {
                    lnGenKey++;
                    if lnGenKey <= cnKeyMax
                    if (lnColCountMax+lnGenKey) < cnColMyTable  //чтобы не выйти за границы массива
@@ -450,7 +471,7 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                       set MyTableFldDataTree.GenKeyVal[lnGenKey]            := UPCASE(JObjectsKey1.KeyVal);
                       set MyTableFldDataTree.Name[lnColCountMax + lnGenKey] := UPCASE(JObjectsKey1.KeyName);
                    }
-                }
+                 }
 
                 set MyTableFldDataTree.GenKeyCount := lnGenKey;
                 set MyTableFldDataTree.ColCount    := lnColCountMax;
@@ -458,13 +479,13 @@ Function  GetQueryResForObject( parObj : comp ) : word;
              }
 
 
-             lnColCountMax + lnGenKey
+            // хз что это... просто закомментировал lnColCountMax + lnGenKey
 
 				     clearBuffer(#MyTableTemp);
 
              for(ii:=1; ii<=lnGenKey; ii++)
              if (lnColCountMax+ii) < cnColMyTable  //чтобы не выйти за границы масс
-                set MyTableDataTree.FieldString[lnColCountMax+ii] := MyTableFldDataTree.GenKeyVal[ii]
+                then set MyTableDataTree.FieldString[lnColCountMax+ii] := MyTableFldDataTree.GenKeyVal[ii];
 
 	   			   for(i:=1;i<=lnColCountMax;i++)
 				     {
@@ -478,20 +499,20 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 MyLog('for(i:=1;i<=lnColCountMax;i++): '+String( MyTableDataTree.FieldString[i] ,30,10));
 
                 //сформируем генерируемые живые ключи из значений ключей=полей
-                for(ii:=1; ii<=lnGenKey; ii++)
-                if (lnColCountMax+ii) < cnColMyTable  //чтобы не выйти за границы массива
-                //!!!!!!!! вставить выше предупреждение по проверке кол-ва полей!!!
-                set MyTableDataTree.FieldString[lnColCountMax+ii]
-                           :=   SubStr( REPLACE(  MyTableDataTree.FieldString[lnColCountMax+ii]
-                                             // , UPCASE('['+X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name+']')
-                                                , UPCASE('['+MyTableFldDataTree.Name[i]+']')
-                                                , MyTableDataTree.FieldString[i] )
-                                       ,1,255)
-
-
+                for(ii:=1; ii<=lnGenKey; ii++) {
+                    if (lnColCountMax+ii) < cnColMyTable  //чтобы не выйти за границы массива
+                    //!!!!!!!! вставить выше предупреждение по проверке кол-ва полей!!!
+                      then
+                        set MyTableDataTree.FieldString[lnColCountMax+ii]
+                                   := SubStr( REPLACE(  MyTableDataTree.FieldString[lnColCountMax+ii]
+                                                     // , UPCASE('['+X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name+']')
+                                                        , UPCASE('['+MyTableFldDataTree.Name[i]+']')
+                                                        , MyTableDataTree.FieldString[i] )
+                                               ,1,255);
+                 }
 					   }
-             set MyTableDataTree.cObject := parObj;
-             set MyTableDataTree.nRec    := MyTableDataTree.FieldString[1]; //!!!! всегда первое в запросе!!!
+              set MyTableDataTree.cObject := parObj;
+              set MyTableDataTree.nRec    := MyTableDataTree.FieldString[1]; //!!!! всегда первое в запросе!!!
 				     insert current MyTableDataTree;
 
              result := 1;
@@ -536,14 +557,14 @@ Procedure SetQueryForObject( parObj, parObjMain : comp );
           , MyTableFldDataTree.ObjName    := JOBJECTSResp.Name
           , MyTableFldDataTree.TableCode  := X$FILES_Key1.XF$CODE
           , MyTableFldDataTree.TableName  := X$FILES_Key1.xf$Name
-          ;
+        ;
 
-       InsMyTableQueryForObj(JOBJECTSResp.nRec, 'select ')
+       InsMyTableQueryForObj(JOBJECTSResp.nRec, 'select ');
        //первое всегда главное ключевое поле NREC или ATL_NREC
        InsMyTableQueryForObj(JOBJECTSResp.nRec, MyTableFldDataTree.TableName+'.'+JOBJECTSResp.MainKey
                                       //X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name
                                        + ' as ObjectDataMainKey '
-                            )
+                            );
 
         var lnKey : integer = 0;
        //в полях может быть [*]  - добавить все поля в запрос
@@ -551,7 +572,7 @@ Procedure SetQueryForObject( parObj, parObjMain : comp );
        if JObjectsKey1.KeyVal   = '[*]'
   //   if JObjectsKey1.KeyName  = ''
        {
-          InsMyTableQueryForObj(JOBJECTSResp.nRec, ', '+ X$FILES_Key1.xf$Name+'.*')
+          InsMyTableQueryForObj(JOBJECTSResp.nRec, ', '+ X$FILES_Key1.xf$Name+'.*');
           lnKey++;
           break;
        }
@@ -561,24 +582,19 @@ Procedure SetQueryForObject( parObj, parObjMain : comp );
        _loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  0 << JObjectsKey1.CODE ))  //поля БД
        if JObjectsKey1.FIELDCODE > 0
        {
-          lnKey++;
+          lnKey++;;
           if lnKey <= cnKeyMax
-          InsMyTableQueryForObj(JOBJECTSResp.nRec,  if(lnKey>1, ' , ', ' , ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
+             then InsMyTableQueryForObj(JOBJECTSResp.nRec,  if(lnKey>1, ' , ', ' , ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
                                  + if( JObjectsKey1.KeyName <> '', ' as '+JObjectsKey1.KeyName, '')
-                               )
-
+                               );
        }
-
-
-
        if GetFirst JObjectsKey1 where (( parObj == JObjectsKey1.cRec and  0 << JObjectsKey1.CODE )) = tsOk {}
-
        //наименование таблицы в запрос
        InsMyTableQueryForObj(JOBJECTSResp.nRec, ' from '+X$FILES_Key1.xf$Name);
        //ключевое поле для отслеживания (Nrec, atl_nrec) добавим в запрос
        InsMyTableQueryForObj(JOBJECTSResp.nRec, ' where ');
    //  InsMyTableQueryForObj(JOBJECTSResp.nRec, UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )+' in ( ' )
-       InsMyTableQueryForObj(JOBJECTSResp.nRec, UPCASE( X$FILES_Key1.xf$Name+'.'+JOBJECTSResp.MainKey  )+' in ( ' )
+       InsMyTableQueryForObj(JOBJECTSResp.nRec, UPCASE( X$FILES_Key1.xf$Name+'.'+JOBJECTSResp.MainKey  )+' in ( ' );
 
     /* //в эту строку соберем значения всех NREC данной таблицы на выгрузку
        InsMyTableQueryForObj(JOBJECTSResp.nRec, '[ALLNRECVALUES]');
@@ -593,7 +609,7 @@ procedure ExportObjectsToJson;
    if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk {}
 
    var lsJsonFileName : string;
-   var lsJsonLogFile  : string = JObjectsPacketsFnd.Nrec+'_PacketJson.Log'  //пока имя файла как nrec
+   var lsJsonLogFile  : string = JObjectsPacketsFnd.Nrec+'_PacketJson.Log' ; //пока имя файла как nrec
    deletefile(lsJsonLogFile);
 
    lsSQLLogFile := JObjectsPacketsFnd.Nrec+'_PacketJsonSQL.Log'; DeleteFile(lsSQLLogFile);
@@ -602,7 +618,7 @@ procedure ExportObjectsToJson;
 
    lbExportByPacket := true;
    if Message('Выгрузить объекты в отдельные файлы?', YesNo) = cmYes
-      lbExportByPacket := false;
+      then lbExportByPacket := false;
 
    MyLog('ExportObjectsToJson: Выгрузка объектов в '+if( lbExportByPacket, ' один файл ', ' отдельные файлы') );
 
@@ -624,7 +640,7 @@ procedure ExportObjectsToJson;
         lcObjCurr := -1;
 
        //непосредственно строки // будут сразу все уровни по объекту
-       _loop MyTableTreeFlt1  where (( MyTableTreeFlt0.cObject == MyTableTreeFlt1.CObjMain )) ordered by index byObjects
+       _loop MyTableTreeFlt1 where (( MyTableTreeFlt0.cObject == MyTableTreeFlt1.CObjMain )) ordered by MyTableTreeFlt1.CObjMain,  MyTableTreeFlt1.CObject //  index byObjects
        {
           MyLog('ExportObjectsToJson: MyTableTreeFlt1.CObject= '+  MyTableTreeFlt1.CObject);
           //при смене объекта
@@ -634,7 +650,7 @@ procedure ExportObjectsToJson;
              //выполнить последний сформированный запрос
              {
                 InsMyTableQueryForObj(lcObjCurr, ' 0 )' );  //0 чтобы прикрыть последнюю запятую  //+чтобы отрабатывало без данных
-                GetQueryResForObject(lcObjCurr )
+                GetQueryResForObject(lcObjCurr );
              }
 
              lcObjCurr := MyTableTreeFlt1.CObject;
@@ -645,10 +661,10 @@ procedure ExportObjectsToJson;
 
           }
 
-          lcRecObj := MyTableTreeFlt1.cRecObjMain
+          lcRecObj := MyTableTreeFlt1.cRecObjMain;
 
           if lcRecObj = 0 //корень
-          lcRecObj := MyTableTreeFlt1.Nrec
+           then lcRecObj := MyTableTreeFlt1.Nrec;
 
           //вставить в запрос непосредственно по NREC записи по объекту
           InsMyTableQueryForObj(MyTableTreeFlt1.CObject, MyTableTreeFlt1.TablenRec + ','  );
@@ -659,7 +675,7 @@ procedure ExportObjectsToJson;
        {
           //выполнить последний сформированный запрос
           InsMyTableQueryForObj(lcObjCurr, ' 0 )' );  //0 чтобы прикрыть последнюю запятую  //+чтобы отрабатывало без данных
-          GetQueryResForObject(lcObjCurr)
+          GetQueryResForObject(lcObjCurr);
        }
 
 
@@ -677,12 +693,12 @@ procedure ExportObjectsToJson;
    {
       lsJsonFileName := JObjectsPacketsFnd.Nrec ;  //пока имя файла как nrec
       lsJsonFileName := GetJsonDoc( lsJsonFileName );
-      MyLog('ExportObjectsToJson: if lbExportByPacket сформирован файл '+lsJsonFileName)
+      MyLog('ExportObjectsToJson: if lbExportByPacket сформирован файл '+lsJsonFileName);
 
    }
 
 
-   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы');
 }
 
 procedure FilterObjectsByPacket( parPackNrec : comp );
@@ -700,7 +716,7 @@ procedure FilterObjectsByPacket( parPackNrec : comp );
    if getFirst JOBJECTSFnd where (( JObjectsPacketsFnd.cObject  == JOBJECTSFnd.Nrec )) = tsOk
    {
 
-      MyLog('Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec)
+      MyLog('Paket Object '+ JObjectsPacketsFnd.cObject+ ' parPackNrec='+parPackNrec);
        lnNrecVal++;
        lcNrecVal := comp(lnNrecVal);
 
@@ -718,10 +734,10 @@ procedure FilterObjectsByPacket( parPackNrec : comp );
        _loop JOBJECTSSP1  where (( JObjectsPacketsFnd.cObject == JOBJECTSSP1.CObjMain )) ordered by index JObjectsSp09
        {
 
-          lcRecObj := JOBJECTSSP1.cRecObjMain
+          lcRecObj := JOBJECTSSP1.cRecObjMain;
 
           if lcRecObj = 0 //корень
-          lcRecObj := JOBJECTSSP1.Nrec
+           then lcRecObj := JOBJECTSSP1.Nrec;
 
           //признак выгрузки в пакет для строк объекта
           if getFirst JObjectsPackets1 where ((  JObjectsPacketsFnd.cRec      == JObjectsPackets1.cRec
@@ -729,13 +745,13 @@ procedure FilterObjectsByPacket( parPackNrec : comp );
                                            and   lcRecObj                     == JObjectsPackets1.cRecObj
                                              )) = tsOk
           {
-             MyLog('Paket CObjMain '+ JOBJECTSSP1.CObjMain +'  Nrec '+JOBJECTSSP1.Nrec)
+             MyLog('Paket CObjMain '+ JOBJECTSSP1.CObjMain +'  Nrec '+JOBJECTSSP1.Nrec);
 
              //сохраним структуру связей выбранных данных
              clearBuffer(#MyTableTreeFlt);
              MyTableTreeFlt.Buffer := type$MyTableTreeFlt(JOBJECTSSP1.buffer);
              if MyTableTreeFlt.cRec = 0  //для корневых записей вставим ссылку на объект
-             MyTableTreeFlt.cRec := lcNrecVal
+              then MyTableTreeFlt.cRec := lcNrecVal;
              insert current MyTableTreeFlt;
        /*
              //признак выгрузки  в пакет для строки объекта
@@ -773,16 +789,16 @@ procedure SetObjectToPacket(parObj, parPackNrec : comp; parMessSp : boolean =  f
    {
           clearBuffer(#JObjectsPackets1);
 
-          set JObjectsPackets1.Nrec        := 0
-          set JObjectsPackets1.cRec        := parPackNrec
-          set JObjectsPackets1.cObject     := parObj
-          set JObjectsPackets1.cRecObj     := 0
+          set JObjectsPackets1.Nrec        := 0;
+          set JObjectsPackets1.cRec        := parPackNrec;
+          set JObjectsPackets1.cObject     := parObj;
+          set JObjectsPackets1.cRecObj     := 0;
           //признак вставки нового объекта
-          set JObjectsPackets1.PacketVal   :=  'I'
+          set JObjectsPackets1.PacketVal   :=  'I';
           //заполняем дату только при вставке нового объекта
           //для понимания времени его появления для офиса
-          set JObjectsPackets1.PacketDate  :=  Cur_Date()
-          set JObjectsPackets1.PacketTime  :=  Cur_Time()
+          set JObjectsPackets1.PacketDate  :=  Cur_Date();
+          set JObjectsPackets1.PacketTime  :=  Cur_Time();
 
           insert current JObjectsPackets1;
 
@@ -836,7 +852,7 @@ procedure FilterObjectsByFields( parObj : comp );
   //    lcNrecVal := comp(lnNrecVal);
 
       lbUpOwner := false;
-      lnJResultOwn := GetJournalRowByUser( JOBJECTSSP1.TABLECODE, JOBJECTSSP1.TableNrec, lcUserFlt, ldDateDateFromFlt, ldDateDateToFlt )
+      lnJResultOwn := GetJournalRowByUser( JOBJECTSSP1.TABLECODE, JOBJECTSSP1.TableNrec, lcUserFlt, ldDateDateFromFlt, ldDateDateToFlt );
       if lnJResultOwn > 0
          lbUpOwner := true;
 
@@ -845,7 +861,7 @@ procedure FilterObjectsByFields( parObj : comp );
       if not lbUpOwner
       _loop JOBJECTSSP2  where ((  JOBJECTSSP1.CObjMain == JOBJECTSSP2.CObjMain and JOBJECTSSP1.Nrec  == JOBJECTSSP2.CrecObjMain  ))
       {
-         lnJResult := GetJournalRowByUser( JOBJECTSSP2.TABLECODE, JOBJECTSSP2.TableNrec, lcUserFlt, ldDateDateFromFlt, ldDateDateToFlt )
+         lnJResult := GetJournalRowByUser( JOBJECTSSP2.TABLECODE, JOBJECTSSP2.TableNrec, lcUserFlt, ldDateDateFromFlt, ldDateDateToFlt );
          if lnJResult > 0
          {
             lbUpOwner := true;
@@ -858,7 +874,7 @@ procedure FilterObjectsByFields( parObj : comp );
             clearBuffer(#MyTableTreeFlt);
             MyTableTreeFlt.Buffer := type$MyTableTreeFlt(JOBJECTSSP1.buffer);
             if MyTableTreeFlt.cRec = 0  //для корневых записей вставим ссылку на объект
-            MyTableTreeFlt.cRec := lcNrecVal
+             then MyTableTreeFlt.cRec := lcNrecVal;
             insert current MyTableTreeFlt;
 
          //непосредственно строки детей по строке объекта
@@ -880,7 +896,7 @@ procedure FilterObjectsByFields( parObj : comp );
 window wndOffices 'Выбор офиса' (,,scDef) DoAccept, Cyan;
   Show at ( 1, 1, 80, 25);
 
-Browse bwField;
+Browse bwABONENTSR;
  Table ABONENTSR;
  Fields
    ABONENTSR.OFFICENO   'Код','офиса'       : [10], Protect, NoDel, NoPickButton, LessNull;
@@ -918,7 +934,7 @@ procedure ExportObjectToOffice(parObj, parOfficeNrec : comp );
            //  _loop JOBJECTSSP2  where ((  JOBJECTSSP1.Nrec == JOBJECTSSP2.CrecObjMain  ))
 
              //признак отслеживания обновлений строки общий
-                set JOBJECTSSP1.PacketVal   := ''
+                set JOBJECTSSP1.PacketVal   := '';
                 //дату и время = признак последней корректировки записи в базе не трогаем!!!
               //set JOBJECTSSP1.PacketDate  := Cur_Date()
               //set JOBJECTSSP1.PacketTime  := Cur_Time()
@@ -926,17 +942,17 @@ procedure ExportObjectToOffice(parObj, parOfficeNrec : comp );
           }
 
           //признак выгрузки для строки объекта по офису
-          set JObjectsOffice1.PacketVal   :=  ''
-          set JObjectsOffice1.PacketDate  :=  Cur_Date()
-          set JObjectsOffice1.PacketTime  :=  Cur_Time()
+          set JObjectsOffice1.PacketVal   :=  '';
+          set JObjectsOffice1.PacketDate  :=  Cur_Date();
+          set JObjectsOffice1.PacketTime  :=  Cur_Time();
 
           update current JObjectsOffice1;
        }
 
       //признак выгрузки для всего объекта по офису
-       set JObjectsOfficeFnd.PacketVal   :=  ''
-       set JObjectsOfficeFnd.PacketDate  :=  Cur_Date()
-       set JObjectsOfficeFnd.PacketTime  :=  Cur_Time()
+       set JObjectsOfficeFnd.PacketVal   :=  '';
+       set JObjectsOfficeFnd.PacketDate  :=  Cur_Date();
+       set JObjectsOfficeFnd.PacketTime  :=  Cur_Time();
 
        update current JObjectsOfficeFnd;
 
@@ -953,16 +969,16 @@ procedure SetJournalUpdateSpOffice( parObj, parNrec, parOffice : comp; parUpDate
           {
              clearBuffer(#JObjectsOffice1);
 
-             set JObjectsOffice1.Nrec        := 0
-             set JObjectsOffice1.cRec        := parOffice
-             set JObjectsOffice1.cObject     := parObj
-             set JObjectsOffice1.cRecObj     := parNrec
+             set JObjectsOffice1.Nrec        := 0;
+             set JObjectsOffice1.cRec        := parOffice;
+             set JObjectsOffice1.cObject     := parObj;
+             set JObjectsOffice1.cRecObj     := parNrec;
              //признак обновления
-             set JObjectsOffice1.PacketVal   :=  'I'
+             set JObjectsOffice1.PacketVal   :=  'I';
              //заполняем дату только при вставке нового объекта
              //для понимания времени его появления для офиса
-             set JObjectsOffice1.PacketDate  :=  Cur_Date()
-             set JObjectsOffice1.PacketTime  :=  Cur_Time()
+             set JObjectsOffice1.PacketDate  :=  Cur_Date();
+             set JObjectsOffice1.PacketTime  :=  Cur_Time();
 
              insert current JObjectsOffice1;
           }
@@ -975,7 +991,7 @@ procedure SetJournalUpdateSpOffice( parObj, parNrec, parOffice : comp; parUpDate
             )
           {
              //признак обновления
-             set JObjectsOffice1.PacketVal   :=  'U'
+             set JObjectsOffice1.PacketVal   :=  'U';
              //дату и время = признак последней выгрузки не трогаем!!!
          //  set JObjectsOffice1.PacketDate  :=  Cur_Date()
         //   set JObjectsOffice1.PacketTime  :=  Cur_Time()
@@ -993,12 +1009,12 @@ procedure SetJournalUpdateOffices( parObj, parNrec : comp; parUpDate : date = 0;
                                           ))
        {
           //для обновления передаем дату и время
-          SetJournalUpdateSpOffice( parObj, parNrec, JObjectsOfficeFnd.cRec, parUpDate, parUpTime)
+          SetJournalUpdateSpOffice( parObj, parNrec, JObjectsOfficeFnd.cRec, parUpDate, parUpTime);
 
           if JObjectsOfficeFnd.PacketVal = ''
           {
              //признак обновления
-             set JObjectsOfficeFnd.PacketVal   :=  'U'
+             set JObjectsOfficeFnd.PacketVal   :=  'U';
              //дату и время = признак последней выгрузки не трогаем!!!
           // set JObjectsOfficeFnd.PacketDate  :=  Cur_Date()
           // set JObjectsOfficeFnd.PacketTime  :=  Cur_Time()
@@ -1022,16 +1038,16 @@ procedure SetObjectToOffice(parObj, parOfficeNrec : comp );
    {
           clearBuffer(#JObjectsOffice1);
 
-          set JObjectsOffice1.Nrec        := 0
-          set JObjectsOffice1.cRec        := parOfficeNrec
-          set JObjectsOffice1.cObject     := parObj
-          set JObjectsOffice1.cRecObj     := 0
+          set JObjectsOffice1.Nrec        := 0;
+          set JObjectsOffice1.cRec        := parOfficeNrec;
+          set JObjectsOffice1.cObject     := parObj;
+          set JObjectsOffice1.cRecObj     := 0;
           //признак вставки нового объекта
-          set JObjectsOffice1.PacketVal   :=  'I'
+          set JObjectsOffice1.PacketVal   :=  'I';
           //заполняем дату только при вставке нового объекта
           //для понимания времени его появления для офиса
-          set JObjectsOffice1.PacketDate  :=  Cur_Date()
-          set JObjectsOffice1.PacketTime  :=  Cur_Time()
+          set JObjectsOffice1.PacketDate  :=  Cur_Date();
+          set JObjectsOffice1.PacketTime  :=  Cur_Time();
 
           insert current JObjectsOffice1;
 
@@ -1066,16 +1082,13 @@ procedure GetJournalUpdate( parObjMain : comp);
    _loop JOBJECTSSP1  where (( '' == JOBJECTSSP1.PacketVal  and  parObjMain == JOBJECTSSP1.CObject ))
                                          //  and  0 == JOBJECTSSP1.CRecObjMain  ))
    {
-
-
       lbUpOwner := false;
-
-      lnJResultOwn := GetJournalRow( JOBJECTSSP1.TABLECODE, JOBJECTSSP1.TableNrec, JOBJECTSSP1.PacketDate , JOBJECTSSP1.PacketTime )
+      lnJResultOwn := GetJournalRow( JOBJECTSSP1.TABLECODE, JOBJECTSSP1.TableNrec, JOBJECTSSP1.PacketDate , JOBJECTSSP1.PacketTime );
       if lnJResultOwn > 0
       {
          lbUpOwner := true;
-         ldDateUp  := Cur_Date()
-         ltTimeUp  := Cur_Time()
+         ldDateUp  := Cur_Date();
+         ltTimeUp  := Cur_Time();
       }
 
       //скорневой объект непосредственно не обновлялся
@@ -1084,7 +1097,7 @@ procedure GetJournalUpdate( parObjMain : comp);
       _loop JOBJECTSSP2  where ((           ''               == JOBJECTSSP2.PacketVal
                                    and  JOBJECTSSP1.Nrec     == JOBJECTSSP2.CrecObjMain  ))
       {
-         lnJResult := GetJournalRow( JOBJECTSSP2.TABLECODE, JOBJECTSSP2.TableNrec, JOBJECTSSP2.PacketDate, JOBJECTSSP2.PacketTime  )
+         lnJResult := GetJournalRow( JOBJECTSSP2.TABLECODE, JOBJECTSSP2.TableNrec, JOBJECTSSP2.PacketDate, JOBJECTSSP2.PacketTime  );
          if lnJResult > 0
          {
             update current JOBJECTSSP2 set
@@ -1093,8 +1106,8 @@ procedure GetJournalUpdate( parObjMain : comp);
                 , JOBJECTSSP2.PacketVal   := 'U' //if(lnJResult=8, 'D','U')
                 ;
 
-            ldDateUp  := JOBJECTSSP2.PacketDate
-            ltTimeUp  := JOBJECTSSP2.PacketTime
+            ldDateUp  := JOBJECTSSP2.PacketDate;
+            ltTimeUp  := JOBJECTSSP2.PacketTime;
             lbUpOwner := true;
         //  lnJResultOwn := 4;
 
@@ -1107,8 +1120,8 @@ procedure GetJournalUpdate( parObjMain : comp);
       if Getfirst fastfirstrow JOBJECTSSP2  where ((           'I'           == JOBJECTSSP2.PacketVal
                                                       and  JOBJECTSSP1.Nrec  == JOBJECTSSP2.CrecObjMain  )) = tsOk
       {
-          ldDateUp  := JOBJECTSSP2.PacketDate
-          ltTimeUp  := JOBJECTSSP2.PacketTime
+          ldDateUp  := JOBJECTSSP2.PacketDate;
+          ltTimeUp  := JOBJECTSSP2.PacketTime;
           lbUpOwner := true;
       }
 
@@ -1135,7 +1148,7 @@ Procedure SetJournalSpCurKeys;
    var ii : integer;
 
    //собрали собственные ключи объекта=запроса
-   lnKey := lnGenKey := 0
+   lnKey := lnGenKey := 0;
 
    lsNameVal := UPCASE(JOBJECTS.NameKey);
 
@@ -1156,14 +1169,14 @@ Procedure SetJournalSpCurKeys;
        if lnKey <= cnKeyMax
        {
 
-          set JOBJECTSSP.KeyVal[lnKey]   := MyTableTemp.FieldString[lnKey]
+          set JOBJECTSSP.KeyVal[lnKey]   := MyTableTemp.FieldString[lnKey];
 
           //сформируем генерируемые живые ключи из значений ключей=полей
           for(ii:=1; ii<=lnGenKey; ii++)
           set JOBJECTSSP.GenKeyVal[ii]  :=  REPLACE(  JOBJECTSSP.GenKeyVal[ii]
                                        // , UPCASE('['+X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name+']')
                                           , UPCASE('['+x$Fields_Key1.xe$Name+']')
-                                          , JOBJECTSSP.KeyVal[lnKey] )
+                                          , JOBJECTSSP.KeyVal[lnKey] );
 
 
           //сформируем наименование из значений ключей=полей
@@ -1174,9 +1187,9 @@ Procedure SetJournalSpCurKeys;
        }
    }
 
-          set JOBJECTSSP.Name := lsNameVal;
-
+  set JOBJECTSSP.Name := lsNameVal;
 }
+
 Procedure SetJournalSp( parObjMain, parCrecObjMain, parObj, parCRec : comp; parTable : word; parTableNrec : comp );
 {
       if GetFirst JOBJECTSSP where
@@ -1189,19 +1202,19 @@ Procedure SetJournalSp( parObjMain, parCrecObjMain, parObj, parCRec : comp; parT
 
          clearBuffer(#JOBJECTSSP);
          //объект отслеживания
-         set JOBJECTSSP.cObject       :=  parObj
+         set JOBJECTSSP.cObject       :=  parObj;
          //корневой (НЕ РОДИТЕЛЬСКИЙ) объект отслеживания
-         set JOBJECTSSP.cObjMain      :=  parObjMain
-         set JOBJECTSSP.CrecObjMain   :=  parCrecObjMain
+         set JOBJECTSSP.cObjMain      :=  parObjMain;
+         set JOBJECTSSP.CrecObjMain   :=  parCrecObjMain;
          //запись родительская  отслеживаемая JOBJECTSSP.Nrec
-         set JOBJECTSSP.cRec          :=  parCRec
+         set JOBJECTSSP.cRec          :=  parCRec;
          //отслеживаемая таблица
-         set JOBJECTSSP.TABLECODE     :=  parTable
-         set JOBJECTSSP.TableNrec     :=  parTableNrec
+         set JOBJECTSSP.TABLECODE     :=  parTable;
+         set JOBJECTSSP.TableNrec     :=  parTableNrec;
          //признак обновления
-         set JOBJECTSSP.PacketVal   :=  'I'
-         set JOBJECTSSP.PacketDate  :=  Cur_Date()
-         set JOBJECTSSP.PacketTime  :=  Cur_Time()
+         set JOBJECTSSP.PacketVal   :=  'I';
+         set JOBJECTSSP.PacketDate  :=  Cur_Date();
+         set JOBJECTSSP.PacketTime  :=  Cur_Time();
          //поля-ключи
          SetJournalSpCurKeys;
 
@@ -1270,7 +1283,7 @@ function ReplaceSynonims(_Str : string; _JOBJECTSSP_nrec : comp) : string; // по
               mylog('ReplaceSynonims _Str = ' + JOBJECTSSP_syn.KeyVal[lnKey]);
             }
         }
-    _Str := ReplaceSynonims(_Str,JOBJECTSSP_syn.Crec) // пойдем по заполненным уже данным вверх
+    _Str := ReplaceSynonims(_Str,JOBJECTSSP_syn.Crec); // пойдем по заполненным уже данным вверх
 
  result := _Str;
 }
@@ -1291,7 +1304,7 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
 
      if getFirst JOBJECTSResp where (( parObj ==JOBJECTSResp.nRec))=TsOk {}
 
-     lsSQLLogFile := parObj+'_GetRespResult.Log'; DeleteFile(lsSQLLogFile)
+     lsSQLLogFile := parObj+'_GetRespResult.Log'; DeleteFile(lsSQLLogFile);
 
      SqlAddStrLog( ' select ');
 
@@ -1352,7 +1365,8 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
         if parOwner  <> 0
         if parSpNrec <> 0
            StringValue1 := ReplaceSynonims(StringValue1,parSpNrec); // пойдем по заполненным уже данным вверх
-/*
+
+/* убираем вообще этот принцип замены, только по синонимам теперь
         if GetFirst fastfirstRow JOBJECTSSP2 where (( parSpNrec == JOBJECTSSP2.Nrec )) = tsOk
         _loop JObjectsKey1 where (( parOwner == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE )) //поля БД
         {
@@ -1502,7 +1516,7 @@ procedure GetObjectsTree( parObj: comp; parInsMainObj : boolean = false );
     _loop JOBJECTS_Tree where (( parObj == JOBJECTS_Tree.CREC ))
     if GetFirst MyTableObj  where (( JOBJECTS_Tree.Nrec == MyTableObj.Nrec )) <> tsOk
     {
-          lnNpp++
+          lnNpp++;
           insert current MyTableObj set
              MyTableObj.Nrec := JOBJECTS_Tree.Nrec
           ,  MyTableObj.Tip  := 1
@@ -1519,7 +1533,7 @@ procedure GetObjectsTree( parObj: comp; parInsMainObj : boolean = false );
        _loop JOBJECTS_Tree where (( MyTableObj1.Nrec == JOBJECTS_Tree.CREC ))
        if GetFirst MyTableObj  where (( JOBJECTS_Tree.Nrec == MyTableObj.Nrec )) <> tsOk
        {
-            lnNpp++
+            lnNpp++;
             insert current MyTableObj set
                MyTableObj.Nrec     := JOBJECTS_Tree.Nrec
             ,  MyTableObj.Tip      := MyTableObj1.Tip + 1
@@ -1584,16 +1598,13 @@ Procedure GetCurrObjectResp;
 
           SetRespToJournal( lcObjMain, if( JOBJECTSSP1.CrecObjMain<>0, JOBJECTSSP1.CrecObjMain, JOBJECTSSP1.nRec)
                            ,JOBJECTS.Nrec, JOBJECTSSP1.Nrec, JOBJECTS.TABLECODE );
-
        }
-
     }
-
 }
 
 //-------------------------
-window SqlRep 'Результат запроса'
-show at (,,81,25)
+window SqlRep 'Результат запроса';
+show at (,,81,25);
 handleevent
 cmCancel:
 {
@@ -1623,11 +1634,8 @@ Procedure ClearObject;
            for(i:=count(aList);i>1;i--)
            {
              cfsDestroyObject(aList[i]);
-
            }
-
         }
-
 }
 
 Procedure GetRespBrowse; //по текущей JOBJECTS
@@ -1635,7 +1643,7 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
 
     StartNewVisual (vtNumericVisual,vfBreak, 'Выборка данных по объектам',100);
 
-    PushPos(#JOBJECTS)
+    PushPos(#JOBJECTS);
 
     GetCurrObjectResp;
     MyLog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) );
@@ -1710,8 +1718,8 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
 
     StopVisual('', 0);
 
-    PopPos(#JOBJECTS)
-    RescanPanel(#JOBJECTS)
+    PopPos(#JOBJECTS);
+    RescanPanel(#JOBJECTS);
 
 }
 
@@ -1747,7 +1755,7 @@ function SetTableFldToResp ( parKodTable : word) : word ;
 
    var lnKodFld : word = 0;
 
-   RunInterface( GetOneField, parKodTable, lnKodFld, 0)
+   RunInterface( GetOneField, parKodTable, lnKodFld, 0);
 
    if lnKodFld <> 0
    if GetFirst x$Fields where ((  parKodTable == x$Fields.xe$FileCode and lnKodFld == x$Fields.xe$Code )) = tsOk
@@ -1759,19 +1767,20 @@ function SetTableToResp : word;
 {
    result := 0;
 
-   var lnKodRep : word;
+   var lnKodRep : word = JOBJECTS.TABLECODE;
 
 // RunDialog( C_COMMON::GetAttrVal, lnKodRep);
-   RunInterface( GetOneTable, lnKodRep, 0)
+   if RunInterface( GetOneTable, lnKodRep) = cmDefault {
 
-   if GetFirst X$FILES where (( lnKodRep == X$FILES.XF$CODE )) = tsOk
-   {
-      set JOBJECTS.TABLECODE := lnKodRep;
-      set JOBJECTS.Name      := JOBJECTS.Name +' '+x$Files.xf$Title;
-      set JOBJECTS.MainKey   := GetMainJObjKeyFld(lnKodRep);
+       if GetFirst X$FILES where (( lnKodRep == X$FILES.XF$CODE )) = tsOk
+       {
+          set JOBJECTS.TABLECODE := lnKodRep;
+          set JOBJECTS.Name      := JOBJECTS.Name +' '+x$Files.xf$Title;
+          set JOBJECTS.MainKey   := GetMainJObjKeyFld(lnKodRep);
 
-      if JOBJECTS.MainKey = ''
-         Message('Ошибка поиска поля уникального ключа!')
+          if JOBJECTS.MainKey = ''
+            then Message('Ошибка поиска поля уникального ключа!')
+       }
    }
 }
 
@@ -1782,7 +1791,7 @@ Procedure SetMainJObjKey;
    if GetFirst JObjectsKey where  (( JOBJECTS.Nrec == JObjectsKey.cRec  and 0 << JObjectsKey.FIELDCODE )) <> tsOk
    {
 
-   clearBuffer(#JObjectsKey)
+   clearBuffer(#JObjectsKey);
 
    set JObjectsKey.nRec      := 0;
    set JObjectsKey.cRec      := JOBJECTS.Nrec;
@@ -1796,7 +1805,7 @@ Procedure SetMainJObjKey;
    }
 
    set JObjectsKey.CODE  := 1;
-   set JObjectsKey.FIELDCODE := x$Fields.xe$Code
+   set JObjectsKey.FIELDCODE := x$Fields.xe$Code;
 
    insert current JObjectsKey;
 
@@ -1808,10 +1817,10 @@ Procedure SetMainJObjKey;
 
 //-------------    GetLastNumD
 window wndEditJObject 'Формирование объекта отслеживания' Doaccept;
-show at (,,81,25)
+show at (,,81,25);
 
-screen scrJO1
-show at (,,,3)
+screen scrJO1;
+show at (,,,3);
   table JOBJECTS;
 fields
    JOBJECTS.CODE        : NoProtect, NoPickButton;
@@ -1834,8 +1843,8 @@ buttons
 >>
 end;
 
-browse brJObjKeysSp
- show at ( ,4,,9)
+browse brJObjKeysSp;
+ show at ( ,4,,9);
   table JObjectsKey;
  Fields
   JObjectsKey.CODE             'Код'                 : [10], NoProtect, PickButton, LessNull;
@@ -1847,7 +1856,7 @@ browse brJObjKeysSp
 end;
 
 tabbedSheet  bottom tab
- show at ( ,10,,)
+ show at ( ,10,,);
  text JOBJECTS.Notes 'Запрос';
 end;
 
@@ -1935,7 +1944,7 @@ end;
 
 //-----------
 Tree trResp  (,,sci13478EnEscTreeI);
- show at (  ,,,15)
+ show at (  ,,,15);
  table JOBJECTS;
   recMarker = pMarker{JOBJECTS.nRec};
 
@@ -1948,7 +1957,7 @@ Tree trResp  (,,sci13478EnEscTreeI);
   JOBJECTS.SynonimName        'Наименование','Синонима'    : [10], Protect, NoDel, NoPickButton ;
 end;
 browse brResp  (,,sci13478EnEscI);
- show at ( ,,,15)
+ show at ( ,,,15);
   table JOBJECTS;
   recMarker = pMarker{JOBJECTS.nRec};
 
@@ -1964,7 +1973,7 @@ end;
 
 //-----------
 browse brOffice  (,,scDef);
- show at ( ,16,60,)
+ show at ( ,16,60,);
   table JObjectsOffice;
  Fields
   ABONENTS.OFFICENO            'Код','офиса'                        : [10], Protect, NoDel, NoPickButton, LessNull;
@@ -1975,7 +1984,7 @@ browse brOffice  (,,scDef);
   JObjectsOffice.PacketTime    'Время','выгрузки объекта'           : [12], Protect, NoDel, NoPickButton, LessNull;
 end;
 browse brPack  (,,scDef);
- show at (61,16,,)
+ show at (61,16,,);
   table JObjectsPackets;
  Fields
    JObjectsPackHead.PacketVal   'Имя','пакета'                : [30], Protect, NoDel, NoPickButton;
@@ -2010,11 +2019,9 @@ cmSetDefault:
 
    var lnNumKey : word = 0;
    if GetLast JObjectsKey = tsOk
-      lnNumKey := JObjectsKey.CODE
+      then lnNumKey := JObjectsKey.CODE;
 
-
-
-   clearBuffer(#JObjectsKey)
+   clearBuffer(#JObjectsKey);
 
    set JObjectsKey.nRec      := 0;
    set JObjectsKey.cRec      := JOBJECTS.Nrec;
@@ -2038,7 +2045,7 @@ tableevent table JOBJECTS;
 cmSetDefault:
 {
 
-   clearBuffer(#JOBJECTS)
+   clearBuffer(#JOBJECTS);
    set JOBJECTS.CRec   := lcSetOwn;
 
 	 set JOBJECTS.nRec   := 0;
@@ -2092,10 +2099,10 @@ cmValue2:  // 'Просмотр данных объекта отслеживания',
    if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
    if getFirst JOBJECTS where (( lcObjMain == JOBJECTS.Nrec )) = tsOk
-      RunInterface( JournalObjectsSpecif, JOBJECTS.Nrec )
+      RunInterface( JournalObjectsSpecif, JOBJECTS.Nrec );
 
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 }
 cmValue12:  //'Просмотр данных объекта по фильтру',
 {
@@ -2110,7 +2117,7 @@ cmValue12:  //'Просмотр данных объекта по фильтру',
       lcUserFlt := UserId;
       lsUserFlt := UserName;
       ldDateDateFromFlt := ldDateDateToFlt := cur_date;
-      RunDialog(C_Common::GetInterval, ldDateDateFromFlt, ldDateDateToFlt)
+      RunDialog(C_Common::GetInterval, ldDateDateFromFlt, ldDateDateToFlt);
 
       //выполнить перед этим //'Отслеживание изменений данных объекта',
 
@@ -2120,7 +2127,7 @@ cmValue12:  //'Просмотр данных объекта по фильтру',
    }
 
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 }
 
 cmValue5:   //'Отслеживание изменений данных объекта',
@@ -2144,9 +2151,9 @@ cmValue5:   //'Отслеживание изменений данных объекта',
    }
 
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 
-   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов');
 
 }
 cmValue6:  //'Добавить объект в офис'
@@ -2155,14 +2162,14 @@ cmValue6:  //'Добавить объект в офис'
    var lcObjMain : comp = GetMainObject(JOBJECTS.CREC);
    if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
-   RunWindowModal(wndOffices)
+   RunWindowModal(wndOffices);
 
    SetObjectToOffice(lcObjMain, lcOfficeNrec);
 
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsOffice = tsOk {}
-   ReReadRecord(#JObjectsOffice)
+   ReReadRecord(#JObjectsOffice);
 
 }
 cmValue16:  //'Выгрузить объект в офис'
@@ -2172,20 +2179,20 @@ cmValue16:  //'Выгрузить объект в офис'
    var lcObjMain : comp = GetMainObject(JOBJECTS.CREC);
    if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
-   RunWindowModal(wndOffices)
+   RunWindowModal(wndOffices);
 
    ExportObjectToOffice(lcObjMain, lcOfficeNrec);
 
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsOffice = tsOk {}
-   ReReadRecord(#JObjectsOffice)
+   ReReadRecord(#JObjectsOffice);
 
 }
 
 cmValue8:  // 'Добавить объекты в пакет'
 {
-   PushPos(#JOBJECTS)
+   PushPos(#JOBJECTS);
    RunWindowModal(wndPackets);
 
    if lcPacketNrec <> 0
@@ -2206,12 +2213,10 @@ cmValue8:  // 'Добавить объекты в пакет'
             SetObjectToPacket(JOBJECTSFnd.Nrec, lcPacketNrec);
             lnKolObj++;
          }
-
          subbounds(tbRMJOBJECTS2);
          addbounds(tbRMJOBJECTS1);
 
-         Message('Добавлено корневых объектов: '+lnKolObj)
-
+         Message('Добавлено корневых объектов: '+lnKolObj);
       }
    }
    else
@@ -2225,18 +2230,18 @@ cmValue8:  // 'Добавить объекты в пакет'
              SetObjectToPacket(lcObjMain, lcPacketNrec, true);
    }
 
-   PopPos(#JOBJECTS)
-   RescanPanel(#JOBJECTS)
+   PopPos(#JOBJECTS);
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsPackets = tsOk {}
-   ReReadRecord(#JObjectsPackets)
+   ReReadRecord(#JObjectsPackets);
 
 }
 cmValue18:  //'Выгрузить объекты по пакету'
 {
-   PushPos(#JOBJECTS)
+   PushPos(#JOBJECTS);
 
-   RunWindowModal(wndPackets)
+   RunWindowModal(wndPackets);
 
    if lcPacketNrec <> 0
    if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk
@@ -2246,32 +2251,32 @@ cmValue18:  //'Выгрузить объекты по пакету'
       ExportObjectsToJson;
    }
 
-   PopPos(#JOBJECTS)
-   RescanPanel(#JOBJECTS)
+   PopPos(#JOBJECTS);
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsPackets = tsOk {}
-   ReReadRecord(#JObjectsPackets)
+   ReReadRecord(#JObjectsPackets);
 
 }
 cmValue28: // 'Просмотр объектов по пакету',
 {
-   PushPos(#JOBJECTS)
+   PushPos(#JOBJECTS);
 
-   RunWindowModal(wndPackets)
+   RunWindowModal(wndPackets);
 
    if lcPacketNrec <> 0
    if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk
    {
       var lsNamePack : string = JObjectsPacketsFnd.PacketVal;
       FilterObjectsByPacket(lcPacketNrec);
-      RunInterface( JournalObjectsSpecFlt, 1, lsNamePack)
+      RunInterface( JournalObjectsSpecFlt, 1, lsNamePack);
    }
 
-   PopPos(#JOBJECTS)
-   RescanPanel(#JOBJECTS)
+   PopPos(#JOBJECTS);
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsPackets = tsOk {}
-   ReReadRecord(#JObjectsPackets)
+   ReReadRecord(#JObjectsPackets);
 
 }
 
@@ -2304,7 +2309,7 @@ cmValue3:
    }
 
    if getFirst JOBJECTS where (( lcCurPos == JOBJECTS.Nrec )) = tsOk {}
-   RescanPanel(#JOBJECTS)
+   RescanPanel(#JOBJECTS);
 
    ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
 
@@ -2314,7 +2319,7 @@ cmValue1:
 {
    lbSetOwn := true;
 
-   PutCommand(cmInsert)
+   PutCommand(cmInsert);
 }
 cmValue10:
 {
@@ -2323,7 +2328,7 @@ cmValue10:
 
 cmValue20:  //'Экспорт структуры объекта',
 {
-   PushPos(#JOBJECTS)
+   PushPos(#JOBJECTS);
 
    var lsJsonFileName : string = '' ;
    var lsJsonLogFile  : string = 'ExpObjToJsonByLogFile.txt';    DeleteFile(lsJsonLogFile);
@@ -2339,25 +2344,25 @@ cmValue20:  //'Экспорт структуры объекта',
       GetObjectsTree(lcObjMain, true);
       lsJsonFileName := ExportObjToJsonByTree(JOBJECTS.Nrec, JOBJECTS.Nrec); //пока имя файла как nrec
 
-      MyLog( 'сформирован файл '+lsJsonFileName)
-      ProcessText( _log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы')
+      MyLog( 'сформирован файл '+lsJsonFileName);
+      ProcessText( _log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Сформированные файлы');
    }
 
-   PopPos(#JOBJECTS)
-   RescanPanel(#JOBJECTS)
+   PopPos(#JOBJECTS);
+   RescanPanel(#JOBJECTS);
 
    if GetFirst JObjectsPackets = tsOk {}
-   ReReadRecord(#JObjectsPackets)
+   ReReadRecord(#JObjectsPackets);
 
 }
 cmValue21:  // 'Импорт структуры объекта',
 {
-   PushPos(#JOBJECTS)
+   PushPos(#JOBJECTS);
 
    ImportObjFromJson;
 
-   PopPos(#JOBJECTS)
-   RescanPanel(#JOBJECTS)
+   PopPos(#JOBJECTS);
+   RescanPanel(#JOBJECTS);
 }
 
 //----
@@ -2371,7 +2376,7 @@ cmInsert:
       lbSetOwn := false;
    }
 
-   PutCommand(cmInsert)
+   PutCommand(cmInsert);
 }
 /*
 cmAddNewRec:

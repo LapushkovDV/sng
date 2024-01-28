@@ -1,5 +1,7 @@
 #statusline "statgal"
 
+#define  Atl60
+
 #include galnet.inc end;
 #include glovars.inc
 #INCLUDE galaktika.vil
@@ -10,7 +12,7 @@
   #CompTitle
 #end
 
-!#define  Atl60
+
 
 #include source\TempTablesGlob.vpp
 //#make  "source\*.vip"
@@ -20,7 +22,8 @@
 LicenseControlInclude=""
 #end
 
-#make "source\absTables.vip"
+
+//#make "source\absTables.vip"
 #make "source\GetField.vip"
 #make "source\GetTable.vip"
 #make "source\JournalObjectsSpecFlt.vip"

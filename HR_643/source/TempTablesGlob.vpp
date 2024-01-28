@@ -35,7 +35,8 @@ with index
 )
 ;
 
-table struct MyTableTreeFlt
+table struct MyTableTreeFlt = JOBJECTSSP;
+/*
 (
   TableNrec   : comp,
   Nrec        : comp,
@@ -53,3 +54,4 @@ with index
 ,  byObjects = CObjMain + CObject
 )
 ;
+*/

@@ -5,8 +5,6 @@ del *.res
 del *.tmp
 del *.crf
 del *.tmp
-del temp\tmp\*.* /f /s /q
-del temp\OUT\*.* /f /s /q
 del *.dsk
 del *.fnc
 del *.log
@@ -16,21 +14,12 @@ del Atlantis*.res
 
 @%exedir%\vip.EXE HR_643.prj /r:HR_643.res /c:vip.cfg /u:lapus /p:Zraeqw123
 
-del *.crf
-del *.tmp
-del res\*.tmp
-del temp\tmp\*.* /f /s /q
-del temp\OUT\*.* /f /s /q
-del *.dsk
-del *.fnc
-del *.log
-del Atlantis*.res
-
 rem /c:support_res.cfg
 @echo Компиляция завершена
 @goto END
 
 :END
 
-@pause
+pause
 @exit
+

@@ -14,7 +14,7 @@ Interface AbstractTables 'Выбор таблиц' (,, scDef) DoAccept, Cyan;
 
   Create view
   var Mode: String;
-  As Select X$Files.* from X$Files, FilialObjects
+  As Select X$Files.XF$CODE from X$Files, FilialObjects
     where (X$Files.XF$Code > 0) 
 /*
   bounds LinkCrossRights as X$Files.XF$Code == FilialObjects.wObject 

@@ -294,7 +294,7 @@ Function GetJsonObjBoby2 ( parcRec : comp; var parKolVals : longInt ) : TPtr;
                parKolVals++;
             }
 
-            lcObject := MyTableTreeFlt2.cObject
+            lcObject := MyTableTreeFlt2.cObject;
 
             lnKolVals   := 0;
 
@@ -314,9 +314,10 @@ Function GetJsonObjBoby2 ( parcRec : comp; var parKolVals : longInt ) : TPtr;
              jsonObjArr := JCreate;
 
              //---------- выгрузка строки данных этого объекта
-             jsonObjVal := JCreate
-             for(ii:=1;ii<= (MyTableFldDataFlt2.ColCount+ MyTableFldDataFlt2.GenKeyCount) ;ii++)
-             JAddString(jsonObjVal, MyTableFldDataFlt2.Name[ii],  StrValByString(MyTableDataTree2.FieldString[ii])  );
+             jsonObjVal := JCreate;
+             for(ii:=1;ii<= (MyTableFldDataFlt2.ColCount+ MyTableFldDataFlt2.GenKeyCount) ;ii++) {
+               JAddString(jsonObjVal, MyTableFldDataFlt2.Name[ii],  StrValByString(MyTableDataTree2.FieldString[ii])  );
+             }
 
           //   JAddString(jsonObjArr, MyTableFldDataFlt2.Name[ii], MyTableDataTree2.FieldString[ii]);
 
@@ -369,15 +370,16 @@ Function GetJsonObjData ( parcRec : comp; var parKolVals : longInt ) : TPtr;
              mylog('MyTableTreeFlt1 cRec='+ MyTableTreeFlt1.cRec
              +' cObject='+ MyTableTreeFlt1.cObject
              +' TableNrec='+MyTableTreeFlt1.TableNrec
-               )
+               );
 
              jsonObjArr := JCreate;
 
              //---------- выгрузка строки данных этого объекта
-             jsonObjVal := JCreate
+             jsonObjVal := JCreate;
 
-             for(ii:=1;ii<= (MyTableFldDataFlt.ColCount + MyTableFldDataFlt.GenKeyCount) ;ii++)
-             JAddString(jsonObjVal, MyTableFldDataFlt.Name[ii], StrValByString(MyTableDataTree.FieldString[ii]) );
+             for(ii:=1;ii<= (MyTableFldDataFlt.ColCount + MyTableFldDataFlt.GenKeyCount) ;ii++) {
+               JAddString(jsonObjVal, MyTableFldDataFlt.Name[ii], StrValByString(MyTableDataTree.FieldString[ii]) );
+             }
            //JAddString(jsonObjArr, MyTableFldDataFlt.Name[ii], MyTableDataTree.FieldString[ii]);
 
              JAddObject(jsonObjArr, 'ObjectData',    jsonObjVal );
@@ -467,14 +469,12 @@ function GetJsonDoc( parFileName : string; parObject : comp = 0 ) : string;
 
    fn := HttpConnect_Create('','','');
 
-   mylog('fn = ' + fn);
 
    var lnKolVals : longInt;
    var tmpFileJ  : string = GenerateNewOutFile+'.json'; //'d:\'+parFileName+'.json';
    mylog('GenerateNewOutFile = ' + tmpFileJ);
    var jsonObj64 : TPtr   = JCreate;
 
-   mylog('jsonObj64 = ' + jsonObj64);
 
    JAddString(jsonObj64, 'MainObjectName',     parFileName);
    //по корневым объектам

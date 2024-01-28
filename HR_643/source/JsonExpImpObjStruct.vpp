@@ -3,32 +3,32 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
    result := false;
 
    //--
-   var parObjCode : word = word(getJsonStrValue('ObjectCode',  parJObject))
+   var parObjCode : word = word(getJsonStrValue('ObjectCode',  parJObject));
 
    if parObjCode = 0
    {
-      mylog('не указан код объекта parObj='+parObjCode)
+      mylog('не указан код объекта parObj='+parObjCode);
       Exit;
    }
    if getFirst JOBJECTS1 where ((  parObjCode == JOBJECTS1.Code )) = TsOk
    {
-      mylog('уже существует объекта с кодом '+parObjCode)
+      mylog('уже существует объекта с кодом '+parObjCode);
       Exit;
    }
 
    //--
    var lcRecObj : comp = 0;
-   var parObjCRecCode : word = word(getJsonStrValue('ObjectCRecCode',  parJObject))
+   var parObjCRecCode : word = word(getJsonStrValue('ObjectCRecCode',  parJObject));
 
    if parObjCRecCode = 0
    {
-      mylog('не указан код объекта-родителя  для объекта с кодом '+parObjCode)
+      mylog('не указан код объекта-родителя  для объекта с кодом '+parObjCode);
       Exit;
    }
    if parObjCRecCode <> parObjCode
    if getFirst JOBJECTS1 where ((  parObjCRecCode == JOBJECTS1.Code )) <> TsOk
    {
-      mylog('не найден объекта-родитель по коду '+parObjCRecCode+' для объекта с кодом '+parObjCode)
+      mylog('не найден объекта-родитель по коду '+parObjCRecCode+' для объекта с кодом '+parObjCode);
       Exit;
    }
    else
@@ -39,26 +39,26 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
 
    if parObjTableCode = ''
    {
-      mylog('не указан код таблицы для объекта с кодом '+parObjCode)
+      mylog('не указан код таблицы для объекта с кодом '+parObjCode);
       Exit;
    }
 
    if GetFirst X$FILES where (( parObjTableCode == X$FILES.XF$CODE )) <> tsOk
    {
-      mylog('не найдена таблица '+parObjTableCode +' для объекта с кодом '+parObjCode)
+      mylog('не найдена таблица '+parObjTableCode +' для объекта с кодом '+parObjCode);
       Exit;
    }
 
    //--
-   var parObjectMainKey : string = getJsonStrValue('ObjectMainKey',  parJObject)
+   var parObjectMainKey : string = getJsonStrValue('ObjectMainKey',  parJObject);
    if parObjectMainKey = ''
    {
-      mylog('не указано поле уникального ключа таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
+      mylog('не указано поле уникального ключа таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode);
       Exit;
    }
    if GetFirst x$Fields where ((  parObjTableCode == x$Fields.xe$FileCode  and parObjectMainKey== x$Fields.XE$NAME )) <> tsOk
    {
-      mylog('не найдено поле уникального ключа '+parObjectMainKey+' таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode)
+      mylog('не найдено поле уникального ключа '+parObjectMainKey+' таблицы '+parObjTableCode +' для объекта с кодом '+parObjCRecCode);
       Exit;
    }
    //--
@@ -74,10 +74,10 @@ Function  ImportObjectByCode( parJObject : TPtr ) : boolean;
 
     if insert current JOBJECTS = tsOk
     {
-       insert MyTableObj set MyTableObj.Nrec := JOBJECTS.nrec
+       insert MyTableObj set MyTableObj.Nrec := JOBJECTS.nrec;
        result := true;
 
-       mylog('Создан объект с кодом '+parObjCRecCode)
+       mylog('Создан объект с кодом '+parObjCRecCode);
 
     }
   // NOTES      : LVar    "Примечание объекта"
@@ -87,11 +87,11 @@ Function  ImportObjectKeys( parJObject : TPtr ) : boolean;
 {
    result := false;
 
-   var parFIELDCODE : word = word(getJsonStrValue('FIELDCODE',  parJObject))
+   var parFIELDCODE : word = word(getJsonStrValue('FIELDCODE',  parJObject));
    if  parFIELDCODE <> 0
    if  GetFirst x$Fields where ((  JOBJECTS.TableCode == x$Fields.xe$FileCode  and  parFIELDCODE == x$Fields.XE$CODE )) <> tsOk
    {
-      mylog('не найдено поле '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
+      mylog('не найдено поле '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code);
       Exit;
    }
    else
@@ -118,21 +118,21 @@ Function  ImportObjectKeys( parJObject : TPtr ) : boolean;
      }
      if not lbGoodField
      {
-          mylog('не совпадает структура поля '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code)
+          mylog('не совпадает структура поля '+ parFIELDCODE+' таблицы '+JOBJECTS.TableCode +' для объекта с кодом '+JOBJECTS.Code);
           Exit;
      }
    }
 
    //--
-     ClearBuffer(#JObjectsKey)
+     ClearBuffer(#JObjectsKey);
   // set JObjectsKey.Nrec      := 0
-     set JObjectsKey.CRec      := JOBJECTS.Nrec
-     set JObjectsKey.TableCode := JOBJECTS.TableCode
-     set JObjectsKey.FIELDCODE := parFIELDCODE
-     set JObjectsKey.Code      := getJsonStrValue('CODE',  parJObject)
-     set JObjectsKey.KeyName   := getJsonStrValue('KeyName',  parJObject)
-     set JObjectsKey.KeyType   := getJsonStrValue('KeyType',  parJObject)
-     set JObjectsKey.KeyVal    := getJsonStrValue('KeyVal',   parJObject)
+     set JObjectsKey.CRec      := JOBJECTS.Nrec;
+     set JObjectsKey.TableCode := JOBJECTS.TableCode;
+     set JObjectsKey.FIELDCODE := parFIELDCODE;
+     set JObjectsKey.Code      := getJsonStrValue('CODE',  parJObject);
+     set JObjectsKey.KeyName   := getJsonStrValue('KeyName',  parJObject);
+     set JObjectsKey.KeyType   := getJsonStrValue('KeyType',  parJObject);
+     set JObjectsKey.KeyVal    := getJsonStrValue('KeyVal',   parJObject);
 
     if insert current JObjectsKey = tsOk
         result := true;
@@ -143,7 +143,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
 
   if parJObject = 0
   {
-     mylog('   parJObject = 0 GetObjectIn=000000')
+     mylog('   parJObject = 0 GetObjectIn=000000');
      Exit;
   }
 
@@ -164,7 +164,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
     lJsonObjectArray_1 := JByIndex(lJsonObjectArray, ii_1);
 
     //---- проверка версии и структуры объекта перед импортом
-    lnGoodObj := ImportObjectByCode(lJsonObjectArray_1 )
+    lnGoodObj := ImportObjectByCode(lJsonObjectArray_1 );
 
     if NOT lnGoodObj
        break;
@@ -178,7 +178,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
 
       //lJsonObjectArray_3 = строка ii_2 объекта lJsonObjectArray_2
         lJsonObjectArray_3 := JByIndex(lJsonObjectArray_2, ii_2);
-        lnGoodObj := ImportObjectKeys(lJsonObjectArray_3)
+        lnGoodObj := ImportObjectKeys(lJsonObjectArray_3);
         if NOT lnGoodObj
            break;
 
@@ -197,7 +197,7 @@ procedure GetObjectStructIn( parJObject : TPtr; parObjMain : comp );
         _loop JObjectsKey
           delete current JObjectsKey;
 
-        Mylog('Создан объект с кодом '+JOBJECTS.Code)
+        Mylog('Создан объект с кодом '+JOBJECTS.Code);
         delete current JOBJECTS;
      }
   }
@@ -273,7 +273,7 @@ Function GetJsonObjStructBoby ( parcRec, parObject : comp; var parKolVals : long
    _loop MyTableObj ordered by Index byNpp
    if GetFirst JOBJECTS where (( MyTableObj.Nrec == JOBJECTS.Nrec )) = tsOk
    {
-      Mylog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) )
+      Mylog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) );
 
          jsonObjArrM := JCreate;
          //заголовок объекта
@@ -287,7 +287,7 @@ Function GetJsonObjStructBoby ( parcRec, parObject : comp; var parKolVals : long
 
          _try  //--- NOTES      : LVar    "Примечание объекта"
          {
-            var lsFileMemo : string = 'memo.txt';    DeleteFile(lsFileMemo)
+            var lsFileMemo : string = 'memo.txt';    DeleteFile(lsFileMemo);
             var lMemo: TPtr = 0;
 
             if ExportMemoToFile( JOBJECTS.NOTES, 'memo.txt', false)
@@ -352,15 +352,14 @@ procedure ImportObjFromJson( parFileName : string = '');
 {
 
   if parFileName = ''
-     parFileName := GetFileName('*.json', 'Выберите файл JSON для разбора')
+    then parFileName := GetFileName('*.json', 'Выберите файл JSON для разбора');
 
   if parFileName = ''
   or Not ExistFile(parFileName)
      Exit;
 
   lsImportLog  := parFileName +'_log.txt';     deletefile(lsImportLog);
-  lsSQLLogFile := parFileName +'_logSQL.Log';  DeleteFile(lsSQLLogFile)
-
+  lsSQLLogFile := parFileName +'_logSQL.Log';  DeleteFile(lsSQLLogFile);
 
   fn := HttpConnect_Create('','','');
 
