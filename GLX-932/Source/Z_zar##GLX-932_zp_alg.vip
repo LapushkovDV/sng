@@ -28,13 +28,17 @@ interface zarAlgorithm_GLX_932_zp_alg cacheable;
    var _log_OUT : string;
      PeriodBegin
    , PeriodEnd : date;
-    pLschet : comp;
-      wMes
-    , wYear : word;
+     pLschet : comp;
+     wMes
+   , wYear : word;
 
     from
-      KlRejim
-where ((
+       Nachisl
+     , KlVidOpl
+     , PrNaryad
+     , PrNaryad PrNaryad_cur
+     , sys_nar
+/*where ((
        pLschet == Lschet.Nrec
     //---------------------
    and lschet.nrec==lstab.clschet
@@ -46,16 +50,15 @@ where ((
        and wMes =Month(prnaryad.DataN)
         )
        ))
-
+*/
 ;
   var
-    pShowLog: Boolean;
-    pRejim: Word;
-    pYear: Word;
+      _isLogging: Boolean = false;
+      AlgNumberInner : word = 0;
 
 Function GenerateNewOutFile: string;
 {
- _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\JOBJECTS_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+ _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\zarAlgorithm_GLX_932_zp_alg_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
  result := _log_OUT;
 }
 
@@ -67,6 +70,7 @@ function GetLogFile : string;
 
 Procedure MyLog(_str: string);
 {
+  if _isLogging = false then exit;
   LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
 }
 
@@ -75,10 +79,7 @@ procedure ParseAlgParams(ParamStr: String);
   var I: Word;
   var P: Byte;
   var Value: String;
-
-    pShowLog := false;
-    pRejim := 0;
-    pYear := 0;
+    _isLogging := false;
     I := 0;
     do
     {
@@ -93,70 +94,80 @@ procedure ParseAlgParams(ParamStr: String);
       Value := LoCase(Trim(Value));
       if Value != '' then
         case I of
-          1: pRejim := Word(Value);
-          2: pYear := Word(Value);
-          3: pShowLog := (Value = 'on' or Value = 'true');
+          1: AlgNumberInner := Word(Value);
+          2: _isLogging := (Value = 'on' or Value = 'true');
         end;
     } while P > 0;
-    // По умолчанию берём режим из предварительной разноски
-    if pRejim = 0 then
-      pRejim := UCH_REJIM;
-    // По умолчанию берём год из предварительной разноски
-    if pYear = 0 then
-      pYear := UCH_YEAR;
+
+  mylog('parameters:  ');
+  mylog('    AlgNumberInner = '+AlgNumberInner);
+  mylog('        _isLogging = '+string(_isLogging));
+  mylog('end parameters');
 }
 
 function CalcSum(Parameter: String): Double;
 {
     result := 0;
-    result := 0;
+    ParseAlgParams(Parameter);
+    mylog(Parameter)
 
   	PeriodBegin:=uch_datan;
-	  PeriodEnd  :=uch_datok;
-    pLschet:=uch_lsch;
-    wMes  :=month(uch_datan);
-    wYear :=year (uch_datan);
-  	if getfirst lschet<>tsok // where ((uch_lsch==lschet.nrec))=tsok
-    { exit;
-    }
+    PeriodEnd  :=uch_datok;
+    pLschet    :=uch_lsch;
+    mylog(' PeriodBegin = ' + PeriodBegin);
+    mylog('   PeriodEnd = ' + PeriodEnd);
+    mylog('     pLschet = ' + pLschet);
+    mylog('    nar_nrec = ' + nar_nrec);
+    if getfirst prnaryad_cur where ((nar_nrec == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
 
 
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    var _sumPremBeforeKoefCur : double = 0;
+    var _sumPremBeforeKoefTotal : double = 0;
+    var _koeff : double = 0;
+      _loop prnaryad where ((prnaryad_cur.mnrec==prnaryad.mnrec))
+       {
+          mylog('prnaryad.SUMMA = '+string(prnaryad.SUMMA));
+          mylog('prnaryad.KTY  = '+string(prnaryad.KTY));
 
-    Loadworkingtable(pLschet,wMes,wYear);
-    var _chasf: double = WT_GHBD(1,0,0,1,PeriodBegin,PeriodEnd);
-    var _chasgr : double = 0;
-     var ii : byte = 0;
-     if getfirst LsTab=tsok
-     for(ii:=1;ii<=31;ii++)
-     { if (LSTAB.DAYCHF[ii]>0 and LSTAB.DAYCHF[ii]<25)
-       or LSTAB.DAYS[ii]='В'
-       or LSTAB.DAYS[ii]='ЛЧ'
-       { if KLNDR.DAYCHAS[ii]>0
-          _chasgr+=KLNDR.DAYCHAS[ii]+KLNDR.DAYMIN[ii]/60;
-       }
-     }
+          var _KTY : double = prnaryad.KTY;
+          var _summaSdel : double = prnaryad.SUMMA;
+          var _summaDopl : double = 0;
+         _loop klvidopl where KLVIDOPL.VHVO[36]='+'
+          {
+            _loop nachisl where ((prnaryad.clsch==nachisl.clsch))
+                              and klvidopl.vidopl=nachisl.vidopls
+                              and prnaryad.datan >= nachisl.datan
+                              and nachisl.datok <= prnaryad.datok
+            {
+              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
+              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
+              mylog('   nachisl.summa = ' + string(nachisl.summa));
+              _summaDopl :=_summaDopl + nachisl.summa;
+            }
+          }
+          var _sumPremBeforeKoef : double = (prnaryad.SUMMA+_summaDopl)*prnaryad.KTY;
+          _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
+          if prnaryad_cur.nrec = prnaryad.nrec
+             then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
+          mylog(' _summaDopl = ' + string(_summaDopl));
+          mylog(' (prnaryad.SUMMA+_summaDopl)*prnaryad.KTY = '+ string(_sumPremBeforeKoef));
+      }
+      if _sumPremBeforeKoefTotal <> 0
+         then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
 
-    //нормо-часы из нарядов
-    var _chas01 : double = 0;
-    _Loop prnaryad
-    { _chas01+=Prnaryad.NRMTIME;
-    }
-
-    ParseAlgParams(Parameter);
-    mylog('Алгоритм GLX_932_zp_alg:');
-    mylog(' Режим: ' + To_Char(pRejim));
-    mylog(' Год: ' + To_Char(pYear));
-    if GetFirst KlRejim where ((pRejim == KlRejim.Rejim)) != tsOk then
-    {
-      mylog('Не найден режим с кодом ' + To_Char(pRejim));
-      exit;
-    }
-    result := 555;
+      mylog(' _koeff = ' + string(_koeff));
+      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
+      result := _koeff*_sumPremBeforeKoefCur;
+      mylog(' result = '+ string(result));
 }
 
 function GetDescription: String;
 {
-    GetDescription := 'Среднемесячная норма рабочего времени';
+    GetDescription := 'Расчет премии в наряде задача GLX-932. Параметры: номер алгоритма (1, 2 или 3), показывать лог true/false, логировать действия true/false';
 }
 
 end.

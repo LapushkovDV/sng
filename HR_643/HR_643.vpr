@@ -50,6 +50,11 @@
 			</VipFiles>
 			<VipMessages>
 				<VerboseMake>True</VerboseMake>
+				<WarnScreenDuplicateNames>True</WarnScreenDuplicateNames>
+				<WarnConvertInteger>True</WarnConvertInteger>
+				<WarnConvertReal>True</WarnConvertReal>
+				<WarnConvertString>True</WarnConvertString>
+				<WarnConvertDateTime>True</WarnConvertDateTime>
 			</VipMessages>
 			<VipDatabase>
 				<Name>по умолчанию</Name>
@@ -87,14 +92,10 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="HR_643.prj" PosX="28" PosY="28" OpenEditor="True"/>
+			<File Name="HR_643.prj" PosX="30" PosY="31" OpenEditor="True"/>
+			<File Name="source\InterfaceSqlJournResp.vip" PosX="69" PosY="1924" OpenEditor="True" Active="True"/>
+			<File Name="source\JournalObjectsSpecFlt.vip" PosX="90" PosY="162" OpenEditor="True"/>
 			<File Name="source\JournalObjectsSpecif.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\JsonExpImpObjStruct.vpp" PosX="23" PosY="380" OpenEditor="True"/>
-			<File Name="source\JsonExport.vpp" PosX="1" PosY="382" OpenEditor="True"/>
-			<File Name="source\JsonImport.vpp" PosX="135" PosY="382" OpenEditor="True"/>
-			<File Name="source\InterfaceSqlJournResp.vip" PosX="98" PosY="1901" OpenEditor="True" Active="True"/>
-			<File Name="source\InterfaceSqlJournResp_userreport.vip" PosX="70" PosY="19" OpenEditor="True"/>
-			<File Name="source\absTables.vip" PosX="139" PosY="34" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -137,7 +138,8 @@
 			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 2" Line="625" NumIndex="2" MarkerType="mtNumBookmark" Comment="_ckatBox_to := _iSHK_InOut.GetKATBOXNRECByIdent(_ActionSpName, _tElements.value);"/>
 			<Marker FileName="Source\SHK_MakeMove.vip" Caption="Нумерованная закладка 1" Line="984" NumIndex="1" MarkerType="mtNumBookmark" Comment="MTov := ShowNalMKRMsg2Log(ResTov);"/>
 			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="650" NumIndex="1" MarkerType="mtNumBookmark" Comment=", SpBox_makeAction.cSALDOBOX := SaldoBox_makeAction.nrec"/>
-			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 1" Line="1321" NumIndex="1" MarkerType="mtNumBookmark" Comment="StringValue1 := REPLACE( UPCASE(StringValue1), UPCASE(X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name), JOBJECTSSP2.KeyVal[lnKey] ) ;"/>
+			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 2" Line="1291" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst"/>
+			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 1" Line="2045" NumIndex="1" MarkerType="mtNumBookmark" Comment="cmDeleteRecord:{   Delete current JOBJECTS;   }"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -145,19 +147,20 @@
 			<BreakPoint FileName="Source\shk_barcodeFunc.vip" Line="218"/>
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="206"/>
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
+			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\HR_643\S_ALter643.prj" DateTimeStart="45305,4388671528" DateTimeCompile="0,000357384262315463" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\HR_643\HR_643.prj" DateTimeStart="45318,8639688194" DateTimeCompile="0,000545069444342516" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }AMNAME=&quot;OutputFilesDirectory&quot; VALUE=&quot;C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\HR_643\HR_643\&quot;\ga" SourceLine="-1" SourceColumn="-1"/>
+					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OPENRESOURCES&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\GALSRV\C_EXTFUN.RES&quot;" SourceLine="-1" SourceColumn="-1"/>
 					<CompileMessage MessageType="mtError" MessageText="Для компиляции &quot;record as table&quot; необходимо соединение с БД" SourceFileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\COMPSRC\L\L_MCU\VIP\KATEDIZM\OEDIZM\oEdIzm.vih" SourceLine="27" SourceColumn="47">
 						<StackIncludeList>
 							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloTypes.inc" Line="19" Column="1"/>
 							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloVars.inc" Line="9" Column="1"/>
-							<StackInclude FileName="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\HR_643\S_ALter643.prj" Line="4" Column="1"/>
+							<StackInclude FileName="C:\Galaktika\_git\sng\HR_643\HR_643.prj" Line="4" Column="1"/>
 						</StackIncludeList>
 					</CompileMessage>
-					<CompileMessage MessageType="mtEndCompile" MessageText="14.01.2024 10:32:29"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="27.01.2024 20:44:54"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

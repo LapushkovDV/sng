@@ -90,11 +90,10 @@ Tree trResp  (,,sciEnEscTreeI);
   JOBJECTSSP.KeyVal[1]         '«ξη1'                              : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTSSP.KeyVal[2]         '«ξη2'                              : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTSSP.KeyVal[3]         '«ξη3'                              : [10], Protect, NoDel, NoPickButton, LessNull;
-/*
   JOBJECTSSP.KeyVal[4]         '«ξη4'                              : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTSSP.KeyVal[5]         '«ξη5'                              : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTSSP.KeyVal[6]         '«ξη6'                              : [10], Protect, NoDel, NoPickButton, LessNull;
-/**/
+
   JOBJECTSSP.GenKeyVal[1]      '†¨Ά®© «ξη1'                        : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.GenKeyVal[2]      '†¨Ά®© «ξη2'                        : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.GenKeyVal[3]      '†¨Ά®© «ξη3'                        : [10], Protect, NoDel, NoPickButton;
@@ -123,11 +122,11 @@ browse brResp  (,,sciEnEscI);
   JOBJECTSSP.KeyVal[1]         '«ξη1'                              : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.KeyVal[2]         '«ξη2'                              : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.KeyVal[3]         '«ξη3'                              : [10], Protect, NoDel, NoPickButton;
-/*
+
   JOBJECTSSP.KeyVal[4]         '«ξη4'                              : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.KeyVal[5]         '«ξη5'                              : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.KeyVal[6]         '«ξη6'                              : [10], Protect, NoDel, NoPickButton;
-/**/
+
   JOBJECTSSP.GenKeyVal[1]      '†¨Ά®© «ξη1'                        : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.GenKeyVal[2]      '†¨Ά®© «ξη2'                        : [10], Protect, NoDel, NoPickButton;
   JOBJECTSSP.GenKeyVal[3]      '†¨Ά®© «ξη3'                        : [10], Protect, NoDel, NoPickButton;
@@ -150,6 +149,7 @@ browse brRKey (,,scDef);
   X$FILES_Key.xf$Name          '¬ο','β ΅«¨ζλ'         : [20], Protect, NoDel, NoPickButton;
   x$Fields_Key.xe$Name         '¬ο','―®«ο'            : [20], Protect, NoDel, NoPickButton;
   JObjectsKey.KeyName          ' ¨¬¥­®Ά ­¨¥','ª«ξη '  : [20], Protect, NoDel, NoPickButton;
+  JObjectsKey.ExprField        '‘βΰ®ª®Ά®¥','®―ΰ¥¤¥«¥­¨¥' : [20], NoProtect, NoPickButton;
 //JObjectsKey.KeyType          '’¨― ª«ξη '             : [20], Protect, NoDel, NoPickButton;
 //JObjectsKey.KeyVal           '‡­ η¥­¨¥ ª«ξη '        : [20], Protect, NoDel, NoPickButton;
 end;

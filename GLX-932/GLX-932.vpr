@@ -117,19 +117,25 @@
 			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="227"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45315,7273599884" DateTimeCompile="0,000313622680550907" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45327,8488518518" DateTimeCompile="0,000326388893881813" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText=" омпил€ци€ прервана в результате ошибки процесса компил€ции."/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="24.01.2024 17:27:51"/>
+					<CompileMessage MessageType="mtError" MessageText="ќшибка при открытии include файла C_ARCHIVELINK.VIL" SourceFileName="C:\GALAKTIKA\GAL\FRM\INC\galaktika.vil" SourceLine="21" SourceColumn="27">
+						<StackIncludeList>
+							<StackInclude FileName="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" Line="5" Column="1"/>
+						</StackIncludeList>
+					</CompileMessage>
+					<CompileMessage MessageType="mtEndCompile" MessageText="05.02.2024 20:22:49"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="GLX-932.prj" PosX="1" PosY="21" OpenEditor="True"/>
-			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="1" PosY="23" OpenEditor="True" Active="True"/>
-			<File Name="..\..\..\..\Users\ƒмитрий\YandexDisk\Work\Ёнергомаш\GP_GIT\GP_Zp\Vip\Z_zar##ZarAlgorithm_58vo.Vip" PosX="47" PosY="349" OpenEditor="True"/>
-			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_Zar\vip\ZarAlg.vih" PosX="19" PosY="15" OpenEditor="True"/>
+			<File Name="GLX-932.prj" PosX="27" PosY="22" OpenEditor="True"/>
+			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="15" PosY="40" OpenEditor="True" Active="True"/>
+			<File Name="..\..\..\..\Users\ƒмитрий\YandexDisk\Work\Ёнергомаш\GP_GIT\GP_Zp\Vip\Z_zar##ZarAlgorithm_58vo.Vip" PosX="35" PosY="118" OpenEditor="True"/>
+			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_Zar\vip\ZarAlg.vih" PosX="22" PosY="7" OpenEditor="True"/>
+			<File Name="sng31vid_1_пример.vip" PosX="4" PosY="108" OpenEditor="True"/>
+			<File Name="..\..\..\GAL\Frm\Inc\galaktika.vil" PosX="80" PosY="25" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="GLX-932.prj" Priority="0">

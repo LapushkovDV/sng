@@ -1,0 +1,7 @@
+Alter dictionary;
+alter Table  JObjectsKey
+add (
+  ExprField  : String  "Текстовое определение поля"
+)
+;
+

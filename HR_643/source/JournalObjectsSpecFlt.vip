@@ -159,6 +159,7 @@ browse brRKey (,,scDef);
   X$FILES_Key.xf$Name          'Имя','таблицы'         : [20], Protect, NoDel, NoPickButton;
   x$Fields_Key.xe$Name         'Имя','поля'            : [20], Protect, NoDel, NoPickButton;
   JObjectsKey.KeyName          'Наименование','ключа'  : [20], Protect, NoDel, NoPickButton;
+  JObjectsKey.ExprField        'Строковое','определение' : [20], NoProtect, NoPickButton;
 //JObjectsKey.KeyType          'Тип ключа'             : [20], Protect, NoDel, NoPickButton;
 //JObjectsKey.KeyVal           'Значение ключа'        : [20], Protect, NoDel, NoPickButton;
 end;

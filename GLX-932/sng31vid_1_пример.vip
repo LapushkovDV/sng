@@ -1,0 +1,156 @@
+#statusline "statgal"
+
+#include galnet.inc end;
+#include glovars.inc
+
+#include galaktika.vil
+
+
+#component "Z_ZAR"
+objinterface IZarAlgorithm;
+  function CalcSum(Parameter: string): double;
+  function GetDescription: string;
+end;
+
+
+table struct result31
+(
+		cprnaryad:comp,
+		tabn:longint,
+		clsch:comp,
+		datan:date,
+		datok:date,
+		KTY:double,
+		summaSdel:double,
+		summaPrem:double,
+                summaDopl:double,
+		summPrevPriv:double
+
+
+)
+with index (r01=clsch, r02 = cprnaryad)
+;
+
+vipinterface ZarAlgorithm_31vid_ZAR_SNG implements IZarAlgorithm;
+interface ZarAlgorithm_31VID_ZAR_SNG;
+  var
+    DatNach: date;
+    METKAR : Boolean;
+    pLschet : comp;
+    stune : string;
+
+  create view createdView
+    as
+  select * from result31, prnaryad, sys_nar, prnaryad prnaryad1, nardop;
+
+
+  function CalcSum(Parameter: string): double;
+  {
+
+
+    delete all from result31;
+
+    var counter:longint;
+    var SummaPremKTY:double;
+    var	SummaPremRasp:double;
+
+    SummaPremRasp:=0;
+    SummaPremKTY:=0;
+    CalcSum := 0;
+
+
+     stune :=sgettune('UP.COMMONREPPACH'); //"Управление персоналом \ Путь к настройкам встроенного генератора отчетов"
+     if stune=''
+     {
+       Message('Не задан путь к шаблону excel',error);
+       exit;
+     }
+     stune:=stune+'31vid.xlsx';
+
+	if getfirst prnaryad1 where ((nar_nrec==prnaryad1.nrec))=tsok
+	{
+		_loop prnaryad where ((prnaryad1.mnrec==prnaryad.mnrec))
+		{
+		clearbuffer(#result31);
+		result31.cprnaryad:=prnaryad.nrec;
+		result31.tabn:=prnaryad.tabn;
+		result31.clsch:=prnaryad.clsch;
+		result31.datan:=prnaryad.datan;
+		result31.datok:=prnaryad.datok;
+		result31.KTY:=prnaryad.KTY;
+		result31.summaSdel:=PRNARYAD.SUMMA;
+		result31.summaPrem:=0;
+
+			_loop klvidopl where KLVIDOPL.VHVO[36]='+'
+			{
+				_loop nachisl where ((prnaryad.clsch==nachisl.clsch)) and klvidopl.vidopl=nachisl.vidopls and prnaryad.datan>=nachisl.datan and nachisl.datok<=prnaryad.datok
+				{
+				result31.summaDopl:=result31.summaDopl+nachisl.summa;
+				}
+			}
+		result31.summPrevPriv:=(result31.summaSdel+result31.summaDopl)*result31.KTY;
+
+		insert current result31;
+		}
+	}
+
+	_loop result31
+	{
+	  SummaPremKTY:=SummaPremKTY+result31.summPrevPriv;
+	}
+
+	if getfirst nardop where ((prnaryad1.mnrec==nardop.mnrec (noindex)))=tsok
+	{
+	SummaPremRasp:=nardop.double1;
+	}
+
+	_loop result31
+	{
+	result31.summaPrem:=SummaPremRasp/SummaPremKTY*result31.KTY*(result31.summaSdel+result31.SummaDopl);
+	update current result31;
+		if getfirst prnaryad where ((result31.cprnaryad==prnaryad.nrec))=tsok
+		{
+		prnaryad.SUMMPREM:=result31.summaPrem;
+		update current prnaryad;
+		}
+
+	}
+
+    putTableToDBF(#result31, stune, ptfFullTable);
+
+if getfirst result31 where ((Nar_nrec==result31.cprnaryad))=tsok
+	{
+	CalcSum:=result31.summaPrem;
+	}
+
+/*  
+  if GetFirst lschet where ((uch_lsch == lschet.nrec)) = tsOK
+    {
+      if lschet.kassir1 = 1
+      {
+      xlCreateExcelWithTemplate(stune, true);
+
+      if (xlIsExcelValid) xlSetActiveWorkBookByName('1');
+      counter := 2;
+      _loop result46 ordered by result46.yeark, result46.mes,result46.vidoplp
+      {
+        xlSetCellNumberValue(result46.mes, counter, 1, counter, 1);
+        xlSetCellNumberValue(result46.yeark, counter, 2, counter, 2);
+        xlSetCellNumberValue(result46.tabn, counter, 3, counter, 3);
+        xlSetCellNumberValue(result46.vidoplp, counter, 4, counter, 4);
+        xlSetCellNumberValue(result46.Summa, counter, 5, counter, 5);
+counter++;
+
+      }
+xlkillExcel;
+    }
+
+    }
+*/
+  }
+
+  function GetDescription: string;
+  {
+    GetDescription := '46 вид оплаты СНГ';
+  }
+end.

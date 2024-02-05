@@ -84,6 +84,7 @@ Create Table  JObjectsKey "Ключи объектов обмена"
 , KeyName    : s80     "Наименования ключей"
 , KeyType    : s20     "Типы ключей"
 , KeyVal     : String  "Значения ключей"
+, ExprField  : String  "Текстовое определение поля"
 )
 with Index
 (
@@ -149,4 +150,22 @@ with Index
  ,JObjectsPack05 = CRec + cRecObj + CObject
  ,JObjectsPack06 = cRecObj + CRec + CObject
  ,JObjectsPack07 = cRecObj + CObject + CRec
+);
+
+#info Создание структуры таблицы "Queue_RecipSystem"
+Create Table Queue_RecipSystem "Система-получатель в обмене"
+  With Table_CODE = 32156
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp      "Номер записи"
+, name        : string    "Наименование системы"
+, description : string    "Описание"
+, ChangeType  : word      "Тип обмена"
+, destination : string    "URL на API, путь на папку"
+, JRNlastNrec : comp      "NREC последней записи журнала"
+)
+with Index
+(
+  Queue_RecipSystem01 = NRec (unique, surrogate, journal)
 );

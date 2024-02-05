@@ -180,9 +180,9 @@ create view
   , MyTableFldDataTree  MyTableFldDataFlt2
   , MYTABLEQUERYFOROBJ
 
-	, JOBJECTS  (JOBJECTS02)
-	, JOBJECTS  JOBJECTS1
-//	  JOBJECTS  JOBJECTS2
+  , JOBJECTS  (JOBJECTS02)
+  , JOBJECTS  JOBJECTS1
+//    JOBJECTS  JOBJECTS2
   , JOBJECTS  JOBJECTSResp
   , JOBJECTS  JOBJECTSHead
   , JOBJECTS  JOBJECTSFnd
@@ -349,7 +349,11 @@ cmSetDefault:
 }
 cmInsertRecord:{  Insert current JObjectsPackNames;  RereadRecord(#JObjectsPackNames);   }
 cmUpdateRecord:{  Update current JObjectsPackNames;  RereadRecord(#JObjectsPackNames);   }
-cmDeleteRecord:{  Delete current JObjectsPackNames;  RereadRecord(#JObjectsPackNames);   }
+cmDeleteRecord:{
+     if Message('Удалить?', YesNo) = cmYes
+      then Delete current JObjectsPackNames;
+    RereadRecord(#JObjectsPackNames);
+  }
 end;
 
 //-----------
@@ -418,23 +422,25 @@ Function  GetQueryResForObject( parObj : comp ) : word;
     var lsStrValue : string;
 
     //соберем запрос
-    _loop MyTableQueryForObj where (( parObj == MyTableQueryForObj.cObject ))
-       SqlAddStrLog( MyTableQueryForObj.SqlAddStr );
+    _loop MyTableQueryForObj where (( parObj == MyTableQueryForObj.cObject )) {
 
-		que:=queryManager.createQuery(q1);
+       SqlAddStrLog( MyTableQueryForObj.SqlAddStr );
+      }
+
+    que:=queryManager.createQuery(q1);
 
     ResultSet:=que.GetResultSet;
 
     if(que.errorCode = 0)
-		{
+        {
 
         if ResultSet.getFirst()=TsOk
-			  {
+              {
           lnColCountMax := 0;
 
           do
-	   			{
-				     ResultRow:=ResultSet.row;
+                   {
+                     ResultRow:=ResultSet.row;
 
              if lnColCountMax = 0
              if GetFirst MyTableFldDataTree where (( parObj == MyTableFldDataTree.cObject )) = tsOk
@@ -449,7 +455,7 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                 }
 
                 for(i:=1;i<=lnColCountMax;i++)
-				        {
+                        {
                    ResultCol:=ResultRow.colAt(i);
                    set MyTableFldDataTree.Name[i] := ResultCol.Name;
                    MyLog('for(i:=1;i<=lnColCountMax;i++): '+'MyTableFldDataTree.Name['+i+ '] = '+MyTableFldDataTree.Name[i]);
@@ -481,14 +487,14 @@ Function  GetQueryResForObject( parObj : comp ) : word;
 
             // хз что это... просто закомментировал lnColCountMax + lnGenKey
 
-				     clearBuffer(#MyTableTemp);
+                     clearBuffer(#MyTableTemp);
 
              for(ii:=1; ii<=lnGenKey; ii++)
              if (lnColCountMax+ii) < cnColMyTable  //чтобы не выйти за границы масс
                 then set MyTableDataTree.FieldString[lnColCountMax+ii] := MyTableFldDataTree.GenKeyVal[ii];
 
-	   			   for(i:=1;i<=lnColCountMax;i++)
-				     {
+                      for(i:=1;i<=lnColCountMax;i++)
+                     {
                 //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
                 lsStrValue := String( ResultRow.valAt(i), 255, 10);
                 //форматирование для типов (дата/время)
@@ -510,18 +516,18 @@ Function  GetQueryResForObject( parObj : comp ) : word;
                                                         , MyTableDataTree.FieldString[i] )
                                                ,1,255);
                  }
-					   }
+                       }
               set MyTableDataTree.cObject := parObj;
               set MyTableDataTree.nRec    := MyTableDataTree.FieldString[1]; //!!!! всегда первое в запросе!!!
-				     insert current MyTableDataTree;
+                     insert current MyTableDataTree;
 
              result := 1;
 
-				     if not nNextVisual (100) {break;}
-				   }
-			     while ResultSet.getNext()=TsOk
+                     if not nNextVisual (100) {break;}
+                   }
+                 while ResultSet.getNext()=TsOk
 
-			  }
+              }
         else
         {
            result := 2;
@@ -579,14 +585,27 @@ Procedure SetQueryForObject( parObj, parObjMain : comp );
 
        //ключевые поля добавим в запрос
        if lnKey = 0                //_loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  1 << JObjectsKey1.CODE ))
-       _loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  0 << JObjectsKey1.CODE ))  //поля БД
-       if JObjectsKey1.FIELDCODE > 0
+       _loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  0 <<= JObjectsKey1.CODE ))  //поля БД
        {
-          lnKey++;;
-          if lnKey <= cnKeyMax
-             then InsMyTableQueryForObj(JOBJECTSResp.nRec,  if(lnKey>1, ' , ', ' , ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
-                                 + if( JObjectsKey1.KeyName <> '', ' as '+JObjectsKey1.KeyName, '')
-                               );
+           mylog('JObjectsKey1.FIELDCODE = '+JObjectsKey1.FIELDCODE+ ' | JObjectsKey1.ExprField = ' + JObjectsKey1.ExprField);
+
+           if JObjectsKey1.FIELDCODE = 0 and trim(JObjectsKey1.ExprField) <> ''
+           {
+              lnKey++;
+              if lnKey <= cnKeyMax
+                 then InsMyTableQueryForObj(JOBJECTSResp.nRec,  if(lnKey>1, ' , ', ' , ')+UPCASE( JObjectsKey1.ExprField )
+                                     + if( JObjectsKey1.KeyName <> '', ' as '+JObjectsKey1.KeyName, '')
+                                   );
+           }
+
+           if JObjectsKey1.FIELDCODE > 0
+           {
+              lnKey++;
+              if lnKey <= cnKeyMax
+                 then InsMyTableQueryForObj(JOBJECTSResp.nRec,  if(lnKey>1, ' , ', ' , ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name )
+                                     + if( JObjectsKey1.KeyName <> '', ' as '+JObjectsKey1.KeyName, '')
+                                   );
+           }
        }
        if GetFirst JObjectsKey1 where (( parObj == JObjectsKey1.cRec and  0 << JObjectsKey1.CODE )) = tsOk {}
        //наименование таблицы в запрос
@@ -1146,7 +1165,6 @@ procedure GetJournalUpdate( parObjMain : comp);
 Procedure SetJournalSpCurKeys;
 {
    var ii : integer;
-
    //собрали собственные ключи объекта=запроса
    lnKey := lnGenKey := 0;
 
@@ -1155,50 +1173,40 @@ Procedure SetJournalSpCurKeys;
    //генерируемые живые ключи
    _loop JObjectsKey1 where (( JOBJECTS.Nrec == JObjectsKey1.cRec and 0 == JObjectsKey1.FIELDCODE ))
    if TRIM(UPCASE(JObjectsKey1.KeyVal  )) <> ''
-   if TRIM(UPCASE(JObjectsKey1.KeyName )) <> ''
-   {
+   if TRIM(UPCASE(JObjectsKey1.KeyName )) <> '' {
        lnGenKey++;
        if lnGenKey <= cnKeyMax
-          set JOBJECTSSP.GenKeyVal[lnGenKey] := UPCASE(JObjectsKey1.KeyVal);
+        then set JOBJECTSSP.GenKeyVal[lnGenKey] := UPCASE(JObjectsKey1.KeyVal);
    }
 
    //  ключи = поле БД
-   _loop JObjectsKey1 where (( JOBJECTS.Nrec  == JObjectsKey1.cRec and 0 << JObjectsKey1.FIELDCODE ))
-   {
+   _loop JObjectsKey1 where (( JOBJECTS.Nrec  == JObjectsKey1.cRec and 0 << JObjectsKey1.FIELDCODE )) {
        lnKey++;
-       if lnKey <= cnKeyMax
-       {
-
+       if lnKey <= cnKeyMax {
           set JOBJECTSSP.KeyVal[lnKey]   := MyTableTemp.FieldString[lnKey];
-
           //сформируем генерируемые живые ключи из значений ключей=полей
           for(ii:=1; ii<=lnGenKey; ii++)
           set JOBJECTSSP.GenKeyVal[ii]  :=  REPLACE(  JOBJECTSSP.GenKeyVal[ii]
                                        // , UPCASE('['+X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name+']')
                                           , UPCASE('['+x$Fields_Key1.xe$Name+']')
-                                          , JOBJECTSSP.KeyVal[lnKey] );
-
+                                          , JOBJECTSSP.KeyVal[lnKey]);
 
           //сформируем наименование из значений ключей=полей
           lsNameVal := REPLACE( lsNameVal
                            //  , UPCASE('['+X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name+']')
                                , UPCASE('['+ x$Fields_Key1.xe$Name+']')
-                               , JOBJECTSSP.KeyVal[lnKey] )
+                               , JOBJECTSSP.KeyVal[lnKey] );
        }
    }
-
   set JOBJECTSSP.Name := lsNameVal;
 }
 
 Procedure SetJournalSp( parObjMain, parCrecObjMain, parObj, parCRec : comp; parTable : word; parTableNrec : comp );
 {
-      if GetFirst JOBJECTSSP where
-            ((
-                         parObj        ==  JOBJECTSSP.cObject
-                  and    parTable      ==  JOBJECTSSP.TABLECODE
-                  and    parTableNrec  ==  JOBJECTSSP.TableNrec
-            )) <> tsOk
-      {
+      if GetFirst JOBJECTSSP where ((       parObj == JOBJECTSSP.cObject
+                               and        parTable == JOBJECTSSP.TABLECODE
+                               and    parTableNrec == JOBJECTSSP.TableNrec
+         )) <> tsOk {
 
          clearBuffer(#JOBJECTSSP);
          //объект отслеживания
@@ -1222,29 +1230,24 @@ Procedure SetJournalSp( parObjMain, parCrecObjMain, parObj, parCRec : comp; parT
 
          //только для корневых - вставка нового объекта в офисы
          if JOBJECTSSP.cObject = JOBJECTSSP.cObjMain
-            SetJournalUpdateOffices(JOBJECTSSP.cObjMain, JOBJECTSSP.Nrec);
+            then SetJournalUpdateOffices(JOBJECTSSP.cObjMain, JOBJECTSSP.Nrec);
 
          lnKolInResp++;
       }
       else
-      if lbKeyUpdate  //обновить ключи по записям
-      {
-         SetJournalSpCurKeys;
-
-         update current JOBJECTSSP;
-
-         lnKolInRespKey++;
+      if lbKeyUpdate  { //обновить ключи по записям
+        SetJournalSpCurKeys;
+        update current JOBJECTSSP;
+        lnKolInRespKey++;
       }
-
 }
 
 Procedure SetRespToJournal( parObjMain, parCrecObjMain, parObj, parCRec : comp; parTable : word );
 {
-   _loop MyTableTemp
-   {
+   _loop MyTableTemp {
       SetJournalSp( parObjMain, parCrecObjMain, parObj, parCRec, parTable
                         , MyTableTemp.FieldString[1]  //всегда NREC
-                  )
+                  );
    }
 }
 
@@ -1314,27 +1317,31 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
      {
         lnGenKey++;
      }
-     if lnGenKey > cnKeyMax
-     {
+     if lnGenKey > cnKeyMax {
         MyLog(           'Количество живых ключей ограничено :'+cnKeyMax
                         + CHR(13) + 'Количество живых ключей в запросе  :'+lnGenKey);
      }
 
      //ключевые поля добавим в запрос
-     _loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  0 << JObjectsKey1.FIELDCODE ))  //поля БД
+     _loop JObjectsKey1 where (( parObj  == JObjectsKey1.cRec and  0 <<= JObjectsKey1.FIELDCODE ))  //поля БД
      {
-        lnKey++;
-        if lnKey <= cnKeyMax
-        SqlAddStrLog( if(lnKey>1, ' , ', ' ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name ) )
-
+       if JObjectsKey1.FIELDCODE <> 0 {
+          lnKey++;
+          if lnKey <= cnKeyMax
+           then SqlAddStrLog( if(lnKey>1, ' , ', ' ')+UPCASE( X$FILES_Key1.xf$Name+'.'+x$Fields_Key1.xe$Name ) )
+        }
+       if JObjectsKey1.FIELDCODE = 0 and trim(JObjectsKey1.ExprField) <> ''
+       {
+          lnKey++;
+          if lnKey <= cnKeyMax
+           then SqlAddStrLog( if(lnKey>1, ' , ', ' ')+UPCASE( JObjectsKey1.ExprField ) )
+       }
      }
-     if lnKey > cnKeyMax
-     {
+     if lnKey > cnKeyMax {
         MyLog(           'Количество ключевых полей БД ограничено :'+cnKeyMax
                         + CHR(13) + 'Количество ключевых полей БД в запросе  :'+lnKey);
      }
-     if lnKey = 0
-     {
+     if lnKey = 0 {
         MyLog( 'не указано ни одного ключа. запрос не сформирован');
         Exit;
      }
@@ -1344,9 +1351,9 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
 
      //подстановка значений ключей родителя
      MemoFile.OpenMemo(JOBJECTSResp.Notes);
-		 do
-		 {
-		    MemoFile.readln(StringValue1);
+     do
+      {
+        MemoFile.readln(StringValue1);
 
         if trim(StringValue1) = ''
            continue;
@@ -1362,11 +1369,15 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
         mylog('parSpNrec = ' + parSpNrec);
 
 
+        ReplaceSynonims(StringValue1,parSpNrec); // пойдем по заполненным уже данным вверх
+
         if parOwner  <> 0
         if parSpNrec <> 0
            StringValue1 := ReplaceSynonims(StringValue1,parSpNrec); // пойдем по заполненным уже данным вверх
 
 /* убираем вообще этот принцип замены, только по синонимам теперь
+и не понимаю зачем тут lnKey считается... это же условия, а не поля запроса
+
         if GetFirst fastfirstRow JOBJECTSSP2 where (( parSpNrec == JOBJECTSSP2.Nrec )) = tsOk
         _loop JObjectsKey1 where (( parOwner == JObjectsKey1.cRec  and   0 << JObjectsKey1.FIELDCODE )) //поля БД
         {
@@ -1378,80 +1389,62 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
 
 
         }
-
-*/
-
-        if lnKey > cnKeyMax
-        {
+        if lnKey > cnKeyMax {
            MyLog(         'Количество ключей ограничено :'+cnKeyMax
                           + CHR(13) + 'Количество ключей в запросе  :'+lnKey);
         }
-
-	      SqlAddStrLog( StringValue1 );
+*/
+        SqlAddStrLog( StringValue1 );
         lnRow++;
- 		 }
-		 while (not MemoFile.EOF);
-		 MemoFile.Close;
+      } while (not MemoFile.EOF);
 
-		 que:=queryManager.createQuery(q1);
+     MemoFile.Close;
+
+     que:=queryManager.createQuery(q1);
 
      ResultSet:=que.GetResultSet;
 
-     if(que.errorCode = 0)
-		 {
+     if(que.errorCode = 0) {
+        if ResultSet.getFirst()=TsOk {
+            lnColCountMax := 0;
 
-        if ResultSet.getFirst()=TsOk
-			  {
-          lnColCountMax := 0;
+            do {
+                 ResultRow:=ResultSet.row;
 
-          do
-	   			{
-				     ResultRow:=ResultSet.row;
+                 if lnColCountMax = 0 {
+                    lnColCountMax := ResultRow.count;
+                    if lnColCountMax > cnColMyTable {
+                       MyLog(           'Количество столбцов ограничено :'+cnColMyTable
+                                        + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
+                       lnColCountMax := cnColMyTable;
+                    }
 
-             if lnColCountMax = 0
-             {
-                lnColCountMax := ResultRow.count;
-                if lnColCountMax > cnColMyTable
-                {
-                   MyLog(           'Количество столбцов ограничено :'+cnColMyTable
-                                    + CHR(13) + 'Количество столбцов в запросе  :'+lnColCountMax);
+                    if lbBrResp
+                    or lbJsonExp
+                    {
+                      for(i:=1;i<=lnColCountMax;i++) {
+                        ResultCol:=ResultRow.colAt(i);
+                        set MyTableFld.Name[i] := ResultCol.Name;
+                        MyLog( 'MyTableFld.Name['+i+ '] = '+MyTableFld.Name[i])
+                      }
+                      insert current MyTableFld;
+                    }
+                 }
 
-                   lnColCountMax := cnColMyTable
+                 clearBuffer(#MyTableTemp);
+                 set MyTableTemp.nRec:=0;
+                 for(i:=1;i<=lnColCountMax;i++) {
+                    //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
+                    set MyTableTemp.FieldString[i] := String( ResultRow.valAt(i), 255, 10);
+                    MyLog('MyTableTemp.FieldString['+i+'] = '+String( MyTableTemp.FieldString[i] ,30,10));
+                 }
 
-                }
+                 insert current MyTableTemp;
 
-                if lbBrResp
-                or lbJsonExp
-                {
-                   for(i:=1;i<=lnColCountMax;i++)
-				           {
-                      ResultCol:=ResultRow.colAt(i);
-                      set MyTableFld.Name[i] := ResultCol.Name;
-
-                    MyLog( 'MyTableFld.Name['+i+ '] = '+MyTableFld.Name[i])
-                   }
-                   insert current MyTableFld;
-                }
-             }
-
-				     clearBuffer(#MyTableTemp);
-   				   set MyTableTemp.nRec:=0;
-	   			   for(i:=1;i<=lnColCountMax;i++)
-				     {
-                //внимание, чтобы не съедались хвосты в дробной части!!! остальным типам не мешает!
-                set MyTableTemp.FieldString[i] := String( ResultRow.valAt(i), 255, 10);
-
-                MyLog('MyTableTemp.FieldString['+i+'] = '+String( MyTableTemp.FieldString[i] ,30,10));
-					   }
-				     insert current MyTableTemp;
-
-             result := 1;
-
-				     if not nNextVisual (100) {break;}
-				   }
-			     while ResultSet.getNext()=TsOk
-
-			  }
+                 result := 1;
+                 if not nNextVisual (100) {break;}
+             } while ResultSet.getNext()=TsOk
+          }
         else
         {
            result := 2;
@@ -1464,13 +1457,10 @@ Function GetRespResult( parObj: comp; parOwner: comp=0; parSpNrec: comp=0 ) : wo
    //   Message('Ошибка № '+que.errorCode);
         MyLog( 'Ошибка № '+que.errorCode);
         MyLog(JOBJECTSResp.CODE+' '+JOBJECTSResp.Name);
-
         MyLog('запрос не сформирован. Ошибка № '+que.errorCode);
-
         ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Ошибочный запрос')
      }
-
-     sqlFreeStr(q1);
+   sqlFreeStr(q1);
 }
 
 function GetMainObject( parObj: comp ) : comp;
@@ -1481,18 +1471,15 @@ function GetMainObject( parObj: comp ) : comp;
     while true  //найдем корневой  (НЕ РОДИТЕЛЬСКИЙ) объект!!!
     {
       if getFirst JOBJECTS1 where ((  lcObjMain == JOBJECTS1.nRec ))= TsOk
-      if JOBJECTS1.CREC = 0
-      {
+      if JOBJECTS1.CREC = 0 {
          lcObjMain  := JOBJECTS1.nRec;
          break;
       }
-      else
-      {
+      else {
          lcObjMain  := JOBJECTS1.cRec
       }
     }
-
-    result := lcObjMain;
+  result := lcObjMain;
 }
 
 procedure GetObjectsTree( parObj: comp; parInsMainObj : boolean = false );
@@ -1562,16 +1549,11 @@ Procedure GetCurrObjectResp;
     lnKolInResp := lnKolInRespKey := 0;
 
     //-------------
-    if JOBJECTS.CREC = 0  //корневой объект
-    {
-       if GetRespResult( JOBJECTS.nrec ) = 1  //есть записи
-       {
-          SetRespToJournal( JOBJECTS.Nrec, 0,  JOBJECTS.Nrec,  0, JOBJECTS.TABLECODE );
-
-
+    if JOBJECTS.CREC = 0 { //корневой объект
+       if GetRespResult( JOBJECTS.nrec ) = 1 { //есть записи
+         SetRespToJournal( JOBJECTS.Nrec, 0,  JOBJECTS.Nrec,  0, JOBJECTS.TABLECODE );
          lbJsonExp := true;
-         if lbJsonExp
-         {
+         if lbJsonExp {
           /*
             Message('111111')
              _JSF.Init;
@@ -1582,17 +1564,14 @@ Procedure GetCurrObjectResp;
     }
 
     if JOBJECTS.CREC <> 0  //есть родительский объект
-    if getFirst JOBJECTS1 where (( JOBJECTS.CREC ==JOBJECTS1.nRec ))= TsOk
-    {
+    if getFirst JOBJECTS1 where (( JOBJECTS.CREC ==JOBJECTS1.nRec ))= TsOk {
        //по всем зарегистрированным записям родительского объекта
        _Loop JOBJECTSSP1 where ((     JOBJECTS1.Nrec      == JOBJECTSSP1.cObject    //по объекту
                                  and  JOBJECTS1.TABLECODE == JOBJECTSSP1.TABLECODE  //по таблице
-                                ))
-       {
+                                )) {
 
           //запрос подчиненных записей после подстановки значений ключей родителя
-          if GetRespResult( JOBJECTS.nrec, JOBJECTS1.nRec, JOBJECTSSP1.nrec )   = 0
-          {
+          if GetRespResult( JOBJECTS.nrec, JOBJECTS1.nRec, JOBJECTSSP1.nrec )   = 0 {
              break;
           }
 
@@ -1615,7 +1594,7 @@ end;
 
 Procedure ClearObject;
 {
-				var aList : array [1..1] of string;
+                var aList : array [1..1] of string;
         var i,n,rc:longint;
 
         SetLimit(aList, 0); // очистить массив
@@ -1627,7 +1606,7 @@ Procedure ClearObject;
         }
 
 
-				n:=count(aList);
+                n:=count(aList);
 
         if n>0
         {
@@ -1640,7 +1619,6 @@ Procedure ClearObject;
 
 Procedure GetRespBrowse; //по текущей JOBJECTS
 {
-
     StartNewVisual (vtNumericVisual,vfBreak, 'Выборка данных по объектам',100);
 
     PushPos(#JOBJECTS);
@@ -1649,25 +1627,22 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
     MyLog(PAD(JOBJECTS.Code,10)+' '+ SubStr(JOBJECTS.name,1, 150) );
     MyLog( '      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
 
-
-    if lbObjUpdate
-    {
+    if lbObjUpdate {
        lbObjUpdate := false;
 
        //запросы по всем вложенным
        _loop MyTableObj ordered by Index byNpp
-       if GetFirst JOBJECTS where (( MyTableObj.Nrec == JOBJECTS.Nrec )) = tsOk
-       {
+       if GetFirst JOBJECTS where (( MyTableObj.Nrec == JOBJECTS.Nrec )) = tsOk {
           GetCurrObjectResp;
           MyLog(SubStr(MyTableObj.name,1, 150) );
           MyLog('      новых записей '+lnKolInResp+if(lnKolInRespKey>0, ', обновлений по ключам '+lnKolInRespKey, ''));
        }
-
     }
 
+/*  походу вообще не надо
+
     if lbBrResp //не будем отражать
-    if getFirst MyTable=tsOk
-    {
+    if getFirst MyTable=tsOk {
        ClearObject;
 
        var  i :longint;
@@ -1678,44 +1653,40 @@ Procedure GetRespBrowse; //по текущей JOBJECTS
        var Ercfg:longint;
 
        //Destroy Browse - валил атлантис, поэтому УБИРАЮ удаление. и один раз создаем, если нет.
-           if cfsGetObjInfo('BR1',aFullName,aSelf,aContainer,aObjType) !=cfOk
-           {
-           				Ercfg:=cfsCreateObject ('Browser','SQLREP','BR1',false,aself);
+           if cfsGetObjInfo('BR1',aFullName,aSelf,aContainer,aObjType) !=cfOk {
+                  Ercfg:=cfsCreateObject ('Browser','SQLREP','BR1',false,aself);
                                      cfsSetProp (aSelf,cfpPanelTable,#MyTable);
                                      cfsSetProp (aSelf,'Visible',True);
-									 cfsSetProp (aSelf,'Original',True);
-//									 cfsSetProp (aSelf,'Title',BuhRep.Name);
-									 cfsSetProp (aSelf,cfpRectA_X,0);
-									 cfsSetProp (aSelf,cfpRectA_Y,0);
-									 cfsSetProp (aSelf,cfpRectB_X,80);
-									 cfsSetProp (aSelf,cfpRectB_Y,24);
-
-
+                   cfsSetProp (aSelf,'Original',True);
+//                   cfsSetProp (aSelf,'Title',BuhRep.Name);
+                   cfsSetProp (aSelf,cfpRectA_X,0);
+                   cfsSetProp (aSelf,cfpRectA_Y,0);
+                   cfsSetProp (aSelf,cfpRectB_X,80);
+                   cfsSetProp (aSelf,cfpRectB_Y,24);
            }
 
-				   for(i:=1;i<=lnColCountMax;i++)
-				   {
-                   cfsDestroyObject('Field: MyTable.FieldString['+i+']');
-									 Ercfg:=cfsCreateObject ('Column','BR1','Field: MyTable.FieldString['+i+']',false,aself);
-									 if Ercfg=0
-									  {
-									    cfsSetProp (aSelf,'Title', MyTableFld.Name[i]);
-									    cfsSetProp (aSelf,'Original',True);
-									    cfsSetProp (aSelf,'Visible',True);
-									    cfsSetProp (aSelf,'TextAlign',taLeft);
-                      cfsSetProp (aSelf,'MaxLen', Integer(260) );
-									    cfsSetProp (aSelf,'FieldName','Field: MyTable.FieldString['+i+']');
-									    cfsSetProp (aSelf,cfpDefWidth,  Integer(25));
-									  }
-				   }
-
+           for(i:=1;i<=lnColCountMax;i++) {
+               cfsDestroyObject('Field: MyTable.FieldString['+i+']');
+               Ercfg:=cfsCreateObject ('Column','BR1','Field: MyTable.FieldString['+i+']',false,aself);
+               if Ercfg=0 {
+                  cfsSetProp (aSelf,'Title', MyTableFld.Name[i]);
+                  cfsSetProp (aSelf,'Original',True);
+                  cfsSetProp (aSelf,'Visible',True);
+                  cfsSetProp (aSelf,'TextAlign',taLeft);
+                  cfsSetProp (aSelf,'MaxLen', Integer(260) );
+                  cfsSetProp (aSelf,'FieldName','Field: MyTable.FieldString['+i+']');
+                  cfsSetProp (aSelf,cfpDefWidth,  Integer(25));
+                }
+           }
 
        ReScanPanel(#MyTable);
        RunWindow(SqlRep);
 
     }
-    else   message('Последний результат не содержит записей!');
-
+    else {
+      message('Последний результат не содержит записей!');
+    }
+*/
     StopVisual('', 0);
 
     PopPos(#JOBJECTS);
@@ -1728,27 +1699,26 @@ Function GetMainJObjKeyFld ( parTABLECODE : word ): string;
 {
    result := ''; // x$Fields.XE$NAME; //x$Fields.xe$Code
 
-   if GetFirst x$Fields where ((  parTABLECODE == x$Fields.xe$FileCode  and  'NREC'     == x$Fields.XE$NAME )) = tsOk
-   {
+   if GetFirst x$Fields where ((  parTABLECODE == x$Fields.xe$FileCode  and  'NREC'     == x$Fields.XE$NAME )) = tsOk {
       result := x$Fields.XE$NAME;
    }
-   else
-   if GetFirst x$Fields where ((  parTABLECODE == x$Fields.xe$FileCode  and  'ATL_NREC' == x$Fields.XE$NAME )) <> tsOk
-   {
-      result := x$Fields.XE$NAME;
+   else {
+     if GetFirst x$Fields where ((  parTABLECODE == x$Fields.xe$FileCode  and  'ATL_NREC' == x$Fields.XE$NAME )) <> tsOk {
+        result := x$Fields.XE$NAME;
+     }
+     else {
+       //по уникальному суррогатному индексу (unique, surrogate, journal)
+       _loop X$INDEXES where (( parTABLECODE == X$INDEXES.XI$FILECODE ))
+         if X$INDEXES.XI$FLAGS = 1792  //побитовая маска должна быть???
+         or X$INDEXES.XI$FLAGS = 1794
+           if GetFirst x$Fields where (( parTABLECODE == x$Fields.xe$FileCode and X$INDEXES.XI$FIELDCODE== x$Fields.XE$CODE )) = tsOk {
+              result := x$Fields.XE$NAME;
+              break;
+           }
+     }
    }
-   else
-   //по уникальному суррогатному индексу (unique, surrogate, journal)
-   _loop X$INDEXES where (( parTABLECODE == X$INDEXES.XI$FILECODE ))
-   if X$INDEXES.XI$FLAGS = 1792  //побитовая маска должна быть???
-   or X$INDEXES.XI$FLAGS = 1794
-   if GetFirst x$Fields where (( parTABLECODE == x$Fields.xe$FileCode and X$INDEXES.XI$FIELDCODE== x$Fields.XE$CODE )) = tsOk
-   {
-      result := x$Fields.XE$NAME;
-      break;
-   }
-
 }
+
 function SetTableFldToResp ( parKodTable : word) : word ;
 {
    result := 0;
@@ -1758,9 +1728,8 @@ function SetTableFldToResp ( parKodTable : word) : word ;
    RunInterface( GetOneField, parKodTable, lnKodFld, 0);
 
    if lnKodFld <> 0
-   if GetFirst x$Fields where ((  parKodTable == x$Fields.xe$FileCode and lnKodFld == x$Fields.xe$Code )) = tsOk
-   {
-       set JObjectsKey.FIELDCODE := x$Fields.xe$Code // X$FILES.xf$Name + '.' +x$Fields.xe$Name
+   if GetFirst x$Fields where ((  parKodTable == x$Fields.xe$FileCode and lnKodFld == x$Fields.xe$Code )) = tsOk {
+     set JObjectsKey.FIELDCODE := x$Fields.xe$Code // X$FILES.xf$Name + '.' +x$Fields.xe$Name
    }
 }
 function SetTableToResp : word;
@@ -1772,8 +1741,7 @@ function SetTableToResp : word;
 // RunDialog( C_COMMON::GetAttrVal, lnKodRep);
    if RunInterface( GetOneTable, lnKodRep) = cmDefault {
 
-       if GetFirst X$FILES where (( lnKodRep == X$FILES.XF$CODE )) = tsOk
-       {
+       if GetFirst X$FILES where (( lnKodRep == X$FILES.XF$CODE )) = tsOk {
           set JOBJECTS.TABLECODE := lnKodRep;
           set JOBJECTS.Name      := JOBJECTS.Name +' '+x$Files.xf$Title;
           set JOBJECTS.MainKey   := GetMainJObjKeyFld(lnKodRep);
@@ -1788,26 +1756,24 @@ Procedure SetMainJObjKey;
 {
    Exit; //21.09.2023 убрала, ткт внесла выше ключевое поле в сам объект
 
-   if GetFirst JObjectsKey where  (( JOBJECTS.Nrec == JObjectsKey.cRec  and 0 << JObjectsKey.FIELDCODE )) <> tsOk
-   {
+   if GetFirst JObjectsKey where  (( JOBJECTS.Nrec == JObjectsKey.cRec  and 0 << JObjectsKey.FIELDCODE )) <> tsOk {
 
-   clearBuffer(#JObjectsKey);
+     clearBuffer(#JObjectsKey);
 
-   set JObjectsKey.nRec      := 0;
-   set JObjectsKey.cRec      := JOBJECTS.Nrec;
-   set JObjectsKey.TABLECODE := JOBJECTS.TABLECODE;
+     set JObjectsKey.nRec      := 0;
+     set JObjectsKey.cRec      := JOBJECTS.Nrec;
+     set JObjectsKey.TABLECODE := JOBJECTS.TABLECODE;
 
-   if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode and 'NREC' == x$Fields.XE$NAME )) <> tsOk
-   if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode and 'ATL_NREC' == x$Fields.XE$NAME )) <> tsOk
-   if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode  )) <> tsOk
-   {
-     //не бывает, чтобы полей не было вообще
-   }
+     if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode and 'NREC' == x$Fields.XE$NAME )) <> tsOk
+     if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode and 'ATL_NREC' == x$Fields.XE$NAME )) <> tsOk
+     if GetFirst x$Fields where ((  JObjectsKey.TABLECODE == x$Fields.xe$FileCode  )) <> tsOk {
+       //не бывает, чтобы полей не было вообще
+     }
 
-   set JObjectsKey.CODE  := 1;
-   set JObjectsKey.FIELDCODE := x$Fields.xe$Code;
+     set JObjectsKey.CODE  := 1;
+     set JObjectsKey.FIELDCODE := x$Fields.xe$Code;
 
-   insert current JObjectsKey;
+     insert current JObjectsKey;
 
    }
 
@@ -1847,12 +1813,13 @@ browse brJObjKeysSp;
  show at ( ,4,,9);
   table JObjectsKey;
  Fields
-  JObjectsKey.CODE             'Код'                 : [10], NoProtect, PickButton, LessNull;
-  X$FILES_Key.xf$Name          'Имя таблицы'         : [20], Protect, NoDel, NoPickButton;
-  x$Fields_Key.xe$Name         'Имя поля'            : [20], Protect, NoDel, NoPickButton;
-  JObjectsKey.KeyVal           'Значение ключа'      : [20], NoProtect, NoPickButton;
-  JObjectsKey.KeyName          'Наименование ключа'  : [20], NoProtect, NoPickButton;
-  JObjectsKey.KeyType          'Тип ключа'           : [8],  NoProtect, NoPickButton;
+  JObjectsKey.CODE             'Код'                     : [10], NoProtect, PickButton, LessNull;
+  X$FILES_Key.xf$Name          'Таблица','наименование'  : [20], Protect, NoDel, NoPickButton;
+  x$Fields_Key.xe$Name         'Поле','наименование'     : [20], Protect, NoDel, NoPickButton;
+  JObjectsKey.ExprField        'Строковое','определение' : [20], NoProtect, NoPickButton;
+  JObjectsKey.KeyVal           'Ключ','значение'         : [20], NoProtect, NoPickButton;
+  JObjectsKey.KeyName          'Ключ','наименование'     : [20], NoProtect, NoPickButton;
+  JObjectsKey.KeyType          'Ключ','тип'              : [8],  NoProtect, NoPickButton;
 end;
 
 tabbedSheet  bottom tab
@@ -1949,7 +1916,7 @@ Tree trResp  (,,sci13478EnEscTreeI);
   recMarker = pMarker{JOBJECTS.nRec};
 
  Fields
-	JOBJECTS.Name               'Наименование','запроса'     :       Protect, NoDel, NoPickButton;
+    JOBJECTS.Name               'Наименование','запроса'     :       Protect, NoDel, NoPickButton;
   JOBJECTS.CODE               'Номер','запроса'            : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTS.TABLECODE          'Код','таблицы'              : [10], Protect, NoDel, NoPickButton, LessNull, NoAutoSize;
   x$Files_Obj.xf$Name         'Имя таблицы'                : [20], Protect, NoDel, NoPickButton;
@@ -1963,7 +1930,7 @@ browse brResp  (,,sci13478EnEscI);
 
  Fields
   JOBJECTSHead.Name           'Наименование','корневого запроса' : Protect, NoDel, NoPickButton;
- 	JOBJECTS.Name               'Наименование','запроса'     : [25], Protect, NoDel, NoPickButton;
+     JOBJECTS.Name               'Наименование','запроса'     : [25], Protect, NoDel, NoPickButton;
   JOBJECTS.CODE               'Номер','запроса'            : [10], Protect, NoDel, NoPickButton, LessNull;
   JOBJECTS.TABLECODE          'Код','таблицы'              : [10], Protect, NoDel, NoPickButton, LessNull, NoAutoSize;
   x$Files_Obj.xf$Name         'Имя таблицы'                : [20], Protect, NoDel, NoPickButton;
@@ -2013,8 +1980,6 @@ end;
 tableevent table JObjectsKey;
 cmSetDefault:
 {
-
-
   //message('cmSetDefault JObjectsKey')
 
    var lnNumKey : word = 0;
@@ -2037,8 +2002,11 @@ cmSetDefault:
 }
 cmInsertRecord:{   Insert current JObjectsKey;   }
 cmUpdateRecord:{   Update current JObjectsKey;   }
-cmDeleteRecord:{   Delete current JObjectsKey;   SetMainJObjKey;
-               }
+cmDeleteRecord:{
+     if Message('Удалить?', YesNo) = cmYes
+      then Delete current JObjectsKey;
+      SetMainJObjKey;
+}
 end;
 
 tableevent table JOBJECTS;
@@ -2048,7 +2016,7 @@ cmSetDefault:
    clearBuffer(#JOBJECTS);
    set JOBJECTS.CRec   := lcSetOwn;
 
-	 set JOBJECTS.nRec   := 0;
+     set JOBJECTS.nRec   := 0;
    set JOBJECTS.Name   := 'Запрос: ';
    set JOBJECTS.CODE   := GetLastNumD( coJObjects );
 
@@ -2071,12 +2039,14 @@ cmSetDefault:
 }
 cmInsertRecord:{   Insert current JOBJECTS;   SetMainJObjKey; }
 cmUpdateRecord:{   Update current JOBJECTS;   }
-cmDeleteRecord:{   Delete current JOBJECTS;   }
+cmDeleteRecord:{
+     if Message('Удалить?', YesNo) = cmYes
+      then Delete current JOBJECTS;
+}
 end;
 
 HandleEvent
-cmInit:
-{
+cmInit: {
    lbBrResp := cbBrResp;
    TreeView := true;
    AddBounds(tbmyTreeNode);
@@ -2087,7 +2057,6 @@ cmInit:
    if getFirst JOBJECTS = tsok{}
 
    lbSetOwn := false;
-
 }
 
 cmValue2:  // 'Просмотр данных объекта отслеживания',
@@ -2144,8 +2113,7 @@ cmValue5:   //'Отслеживание изменений данных объекта',
    var lcObjMain : comp = GetMainObject(JOBJECTS.CREC);
    if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
-   if getFirst JOBJECTS where (( lcObjMain == JOBJECTS.Nrec )) = tsOk
-   {
+   if getFirst JOBJECTS where (( lcObjMain == JOBJECTS.Nrec )) = tsOk {
       GetRespBrowse;
       GetJournalUpdate(JOBJECTS.Nrec);
    }
@@ -2197,10 +2165,8 @@ cmValue8:  // 'Добавить объекты в пакет'
 
    if lcPacketNrec <> 0
    if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk
-   if pMarker.Count > 1
-   {
-      if Message('Добавить ' +pMarker.Count+ ' объектов в пакет "' +  JObjectsPacketsFnd.PacketVal +'"?', YesNo) = cmYes
-      {
+   if pMarker.Count > 1 {
+      if Message('Добавить ' +pMarker.Count+ ' объектов в пакет "' +  JObjectsPacketsFnd.PacketVal +'"?', YesNo) = cmYes {
          var lnKolObj : longint = 0;
 
          subbounds(tbRMJOBJECTS1);
@@ -2219,15 +2185,14 @@ cmValue8:  // 'Добавить объекты в пакет'
          Message('Добавлено корневых объектов: '+lnKolObj);
       }
    }
-   else
-   {
-         //найдем корневой  (НЕ РОДИТЕЛЬСКИЙ) объект!!!
-         var lcObjMain : comp = GetMainObject(JOBJECTS.CREC);
-         if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
+   else {
+       //найдем корневой  (НЕ РОДИТЕЛЬСКИЙ) объект!!!
+       var lcObjMain : comp = GetMainObject(JOBJECTS.CREC);
+       if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
-         if getFirst JOBJECTSFnd where (( lcObjMain  == JOBJECTSFnd.Nrec )) = tsOk
-         if Message('Добавить объект "'+JOBJECTSFnd.Name+'" в пакет "' +  JObjectsPacketsFnd.PacketVal +'"?', YesNo) = cmYes
-             SetObjectToPacket(lcObjMain, lcPacketNrec, true);
+       if getFirst JOBJECTSFnd where (( lcObjMain  == JOBJECTSFnd.Nrec )) = tsOk
+       if Message('Добавить объект "'+JOBJECTSFnd.Name+'" в пакет "' +  JObjectsPacketsFnd.PacketVal +'"?', YesNo) = cmYes
+           SetObjectToPacket(lcObjMain, lcPacketNrec, true);
    }
 
    PopPos(#JOBJECTS);
@@ -2265,8 +2230,7 @@ cmValue28: // 'Просмотр объектов по пакету',
    RunWindowModal(wndPackets);
 
    if lcPacketNrec <> 0
-   if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk
-   {
+   if getFirst JObjectsPacketsFnd where (( lcPacketNrec  == JObjectsPacketsFnd.Nrec )) = tsOk {
       var lsNamePack : string = JObjectsPacketsFnd.PacketVal;
       FilterObjectsByPacket(lcPacketNrec);
       RunInterface( JournalObjectsSpecFlt, 1, lsNamePack);
@@ -2280,8 +2244,7 @@ cmValue28: // 'Просмотр объектов по пакету',
 
 }
 
-cmValue4:
-{
+cmValue4: {
    lbKeyUpdate := true;
    lbObjUpdate := true;
    //deleteFile(csLogFile)
@@ -2290,10 +2253,9 @@ cmValue4:
    //от текущего объекта вниз по дереву
    GetRespBrowse;
 
-   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов')
+   ProcessText(_log_OUT, vfRunModal +vfNewTitle +vfEscable , 'Результат выполнения запросов');
 }
-cmValue3:
-{
+cmValue3: {
    var lcCurPos : comp = JOBJECTS.nrec;
 
    lbKeyUpdate := false;
@@ -2315,14 +2277,12 @@ cmValue3:
 
 }
 
-cmValue1:
-{
+cmValue1: {
    lbSetOwn := true;
 
    PutCommand(cmInsert);
 }
-cmValue10:
-{
+cmValue10: {
    LoadJsonFile;
 }
 
@@ -2338,8 +2298,7 @@ cmValue20:  //'Экспорт структуры объекта',
    if  lcObjMain = 0  lcObjMain := JOBJECTS.Nrec;
 
    if getFirst JOBJECTS where (( lcObjMain == JOBJECTS.Nrec )) = tsOk {}
-   if Message('Выгрузить структуру объекта "' +  JOBJECTS.Name + '"?', YesNo) = cmYes
-   {
+   if Message('Выгрузить структуру объекта "' +  JOBJECTS.Name + '"?', YesNo) = cmYes {
       delete all MyTableObj;
       GetObjectsTree(lcObjMain, true);
       lsJsonFileName := ExportObjToJsonByTree(JOBJECTS.Nrec, JOBJECTS.Nrec); //пока имя файла как nrec
@@ -2366,8 +2325,7 @@ cmValue21:  // 'Импорт структуры объекта',
 }
 
 //----
-cmInsert:
-{
+cmInsert: {
    lcSetOwn := JOBJECTS.cRec;
 
    if lbSetOwn
@@ -2410,79 +2368,67 @@ cmInsLevel:
   PutCommand(cmInsert);
 }
 */
-cmEdit:
-{
-	 RunWindowModal(wndEditJObject);
+cmEdit: {
+  RunWindowModal(wndEditJObject);
 }
-cmPick:
-{
+cmPick: {
   case CurField of
-   #JOBJECTS.TABLECODE :
-     {
-        SetTableToResp;
-        RescanPanel(#JOBJECTS);
-     }
-   #JOBJECTS.Name
- , #JOBJECTS.CODE  :
-     {
-       PutCommand(cmEdit);
-     }
+     #JOBJECTS.TABLECODE :
+       {
+          SetTableToResp;
+          RescanPanel(#JOBJECTS);
+       }
+     #JOBJECTS.Name
+   , #JOBJECTS.CODE  :
+       {
+         PutCommand(cmEdit);
+       }
   end;
+  rescanpanel(tnJOBJECTS);
+  rereadrecord;
 }
 
-cmAccording:
-  {
+cmAccording: {
     TreeView := not TreeView;
 
-    if TreeView
-    {
+    if TreeView {
        AddBounds(tbmyTreeNode);
        SetFormat(trResp);
     }
-    else
-    {
+    else {
        SubBounds(tbmyTreeNode);
        SetFormat(brResp);
     }
-
-  }
-cmTreeTop:
-  {
+ }
+cmTreeTop: {
      curMyTable:=0;
-  }
-cmTreeUp:
-  {
+ }
+cmTreeUp: {
      curMyTable:=JOBJECTS.cRec;
-  }
-cmTreeDown:
-  {
+ }
+cmTreeDown: {
      curMyTable:=JOBJECTS.nRec;
-  }
-cmTreeNodeType:
-  {
+ }
+cmTreeNodeType: {
      if (TreeIsTerminal(trResp) OR IsNew)
         TreeSetNodeType(trResp, 2);
-  }
-cmTreeNeedOwner:
-  {
+ }
+cmTreeNeedOwner: {
      TreeJumpToRecord (trResp, JOBJECTS.CRec);
-  }
-cmAttrib:
-   {
+ }
+cmAttrib: {
      if not TreeNodeIsOpen(FocusedFormat)
-		 {
-			  PutCommand(cmTreeOpenNode);
-		 }
-		 else
-		 {
-			  PutCommand(cmTreeCloseNode);
-		 }
-
-   }
-cmCompressLevel:
-   {
+     {
+        PutCommand(cmTreeOpenNode);
+     }
+     else
+     {
+        PutCommand(cmTreeCloseNode);
+     }
+ }
+cmCompressLevel: {
       PutCommand(cmTreeCloseNode);
-   }
+ }
 cmShowAll :  // Раскрыть все папки
 {
   var ForCounter : boolean;
@@ -2534,7 +2480,7 @@ mnuInterfaceSqlJournResp Menu
   - 'Отслеживание изменений по объектам',   cmValue3;
 ------------;
   - 'Добавить объект в офис',     cmValue6;
-  - 'Выгрузить объекту в офис',   cmValue16;
+  - 'Выгрузить объект в офис',   cmValue16;
 ------------;
   - 'Добавить объекты в пакет',      cmValue8;
   - 'Просмотр объектов по пакету',   cmValue28;
