@@ -1,0 +1,96 @@
+alter dictionary;
+Create Table QRY_Template "Шаблоны для формирования запросов"
+  With Table_CODE = 32157
+  With Replace
+  With TableOptions Branched
+(
+  NRec       : comp   "Номер записи"
+, Name       : string "Наименование объекта"
+, CODE       : string "Уникальный номер шаблона запроса"
+, TABLECODE  : word   "Корневая таблица код"
+, Description : string "Описание"
+, WhereTerms  : LVar  "Условия в секции where"
+)
+with Index
+(
+  QRY_Template01 = NRec (unique, surrogate, journal)
+ ,QRY_Template02 = CODE (unique)
+);
+
+Create Table  QRY_TemplateSP "Строки для формирования запросов"
+  With Table_CODE = 32158
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp   "Номер записи"
+, cTmplt      : ref(QRY_Template) "Ссылка на шаблон"
+, npp         : word   "номер по порядку"
+, join_type   : string "тип связи (join, left join и т.д.)"
+, TABLECODE   : word   "Таблица код"
+, SynonimName : string "Наименование синонима"
+, Description : string "Описание"
+, JoinTerms   : string "Условия на связку"
+)
+with Index
+(
+  QRY_TemplateSP01 = NRec (unique, surrogate, journal)
+ ,QRY_TemplateSP02 = cTmplt + npp
+);
+
+
+Create Table QRY_Instance "Экземпляр запроса на основании шаблона"
+  With Table_CODE = 32159
+  With Replace
+  With TableOptions Branched
+(
+  NRec        : comp   "Номер записи"
+, cTmplt      : ref(QRY_Template) "Ссылка на шаблон"
+, code        : string "код"
+, Name        : string "Наименование"
+, Description : string "Описание"
+, AddWhereTerms  : LVar  "доп условия в секции where"
+)
+with Index
+(
+  QRY_Instance01 = NRec (unique, surrogate, journal)
+ ,QRY_Instance02 = cTmplt + code (unique)
+
+);
+
+Create Table QRY_Instance_FLD_LVL "Уровень вложенности поля запроса"
+  With Table_CODE = 32160
+  With Replace
+  With TableOptions Branched
+(
+  NRec          : comp   "Номер записи"
+, cInstance     : ref(QRY_Instance) "Ссылка на экземпляр запроса"
+, level         : string "код"
+, fld_json_name : string "Наименование"
+, Description   : string "Описание"
+)
+with Index
+(
+  QRY_InstncFLDLVL01 = NRec (unique, surrogate, journal)
+ ,QRY_InstncFLDLVL02 = cInstance + level (unique)
+);
+
+Create Table QRY_Instance_FLD "Поля экземпляра запроса"
+  With Table_CODE = 32161
+  With Replace
+  With TableOptions Branched
+(
+  NRec          : comp   "Номер записи"
+, cInstance     : ref(QRY_Instance) "Ссылка на экземпляр запроса"
+, cLevel        : ref(QRY_Instance_FLD_LVL) "Ссылка на уровень вложенности"
+, TableName     : string "Наименование таблицы/синонима"
+, FieldName     : string "Наименование поля из таблицы"
+, FieldSynonim  : string "Наименование синонима поля"
+, FieldJSON     : string "Наименование поля в JSON"
+)
+with Index
+(
+  QRY_Instance_FLD01 = NRec (unique, surrogate, journal)
+ ,QRY_Instance_FLD02 = cInstance + cLevel
+);
+
+

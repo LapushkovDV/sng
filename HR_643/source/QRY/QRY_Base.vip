@@ -1,0 +1,116 @@
+/*************************************************************************************************\
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: Кадры                                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+
+#include QRY_BASE.vih
+
+//************************************************************
+const
+end;
+Interface QRY_BASE 'QRY базовый объект';
+table struct tFields
+(
+   NAME       : string
+ , TITLE      : string
+ , NAMETBL    : string
+ , SYSNAMETBL : string
+ , DATATYPE   : string
+)
+with index
+(
+   ind0 = NAME
+)
+;
+
+create view
+var
+ _logQRY_OUT : string; //глобальная
+
+ as select
+    QRY_TMPLT.nrec
+from
+    QRY_Template   QRY_TMPLT
+  , QRY_TemplateSP QRY_TMPLTSP
+//  , KatDoc KatDocWin
+  , x$files TblTMPLT
+  , x$files TblTMPLTSP
+  , x$files
+  , x$fields
+
+  , tFields
+ where ((                  root == QRY_TMPLT.nrec
+        and QRY_TMPLT.TABLECODE == TblTMPLT.XF$CODE
+
+             and QRY_TMPLT.nrec == QRY_TMPLTSP.cTmplt
+                         and 0 <<= QRY_TMPLTSP.npp
+     and  QRY_TMPLTSP.TABLECODE == TblTMPLTSP.XF$CODE
+
+       ))
+;
+
+Function GenerateNewOutFile: string;
+{
+ _logQRY_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log';
+ result := _logQRY_OUT;
+}
+
+function GetLogFile : string;
+{
+  if _logQRY_OUT = '' then _logQRY_OUT := GenerateNewOutFile;
+  result := _logQRY_OUT;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false);
+{
+  if isvalidall(tnQRY_TMPLT)
+//  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+function getNameDataType(_type : byte) : string; cacheable;
+{
+  case _type of
+        4 : result := 'word'
+        6 : result := 'longint'
+        7 : result := 'date'
+        8 : result := 'time'
+       11 : result := 'double'
+       12 : result := 'string'
+       17 : result := 'comp'
+   else result := string(_type)
+  end;
+}
+
+procedure inserttFieldsByTableName(_tableCode : word; _SynonimName : string);
+{
+  if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK
+  _loop x$fields where (( _tableCode == x$fields.XE$FILECODE))
+    {
+        Insert tFields set
+            tFields.NAME       := x$fields.XE$NAME
+          , tFields.TITLE      := x$fields.XE$TITLE
+          , tFields.NAMETBL    := _SynonimName
+          , tFields.SYSNAMETBL := x$files.XF$NAME
+          , tFields.DATATYPE   := getNameDataType(x$fields.XE$DATATYPE)
+        ;
+    }
+}
+// function is_query_result_array_by_level
+
+Function isExistSpec : boolean;
+{
+  result := false;
+  if ( getfirst QRY_TMPLTSP = tsOK
+    and getfirst TblTMPLTSP = tsOK
+   ) then {
+     result := true;
+   }
+}
+end.

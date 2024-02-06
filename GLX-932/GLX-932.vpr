@@ -108,6 +108,7 @@
 			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
+			<Marker FileName="Source\Z_zar##GLX-932_zp_alg.vip" Caption="Нумерованная закладка 1" Line="197" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -117,24 +118,24 @@
 			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="227"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45327,8488518518" DateTimeCompile="0,000326388893881813" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45327,9292777083" DateTimeCompile="6,25694447080605E-5" StateHistory="False">
 				<CompileMessageList>
 					<CompileMessage MessageType="mtError" MessageText="Ошибка при открытии include файла C_ARCHIVELINK.VIL" SourceFileName="C:\GALAKTIKA\GAL\FRM\INC\galaktika.vil" SourceLine="21" SourceColumn="27">
 						<StackIncludeList>
 							<StackInclude FileName="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" Line="5" Column="1"/>
 						</StackIncludeList>
 					</CompileMessage>
-					<CompileMessage MessageType="mtEndCompile" MessageText="05.02.2024 20:22:49"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="05.02.2024 22:18:15"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="GLX-932.prj" PosX="27" PosY="22" OpenEditor="True"/>
-			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="15" PosY="40" OpenEditor="True" Active="True"/>
-			<File Name="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Zp\Vip\Z_zar##ZarAlgorithm_58vo.Vip" PosX="35" PosY="118" OpenEditor="True"/>
+			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="49" PosY="78" OpenEditor="True" Active="True"/>
+			<File Name="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Zp\Vip\Z_zar##ZarAlgorithm_58vo.Vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_Zar\vip\ZarAlg.vih" PosX="22" PosY="7" OpenEditor="True"/>
-			<File Name="sng31vid_1_пример.vip" PosX="4" PosY="108" OpenEditor="True"/>
+			<File Name="sng31vid_1_пример.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\Inc\galaktika.vil" PosX="80" PosY="25" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>

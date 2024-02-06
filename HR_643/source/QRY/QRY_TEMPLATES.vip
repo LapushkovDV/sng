@@ -1,0 +1,66 @@
+/*************************************************************************************************\
+
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_TEMPLATES.vih
+//************************************************************
+const
+end;
+Interface QRY_TEMPLATES 'Шаблоны запросов. Просмотр/редактирование';
+
+create view
+from
+     x$files x$files_br
+   , QRY_TemplateSP QRY_TMPLTSP1
+;
+
+
+#include QRY_TEMPLATES.pan
+
+function GetTable : word; {
+ result := 0;
+ if runwindowmodal(winSelectSysTable) = cmDefault {
+   result := x$files_br.XF$CODE;
+ }
+}
+
+handleevent // фейса
+cmCheckField: {
+ updatetable;
+ rereadrecord;
+}
+cmPick:{
+  case curfield of
+     #TblTMPLT.XF$NAME :{
+         set QRY_TMPLT.TABLECODE := GetTable;
+         updatetable;
+     }
+     #TblTMPLTSP.XF$NAME :{
+         set QRY_TMPLTSP.TABLECODE := GetTable;
+         updatetable;
+     }
+  end
+  rereadrecord;
+}
+
+cmInit:{
+ if getfirst QRY_TMPLT = tsOK {}
+ // HttpConnect_JsonObjectCreate
+}
+cmEdit: {
+  putcommand(cmdefault)
+}
+
+cmdefault:{
+  runwindowmodal(wnQRY_TMPLT_Edit);
+  rereadrecord;
+}
+end;
+end.

@@ -30,3 +30,7 @@ LicenseControlInclude=""
 #make "source\JournalObjectsSpecif.vip"
 #make "source\InterfaceSqlJournResp.vip"
 #make "source\InterfaceSqlJournResp_userreport.vip"
+
+#component "QRY"
+#make "source\QRY\QRY_BASE.vip"
+#make "source\QRY\QRY_TEMPLATES.vip"
