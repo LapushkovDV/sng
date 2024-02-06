@@ -1,0 +1,30 @@
+/*************************************************************************************************\
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: Кадры                                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+*/
+
+#ifnDef _QRY_OUT_INCLUDED_
+#define _QRY_OUT_INCLUDED_
+
+#include QRY_BASE.vih
+
+#component "QRY"
+
+#doc
+ Генерация запросов и файлов на основе шаблонов и инстансов
+#end
+ObjInterface oQRY_OUT;
+public
+#doc
+ Тестирование запроса в шаблоне
+#end
+function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean;
+
+end;
+
+VipInterface QRY_OUT(QRY_Base) implements oQRY_OUT;
+#end

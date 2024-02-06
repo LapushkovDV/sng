@@ -8,7 +8,7 @@
 
 \*************************************************************************************************/
 
-
+#include Query.vih
 #include QRY_BASE.vih
 
 //************************************************************
@@ -55,15 +55,16 @@ from
        ))
 ;
 
-Function GenerateNewOutFile: string;
+File MemoFile;
+
+Function GenerateNewFile: string;
 {
- _logQRY_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log';
- result := _logQRY_OUT;
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
 
 function GetLogFile : string;
 {
-  if _logQRY_OUT = '' then _logQRY_OUT := GenerateNewOutFile;
+  if _logQRY_OUT = '' then _logQRY_OUT := GenerateNewFile+'.log';
   result := _logQRY_OUT;
 }
 
@@ -71,7 +72,7 @@ Procedure MyLog(_str: string; _needlog : boolean = false);
 {
   if isvalidall(tnQRY_TMPLT)
 //  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
-  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
 }
 
 function getNameDataType(_type : byte) : string; cacheable;
@@ -88,6 +89,34 @@ function getNameDataType(_type : byte) : string; cacheable;
   end;
 }
 
+Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
+{
+   sqlAddStr(query_handle, add_query_str);
+   MyLog('sql: ' + add_query_str);
+} //Function MysqlAddStr(var query_handle: longInt; add_query_str: string): longInt;
+
+procedure addSection_from_where_fromTMLT(_qryID: TPTR); {
+  MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_TMPLT.TABLECODE));
+  _loop QRY_TMPLTSP {
+      MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
+    }
+  MysqlAddStr(_qryID, ' where');
+
+   MemoFile.OpenMemo(QRY_TMPLT.WhereTerms);
+   do {
+      var StringValue1 : string = '';
+      MemoFile.readln(StringValue1);
+      MysqlAddStr(_qryID, StringValue1);
+    } while (not MemoFile.EOF);
+   MemoFile.Close;
+}
+
+function GetTableNameByCode(_tableCode : word) : string; {
+  result := '';
+   if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK {
+       result := x$files.XF$NAME;
+   }
+}
 procedure inserttFieldsByTableName(_tableCode : word; _SynonimName : string);
 {
   if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK

@@ -10,6 +10,7 @@
 #ifnDef _QRY_BASE_INCLUDED_
 #define _QRY_BASE_INCLUDED_
 #component "QRY"
+
 ObjInterface oQRY_Base;
 public:
 #doc
@@ -27,8 +28,22 @@ function getNameDataType(_type : byte) : string;
 #doc
 Создать новый файл логов
 #end
-Function GenerateNewOutFile: string;
+Function GenerateNewFile: string;
 
+#doc
+добавить строку в запрос с логированием
+#end
+Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
+
+#doc
+Получить имя таблицы по коду
+#end
+function GetTableNameByCode(_tableCode : word) : string;
+
+#doc
+заполнить в запросе секции from и where из шаблона
+#end
+procedure addSection_from_where_fromTMLT(_qryID: TPTR);
 end;
 
 VipInterface QRY_BASE Implements oQRY_Base #Licensed_Free;

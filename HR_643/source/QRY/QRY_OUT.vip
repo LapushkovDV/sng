@@ -1,0 +1,65 @@
+/*************************************************************************************************\
+
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include Query.vih
+#include QRY_OUT.vih
+//************************************************************
+const
+end;
+Interface QRY_OUT 'Генерация запросов и файлов на основе шаблонов и инстансов';
+
+create view
+var _cQRY_TMPLT : comp;
+
+bounds byQRY_TMPLTNrec _cQRY_TMPLT == QRY_TMPLT.nrec
+
+;
+
+function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
+   if BoundActive(tbbyQRY_TMPLTNrec) {
+     popbounds(tbbyQRY_TMPLTNrec);
+   }
+  set _cQRY_TMPLT := _fcQRY_TMPLT;
+  pushbounds(tbbyQRY_TMPLTNrec);
+
+ if getfirst QRY_TMPLT <> tsOK {
+   _err := 'Не найден шаблон запроса ' + string(_fcQRY_TMPLT ,0,0);
+   result := false;
+ }
+
+  var objQuery: iQuery;
+  var qryID   : tPtR;
+  var oResultSet : IResultSet;
+
+  sqlFreeStr(qryID);
+  qryID := 0;
+
+  MysqlAddStr(qryID, ' select top 1 1                                    ');
+
+  addSection_from_where_fromTMLT(qryID);
+
+  objQuery := queryManager.createQuery(qryID);
+  if (objQuery.execute.errorCode != tsOk) then {
+    _err := 'Ошибка проверки записей'+ objQuery.ErrorCode;
+    mylog(_err);
+    result := false;
+    sqlFreeStr(qryID);
+    Exit;
+  }
+  else{
+    result := true;
+  }
+}
+
+handleevent // фейса
+
+end;
+end.

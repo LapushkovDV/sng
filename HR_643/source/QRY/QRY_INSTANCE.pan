@@ -39,8 +39,6 @@ end; //TableEvent table #table
 #end
 
 
-/*
-
 window wintFields 'Выбор поля таблиц', cyan;
 browse brwintFields;
  table tFields;
@@ -57,32 +55,18 @@ windowevent wintFields ;
    closewindowex(wintFields, cmDefault)
  }
 end;
-*/
 
-window winSelectSysTable 'Выбор системной таблицы', cyan;
-browse brSelectSysTable ;
- table x$files_br;
-  Fields
-   x$files_br.XF$CODE  'Код'      :[5] , Protect, NoPickButton;
-   x$files_br.XF$NAME  'Имя'      :[10], Protect, NoPickButton;
-   x$files_br.XF$TITLE 'Описание' :[15], Protect, NoPickButton;
-end;
-end;
-windowevent winSelectSysTable ;
- cmdefault: {
-   closewindowex(winSelectSysTable, cmDefault)
- }
-end;
 
-Window wnQRY_TMPLT_Edit 'Редактирование шаблона запроса' ;
+
+Window wnQRY_INSTANCE_Edit 'Редактирование шаблона запроса' ;
 Show at (3,5,120,28);
 //---------------------------------------------
 Screen ScrQRY_TMPLT_Edit (,,Sci178Esc);
 Show at (,,,5);
 Table QRY_TMPLT;
 Fields
- QRY_TMPLT.CODE        : NoProtect, #colorneed(TRIM(QRY_TMPLT.CODE)='');
- QRY_TMPLT.NAME        : NoProtect, #colorneed(TRIM(QRY_TMPLT.NAME)='');
+ QRY_TMPLT.CODE        : NoProtect, #colorneed(QRY_TMPLT.CODE='');
+ QRY_TMPLT.NAME        : NoProtect, #colorneed(QRY_TMPLT.NAME='');
  QRY_TMPLT.Description : NoProtect;
  TblTMPLT.XF$NAME  : Protect, #colorneed(QRY_TMPLT.TABLECODE =0), PickButton;
  TblTMPLT.XF$TITLE : Skip;
@@ -111,11 +95,11 @@ Browse brQRY_TMPLTSP;
 Table QRY_TMPLTSP;
 Fields
   QRY_TMPLTSP.npp            '№','п/п' : [1] , NoProtect,NoPickButton;
-  QRY_TMPLTSP.join_type      'тип связи' : [6] , NoProtect,NoPickButton, #colorneed(TRIM(QRY_TMPLTSP.join_type)='');
+  QRY_TMPLTSP.join_type      'тип связи' : [6] , NoProtect,NoPickButton;
   TblTMPLTSP.XF$NAME         'Таблица','системная' : [10] , Protect, PickButton;
   QRY_TMPLTSP.SynonimName    'Наименование','синонима'   : [10] , NoProtect,NoPickButton;
   'on'                       '',''  : [1] , Skip;
-  QRY_TMPLTSP.JoinTerms      'Подцепка','условия'  : [20] , NoProtect,NoPickButton, #colorneed(TRIM(QRY_TMPLTSP.JoinTerms)='');
+  QRY_TMPLTSP.JoinTerms      'Подцепка','условия'  : [20] , NoProtect,NoPickButton;
   QRY_TMPLTSP.Description    'Описание'            : [10] , NoProtect,NoPickButton;
 end;//Browse brNormPercent
 
@@ -162,8 +146,8 @@ end;
 browse brQRY_TMPLT;
  table QRY_TMPLT;
   Fields
-  QRY_TMPLT.code        'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.CODE)='');
-  QRY_TMPLT.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.name)='');
+  QRY_TMPLT.code        'Код' : [3] , Protect, nopickbutton, #colorneed(QRY_TMPLT.CODE='');
+  QRY_TMPLT.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.name='');
   TblTMPLT.XF$NAME   'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.TABLECODE =0);
 end;
 

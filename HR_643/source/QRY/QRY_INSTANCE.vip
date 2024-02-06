@@ -9,12 +9,12 @@
 
 \*************************************************************************************************/
 
-#include QRY_TEMPLATES.vih
+#include QRY_INSTANCE.vih
 #include QRY_OUT.vih
 //************************************************************
 const
 end;
-Interface QRY_TEMPLATES 'Шаблоны запросов. Просмотр/редактирование';
+Interface QRY_INSTANCE 'Шаблоны запросов. Просмотр/редактирование';
 
 create view
 from
@@ -23,7 +23,7 @@ from
 ;
 
 
-#include QRY_TEMPLATES.pan
+#include QRY_INSTANCE.pan
 
 function GetTable : word; {
  result := 0;
