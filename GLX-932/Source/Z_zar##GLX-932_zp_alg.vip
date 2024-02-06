@@ -38,9 +38,9 @@ interface zarAlgorithm_GLX_932_zp_alg cacheable;
      , PrNaryad
      , PrNaryad PrNaryad_cur
      , sys_nar
-/*where ((
+where ((
        pLschet == Lschet.Nrec
-    //---------------------
+/*    //---------------------
    and lschet.nrec==lstab.clschet
    and wYear      ==lstab.yearn
    and wMes       ==lstab.mesn
@@ -49,22 +49,29 @@ interface zarAlgorithm_GLX_932_zp_alg cacheable;
    and  (  wYear=Year (prnaryad.DataN)
        and wMes =Month(prnaryad.DataN)
         )
-       ))
 */
+       ))
+
 ;
   var
       _isLogging: Boolean = false;
       AlgNumberInner : word = 0;
 
-Function GenerateNewOutFile: string;
+Function GenerateNewLogFile: string;
 {
  _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\zarAlgorithm_GLX_932_zp_alg_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+
+ if Lschet.STRTABN <> ''
+  then _log_OUT := _log_OUT+'_tabn_' +Lschet.STRTABN
+   else  _log_OUT := _log_OUT+'_tabn_' +string(Lschet.TABN);
+
+ _log_OUT := _log_OUT+'.log';
  result := _log_OUT;
 }
 
 function GetLogFile : string;
 {
-  if _log_OUT = '' then _log_OUT := GenerateNewOutFile+'.log';
+  if _log_OUT = '' then _log_OUT := GenerateNewLogFile;
   result := _log_OUT;
 }
 
@@ -105,23 +112,12 @@ procedure ParseAlgParams(ParamStr: String);
   mylog('end parameters');
 }
 
-function CalcSum(Parameter: String): Double;
+function getsumAlg1 : double;
 {
-    result := 0;
-    ParseAlgParams(Parameter);
-    mylog(Parameter)
-
-  	PeriodBegin:=uch_datan;
-    PeriodEnd  :=uch_datok;
-    pLschet    :=uch_lsch;
-    mylog(' PeriodBegin = ' + PeriodBegin);
-    mylog('   PeriodEnd = ' + PeriodEnd);
-    mylog('     pLschet = ' + pLschet);
-    mylog('    nar_nrec = ' + nar_nrec);
+  result := 0;
     if getfirst prnaryad_cur where ((nar_nrec == prnaryad_cur.nrec)) <> tsOK then exit;
 
     if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
-
 
     var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
     mylog('_sumPremForRaspred = '+_sumPremForRaspred);
@@ -162,7 +158,44 @@ function CalcSum(Parameter: String): Double;
       mylog(' _koeff = ' + string(_koeff));
       mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
       result := _koeff*_sumPremBeforeKoefCur;
-      mylog(' result = '+ string(result));
+}
+
+function getsumAlg2 : double; {
+  result := 0;
+}
+
+function getsumAlg3 : double; {
+  result := 0;
+}
+
+function CalcSum(Parameter: String): Double;
+{
+    set pLschet    :=uch_lsch;
+
+    GenerateNewLogFile;
+
+    result := 0;
+    ParseAlgParams(Parameter);
+    mylog(Parameter)
+  	PeriodBegin:=uch_datan;
+    PeriodEnd  :=uch_datok;
+
+    mylog(' PeriodBegin = ' + PeriodBegin);
+    mylog('   PeriodEnd = ' + PeriodEnd);
+    mylog('     pLschet = ' + pLschet);
+    mylog('    nar_nrec = ' + nar_nrec);
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+
+    case AlgNumberInner of
+      1: result := getsumAlg1;
+      2: result := getsumAlg2;
+      3: result := getsumAlg3;
+    end;
+
+   mylog(' result = '+ string(result));
+   if _isLogging then PutFileToClient(GetLogFile,false);
+
 }
 
 function GetDescription: String;
@@ -170,4 +203,18 @@ function GetDescription: String;
     GetDescription := 'Расчет премии в наряде задача GLX-932. Параметры: номер алгоритма (1, 2 или 3), показывать лог true/false, логировать действия true/false';
 }
 
+Function LoadInterface:boolean;
+{
+    Result:=False;
+    _isLogging := true;
+    MyLog('LoadInterface');
+    _isLogging := false;
+    Result:=True;
+
+} //Function LoadInterface:boolean;
+HandleEvent
+cmOnVipLoad: {
+  LoadInterface;
+}
+end;
 end.
