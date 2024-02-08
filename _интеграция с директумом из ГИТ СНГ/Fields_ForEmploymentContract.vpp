@@ -1,0 +1,130 @@
+      if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) <> tsOK  then {
+         LogMessage('В истории назначений не нашли ссылку на тарифную ставку (AppHist.Tariff == TarStav.Nrec).'+
+            ''#13''+' AppHist.Tariff = ' + string(AppHist.Tariff,0,0),error)
+         exit; //continue;
+        }
+
+     if getfirst SpAllStaff_TD where ((APPOINTMENTS.ResComp[1] == SpAllStaff_TD.nRec)) <> tsOK {
+         LogMessage('В приказе не нашли трудовой договор SpAllStaff_TD where ((APPOINTMENTS.ResComp[1] == SPALLSTAFF_TD.nRec'+
+            ''#13''+ 'APPOINTMENTS.ResComp[1] = ' + string(APPOINTMENTS.ResComp[1],0,0),error)
+         exit; //continue;
+       }
+      //ссылка на Вид Трудового договора
+     if getfirst SpAllStaff_16 where (( 16  == SpAllStaff_16.wNoCon // cgAllStaffExp = 16
+                        and SpAllStaff_TD.nrec == SpAllStaff_16.cBaseT)) <> tsOK {
+         LogMessage('Не нашли Вид ТД по ТД '
+             +''#13''+'16=SpAllStaff.WNOCON и SpAllStaff.CBASET='+ string(SpAllStaff_TD.nrec, 0, 0) ,error)
+         exit; //continue;
+       }
+
+    //-----
+    var _rks_mks, _DocKat, _DocTarifZone  : string = '';
+
+    if getfirst cat_search where ((SpAllStaff_16.ResComp[3] == cat_search.NREC)) = tsOK
+       _rks_mks := TRIM(sGetAttr(coCATALOGS, cat_search.Nrec, 'РКС/МКС'));
+
+    if getfirst cat_search where ((TarStav.tarzone == cat_search.NREC)) = tsOK
+       _DocTarifZone := Trim(cat_search.name)
+
+    if (SpAllStaff_16.RESWORD[1] and 64)  = 64   then _DocKat := 'PR'; // не описано как надо... по "галочкам" нашел так через журнал
+    if (SpAllStaff_16.RESWORD[1] and 128) = 128  then _DocKat := 'VOD'; // не описано как надо... по "галочкам" нашел так через журнал
+
+    //-----------------------
+    // ID ТД
+    _IdRX      := _iOutBase.GetIdDirectRxByDoc( coSpAllStaff, SpAllStaff_TD.Nrec);
+    _IdMainDoc := _iOutBase.GetIdDirectRxByDoc( coTitledoc, Titledoc.Nrec);
+
+    var dContractBegin: date = _iWWC.GetContractBegin(Appointments.ResComp[1]); // Дата начала договора
+
+    //ссылка на Вид ДС
+    _HRCodeKindAdditionalAgreement := string(cat_search.nrec,0,0);
+    //Для ДС необходимо передавать ИД ТД, в рамках которого создается ДС.
+    _HRCodeKindEmploymentContract  := string(SpAllStaff_TD.RESCOMP[1],0,0);
+
+    _Shablon   := _iOutBase.GetDocShablonTD(_rks_mks, _DocKat, _DocTarifZone);
+    _Employee  := GetStrTabn(Persons.TabNmb, Persons.StrTabN);
+    _DateStart := _iOutBase.SetDateToHeader(SpAllStaff_TD.RESDATE[2]);
+    _DateEnd   := _iOutBase.SetDateToHeader(SpAllStaff_TD.RESDATE[3]);
+
+    _Trial     := Integer(_iOutBase.Get_SrokIsp( SPALLSTAFF_TD.RESDATE[2], ContDoc.Dat1, 1));  //"Trial": 3,
+    _UnitTrial := TRIM(   _iOutBase.Get_SrokIsp( SPALLSTAFF_TD.RESDATE[2], ContDoc.Dat1, 2));      //"UnitTrial":"дн",
+
+    _Notice    := if( (SpAllStaff_16.RESWORD[1] and 32) = 32, 'True', 'False') // Наличие уведомления
+
+   //-----
+    var _PUNKT: string = '';
+    var _TRANSP: string = '';
+
+    if ( getfirst CatalogsTmp where (( SpAllStaff_16.ResComp[4] == CatalogsTmp.NRec )) = tsOk )
+        _PUNKT := CatalogsTmp.Name;
+
+    if ( getfirst CatalogsTmp where (( SpAllStaff_16.ResComp[5] == CatalogsTmp.NRec )) = tsOk )
+        _TRANSP := CatalogsTmp.Name;
+
+    //-------
+    var _OKLAD_D: string = '';
+    var _TEXT1_OKLAD_D: string = '';
+    var _TEXT2_OKLAD_D: string = '';
+    var _TARIF   : string = '';
+    var _TARIF_P : string = '';
+    var _TEXT1_TARIF: string = '';
+    var _TEXT2_TARIF: string = '';
+    var _TEXT1_TARIF_P : string = '';
+    var _TEXT2_TARIF_P : string = '';
+    var _OKLAD_P: string = '';
+    var _TEXT1_OKLAD_P: string = ''
+    var _TEXT2_OKLAD_P: string = '';
+    var _OKLAD_M: string = '';
+    var _TEXT1_OKLAD_M: string = '';
+    var _TEXT2_OKLAD_M: string = '';
+    var _TEXT3_OKLAD_M: string = '';
+    var _TEXT4_OKLAD_M2: string ='';
+
+    var lnOklP       : double = GetSumApp(Appointments.NRec, dContractBegin);
+    var lnOklSh      : double = _iAH.AH_GetTaxRateOnDate(Appointments.NRec, dContractBegin);
+    var lnOklSh_Tax  : double = APPHIST.TAXRATE;
+
+    if  lnTypeOper = 1
+    {
+
+      case wCodeCat4 of
+      01..03:
+      {
+        _OKLAD_D := string(lnOklSh_Tax, 0,0);
+        _TEXT1_OKLAD_D := 'должностной оклад';
+        _TEXT2_OKLAD_D := 'руб. в месяц.';
+
+      }
+      04:
+      {
+        _TARIF := string(lnOklSh_Tax, 0,2);
+        _TEXT1_TARIF   := 'часовую тарифную ставку';
+        _TEXT2_TARIF   := 'руб. в ч.';
+      }
+      05:
+      {
+        _OKLAD_M := string(lnOklSh_Tax, 0,0);
+        _TEXT1_OKLAD_M  := 'месячный оклад';
+        _TEXT2_OKLAD_M  := 'руб. в месяц;';
+        _TEXT3_OKLAD_M  := 'если Работником в течение месяца полностью отработана определенная на этот период норма рабочего времени';
+        _TEXT4_OKLAD_M2 := '(указать дату)';
+      }
+      end;
+
+      if lnOklP > 0  //если доплат нет, то ничего не выдаем!
+      case wCodeCat4 of
+      01..03, 05:
+      {
+         _OKLAD_P := string( lnOklSh_Tax + lnOklP, 0,0);
+         _TEXT1_OKLAD_P := 'персональный оклад';
+         _TEXT2_OKLAD_P := 'руб. в месяц;';
+      }
+      04:
+      {
+         _TARIF_P := string( lnOklSh_Tax + lnOklP, 0,2);
+         _TEXT1_TARIF_P := 'персональную ставку';
+         _TEXT2_TARIF_P := 'руб. в час.';
+      }
+      end;
+
+   }

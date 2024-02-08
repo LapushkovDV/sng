@@ -1,0 +1,853 @@
+function UpdateAppForCurTitleDoc( var parNum : string; parDateDoc : date )  : boolean;
+{
+   //-------- пока пропускаем //отработает нужное при утверждении приказа!
+   result := true;
+   parNum := '';
+   Exit;
+   //-----------
+
+
+   result := false;
+
+   var lbRes    : boolean = false;
+   var lsRes    : string = 'Ошибка обновления номера/даты в APPOINTMENTS, APPHIST';
+   var lnKolUpd, lnKolUpdApp : integer = 0;
+
+   _try
+   {
+       if GetFirst partdoc where (( Titledoc.nrec == partdoc.CDOC )) <> tsOk
+       {
+          lsRes := 'Ошибка обновления в подчиненных данных: нет PartDoc';
+       }
+       else
+       if GetFirst ContDoc where (( partdoc.nrec == ContDoc.CPART )) <> tsOk
+       {
+          lsRes := 'Ошибка обновления в подчиненных данных: нет ContDoc';
+       }
+       else
+       _loop ContDoc where (( partdoc.nrec == ContDoc.CPART ))
+       {
+          lnKolUpd++;
+          lsRes := 'Ошибка обновления в APPOINTMENTS, APPHIST для ContDoc.Nrec='+ContDoc.Nrec;
+
+          //по виду приказа определить связку (новое/старое назначение?)
+          //актуально для РПД: 6, 41, 50 (новое APPOINTMENTS)
+          if getfirst APPOINTMENTS where ((ContDoc.CSTR == APPOINTMENTS.nrec)) <> tsOk
+          {
+             lsRes := 'Ошибка обновления: нет APPOINTMENTS для ContDoc.Nrec='+ContDoc.Nrec;
+          }
+          else
+          {
+             var lcAppHist : comp = 0;
+             case Partdoc.TYPEOPER of
+              6,41 :
+               { //РПД -6 -41 см RPD_Base_Otpusk
+                 if getfirst APPHIST where (( ContDoc.cRef1  == APPHIST.nrec )) = tsOK
+                    lcAppHist := APPHIST.Nrec;
+               }
+              50 :
+              {  //РПД -50 (новое APPHIST) см RPD_Base_AppChange
+                 if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC )) = tsOK
+                    lcAppHist := APPHIST.Nrec;
+              }
+             end;
+
+             if lcAppHist = 0
+             {
+                lsRes := 'Ошибка обновления: нет APPHIST для ContDoc.Nrec='+ContDoc.Nrec;
+             }
+             else
+             {
+                if parNum <> ''
+                {
+                   set APPOINTMENTS.ORDERNMB  := parNum;
+                   set APPHIST.DOCNMB         := parNum;
+                }
+                if parDateDoc <> 0
+                {
+                   set APPOINTMENTS.ORDERDATE := parDateDoc;
+                   set APPHIST.DOCDATE        := parDateDoc;
+                }
+                _try
+                {
+                   if   update current APPOINTMENTS = tsOk
+                   and  update current APPHIST = tsOk
+                        lnKolUpdApp++;
+                }
+             }
+          }
+       }
+       if  lnKolUpd > 0
+       and lnKolUpd = lnKolUpdApp
+       {
+           lbRes := true;
+           lsRes := '';
+       }
+   }
+   _finally
+   {
+      parNum := lsRes;
+      result := lbRes;
+   }
+}
+
+//блокировка/разблокировка полей приказа
+function SetTitleDocBlok( parTitleDoc : comp;  parSetBlock : boolean ): boolean;
+{
+   result := true;
+
+/*
+//комментарий от Силин Вадим Николаевич
+function funIsOrderConfirm: boolean; // в RPD_Base применяется во всех РПД на методах блокировки/разблокировки полей
+TitleDoc.wStatus = 2 // исполняется, там немного кривой коммент
+т.е. достаточно установить TitleDoc.wStatus := 2 в алгоритме и все
+*/
+   if parTitleDoc = 0  //по текущей позиции
+   {
+      set TitleDoc.wStatus := if( parSetBlock, 2 ,0);
+   }
+   else
+   if GetFirst TitleDoc where (( parTitleDoc == TitleDoc.Nrec)) = tsOk
+   {
+
+      update current TitleDoc
+      set TitleDoc.wStatus := if( parSetBlock, 2 ,0);
+
+   }
+
+}
+//инициировать отправку зависимого документа при его наличии
+function SendTitleDocDocsToRX( parTableDoc : word; parTitleDoc : comp ): boolean;
+{
+   result := true;
+
+   var lnTest : word = wGetTune('DirectumIntegration_SendDoc')
+   if lnTest = 1 //да
+   {
+      _SNG_IntegrDirectum_out.CreatePersonnelOrder_API(parTitleDoc, if(parTableDoc=coTitleDoc, coTitleDoc, 0)  )
+   }
+}
+//определить новый статус для перевода приказа
+Function GetTitleDocNewCWF( cTitleDocCWF : comp; parState : string ) : comp;
+{
+   result := 0;
+
+   //текущий статус //найдем бизнесс-процесс
+   if GetFirst ProcessState where (( cTitleDocCWF == ProcessState.Nrec )) = tsOk
+      cTitleDocCWF := ProcessState.Process
+
+   //статусы по этому бизнес-процессу
+   _loop ProcessState where (( cTitleDocCWF == ProcessState.Process ))
+   if UpCase(ProcessState.Name) = UpCase(parState)  //есть совпадение по наименованию, тк кодов нет
+   {
+      result := ProcessState.Nrec
+      break;
+   }
+
+}
+//определить текущий статус
+Function GetTitleDocCurrCWFName( cTitleDoc : comp ) : string;
+{
+   result := '';
+
+   if GetFirst TitleDoc where (( cTitleDoc == TitleDoc.Nrec)) = tsOk
+   if GetFirst ProcessState where (( TitleDoc.CWF == ProcessState.Nrec )) = tsOk
+      result := ProcessState.Name;
+
+}
+//статусы для отправки приказа
+function IsNeedSend_TitleDoc( parTitleDoc : comp ) : boolean;
+{
+    result := false;
+
+    var lsCurState : string = GetTitleDocCurrCWFName( parTitleDoc )
+
+    if UpCase(lsCurState) = 'НА ДОРАБОТКЕ'
+       result := true;
+
+}
+//статусы для повторной отправки
+function IsNeedSend_DocDop( parState : string ) : boolean;
+{
+    result := false;
+
+    if UpCase(parState) = 'НА ДОРАБОТКЕ'
+       result := true;
+
+}
+//функция проработки статуса РПД и выполнения связанных действий в соотвествии со статусом
+Function SetStateToRPD( cTitleDocNrec : comp; var parState : string; parNum : string =''; parDate : string = '' ) : boolean;
+{
+
+   result := false;
+   var lbRes : boolean = false;
+   var lsRes : string  = 'Ошибка обработки статуса "'+parState+'"';
+
+  _try
+  {
+     if GetFirst TitleDoc where (( cTitleDocNrec == TitleDoc.Nrec)) <> tsOk
+     {
+        lsRes := 'Ошибка обновления : нет TitleDoc.Nrec '+string(cTitleDocNrec,0,0);
+     }
+     else
+     {
+        var lcStateNew : comp = GetTitleDocNewCWF( TitleDoc.CWF, parState);
+        if  lcStateNew = 0
+        {
+            lsRes := 'Не найден статус "'+parState+'"  current_status;'   //указать current_status, чтобы ошибка ушла в RX
+        }
+        else
+        {
+            parNum := TRIM(parNum);
+            var lsNumDoc  : string = parNum;
+            var ldDateDoc : date = StrToDate( TRIM(parDate), 'DD.MM.YYYY');
+
+            //есть дата/номер
+            if parNum <> ''
+            or ldDateDoc <> 0
+            {
+               //найдены и изменены дата/номер в подчиненных данных типа APPOINTMENTS, APPHIST
+               lbRes := UpdateAppForCurTitleDoc( lsNumDoc, ldDateDoc );
+               lsRes := lsNumDoc;
+
+               if parNum <> ''
+                  set TitleDoc.DOCNMB  := parNum;
+
+               if ldDateDoc <> 0
+                  set TitleDoc.DOCDATE := ldDateDoc;
+
+            }
+            else
+               lbRes := true;
+
+            //здесь дальше требуется обработать статус самого приказа
+            if lbRes
+            {
+              //Interface OrdersList смена статуса пользователем - синхронизировать
+              //private function UpdateCurrentState(NextState: comp):boolean; // новый статус
+
+               lbRes := false;
+               lsRes := 'Ошибка обработки статуса "'+parState+'"' ;
+
+               //меняем статус
+               set TitleDoc.CWF := lcStateNew;
+
+               //доступ к редактированию приказа
+               set TitleDoc.wStatus := if( UpCase(parState) = 'НА ДОРАБОТКЕ', 0, 2);
+               /*
+               if UpCase(parState) = 'НА ДОРАБОТКЕ'
+                     SetTitleDocBlok(0, false)
+               else  SetTitleDocBlok(0, true)
+               */
+
+               _try
+               {
+                  if update current TitleDoc = tsOk
+                  {
+                     lbRes := true;
+                     //оставим для внесения в ответ по обработке
+                     lsRes := 'Обработали';
+                  }
+               }
+            }
+
+            if lsRes <> ''
+               lsRes :=  lsRes + ' приказ №'+TitleDoc.DOCNMB+' статус "'+parState+'" ('+string(TitleDoc.nrec,0,0)+')';
+
+        }
+     }
+  }
+  _finally
+  {
+     parState := lsRes;
+     result   := lbRes;
+  }
+
+}
+function SetStateTo_TD_DS ( parStaff : comp; parNum, parDate : string; var parState : string ): boolean;
+{
+   result := false;
+   var lbRes : boolean = false;
+   var lsRes : string  = 'Ошибка обработки номера/даты ТД/ДС "'+parState+'"';
+   var lsDocType : string ='';
+
+  _try
+  {
+    if GetFirst SpAllStaff where (( parStaff == SpAllStaff.Nrec )) <> tsOk
+    {
+       lsRes := 'Ошибка обновления : нет SpAllStaff.Nrec '+string(parStaff,0,0);
+    }
+    else
+    {
+       case SpAllStaff.wnocon of
+           5 : lsDocType := 'ТД';
+           6 : lsDocType := 'ДС';
+       end;
+
+       parNum := TRIM(parNum);
+       var lsNumDoc  : string = parNum;
+       var ldDateDoc : date = StrToDate( TRIM(parDate), 'DD.MM.YYYY');
+
+       //есть дата/номер
+       if parNum <> ''
+       or ldDateDoc <> 0
+       {
+
+          //найдены и изменены дата/номер в подчиненных данных типа APPOINTMENTS, APPHIST
+          //lbRes := UpdateAppForCurTitleDoc( lsNumDoc, ldDateDoc );
+          //lsRes := lsNumDoc;
+/*
+ТД (номер)- SPALLSTAFF.RESSTRING[1] для wnocon=5  APPOINTMENTS.NMDOG   APPOINTMENTS.ContractNmb
+Дата заключения ТД - SPALLSTAFF.RESDATE[1] для wnocon=5  APPOINTMENTS.ContractDate
+ДС (номер) - SPALLSTAFF.RESSTRING[1] для wnocon=6
+Дата заключения ДС - SPALLSTAFF.RESDATE[1] для wnocon=6
+*/
+          if parNum <> ''
+             set SpAllStaff.RESSTRING[1] := parNum;
+
+          if ldDateDoc <> 0
+             set SpAllStaff.RESDATE[1]   := ldDateDoc;
+
+          _try
+          {
+             if update current SpAllStaff = tsOk
+             {
+                lbRes := true;
+                //оставим для внесения в ответ по обработке
+                lsRes := 'Обработали '+lsDocType;
+             }
+          }
+       }
+       else
+       {
+          lbRes := true;
+          lsRes := 'Обработали '+lsDocType ;
+       }
+
+       if lsRes <> ''
+          lsRes :=  lsRes + ' №'+SpAllStaff.RESSTRING[1]+' '+string(SpAllStaff.nrec,0,0);
+
+    }
+  }
+  _finally
+  {
+     parState := lsRes;
+     result   := lbRes;
+  }
+
+}
+//Сохранить статус, номер, дату документа по ID из DirectRx вариант 1
+//здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+function SetDocStateDirectRxById( parId : string; parNumDoc, parDateDoc : string; var parState : string ): boolean;
+{
+   result := false;
+
+   var lbRes   : boolean = false;
+   var lsRes   : string = 'Ошибка обработки документа по id='+parId ;
+   var lsState : string = '';
+   var lcTitleDoc : comp = 0;
+
+   _try
+   {
+     if GetFirst EXTERNALASM  where ((          101   == EXTERNALASM.ASM_TYPE
+                                         and  parId   == EXTERNALASM.Numbers[1] (noindex)
+                                    )) <> tsOk
+     {
+         lsRes := 'Не найден документ по idRX='+parId ;  //указать idRX, чтобы ошибка ушла в RX
+     }
+     else
+     {
+         //EXTERNALASM.NUMBERS[11] - всегда NREC приказа!!!
+         lcTitleDoc := comp(EXTERNALASM.NUMBERS[11]);
+         lsRes := 'Ошибка обновления EXTERNALASM';
+
+         _try
+         {
+             set EXTERNALASM.Numbers[2] := parState   ;
+             if parNumDoc  <> ''
+             set EXTERNALASM.Numbers[3] := parNumDoc  ;
+             if parDateDoc <> ''
+             set EXTERNALASM.Numbers[4] := parDateDoc ;
+             set EXTERNALASM.DUPLOAD    := cur_date() ;
+             set EXTERNALASM.DESCR      := sGetTune('USER.DESCR');
+             update current EXTERNALASM;
+
+            _try
+            {
+               //переданы параметры по самому приказу
+               if EXTERNALASM.WTABLE = coTitleDoc
+               {
+                  lsState := parState;
+
+                  //здесь дальше требуется обработать статус самого приказа
+                  //если указаны номер и дата, то их внести в приказ
+                  lbRes   := SetStateToRPD( EXTERNALASM.CREC, lsState, EXTERNALASM.Numbers[3], EXTERNALASM.Numbers[4])
+
+               }
+               else
+               //переданы параметры по ТД или ДС
+               if EXTERNALASM.WTABLE = coSpAllStaff
+               {
+                  lsState := parState;
+
+                  //если указаны номер/дата, то их внести в ТД/ДС
+                  lbRes := SetStateTo_TD_DS( EXTERNALASM.CREC, EXTERNALASM.Numbers[3], EXTERNALASM.Numbers[4], lsState)
+
+                  //??? найти тип приказа и определить по схеме и статусу, менять ли статус самого приказа
+                  //пока решили, что приказ до подписания самого приказа всегда - на согласовании
+                  //и от статуса ТД/ДС не меняется
+                  //Но статусы "На согласовании" и "На доработке" - влияет на статус приказа
+                  if lbRes
+                  {
+                     lsState := parState;
+
+                     if UpCase(parState) = 'НА ДОРАБОТКЕ'
+                     or UpCase(parState) = 'НА СОГЛАСОВАНИИ'
+                     {
+                        lbRes := SetStateToRPD( lcTitleDoc, lsState )
+                     }
+                  }
+               }
+               else
+               //другие документы //записка-расчет РПД-6
+               if EXTERNALASM.WTABLE = coContDoc
+               {
+                  //нет документа связанного - ничего не делаем
+                  lsState := '';
+                  lbRes   := true;
+               }
+
+               //----------------------
+               if lbRes
+               if UpCase(parState) = 'ПОДПИСАН'
+               {
+                  //инициировать отправку зависимого документа при его наличии
+                  if EXTERNALASM.WTABLE = coSpAllStaff
+                  or EXTERNALASM.WTABLE = coTitleDoc
+                  {
+                     //инициировать отправку зависимого документа при его наличии
+                     //+отправить РПД в корзину, если подписан сам приказ
+                     SendTitleDocDocsToRX( EXTERNALASM.WTABLE, lcTitleDoc );
+                  }
+               }
+
+            }
+            _finally
+            {
+               lsRes := lsState
+            }
+
+        }
+        _finally
+        {
+           if lsRes <> ''
+              lsRes := lsRes + ' по id='+parId ;
+        }
+     }
+   }
+   _finally
+   {
+      //любой ответ записать в хранимый протокол
+      _iOut.SetResultToProtFile(lsRes, lbRes, lcTitleDoc);
+
+      parState := lsRes
+      result   := lbRes;
+   }
+}
+//---
+//создаем первый раз EXTERNALASM для документа либо позиционируемся на имеющийся
+//зафиксируем табельный пользователя, отправившего запрос
+function SetExtASMDirectRx( parTableDoc : word; parNrecDoc : comp; parTitleDoc : comp; parAuthor : string ='') : comp;
+{
+  result := 0;
+
+  _try
+  {
+     if GetFirst EXTERNALASM  where ((        101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) <> tsOk
+    {
+      if ( Insert EXTERNALASM set
+           EXTERNALASM.nrec        := 0
+         , EXTERNALASM.ASM_TYPE    := 101
+         , EXTERNALASM.WTABLE      := parTableDoc
+         , EXTERNALASM.CREC        := parNrecDoc
+         , EXTERNALASM.DLOAD       := cur_date()
+         , EXTERNALASM.DESCR       := sGetTune('USER.DESCR')
+         , EXTERNALASM.NUMBERS[11] := parTitleDoc  //string(parTitleDoc,0,0) //для ДС и ТД и прочих документов - связь с приказом
+
+         ) <> tsOk
+      {
+         exit;
+      }
+    }
+    if GetFirst EXTERNALASM  where ((         101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) = tsOk
+    {
+       if Length(parAuthor) > 0
+       if (
+             update current EXTERNALASM set
+                EXTERNALASM.NUMBERS[12] := parAuthor //зафиксируем табельный пользователя
+
+          ) <> tsOk
+          {
+             Exit;
+          }
+
+        result := EXTERNALASM.Nrec;
+    }
+  }
+}
+//Получить из  EXTERNALASM для ПРИКАЗА (!!!)  зафиксированный табельный
+function GetDocUserTabNExt( parTitleDoc : comp ): string;
+{
+   result := '';
+
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  coTitleDoc  == EXTERNALASM.WTABLE
+                                       and  parTitleDoc == EXTERNALASM.CREC
+                                  )) = tsOk
+   {
+      result := TRIM(EXTERNALASM.NUMBERS[12])  // табельный пользователя
+   }
+
+}
+//---
+//Сохранить ID из DirectRx по документу
+function SetIdDirectRx(  parExtASMNrec : comp; parId : string; parURL : string ): boolean;
+{
+
+   var lbRes : boolean = false;
+   var lsRes : string = 'Ошибка обработки данных документа';
+   var lcTitleDoc : comp = 0;
+
+ _try
+ {
+   if GetFirst EXTERNALASM  where ((  parExtASMNrec == EXTERNALASM.NREC  )) <> tsOk
+   {
+      lsRes := 'Ошибка не найден EXTERNALASM.Nrec='+string(parExtASMNrec,0,0)+'( SetIdDirectRx)';
+   }
+   else
+   {
+     //EXTERNALASM.NUMBERS[11] - всегда NREC приказа!!!
+     lcTitleDoc := comp(EXTERNALASM.NUMBERS[11]);
+
+     if (   update current EXTERNALASM set
+              EXTERNALASM.Numbers[1]  := parId
+            , EXTERNALASM.Numbers[5]  := SubStr(parURL, 1,78)
+            , EXTERNALASM.Numbers[6]  := SubStr(parURL,79,78)
+
+      ) <> tsOk
+      {
+         lsRes := 'Ошибка обновления EXTERNALASM.Nrec='+string(parExtASMNrec,0,0)+' (SetIdDirectRx)';
+      }
+      else
+      {
+         //EXTERNALASM.NUMBERS[11] - всегда NREC приказа!!!
+         lcTitleDoc := comp(EXTERNALASM.NUMBERS[11]);
+
+         lsRes := 'Отправлен в RX';
+         //Статус приказа - Отправлен в RX
+         //вне зависимости от того, что отправили, приказ или смежные документы
+         if EXTERNALASM.WTABLE <> coContDoc //не записка-расчет
+         lbRes := SetStateToRPD( lcTitleDoc, lsRes )
+
+      }
+   }
+ }
+ _finally
+ {
+      //любой ответ записать в хранимый протокол
+      _iOut.SetResultToProtFile(lsRes+' по id='+parId, lbRes, lcTitleDoc);
+
+      result := lbRes;
+ }
+
+}
+function SetIdDirectRxOld( parTableDoc : word; parNrecDoc : comp; parId : string; parURL : string; parTitleDoc : comp ): boolean;
+{
+
+   var lbRes : boolean = false;
+   var lsRes : string = 'Ошибка обработки данных документа';
+   var lcTitleDoc : comp = 0;
+
+ _try
+ {
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) <> tsOk
+   {
+      if ( Insert EXTERNALASM set
+           EXTERNALASM.nrec        := 0
+         , EXTERNALASM.ASM_TYPE    := 101
+         , EXTERNALASM.WTABLE      := parTableDoc
+         , EXTERNALASM.CREC        := parNrecDoc
+         , EXTERNALASM.NUMBERS[11] := parTitleDoc //string(parTitleDoc,0,0) //для ДС и ТД и прочих документов - связь с приказом
+
+         ) <> tsOk
+      {
+         lsRes := 'Ошибка вставки EXTERNALASM (SetIdDirectRx)';
+      }
+   }
+
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) = tsOk
+   {
+     //EXTERNALASM.NUMBERS[11] - всегда NREC приказа!!!
+     lcTitleDoc := comp(EXTERNALASM.NUMBERS[11]);
+
+     if (
+        update current EXTERNALASM set
+           EXTERNALASM.Numbers[1]  := parId
+         , EXTERNALASM.Numbers[5]  := SubStr(parURL, 1,78)
+         , EXTERNALASM.Numbers[6]  := SubStr(parURL,79,78)
+         , EXTERNALASM.DLOAD       := cur_date()
+         , EXTERNALASM.DESCR       := sGetTune('USER.DESCR')
+         , EXTERNALASM.NUMBERS[11] := parTitleDoc //string(parTitleDoc,0,0) //для ДС и ТД и прочих документов - связь с приказом
+
+      ) <> tsOk
+      {
+         lsRes := 'Ошибка обновления EXTERNALASM (SetIdDirectRx)';
+      }
+      else
+      {
+         //EXTERNALASM.NUMBERS[11] - всегда NREC приказа!!!
+         lcTitleDoc := comp(EXTERNALASM.NUMBERS[11]);
+
+         lsRes := 'Отправлен в RX';
+         //Статус приказа - Отправлен в RX
+         //вне зависимости от того, что отправили, приказ или смежные документы
+         if EXTERNALASM.WTABLE <> coContDoc //не записка-расчет
+         lbRes := SetStateToRPD( lcTitleDoc, lsRes )
+
+      }
+   }
+ }
+ _finally
+ {
+      //любой ответ записать в хранимый протокол
+      _iOut.SetResultToProtFile(lsRes+' по id='+parId, lbRes, lcTitleDoc);
+
+      result := lbRes;
+ }
+
+}
+//Получить ID из DirectRx по документу
+function GetIdDirectRxByDoc( parTableDoc : word; parNrecDoc : comp; parSend : boolean = false ): string;
+{
+   result := '';
+
+   if GetFirst EXTERNALASM  where ((          101       == EXTERNALASM.ASM_TYPE
+                                       and  parTableDoc == EXTERNALASM.WTABLE
+                                       and  parNrecDoc  == EXTERNALASM.CREC
+                                  )) = tsOk
+   {
+      result := EXTERNALASM.Numbers[1];
+
+      //если ID уже есть,
+      //то проверить статусы для повторной отправки
+      if   result <> ''
+      and  parSend
+      {
+         if IsNeedSend_DocDop(EXTERNALASM.Numbers[2])
+               result := '';
+      }
+   }
+}
+//Получить ID из DirectRx доп документа (ТД/ДС/прочие) по Nrec приказа
+function GetIdDirectRxByDocDOP( parTableDoc : word; parNrecDoc : comp; parSend : boolean = false ): string;
+{
+   result := '';
+
+   if ( GetFirst EXTERNALASM  where ((    101     == EXTERNALASM.ASM_TYPE  ))
+                                 and  parTableDoc <> EXTERNALASM.WTABLE
+                                 and  parNrecDoc  =  comp(EXTERNALASM.NUMBERS[11])
+      ) = tsOk
+   {
+      result := EXTERNALASM.Numbers[1];
+
+      //если ID уже есть,
+      //то проверить статусы для повторной отправки
+      if   result <> ''
+      and  parSend
+      {
+         if IsNeedSend_DocDop(EXTERNALASM.Numbers[2])
+            result := '';
+      }
+   }
+}
+//Получить документ по ID из DirectRx вариант 1
+//здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+function GetDocDirectRxById( parId : string; var parTableDoc : word; var parNrecDoc : comp ): boolean;
+{
+   result := false;
+
+   if GetFirst EXTERNALASM  where ((          101   == EXTERNALASM.ASM_TYPE
+                                       and  parId   == EXTERNALASM.Numbers[1] (noindex)
+                                  )) = tsOk
+   {
+      parTableDoc := EXTERNALASM.WTABLE;
+      parNrecDoc  := EXTERNALASM.CREC;
+
+      result := true;
+   }
+}
+//---------------------------------------------------
+//Получить шаблон ДС - параметр DocShablon
+//пока передаем Сatalogs.Nrec - Вид ДС
+function GetDocShablonDS ( parNrec : comp ) : string;
+{
+   result := sGetAttr( coCatalogs, parNrec, 'Шаблон Directum-RX');
+}
+//Получить шаблон ТД  - параметр DocShablon
+//пока черновик
+function GetDocShablonTD( parDocParam, parDocKat, parTarZona : string ) : string;
+{
+   result := '';
+
+  //здесь будет создан справочник шаблонов ТД
+  //условия пока как быстрый черновой вариант
+/*
+"Условие для параметра DocShablon:
+1. Если DocParam=MKC и DocKat=PR, то загрузить шаблон TRUD_DOG_MKC_1512
+2. Если DocParam=MKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_MKC_VOD_1512
+3. Если DocParam=PKC и DocKat=PR, то загрузить шаблон TRUD_DOG_RKC_1512
+4. Если DocParam=PKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_RKC_VOD_1512
+5. Если DocParam=пусто и DocKat=PR и тарифная зона= ""Регион без РК"" , то загрузить шаблон TRUD_DOG_REG_1512
+6. Если DocParam=пусто и DocKat=PR и тарифная зона? ""Регион без РК"" , то загрузить шаблонили TRUD_DOG_1512
+7. Если DocParam=пусто и DocKat=VOD и тарифная зона= ""Регион без РК"", то загрузить шаблон TRUD_DOG_REG_VOD_1512
+8. Если DocParam=пусто и DocKat=VOD и тарифная зона? ""Регион без РК"", то загрузить шаблон TRUD_DOG_VOD_1512"
+*/
+// 1. Если DocParam=MKC и DocKat=PR, то загрузить шаблон TRUD_DOG_MKC_1512
+     if POS( 'МКС', parDocParam) > 0  and parDocKat = 'PR'  then result := 'TRUD_DOG_MKC_1512';
+//2. Если DocParam=MKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_MKC_VOD_1512
+     if POS( 'МКС', parDocParam) > 0  and parDocKat = 'VOD' then result := 'TRUD_DOG_MKC_VOD_1512';
+//3. Если DocParam=PKC и DocKat=PR, то загрузить шаблон TRUD_DOG_RKC_1512
+     if POS( 'РКС', parDocParam) > 0  and parDocKat = 'PR'  then result := 'TRUD_DOG_RKC_1512';
+//4. Если DocParam=PKC и DocKat=VOD, то загрузить шаблон TRUD_DOG_RKC_VOD_1512
+     if POS( 'РКС', parDocParam) > 0  and parDocKat = 'VOD' then result := 'TRUD_DOG_RKC_VOD_1512';
+//5. Если DocParam=пусто и DocKat=PR и тарифная зона= ""Регион без РК"" , то загрузить шаблон TRUD_DOG_REG_1512
+     if parDocParam = '' and parDocKat = 'PR'  and UPCASE(parTarZona) = UPCASE('Регион без РК')  then result := 'TRUD_DOG_REG_1512';
+//6. Если DocParam=пусто и DocKat=PR и тарифная зона <> ""Регион без РК"" , то загрузить шаблонили TRUD_DOG_1512
+     if parDocParam = '' and parDocKat = 'PR'  and UPCASE(parTarZona) <> UPCASE('Регион без РК') then result := 'TRUD_DOG_1512';
+//7. Если DocParam=пусто и DocKat=VOD и тарифная зона= ""Регион без РК"", то загрузить шаблон TRUD_DOG_REG_VOD_1512
+     if parDocParam = '' and parDocKat = 'VOD' and UPCASE(parTarZona) = UPCASE('Регион без РК')  then result := 'TRUD_DOG_REG_VOD_1512';
+//8. Если DocParam=пусто и DocKat=VOD и тарифная зона<> ""Регион без РК"", то загрузить шаблон TRUD_DOG_VOD_1512"
+     if parDocParam = '' and parDocKat = 'VOD' and UPCASE(parTarZona) <> UPCASE('Регион без РК') then result := 'TRUD_DOG_VOD_1512';
+}
+//испытательный срок
+function Get_SrokIsp( dBeg, dEnd : date; parType : word) : string;
+{
+  result := 0;
+
+  var ii : integer;
+
+  for(ii:=1; ii<=200; ii++)
+  {
+     if Add_months(dBeg, ii * 12) = dEnd
+     {
+       if parType = 1
+                   result := string(ii,0,0)
+       else
+       case ii of
+         1      :  result := if(parType = 2, '', ii) + ' год'  ;
+         2..4   :  result := if(parType = 2, '', ii) + ' года' ;
+         5..200 :  result := if(parType = 2, '', ii) + ' лет'  ;
+       end;
+       Exit;
+     }
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_months(dBeg, ii ) = dEnd
+  {
+       if parType = 1
+                   result := string(ii,0,0)
+       else
+       case ii of
+         1      :  result := if(parType = 2, '', ii) + ' месяц'  ;
+         2..4   :  result := if(parType = 2, '', ii) + ' месяца' ;
+         5..200 :  result := if(parType = 2, '', ii) + ' месяцев'  ;
+       end;
+       Exit;
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_day(dBeg, ii * 7) = dEnd
+  {
+       if parType = 1
+                   result := string(ii,0,0)
+       else
+       case ii of
+         1      :  result := if(parType = 2, '', ii) + ' неделя'  ;
+         2..4   :  result := if(parType = 2, '', ii) + ' недели' ;
+         5..200 :  result := if(parType = 2, '', ii) + ' недель'  ;
+       end;
+       Exit;
+  }
+  for(ii:=1; ii<=200; ii++)
+  if Add_day(dBeg, ii ) = dEnd
+  {
+       if parType = 1
+                   result := string(ii,0,0)
+       else
+       case ii of
+         1      :  result := if(parType = 2, '', ii) + ' день'  ;
+         2..4   :  result := if(parType = 2, '', ii) + ' дня'   ;
+         5..200 :  result := if(parType = 2, '', ii) + ' дней'  ;
+       end;
+       Exit;
+  }
+
+  result := String(CalcDaysBetweenDates(dBeg, dEnd, false ),0,0) + if(parType = 1, '', ' дн.')
+
+}
+//---------------------------------------------------
+//Получить табельный номер пользователя, заполнившего документ, параметр  Author
+//пока черновик
+function GetDocUserTabN : string;
+{
+  result := '';
+
+  var cPers  : comp = coGetTune('USER.PERSON');  //здесь конечно будет не настройка по факту, а по документу
+
+  if cPers <> 0
+  if GetFirst Persons where (( cPers == Persons.Nrec ))  = tsOk
+  {
+     result := GetStrTabn(Persons.TabNmb, Persons.StrTabN); //SubStr(String(Persons.TABNMB),1,10);
+  }
+
+}
+//код главного структурного ПАО СНГ
+function GetMainCode_PAOSNG : string;
+{
+    result := 'ПАО СНГ'; //'0000';
+}
+//получить дату в формате для заголовков
+function SetDateToHeader( parDate : date) : string;
+{
+  if parDate = ZERODATE
+    result := '';
+  else
+    result := datetostr(parDate, 'YYYY-MM-DD') + 'T00:00:00.000Z' ;
+}
+//получить дату в формате для параметров
+function SetDateToValue( parDate : date) : string;
+{
+  if parDate = 0
+    result := ''; // datetostr(parDate, '00.00.0000');
+  else
+    result := datetostr(parDate, 'DD.MM.YYYY');
+}
+//получить дату в формате строки
+function SetDateToString( parDate : date) : string;
+{
+  if parDate = 0
+    result :=  '"___" ________ 20__ г.';
+  else
+    result := LoCase(datetostr(parDate, '"DD" Mon YYYY г.'));
+}

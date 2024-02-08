@@ -1,0 +1,58 @@
+/*************************************************************************************************\
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+*/
+
+#ifnDef _GLX_932_zp_alg_1_7_INCLUDED_
+#define _GLX_932_zp_alg_1_7_INCLUDED_
+#component "SNG"
+
+ObjInterface oGLX_932_zp_alg_1_7;
+public:
+#doc
+#end
+
+#doc
+расчет по алгоритму 1
+#end
+function getsumAlg1(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: longint = 0 ) : double;
+
+#doc
+расчет по алгоритму 2
+#end
+function getsumAlg2(_cPrNaryad : comp; _fisLogging : boolean) : double;
+
+#doc
+расчет по алгоритму 3
+#end
+function getsumAlg3(_cPrNaryad : comp; _fisLogging : boolean) : double;
+
+#doc
+расчет по алгоритму 4
+#end
+function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: longint = 0 ) : double;
+
+#doc
+расчет по алгоритму 5
+#end
+function getsumAlg5(_cPrNaryad : comp; _fisLogging : boolean) : double;
+
+#doc
+расчет по алгоритму 6
+#end
+function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double;
+
+#doc
+расчет по алгоритму 7
+#end
+function getsumAlg7(_cPrNaryad : comp; _fisLogging : boolean) : double;
+
+end;
+
+VipInterface GLX_932_zp_alg_1_7 Implements oGLX_932_zp_alg_1_7 #Licensed_Free;
+
+#end

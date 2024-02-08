@@ -53,7 +53,8 @@ Create Table QRY_Instance "Экземпляр запроса на основании шаблона"
 with Index
 (
   QRY_Instance01 = NRec (unique, surrogate, journal)
- ,QRY_Instance02 = cTmplt + code (unique)
+ ,QRY_Instance02 = code (unique)
+ ,QRY_Instance03 = cTmplt
 
 );
 

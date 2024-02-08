@@ -1,0 +1,4 @@
+function CreateUpdate_RPD50(_cRec : comp): boolean;
+{
+   result := CreateUpdate_RPD_Header(_cRec )
+}

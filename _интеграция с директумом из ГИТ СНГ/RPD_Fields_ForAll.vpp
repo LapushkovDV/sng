@@ -1,0 +1,428 @@
+  result := false;
+
+  var sDocStructName, methodstr, methodName : string
+
+  if lnTypeDoc = 1 // РПД непосредственно
+  {
+     sDocStructName := 'personnelOrder';
+     methodstr      := sgettune('DirectumIntegration_CreatePersonnelOrder');
+     methodName     := 'Метод создания приказа';
+  }
+  else
+  if lnTypeDoc = 2 // ДС
+  {
+     sDocStructName := 'additionalAgreement';
+     methodstr      := sgettune('DirectumIntegration_CreateAdditionalAgreement'); //  /DrxIntegration/odata/HRDocflow/CreateAdditionalAgreement
+     methodName     := 'Метод создания доп.соглашения на изменение оклада';
+  }
+  else
+  if lnTypeDoc = 3 // ТД
+  {
+     sDocStructName := 'employmentContract';
+     methodstr      := sgettune('DirectumIntegration_CreateUpdateEmploymentContract');  // https://directumrxtst/DrxIntegration/odata/HRDocflow/CreateUpdateEmploymentContract
+     methodName     := 'Метод создания трудового договора';
+  }
+  else
+  if lnTypeDoc = 4  //записка-расчет по lcContDocID = ContDoc.Nrec типа
+  {
+     sDocStructName := 'calculationNote';
+     methodstr      := sgettune('DirectumIntegration_CreateCalculationNote');   //directumrxtst/DrxIntegration/odata/HRDocflow/CreatePersonnelOrder
+     methodName     := 'Метод Записка-расчет РПД-6, РПД-41';
+  }
+
+  //-------
+  IsTestMode(methodstr);
+
+  if methodstr = ''
+  {
+       LogMessage('Не заполнена настройка "'+methodName+'"'  ,error);
+       exit;
+  }
+
+  //-------
+    if getfirst Titledoc where ((_cRec == Titledoc.nrec)) <> tsOK
+    {
+       LogMessage('Не найден приказ Titledoc по Titledoc.nrec ' + string(_cRec, 0, 0),error)
+       exit;
+    }
+
+    if(getfirst partdoc where (( Titledoc.nrec == partdoc.CDOC)) and Partdoc.TYPEOPER = lnTypeOper ) <> tsOK
+    {
+       LogMessage('В функцию передан Titledoc.nrec = '+string(Titledoc.nrec,0,0)+
+        ''#13''+', но этот приказ не содержит раздел по РПД-'+lnTypeOper ,error)
+       exit;
+    }
+
+    if getfirst TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER)) <> tsOK then
+    {
+       LogMessage('В приказе указан несуществующий тип приказа в БД: '+
+            ''#13''+ 'TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER))'+
+            ''#13''+ 'Partdoc.TYPEOPER = ' + Partdoc.TYPEOPER,error)
+       exit;
+    }
+
+    if GetFirst ContDoc where (( partdoc.nrec == ContDoc.CPART )) <> tsOk
+    {
+       LogMessage('В приказе не найдены разделы, связанные с сотрудниками '+
+            ''#13''+ '  partdoc.nrec == ContDoc.CPART '  + Partdoc.nrec,error)
+       exit;
+    }
+
+    if ( getfirst KatOrg where (( coGetTune('myorg') == KatOrg.nrec )) <> tsOK )
+    {
+       LogMessage('Не нашли собственную организацию по настройке "myorg" '+
+             ''#13''+' cogettune("myorg") = ' + string(cogettune('myorg'),0,0),error)
+       exit;
+    }
+
+   //-------
+   var _NAME_ORG       : string = KatOrg.ShortName;
+   var _NAME_ORG_SHORT : string = KatOrg.Name;
+
+   var _NAME   : string = '';
+   var _cRecG  : comp   = 0;
+   var _Gorod  : string = '';
+   var _WERKS  : string = '';
+
+   var _NDOC       : string = TITLEDOC.DOCNMB;
+   var _DDOC       : string = _iOutBase.SetDateToValue(TITLEDOC.DOCDATE);
+   var _DocShablon : string = '';
+
+   //-------
+   var _IdRX, _IdMainDoc : string;
+
+   _IdRX      := _iOutBase.GetIdDirectRxByDoc(coTitledoc, Titledoc.Nrec);
+
+   var _HRCode        : string = string(Titledoc.NREC,0,0);
+   var _IsArhive      : string = 'False';
+
+   var _Author        : string = '';  //формирование ниже как критичный параметр проверки
+   var _HRCodeAbsence : string = '';
+   var _HRCodeRPD     : string = '';
+   var _HRCodeEvent   : string = '';
+   var _HRCodeReason  : string = '';
+   var _HRCodeKindAdditionalAgreement : string = '';
+   var _HRCodeEmploymentContract : string = '';
+   var _HRCodeKindEmploymentContract : string = '';
+   var _Shablon   : string = '';
+   var _DateStart : string = '';
+   var _DateEnd   : string = '';
+   var _Employee  : string = '';
+   var _Notice    : string = '';
+   var _UnitTrial : string = '';
+   var _Trial     : integer = 0;
+
+   //---------------------
+   //здесь массив строк!!! ["0000000000000015h","0000000000000125h"]
+   //первую и последнюю кавычку пропускаем будут в addHeaderElementArrString
+   _HRCodeRPD  := _HRCodeRPD + if(length(_HRCodeRPD)>0, '","', '') +string(TYPEPR.nrec,0,0);
+
+   //---------------------
+   var lcCatalogs  : comp = 0;
+
+   // поле CATALOGS.CODE  CATALOGS.SYSCODE=-31699
+   lcCatalogs := coGetAttr( coPARTDOC, PARTDOC.Nrec, 'Вид')
+   if  lcCatalogs <> 0
+   and getfirst cat_search where ((lcCatalogs == cat_search.NREC)) = tsOK
+       _HRCodeEvent := cat_search.code;
+
+   lcCatalogs := PARTDOC.CPREF;
+   if lcCatalogs <> 0
+   and getfirst cat_search where (( lcCatalogs == cat_search.NREC)) = tsOK
+       _HRCodeReason := string(cat_search.nrec,0,0)
+
+
+  //-------
+  _loop ContDoc where (( partdoc.nrec == ContDoc.CPART )) ordered by index CONTDOC04   //CPART TYPEOPER Person
+  if ContDoc.SeqNmb = Integer(1)
+  {
+
+    if getfirst PERSONS where ((CONTDOC.PERSON == PERSONS.nrec)) <> tsOK then
+    {
+        LogMessage('В приказе не определен сотрудник (CONTDOC.PERSON == PERSONS.nrec) = ' + string(CONTDOC.PERSON,0,0),error)
+        exit; //continue;
+    }
+
+    if getfirst Catalogs_podr where ((CONTDOC.CDOPREF == Catalogs_podr.nrec)) <> tsOK  then
+    {
+        LogMessage('В приказе не нашли подразделение (CONTDOC.CDOPREF == Catalogs_podr.nrec)  = '
+                  + string(CONTDOC.CDOPREF,0,0)+' CONTDOC.nrec='+string(CONTDOC.nrec,0,0),error)
+        exit; //continue;
+    }
+
+    if getfirst appointments where ((contdoc.CSTR == appointments.nrec)) <> tsOk then
+    {
+        LogMessage('В приказе не нашли назначение назначение (contdoc.CSTR == appointments.nrec) = ' + string(contdoc.CSTR,0,0),error)
+        exit; // continue;
+    }
+
+    if getfirst STAFFSTRUCT where ((appointments.STAFFSTR == STAFFSTRUCT.nrec)) <> tsOK  then
+    {
+        LogMessage('В назначении не нашли ШР (appointments.STAFFSTR == STAFFSTRUCT.nrec) = ' + string(appointments.STAFFSTR,0,0),error)
+        exit; //continue;
+    }
+
+    if lnTypeOper = 1
+    or lnTypeOper = 50
+    if getfirst APPHIST where ((CONTDOC.nrec == APPHIST.CCONTDOC)) <> tsOK  then
+    {
+        LogMessage('В истории назначений не нашли ссылку на приказ (CONTDOC.nrec == APPHIST.CCONTDOC) = ' + string(CONTDOC.nrec,0,0),error)
+        exit; //continue;
+    }
+
+    if lnTypeOper = 5
+    or lnTypeOper = 105
+    {
+    if ( getfirst ContDocNew where (( ContDoc.cPart    == ContDocNew.cPart    and
+                                      ContDoc.TypeOper == ContDocNew.TypeOper and
+                                      ContDoc.Person   == ContDocNew.Person   and
+                                            Integer(1) << ContDocNew.SeqNmb   and
+                                      ContDoc.wRec     == ContDocNew.wRec  (noIndex) )) <> tsOk )
+    {
+        LogMessage('В приказе не найдены разделы, связанные с переводом '+
+            ''#13''+ ' ( Partdoc.nrec == ContDocNew.cPart and Integer(1) << ContDocNew.SeqNmb )  ='  + Partdoc.nrec,error)
+        exit;
+    }
+    if ( getfirst AppointmentsNew where (( ContDocNew.cStr == AppointmentsNew.NRec )) <> tsOk )
+    {
+        LogMessage('В приказе не найдено новое назначение '+
+            ''#13''+ '  (ContDocNew.cStr== AppointmentsNew.NRec ) ='  + ContDocNew.cStr,error)
+        exit;
+    }
+    if getfirst STAFFSTRUCTNew where ((AppointmentsNew.STAFFSTR == STAFFSTRUCTNew.nrec)) <> tsOK  then
+    {
+        LogMessage('В назначении не нашли ШР для нового назначения (AppointmentsNew.STAFFSTR == STAFFSTRUCTNew.nrec) = ' + string(AppointmentsNew.STAFFSTR,0,0),error)
+        exit; //continue;
+    }
+
+    if getfirst APPHISTNew where ((CONTDOCNew.nrec == APPHISTNew.CCONTDOC)) <> tsOK  then
+    {
+        LogMessage('В истории назначений не нашли ссылку для нового назначения (CONTDOCNew.nrec == APPHISTNew.CCONTDOC) = ' + string(CONTDOCNew.nrec,0,0),error)
+        exit; //continue;
+    }
+
+    }
+
+ /*
+    if getfirst TarStav where ((AppHist.Tariff == TarStav.Nrec)) <> tsOK  then
+    {
+        LogMessage('В истории назначений не нашли ссылку на тарифную ставкц (AppHist.Tariff == TarStav.Nrec).'+
+            ''#13''+' AppHist.Tariff = ' + string(AppHist.Tariff,0,0),error)
+        continue;
+    }
+*/
+
+    //--- ID связанного документа ТД/ДС
+    if lnTypeOper = 5
+    or lnTypeOper = 105
+          _IdMainDoc := _iWWC.GetContractHyperLink(AppointmentsNew.ResComp[1]);
+    else  _IdMainDoc := _iWWC.GetContractHyperLink(Appointments.ResComp[1]);
+
+
+    //---- формировани тебельного автора документа
+    if lbSetUserTab //берем табельный ТЕКУЩЕГО пользователя
+          _Author := _iOutBase.GetDocUserTabN
+    else //берем из  EXTERNALASM для ПРИКАЗА (!!!)  зафиксированный табельный
+          _Author := _iOutBase.GetDocUserTabNExt(Titledoc.nrec);
+
+    if Length(_Author) <= 0
+    {
+       LogMessage('Не определен табельный для поля "Author" '
+             + if( lbSetUserTab, ' по настройке "Общие настройки системы\Табельный номер" '
+                               , '=EXTERNALASM.Numbers[12] для EXTERNALASM.crec='+Titledoc.nrec)
+                 ,error)
+       exit;
+    }
+
+   //----
+   // РПД6  Appointments.EmpCategory == KlKatego.nRec
+   // РПД1, РПД50  AppHist.cSpr4     == KlKatego.Nrec
+   //----
+   // РПД5, РПД105  Appointments.EmpCategory  == KlKatego.nRec  старое назначение
+   // РПД5, РПД105  AppHist.cSpr4             == KlKatego.Nrec  новое наначние
+
+    var cCodeCat4 : comp = 0;
+    var wCodeCat4 : word = 0;
+
+    if lnTypeOper = 5
+    or lnTypeOper = 105
+          cCodeCat4 := AppHistNew.cSpr4
+    else  cCodeCat4 := AppHist.cSpr4;
+
+    if ( getfirst KlKatego where (( cCodeCat4 == KlKatego.Nrec )) = tsOK )
+        wCodeCat4 := KlKatego.Kod;
+
+    //----
+    var lcContDoc : comp = 0;
+
+    _NAME  := GetFillialDepName(Catalogs_podr.nrec);          //getPodrunder(_iOutBase.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
+    _cRecG := comp(GetFillialDepName(Catalogs_podr.nrec, 1)); //getpodrunder_nrec(_iOutBase.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
+    _Gorod := sGetAttr(coCATALOGS, _cRecG, 'Город');
+
+    lcCatalogs := _cRecG; //getpodrunder_nrec(_iOutBase.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
+    if lcCatalogs <> 0
+    and getfirst cat_search where (( lcCatalogs == cat_search.NREC)) = tsOK
+       _WERKS := cat_search.code;
+
+    //----
+    var _DOL_RUK : string = '';
+    var _FIO_RUK : string = '';
+    var _FIORUK  : string = '';
+    var _OSN     : string = ContDoc.sBottom;
+
+    //----
+    var _Employees : string =  GetStrTabn(Persons.TabNmb, Persons.StrTabN);    //здесь массив строк!!! ["00220401","00076778"]
+    var _PERNR     : string = _Employees; //GetStrTabn(Persons.TabNmb, Persons.StrTabN); //string( persons.TABNMB);
+
+    var _DissmissalDate : string = _iOutBase.SetDateToHeader(APPOINTMENTS.dOrderDisDate)
+
+    //----
+    var _FIO   : string = PERSONS.FIO;
+    var _NACHN : string = _PersFunc.Get_LastName(PERSONS.nrec);
+    var _VORNA : string = _PersFunc.Get_FirstName(PERSONS.nrec);
+    var _MIDNM : string = _PersFunc.GetPatronymic(PERSONS.nrec);
+
+    var _PODR  : widestring = GetFulDepName(Catalogs_podr.Nrec);
+    var _SHDOL : string = STAFFSTRUCT.longName; //sNameSt;
+
+    var _ADR :  string= '';
+    if getfirst addressn where ((persons.PASSPADDR == addressn.nrec)) = tsOK
+       _ADR := _addrfunc.GetFullAddressInd(addressn.nrec);
+
+    var _ADR_FAKT : string = '';
+    if getfirst addressn where ((persons.liveaddr == addressn.nrec)) = tsOK
+       _ADR_FAKT := _addrfunc.GetFullAddressInd(addressn.nrec);
+
+    var _DocTy : string = getpassport_string(PERSONS.PASSPRUS,persons.nrec);
+    var _Seriya, _Nomer, _DVYD, _KEM_VYD : string= '';
+     if _DocTy <> ''
+     {
+       _Seriya   := passports.SER;
+       _Nomer    := passports.NMB;
+       _DVYD     := _iOutBase.SetDateToValue(passports.GIVENDATE);
+       _KEM_VYD  := passports.GIVENBY;
+     }
+
+    //-----------
+
+    var _VID   : string = '';
+    var _MEDPOC: string = ''
+    var _DETIDO: string = ''
+    var _DPRIEM: string = ''
+    var _DKON  : string = '';
+    var _PRICH : string = '';
+    var _NAME1   : string = '';
+    var _PODROLD : widestring = widestring('');
+    var _SHDOLOLD: string = '';
+    var _SEV_KOEF: string = '';
+    var _RABOTA_HAR: string = '';
+    var _VAHTA_N   : string = '';
+
+    if lnTypeOper = 1
+    {
+       _DPRIEM := _iOutBase.SetDateToValue(Appointments.AppointDate);
+       _DKON   := _iOutBase.SetDateToValue(Appointments.DateEnd);
+
+       if ( getfirst InfPsn1 where (( ContDoc.NRec      == InfPsn1.cPers and
+                                      comp(skkPrikRPD1) == InfPsn1.cRef2     )) = tsOk )
+       {
+          var lnKoeffSev : integer = integer( double(InfPsn1.str1));
+          if lnKoeffSev <> 0
+          _SEV_KOEF := String( lnKoeffSev)+'%';  //InfPsn1.str1 сожержит строку типа 80.00%
+       }
+
+       _ADR := ''; //поля ADDRESSN.SPOSTIND, ADDRESSN.CSTERR, ADDRESSN.SADDRESS1 при ADDRESSN.CPERSON=CONTDOC.PERSON добавить условие OBJTYPE =24
+       //if getfirst addressn where (( ContDoc.cCat1 == addressn.nrec)) = tsOK // persons.PASSPADDR для утвержденного приказа
+       if getfirst addressn where (( ContDoc.PERSON == addressn.CPERSON and  24 == addressn.OBJTYPE )) = tsOK
+       _ADR := _addrfunc.GetFullAddressInd(addressn.nrec);
+
+       _ADR_FAKT := ''; //при выборе адреса из ADDRESSN добавить условие OBJTYPE =2
+      //if getfirst addressn where ((persons.liveaddr == addressn.nrec)) = tsOK
+       if getfirst addressn where (( ContDoc.PERSON == addressn.CPERSON and  2 == addressn.OBJTYPE )) = tsOK
+       _ADR_FAKT := _addrfunc.GetFullAddressInd(addressn.nrec);
+
+       //---
+       if ( getfirst cat_search where (( Persons.JobNature == cat_search.nrec )) = tsOK )
+       {
+          _RABOTA_HAR := cat_search.Name;
+
+          if TRIM(_RABOTA_HAR) = ''
+          _RABOTA_HAR := 'нет';
+
+          if ( LoCase(Trim(cat_search.Name)) = 'вахтовый метод' )
+          {
+            _VAHTA_N := 'за каждый день нахождения в пути от места нахождения работодателя (пункта сбора) до места выполнения ';
+            _VAHTA_N += 'работы и обратно, предусмотренные графиком работы на вахте, а также за дни задержки в пути по ';
+            _VAHTA_N += 'метеорологическим условиям или вине транспортных организаций дневную ставку (часть оклада за день ';
+            _VAHTA_N += 'работы (дневную ставку) исходя из 8 часов, установленную на последний рабочий день, предшествующий ';
+            _VAHTA_N += 'дню (дням) нахождения работника в пути.'
+          }
+       }
+    }
+
+    if lnTypeOper = 5
+    or lnTypeOper = 105
+    {
+      if ( getfirst cat_search where (( PartDoc.cpRef == cat_search.nrec )) = tsOk )
+      {
+        case Trim(cat_search.Code) of
+         '','1'      : _VID := 'постоянно';
+         '2','4','5' : _VID := 'временно';
+        end;
+        case Trim(cat_search.Code) of
+         '4': {
+                 _DKON := 'до даты ухода в отпуск по беременности и родам';
+                 _MEDPOC := 'с сохранением среднего заработка по прежней работе до даты ухода в отпуск по беременности и родам в соответствии со статьей 254 Трудового кодекса Российской Федерации';
+              }
+         '5':    _DETIDO := ', но не ниже среднего заработка по прежней работе до достижения ребенком возраста полутора лет в соответствии со статьей 254 Трудового кодекса Российской Федерации';
+        end;
+      }
+
+      //------ прежнее место
+      _NAME1   := GetFillialDepName(Catalogs_podr.nrec); //getPodrunder(_iOutBase.GetMainCode_PAOSNG, Catalogs_podr.nrec, Catalogs_podr.cParent);
+      _PODROLD := GetFulDepName(Appointments.Department)
+
+     // if ( getfirst cat_search where (( Appointments.Post == cat_search.nrec )) = tsOk )
+     //   _SHDOLOLD := cat_search.LongName;
+
+      _SHDOLOLD := STAFFSTRUCT.longName
+
+      //------ новое место
+      _PODR     := GetFulDepName(AppointmentsNew.Department);
+      _DPRIEM   := _iOutBase.SetDateToValue(AppointmentsNew.AppointDate);
+
+      _SHDOL    := STAFFSTRUCTNew.longName;
+
+      case ContDocNew.wAttrDoc2 of  //Вариант оформления
+        0 : _PRICH := 'перемещение по службе'  ;
+        1 : _PRICH := 'перевод в другой филиал (единая отчетность)'  ;
+        2 : _PRICH := 'перевод в другой филиал (раздельная отчетность)'   ;
+        3 : _PRICH := 'признание временного перевода постоянным' ;
+      end;
+
+    }
+
+   //-----------
+   var _SHDOL_K, _INSTRUK : string = '';
+    case wCodeCat4 of
+       01, 02, 03:
+       {
+         _SHDOL_K := 'на должность';
+         _INSTRUK := 'должностной';
+       }
+       04, 05:
+       {
+         _SHDOL_K := 'по профессии';
+         _INSTRUK := 'рабочей';
+       }
+    end;
+   //-----------
+
+   var lcCurPERSON, lcWPer : comp = 0;
+   var lcContDocID  : comp = 0;
+   var lnNumContDoc : word = 0;
+
+   //-----s
+   var m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+//} _loop ContDoc

@@ -1,0 +1,560 @@
+function CreateUpdate_RPD6(_cRec : comp): boolean; //GLX-1104
+{
+   lnTypeDoc := 1;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+   delete all tmpRPDTable;
+
+    //первый цикл по разделам по 1 первому попавшемуся человеку
+    //рабочие периоды здесь не сортированы по датам
+    //а будут так в последовательности ввода в приказ
+// _loop contdoc where ((partdoc.nrec == contdoc.CPART))  ordered by index CONTDOC04   //CPART TYPEOPER Person
+//  {
+
+      if lcCurPERSON = 0
+         lcCurPERSON := PERSONS.nrec;
+
+      else
+      if lcCurPERSON <> PERSONS.nrec //пропускаем прочих людей
+      {
+         continue;
+      }
+      lnNumContDoc++;
+
+      if getfirst PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) <> tsOK {
+         LogMessage('Не нашли PutVacCon Where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) '+
+             ''#13''+ 'ContDoc.nrec = '+string(ContDoc.nrec,0,0),error)
+         exit; // continue;
+        }
+
+       //здесь последовательно как будем формировать весь список отпусков
+       //при нескольких рабочих периодах
+       //поэтому соблюдаем одну последовательность и индекс везде дальше
+       //ordered by index PUTVACCON02  WTABLE cTable WNUM
+       _loop PutVacCon where ((coContDoc == PutVacCon.wTable and ContDoc.nrec == PutVacCon.cTable)) ordered by index PUTVACCON02
+       if PutVacCon.wDayCount > 0
+       if GetFirst PUTVACATION where (( PutVacCon.CPUTVACATION == PUTVACATION.Nrec )) <> tsOk
+       {
+          LogMessage('Не нашли PUTVACATION '+
+             ''#13'' + ' PutVacCon.CPUTVACATION == PUTVACATION.Nrec ' +string(PutVacCon.CPUTVACATION,0,0),error)
+          exit; // continue;
+       }
+       else
+       if getfirst KlOtpusk where ((PUTVACATION.CKLOTPUSK == KlOtpusk.NRec)) <> tsOK  //((PutVacCon.ResComp[1] == KlOtpusk.NRec)) = tsOK
+       {
+          LogMessage('Не нашли KlOtpusk PUTVACATION.CKLOTPUSK == KlOtpusk.NRec ' +string(PUTVACATION.CKLOTPUSK,0,0),error)
+          exit; // continue;
+       }
+       else
+       {
+
+         if PutVacation.wTypeVac = 0
+               lcWPer := PutVacation.cWorkPeriod
+         else  lcWPer := PutVacation.cWPRemain
+
+
+         if GetFirst WorkPeriod where (( lcWPer == WorkPeriod.NRec )) <> tsOK
+         {
+            LogMessage('Не определен рабочий период по PutVacation.NRec '+string(PutVacation.nrec,0,0)
+               +''#13'' + '  WorkPeriod.NRec='+ string(lcWPer,0,0)   ,error)
+            exit; //continue;
+         }
+
+         insert tmpRPDTable set
+              nrec  := PutVacCon.Nrec
+           ,  crec  := ContDoc.Nrec
+           ,  crec2 := lcWPer                                     //основной всегда первый в обработку внутри периода
+           ,  sort  := LongInt(  DateToStr(WorkPeriod.dPerBeg, 'YYMM')
+                            // + LPadCh(String( if(KlOtpusk.Kotpus = 10, 0, PutVacCon.WNUM) ,0,0),'0',2)
+                               + LPadCh(String( PutVacCon.WNUM ,0,0),'0',2)
+                               + LPadCh(String( lnNumContDoc   ,0,0),'0',2)
+                              )
+           ;
+       }
+//  }
+
+    _loop tmpRPDTable
+    {
+      /*
+       if GetFirst ContDocNew where (( tmpRPDTable.crec == ContDocNew.Nrec )) = tsOk
+       if lcContDoc <> ContDocNew.Nrec
+       {
+          lcContDoc := ContDocNew.Nrec;
+
+          //здесь массив строк!!! ["0000000000000015h","0000000000000125h"]
+          //первую и последнюю кавычку пропускаем будут в addHeaderElementArrString
+          //_HRCodeRPD  := _HRCodeRPD + if(length(_HRCodeRPD)>0, '","', '') + string(ContDocNew.NREC,0,0) ;
+       }
+     */
+       // _HRCodeAbsence ==>> string(KLOTPUSK.KOTPUS);  //здесь список значений по всем KLOTPUSK //"101,012"
+       if GetFirst PutVacCon    where (( tmpRPDTable.nrec == PutVacCon.nrec )) = tsOk
+       if GetFirst PUTVACATION  where (( PutVacCon.CPUTVACATION == PUTVACATION.Nrec )) = tsOk
+       if getfirst KlOtpusk     where (( PUTVACATION.CKLOTPUSK == KlOtpusk.NRec)) =  tsOK
+       {
+          _HRCodeAbsence   := _HRCodeAbsence + if(length(_HRCodeAbsence)>0, ',', '') + String(KLOTPUSK.KOTPUS,0,0)
+       }
+    }
+
+    //-----------------------
+    _IdMainDoc := '';
+
+    //-----------------------
+    //формируем шаблон заголовка через JSONObj strHeader
+    #addHeaderBegin(no_param)
+
+    #addHeaderElementInteger(IdRX)
+    #addHeaderElementString(HRCode)
+    #addHeaderElementArrString(HRCodeRPD)
+    #addHeaderElementString(HRCodeEvent)
+    #addHeaderElementString(HRCodeAbsence)
+    #addHeaderElementString(HRCodeReason)
+    #addHeaderElementArrString(Employees)
+
+    if _DissmissalDate = ''
+    {
+    #addHeaderElementInteger(DissmissalDate)
+    }
+    else
+    {
+    #addHeaderElementString(DissmissalDate)
+    }
+
+    #addHeaderElementInteger(IdMainDoc)
+    #addHeaderElementString(Author)
+    #addHeaderElementString(IsArhive)
+
+    #addHeaderEnd(no_param)
+
+  //-----------------------
+  //заполнение массива параметров 'Content'  через JSONObj_Array
+
+  //общая часть на все ContDoc по одному человеку
+     _DocShablon := 'PRIKAZ_OTPUSK';
+     #addArrayElementString(DOCSHABLON)
+
+     #addArrayElementString(NAME_ORG_SHORT)
+     #addArrayElementString(NAME)
+     #addArrayElementString(NDOC)
+     #addArrayElementString(DDOC)
+
+     #addArrayElementString(EMPLOYEES)
+     #addArrayElementString(NACHN)
+     #addArrayElementString(VORNA)
+     #addArrayElementString(MIDNM)
+
+     #addArrayElementlongstringW(PODR,_PODR)
+     #addArrayElementString(SHDOL)
+
+
+  //-----------------------
+// var lnPeriodNum : integer = 0;
+   var lcPeriodNum : comp = 0;
+   var ldPeriodDateBeg, ldPeriodDateEnd : date = 0;
+   var lsOsnOtp : string = '';
+   var lbOtpA : boolean;
+   var ldDateBeg, ldDateEnd : date ;
+   var lnNumOtpPer, lnNumOtp : integer = 0;
+   var _DESC1, _KOLVO11, _KOLVO1, _DATESTR1 : string;
+   var _DESC2, _KOLVO2, _DATESTR2 : string
+   var _KOLVO21 : string  = ''; //'_-_';
+   var _NA      : string  = 'на';
+   var _I_ILI   : string  = 'и (или)';
+   var _UNDER   : string  = ''; _UNDER := PadCh(_UNDER, '_', 121);
+   var _VID_OTP : string  = '(ежегодный дополнительный оплачиваемый отпуск, учебный, без сохранения заработной платы и другие (указать) со ссылкой на соответствующие статьи ТК РФ в необходимых случаях)';
+
+   var jsonObjSubArrPar, jsonObjSubArr, jsonObjSubVal : TPtr = 0;
+
+   //для выгрузки массива по доп отпускам
+   jsonObjSubArrPar := HttpConnect_JsonObjectCreate(m_service);
+
+   lcContDoc := 0;
+
+   //цикл по рабочим периодам в сортировке по датам
+   _loop tmpRPDTable
+   if GetFirst ContDocNew   where (( tmpRPDTable.crec  == ContDocNew.Nrec )) = tsOk
+   if GetFirst PutVacCon    where (( tmpRPDTable.nrec  == PutVacCon.nrec  )) = tsOk
+   if GetFirst WorkPeriod   where (( tmpRPDTable.crec2 == WorkPeriod.NRec ))  = tsOK
+   if GetFirst PUTVACATION  where (( PutVacCon.CPUTVACATION == PUTVACATION.Nrec )) = tsOk
+   if getfirst KlOtpusk     where (( PUTVACATION.CKLOTPUSK == KlOtpusk.NRec)) =  tsOK
+   {
+
+   // if lnPeriodNum = 6
+   //    continue;
+
+      if lcContDoc <> ContDocNew.Nrec
+      {
+         lcContDoc := ContDocNew.Nrec;
+
+         ldDateBeg := ldDateEnd := ContDocNew.dat1;
+         if ldPeriodDateBeg = 0   ldPeriodDateBeg := ContDocNew.dat1;
+         if ldPeriodDateEnd = 0   ldPeriodDateEnd := ContDocNew.dat2;
+      }
+
+      //---------- сменилася рабочий период
+      if lcPeriodNum <> WorkPeriod.NRec
+      {
+         lcPeriodNum := WorkPeriod.NRec
+
+      // lnPeriodNum++
+
+         lnNumOtpPer := 0;
+
+        //---------- начало строки данных по периоду
+        jsonObjSubArr := HttpConnect_JsonObjectCreate(m_service);
+        jsonObjSubVal := HttpConnect_JsonObjectCreate(m_service);
+
+         var _T     : string = 'За период работы c ' + _iOutBase.SetDateToString(WorkPeriod.dPerBeg)
+                                              +' по '+ _iOutBase.SetDateToString(WorkPeriod.dPerEnd);
+
+         //-- Основной отпуск    всегда первый в обработке внутри периода
+         if KlOtpusk.Kotpus = 10   // Основной отпуск
+              lbOtpA := true;
+         else lbOtpA := false;
+
+         _DESC1  := 'A. Ежегодный основной оплачиваемый отпуск на'; //+KlOtpusk.Notpus + ' на ';
+         _KOLVO1 := 'календарных дней';
+         if lbOtpA
+         {
+            _KOLVO11  := '';
+            _KOLVO1   := string(PutVacCon.wDayCount) +' ' + _KOLVO1 ;
+
+            ldDateEnd := Add_Day(ldDateBeg, PutVacCon.wDayCount-1);
+            _DATESTR1 := 'c '+ _iOutBase.SetDateToString(ldDateBeg) +' по '+ _iOutBase.SetDateToString(ldDateEnd);
+
+            ldPeriodDateBeg := if( ldPeriodDateBeg < ldDateBeg, ldPeriodDateBeg, ldDateBeg);
+            ldPeriodDateEnd := if( ldPeriodDateEnd > ldDateEnd, ldPeriodDateEnd, ldDateEnd);
+
+            ldDateBeg := Add_Day(ldDateEnd, 1);
+         }
+         else
+         {
+            _KOLVO11  := '_-_';
+            _DATESTR1 := 'c '+ _iOutBase.SetDateToString(0) +' по '+ _iOutBase.SetDateToString(0);
+         }
+  /*
+         case lnPeriodNum of
+          1 :{
+               #addArrayElementStringPart(T,1);
+               #addArrayElementStringPart(DESC1,_1)
+               #addArrayElementStringPart(KOLVO11,_1)
+               #addArrayElementStringPart(KOLVO1,_1)
+               #addArrayElementStringPart(DATESTR1,_1)
+             }
+          2 :{
+               #addArrayElementStringPart(T,2);
+               #addArrayElementStringPart(DESC1,_2)
+               #addArrayElementStringPart(KOLVO11,_2)
+               #addArrayElementStringPart(KOLVO1,_2)
+               #addArrayElementStringPart(DATESTR1,_2)
+             }
+          3 :{
+               #addArrayElementStringPart(T,3);
+               #addArrayElementStringPart(DESC1,_3)
+               #addArrayElementStringPart(KOLVO11,_3)
+               #addArrayElementStringPart(KOLVO1,_3)
+               #addArrayElementStringPart(DATESTR1,_3)
+             }
+          4 :{
+               #addArrayElementStringPart(T,4);
+               #addArrayElementStringPart(DESC1,_4)
+               #addArrayElementStringPart(KOLVO11,_4)
+               #addArrayElementStringPart(KOLVO1,_4)
+               #addArrayElementStringPart(DATESTR1,_4)
+             }
+          5 :{
+               #addArrayElementStringPart(T,5);
+               #addArrayElementStringPart(DESC1,_5)
+               #addArrayElementStringPart(KOLVO11,_5)
+               #addArrayElementStringPart(KOLVO1,_5)
+               #addArrayElementStringPart(DATESTR1,_5)
+             }
+          6 :{
+                #addArrayElementStringPart(T,6);
+                #addArrayElementStringPart(DESC1,_6)
+                #addArrayElementStringPart(KOLVO11,_6)
+                #addArrayElementStringPart(KOLVO1,_6)
+                #addArrayElementStringPart(DATESTR1,_6)
+             }
+          end;
+   /**/
+
+         #addSubArrayElementString(T,jsonObjSubVal)
+         #addSubArrayElementString(DESC1,jsonObjSubVal)
+         #addSubArrayElementString(KOLVO11,jsonObjSubVal)
+         #addSubArrayElementString(KOLVO1,jsonObjSubVal)
+         #addSubArrayElementString(DATESTR1,jsonObjSubVal)
+
+         if lbOtpA
+           continue;
+      }
+
+      //---
+      lnNumOtp++;    //сквозной для отпусков не основных
+      lnNumOtpPer++; //отпуск в периоде
+
+      _DESC2 := if(lnNumOtpPer=1, 'Б. ', '') + 'Ежегодный дополнительный оплачиваемый отпуск ';
+      case KlOtpusk.Kotpus of
+        11,14: _DESC2 := _DESC2 + 'за работу в районах Крайнего Севера и местностях, приравненных к ним';
+        12,15: _DESC2 := _DESC2 + 'работникам с ненормированным рабочим днем';
+           13: _DESC2 := _DESC2 + 'за работу с вредными и (или) опасными условиями труда';
+        else   _DESC2 := _DESC2 + KlOtpusk.Notpus
+      end;
+
+      _KOLVO2   := string(PutVacCon.wDayCount) +  ' календарных дней';
+      ldDateEnd := Add_Day(ldDateBeg, PutVacCon.wDayCount-1);
+      _DATESTR2 := 'c '+ _iOutBase.SetDateToString(ldDateBeg) +' по '+ _iOutBase.SetDateToString(ldDateEnd);
+
+      ldPeriodDateBeg := if( ldPeriodDateBeg < ldDateBeg, ldPeriodDateBeg, ldDateBeg);
+      ldPeriodDateEnd := if( ldPeriodDateEnd > ldDateEnd, ldPeriodDateEnd, ldDateEnd);
+
+      ldDateBeg := Add_Day(ldDateEnd, 1); //для начала следующего периода
+
+ /*
+      if lnNumOtpPer = 1
+      case lnPeriodNum of
+          1 :{
+               #addArrayElementStringPart(I_ILI,1);
+             }
+          2 :{
+               #addArrayElementStringPart(I_ILI,2);
+             }
+          3 :{
+               #addArrayElementStringPart(I_ILI,3);
+             }
+          4 :{
+               #addArrayElementStringPart(I_ILI,4);
+             }
+          5 :{
+               #addArrayElementStringPart(I_ILI,5);
+             }
+          6 :{
+                #addArrayElementStringPart(I_ILI,6);
+             }
+      end;
+
+      case lnNumOtp of
+       1 : {
+              #addArrayElementStringPart(DESC2,_1);
+           }
+       2 : {
+              #addArrayElementStringPart(DESC2,_2);
+           }
+       3 : {
+              #addArrayElementStringPart(DESC2,_3);
+           }
+       4 : {
+              #addArrayElementStringPart(DESC2,_4);
+           }
+       5 : {
+              #addArrayElementStringPart(DESC2,_5);
+           }
+       6 : {
+              #addArrayElementStringPart(DESC2,_6);
+           }
+       7 : {
+              #addArrayElementStringPart(DESC2,_7);
+           }
+       8 : {
+              #addArrayElementStringPart(DESC2,_8);
+           }
+       9 : {
+              #addArrayElementStringPart(DESC2,_9);
+           }
+       10: {
+              #addArrayElementStringPart(DESC2,_10);
+           }
+       11: {
+              #addArrayElementStringPart(DESC2,_11);
+           }
+       12: {
+              #addArrayElementStringPart(DESC2,_12);
+           }
+      end;
+
+      if lnNumOtpPer = 1
+      case lnPeriodNum of
+        1 :  {
+               #addArrayElementStringPart(UNDER,1)
+               #addArrayElementStringPart(VID_OTP,1)
+             }
+        2 :  {
+               #addArrayElementStringPart(UNDER,2)
+               #addArrayElementStringPart(VID_OTP,2)
+             }
+        3 :  {
+               #addArrayElementStringPart(UNDER,3)
+               #addArrayElementStringPart(VID_OTP,3)
+             }
+        4 :  {
+               #addArrayElementStringPart(UNDER,4)
+               #addArrayElementStringPart(VID_OTP,4)
+             }
+        5 :  {
+               #addArrayElementStringPart(UNDER,5)
+               #addArrayElementStringPart(VID_OTP,5)
+             }
+        6 :  {
+               #addArrayElementStringPart(UNDER,6)
+               #addArrayElementStringPart(VID_OTP,6)
+             }
+      end;
+
+      case lnNumOtp of
+        1 :  { #addArrayElementStringPart(NA,1)
+               #addArrayElementStringPart(KOLVO21,_1)
+               #addArrayElementStringPart(KOLVO2,_1)
+               #addArrayElementStringPart(DATESTR2,_1)
+             }
+        2 :  { #addArrayElementStringPart(NA,2)
+               #addArrayElementStringPart(KOLVO21,_2)
+               #addArrayElementStringPart(KOLVO2,_2)
+               #addArrayElementStringPart(DATESTR2,_2)
+             }
+        3 :  { #addArrayElementStringPart(NA,3)
+               #addArrayElementStringPart(KOLVO21,_3)
+               #addArrayElementStringPart(KOLVO2,_3)
+               #addArrayElementStringPart(DATESTR2,_3)
+             }
+        4 :  { #addArrayElementStringPart(NA,4)
+               #addArrayElementStringPart(KOLVO21,_4)
+               #addArrayElementStringPart(KOLVO2,_4)
+               #addArrayElementStringPart(DATESTR2,_4)
+             }
+        5 :  { #addArrayElementStringPart(NA,5)
+               #addArrayElementStringPart(KOLVO21,_5)
+               #addArrayElementStringPart(KOLVO2,_5)
+               #addArrayElementStringPart(DATESTR2,_5)
+             }
+        6 :  { #addArrayElementStringPart(NA,6)
+               #addArrayElementStringPart(KOLVO21,_6)
+               #addArrayElementStringPart(KOLVO2,_6)
+               #addArrayElementStringPart(DATESTR2,_6)
+             }
+        7 :  { #addArrayElementStringPart(NA,7)
+               #addArrayElementStringPart(KOLVO21,_7)
+               #addArrayElementStringPart(KOLVO2,_7)
+               #addArrayElementStringPart(DATESTR2,_7)
+             }
+        8 :  { #addArrayElementStringPart(NA,8)
+               #addArrayElementStringPart(KOLVO21,_8)
+               #addArrayElementStringPart(KOLVO2,_8)
+               #addArrayElementStringPart(DATESTR2,_8)
+             }
+        9 :  { #addArrayElementStringPart(NA,9)
+               #addArrayElementStringPart(KOLVO21,_9)
+               #addArrayElementStringPart(KOLVO2,_9)
+               #addArrayElementStringPart(DATESTR2,_9)
+             }
+        10:  { #addArrayElementStringPart(NA,10)
+               #addArrayElementStringPart(KOLVO21,_10)
+               #addArrayElementStringPart(KOLVO2,_10)
+               #addArrayElementStringPart(DATESTR2,_10)
+             }
+        11:  { #addArrayElementStringPart(NA,11)
+               #addArrayElementStringPart(KOLVO21,_11)
+               #addArrayElementStringPart(KOLVO2,_11)
+               #addArrayElementStringPart(DATESTR2,_11)
+             }
+        12:  { #addArrayElementStringPart(NA,12)
+               #addArrayElementStringPart(KOLVO21,_12)
+               #addArrayElementStringPart(KOLVO2,_12)
+               #addArrayElementStringPart(DATESTR2,_12)
+             }
+      end;
+ /**/
+
+         if lnNumOtpPer > 1
+         //---------- начало строки данных по отпуску внутри периода
+         {
+         jsonObjSubArr := HttpConnect_JsonObjectCreate(m_service);
+         jsonObjSubVal := HttpConnect_JsonObjectCreate(m_service);
+         }
+
+         if lnNumOtpPer = 1
+         #addSubArrayElementString(I_ILI,jsonObjSubVal)
+
+         #addSubArrayElementString(DESC2,jsonObjSubVal)
+
+         if lnNumOtpPer = 1
+         #addSubArrayElementString(UNDER,jsonObjSubVal)
+         if lnNumOtpPer = 1
+         #addSubArrayElementString(VID_OTP,jsonObjSubVal)
+
+         #addSubArrayElementString(NA,jsonObjSubVal)
+         #addSubArrayElementString(KOLVO21,jsonObjSubVal)
+         #addSubArrayElementString(KOLVO2,jsonObjSubVal)
+         #addSubArrayElementString(DATESTR2,jsonObjSubVal)
+
+      //-- выгрузка строки данных в json
+         HttpConnect_JsonObjectAddObject(m_service, jsonObjSubArr, 'Row', jsonObjSubVal);
+         HttpConnect_JsonArrayAddObject( m_service, jsonObjSubArrPar, jsonObjSubArr);
+
+   } //_loop tmpRPDTable  // _loop tmpRPDTable
+
+   //--- общий итог по отпускам
+     //---------- начало строки данных по периоду
+     jsonObjSubArr := HttpConnect_JsonObjectCreate(m_service);
+     jsonObjSubVal := HttpConnect_JsonObjectCreate(m_service);
+
+   var _DESC3    : string = 'В. Всего отпуск на';
+   var _KOLVO31  : string = string(CalcDaysBetweenDates(ldPeriodDateBeg, ldPeriodDateEnd, false),0,0);
+   var _KOLVO3   : string = 'календарных дней';
+   var _DATESTR3 : string = 'c '+ _iOutBase.SetDateToString(ldPeriodDateBeg) + ' по '+_iOutBase.SetDateToString(ldPeriodDateEnd);
+
+   //уточнения  GLX-1104  // 5 февр. 2024 11:42
+   //Ищем значение attrval.vdate (дата конца использования льготного отпуска):
+   //attrval.crec == persons.nrec
+   //attrval.cattrnam == attrnam.nrec, where attrnam.name == 'Конец использования льготного отпуска'
+   //Анализ даты начала отпуска с attrval.vdate:
+   //Если дата начала отпуска <= attrval.vdate, тогда льготный период: с (attrval.vdate - 2 года и 1 день) по (attrval.vdate)
+   //Если дата начала отпуска > attrval.vdate, тогда льготный период: с (attrval.vdate + 1 день) по (attrval.vdate + 2 года и 1 день)
+   var _KOLVO5 : string = '';
+   var ldDateLgEnd :  date = dGetAttrVal( coPERSONS, lcCurPERSON, 'Конец использования льготного отпуска');
+   var ldDateLgBeg :  date = to_date(0,0,0);
+   if ldDateLgEnd > 0
+   {
+      if ldPeriodDateBeg <= ldDateLgEnd
+      {
+         ldDateLgBeg := AddDays()
+      }
+      else
+      {
+
+      }
+
+      _KOLVO5 := 'Предоставить льготный отпуск за период с ' + _iOutBase.SetDateToString(ldDateLgBeg)
+                                                    + ' по ' + _iOutBase.SetDateToString(ldDateLgEnd) ;
+   }
+     #addSubArrayElementString(DESC3,jsonObjSubVal)
+     #addSubArrayElementString(KOLVO31,jsonObjSubVal)
+     #addSubArrayElementString(KOLVO3,jsonObjSubVal)
+     #addSubArrayElementString(DATESTR3,jsonObjSubVal)
+
+         //-- выгрузка строки данных в json
+         HttpConnect_JsonObjectAddObject(m_service, jsonObjSubArr, 'Row', jsonObjSubVal);
+         HttpConnect_JsonArrayAddObject( m_service, jsonObjSubArrPar, jsonObjSubArr);
+
+    //-----
+    //выгрузка в JSON массива по отпускам
+         jsonObjSubArr := HttpConnect_JsonObjectCreate(m_service);
+         HttpConnect_JsonObjectAddObject(m_service, jsonObjSubArr, 'Rows',  jsonObjSubArrPar);
+         HttpConnect_JsonArrayAddObject( m_service, JSONObj_Array, jsonObjSubArr);
+
+   //-----
+     #addArrayElementString(OSN)
+     #addArrayElementString(DOL_RUK)
+     #addArrayElementString(FIO_RUK)
+
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+
+
+}

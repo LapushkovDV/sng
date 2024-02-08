@@ -1,0 +1,322 @@
+/**************************************************************************************************\
+* Наименование: ZarAPI алгоритм "Среднемесячная норма рабочего времени"                            *
+* Контур/Модуль: Заработная плата                                                                  *
+* Пункт меню: Настройка / Заполнение каталогов / Виды оплат и скидок                               *
+* Примечание:                                                                                      *
+* Необходимо настроить VIP-алгоритмы расчета премии по нарядам рабочим-сдельщикам, в зависимости от*
+* параметров в пункте 7. <Сопоставление алгоритмов и параметров> ФТТ.                              *
+* Первый будет учитывать при расчете премии вид оплаты <Работа в ночные> во втором алгоритме к     *
+* ночным должны добавляться все доплаты с входимостью 36. Входимость настраивается в классификаторе*
+* видов оплат и скидок.                                                                            *
+*                                                                                                  *
+*                                                                                                  *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                            *
+* -------------------------------------------------------------------------------------------------*
+* Разработка  |GLX-932       |        |                         |СНГ                    *
+\**************************************************************************************************/
+
+
+#include SNG##GLX_932_zp_alg_1_7.vih
+
+#component "SNG"
+
+
+interface GLX_932_zp_alg_1_7 cacheable;
+
+  create view
+   var _log_OUT : string = '';
+      _isLogging: Boolean = false;
+    from
+       Nachisl
+     , Lschet
+     , KlVidOpl
+     , PrNaryad PrNaryad_loop
+     , PrNaryad PrNaryad_cur
+     , sys_nar
+     , persons
+where ((
+           PrNaryad_cur.clsch == Lschet.Nrec
+      ))
+;
+
+Function GenerateNewLogFile: string; {
+ _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\zarAlgorithm_GLX_932_zp_alg_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+
+ if Lschet.STRTABN <> ''
+  then _log_OUT := _log_OUT+'_tabn_' +Lschet.STRTABN
+   else  _log_OUT := _log_OUT+'_tabn_' +string(Lschet.TABN);
+
+ _log_OUT := _log_OUT+'.log';
+ result := _log_OUT;
+}
+
+function GetLogFile : string; {
+  if _log_OUT = '' then _log_OUT := GenerateNewLogFile;
+  result := _log_OUT;
+}
+
+Procedure MyLog(_str: string); {
+  if _isLogging = false then exit;
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+function getsumAlg1(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: longint = 0 ) : double; {
+  set _isLogging := _fisLogging;
+  result := 0;
+    if getfirst prnaryad_cur where ((_cPrNaryad == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
+
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('RUN algorithm1');
+    mylog('_OnlyOneVidOplp = ' + string(_OnlyOneVidOplp));
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
+    mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+
+    var _sumPremBeforeKoefCur : double = 0;
+    var _sumPremBeforeKoefTotal : double = 0;
+    var _koeff : double = 0;
+    var _npp : word = 0;
+      _loop PrNaryad_loop where ((sys_nar.nrec == PrNaryad_loop.mnrec
+                                        and 0 <<= PrNaryad_loop.TABN))
+       {
+          _npp++;
+          mylog('-----------------');
+          mylog('_npp = ' + string(_npp));
+          mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
+          mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
+          mylog('PrNaryad_loop.SUMMA = '+string(PrNaryad_loop.SUMMA));
+          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+
+          var _KTY : double = PrNaryad_loop.KTY;
+          var _summaSdel : double = PrNaryad_loop.SUMMA;
+          var _summaDopl : double = 0;
+         _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
+          {
+            if _OnlyOneVidOplp <> 0 then {
+              if _OnlyOneVidOplp <> KLVIDOPL.vidoplP then continue;
+             }
+            _loop nachisl where ((PrNaryad_loop.clsch==nachisl.clsch))
+                              and klvidopl.vidopl=nachisl.vidopls
+                              and PrNaryad_loop.datan <= nachisl.datan
+                              and PrNaryad_loop.datok >= nachisl.datok
+            {
+//              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
+              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
+              mylog('   nachisl.summa = ' + string(nachisl.summa));
+              _summaDopl :=_summaDopl + nachisl.summa;
+            }
+          }
+          var _sumPremBeforeKoef : double = (PrNaryad_loop.SUMMA+_summaDopl)*PrNaryad_loop.KTY;
+          _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
+          if prnaryad_cur.nrec = PrNaryad_loop.nrec
+             then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
+          mylog(' _summaDopl = ' + string(_summaDopl));
+          mylog(' (PrNaryad_loop.SUMMA+_summaDopl)*PrNaryad_loop.KTY = '+ string(_sumPremBeforeKoef));
+      }
+      if _sumPremBeforeKoefTotal <> 0
+         then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
+
+      mylog(' _koeff = ' + string(_koeff));
+      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
+      result := _koeff*_sumPremBeforeKoefCur;
+   if _isLogging then PutFileToClient(GetLogFile,false);
+}
+
+function getsumAlg2(_cPrNaryad : comp; _fisLogging : boolean) : double; {
+   result := getsumAlg1(_cPrNaryad,_fisLogging, 111 );
+  }
+function getsumAlg3(_cPrNaryad : comp; _fisLogging : boolean) : double; {
+   result := 0;
+  set _isLogging := _fisLogging;
+  result := 0;
+    if getfirst prnaryad_cur where ((_cPrNaryad == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
+
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('RUN algorithm2');
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
+    mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+
+          mylog('prnaryad_cur.nrec  = ' + string(prnaryad_cur.nrec,0,0));
+          mylog('prnaryad_cur.SUMMA = '+string(prnaryad_cur.SUMMA));
+          mylog(' prnaryad_cur.PROC = '+string(prnaryad_cur.PROC));
+
+
+          var _summaSdel : double = prnaryad_cur.SUMMA;
+          var _summaDopl : double = 0;
+          var _PROC      :  double = prnaryad_cur.PROC/100;
+         _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
+          {
+            _loop nachisl where ((prnaryad_cur.clsch==nachisl.clsch))
+                              and klvidopl.vidopl=nachisl.vidopls
+                              and prnaryad_cur.datan <= nachisl.datan
+                              and prnaryad_cur.datok >= nachisl.datok
+            {
+//              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
+              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
+              mylog('   nachisl.summa = ' + string(nachisl.summa));
+              _summaDopl :=_summaDopl + nachisl.summa;
+            }
+          }
+       mylog(' _summaDopl = ' + string(_summaDopl));
+       result := (_summaSdel + _summaDopl)*_PROC;
+       mylog(' (PrNaryad_loop.SUMMA+_summaDopl)*prnaryad_cur.PROC = '+ string(result));
+
+   if _isLogging then PutFileToClient(GetLogFile,false);
+  }
+function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: longint = 0 ) : double; {
+  set _isLogging := _fisLogging;
+  result := 0;
+    if getfirst prnaryad_cur where ((_cPrNaryad == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
+
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('RUN algorithm4');
+    mylog('_OnlyOneVidOplp = ' + string(_OnlyOneVidOplp));
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
+    mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+
+    var _sumPremBeforeKoefCur : double = 0;
+    var _sumPremBeforeKoefTotal : double = 0;
+    var _koeff : double = 0;
+    var _npp : word = 0;
+      _loop PrNaryad_loop where ((sys_nar.nrec == PrNaryad_loop.mnrec
+                                        and 0 <<= PrNaryad_loop.TABN))
+       {
+         var _koeffRN : double = 1;
+        if (getfirst lschet where ((PrNaryad_loop.clsch == lschet.nrec))) = tsOK
+         if getfirst persons where ((lschet.TPERSON == persons.nrec)) = tsOK {
+            mylog('persons.sex = ' + persons.sex );
+            if persons.sex = 'Ж' {
+             mylog('lschet.PENSNAL = '+ string(lschet.PENSNAL));
+             if lschet.PENSNAL >= 30 {
+               _koeffRN := 1.11;
+               }
+             }
+          }
+          mylog('_koeffRN = ' + _koeffRN)
+          _npp++;
+          mylog('-----------------');
+          mylog('_npp = ' + string(_npp));
+          mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
+          mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
+          mylog('PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY = '+string(PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY));
+
+          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+
+          var _KTY : double = PrNaryad_loop.KTY;
+          var _summaSdel : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY;
+          var _summaDopl : double = 0;
+         _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
+          {
+            if _OnlyOneVidOplp <> 0 then {
+              if _OnlyOneVidOplp <> KLVIDOPL.vidoplP then continue;
+             }
+
+            _loop nachisl where ((PrNaryad_loop.clsch==nachisl.clsch))
+                              and klvidopl.vidopl=nachisl.vidopls
+                              and PrNaryad_loop.datan <= nachisl.datan
+                              and PrNaryad_loop.datok >= nachisl.datok
+            {
+//              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
+              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
+              mylog('   nachisl.summa = ' + string(nachisl.summa));
+              _summaDopl :=_summaDopl + nachisl.summa;
+            }
+          }
+          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY*_koeffRN+_summaDopl;
+          _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
+          if prnaryad_cur.nrec = PrNaryad_loop.nrec
+             then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
+          mylog(' _summaDopl = ' + string(_summaDopl));
+          mylog(' PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY*_koeffRN+_summaDopl= '+ string(_sumPremBeforeKoef));
+      }
+      if _sumPremBeforeKoefTotal <> 0
+         then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
+
+      mylog(' _koeff = ' + string(_koeff));
+      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
+      result := _koeff*_sumPremBeforeKoefCur;
+   if _isLogging then PutFileToClient(GetLogFile,false);
+
+  }
+function getsumAlg5(_cPrNaryad : comp; _fisLogging : boolean) : double; {
+
+   result := getsumAlg4(_cPrNaryad, _fisLogging, 111 );
+  }
+function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double; {
+  set _isLogging := _fisLogging;
+  result := 0;
+    if getfirst prnaryad_cur where ((_cPrNaryad == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
+
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('RUN algorithm6');
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
+    mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+
+    var _sumPremBeforeKoefCur : double = 0;
+    var _sumPremBeforeKoefTotal : double = 0;
+    var _koeff : double = 0;
+    var _npp : word = 0;
+      _loop PrNaryad_loop where ((sys_nar.nrec == PrNaryad_loop.mnrec
+                                        and 0 <<= PrNaryad_loop.TABN))
+       {
+         var _koeffRN : double = 1;
+        if (getfirst lschet where ((PrNaryad_loop.clsch == lschet.nrec))) = tsOK
+         if getfirst persons where ((lschet.TPERSON == persons.nrec)) = tsOK {
+            mylog('persons.sex = ' + persons.sex );
+            if persons.sex = 'Ж' {
+             mylog('lschet.PENSNAL = '+ string(lschet.PENSNAL));
+             if lschet.PENSNAL >= 30 {
+               _koeffRN := 1.11;
+               }
+             }
+          }
+          mylog('_koeffRN = ' + _koeffRN)
+          _npp++;
+          mylog('-----------------');
+          mylog('_npp = ' + string(_npp));
+          mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
+          mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
+          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+          mylog('PrNaryad_loop.CHASF = '+string(PrNaryad_loop.CHASF));
+          mylog('PrNaryad_loop.CHASF*PrNaryad_loop.KTY = '+string(PrNaryad_loop.CHASF*PrNaryad_loop.KTY));
+          var _KTY : double = PrNaryad_loop.KTY;
+          var _summaSdel : double = PrNaryad_loop.CHASF*PrNaryad_loop.KTY;
+
+          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*PrNaryad_loop.KTY*_koeffRN;
+          _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
+          if prnaryad_cur.nrec = PrNaryad_loop.nrec
+             then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
+          mylog(' PrNaryad_loop.CHASF*PrNaryad_loop.KTY*_koeffRN= '+ string(_sumPremBeforeKoef));
+      }
+      if _sumPremBeforeKoefTotal <> 0
+         then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
+
+      mylog(' _koeff = ' + string(_koeff));
+      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
+      result := _koeff*_sumPremBeforeKoefCur;
+   if _isLogging then PutFileToClient(GetLogFile,false);
+  }
+function getsumAlg7(_cPrNaryad : comp; _fisLogging : boolean) : double; {
+   result := 0;
+  }
+
+end.

@@ -1,0 +1,310 @@
+
+function CreateUpdate_EmploymentContract(_cRec : comp): boolean;   //GLX-1100
+{
+  //пример на alt-2  0190 24/11/2023  Прием на работу Тестовый П.О. НЕ УДАЛЯТЬ
+
+    lnTypeDoc := 3;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+#include Fields_ForEmploymentContract.vpp
+
+    //-----------------------
+    //формируем шаблон заголовка через JSONObj strHeader
+
+    #addHeaderBegin(no_param)
+
+    #addHeaderElementInteger(IdRX)
+    #addHeaderElementString(HRCode)
+    #addHeaderElementString(HRCodeKindEmploymentContract)
+    #addHeaderElementString(Employee)
+    if _DateStart = ''
+    {
+    #addHeaderElementInteger(DateStart)
+    }
+    else
+    {
+    #addHeaderElementString(DateStart)
+    }
+    if _DateEnd = ''
+    {
+    #addHeaderElementInteger(DateEnd)
+    }
+    else
+    {
+    #addHeaderElementString(DateEnd)
+    }
+    #addHeaderElementInteger(Trial)
+    #addHeaderElementString(UnitTrial)
+
+    #addHeaderElementString(Shablon)
+    #addHeaderElementString(Author)
+    #addHeaderElementString(IsArhive)
+
+    #addHeaderElementString(Notice)
+
+    #addHeaderEnd(no_param)
+
+ //---------------------
+ //заполнение массива параметров 'Content'  через JSONObj_Array
+ //параметры именуем в верхнем регистре!!!
+
+    #addArrayElementString(NAME_ORG)
+    #addArrayElementString(NAME_ORG_SHORT)
+    #addArrayElementString(GOROD)
+    #addArrayElementString(FIORUK)
+    #addArrayElementString(NAME)
+    #addArrayElementlongstringW(PODR,_PODR)
+
+
+   //---
+
+    #addArrayElementString(FIO)
+    #addArrayElementString(ADR)
+    #addArrayElementString(ADR_FAKT)
+    #addArrayElementString(DOCTY)
+    #addArrayElementString(SERIYA)
+    #addArrayElementString(NOMER)
+    #addArrayElementString(DVYD)
+    #addArrayElementString(KEM_VYD)
+    #addArrayElementString(SHDOL)
+    #addArrayElementString(SHDOL_K)
+    #addArrayElementString(INSTRUK)
+
+    //---------
+
+    var _BEGDAT: string = _iOutBase.SetDateToValue(_iWWC.GetContractBegin(Appointments.ResComp[1]));
+    var _ENDDAT: string = _iOutBase.SetDateToValue(_iWWC.GetContractEnd(Appointments.ResComp[1]));
+
+    var _SROK_D: string = '';
+    if ( getfirst Catalogs_td where (( _iWWC.GetContractType(Appointments.ResComp[1]) == Catalogs_td.NRec )) = tsOk )
+      _SROK_D := Catalogs_td.Name;
+
+    var _SROK: string = string(Integer(_iOutBase.Get_SrokIsp(SPALLSTAFF_TD.RESDATE[2], ContDoc.Dat1, 1)));
+
+    //---
+
+    var _KADIN, _KADIN2 : string = '';
+    var _GARANT: widestring = '';
+
+    var _RABOTA_1 : string = case(Persons.cSovm;
+                                  0: 'Указанная в настоящем трудовом договоре работа является для Работника основной.',
+                                  1, 3: 'Указанная в настоящем трудовом договоре работа является для Работника работой по совместительству.');
+
+    var _OTPUSK   : string = case(Persons.cSovm; 0: 'На ежегодный оплачиваемый отпуск, предоставляемый в соответствии с графиками отпусков.',
+                                   1,3: 'На ежегодный оплачиваемый отпуск, предоставляемый в порядке статьи 286 Трудового кодекса Российской Федерации');
+
+
+    if _rks_mks <> ''
+    if ( Persons.cSovm = 0 )
+    {
+        if POS('РКС', _rks_mks) > 0
+        {
+              _GARANT := 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, действующими в ';
+              _GARANT += 'Обществе коллективным договором, локальными нормативными актами, в том числе на гарантии и компенсации, ';
+              _GARANT += 'связанные с работой и проживанием в местностях, приравненных к районам Крайнего Севера (оплата проезда к ';
+              _GARANT += 'месту использования отпуска и обратно; оплата расходов, связанных с переездом, и другие), порядок, условия ';
+              _GARANT += 'и размер предоставления которых определяются Трудовым кодексом Российской Федерации, действующими в Обществе ';
+              _GARANT += 'коллективным договором, локальными нормативными актами.';
+        }
+
+        if POS('МКС', _rks_mks ) > 0
+        {
+              _GARANT := 'На гарантии и компенсации, предусмотренные трудовым законодательством Российской Федерации, действующими в';
+              _GARANT += 'Обществе коллективным договором, локальными нормативными актами, в том числе на гарантии и компенсации, ';
+              _GARANT += 'связанные с работой и проживанием в районах Крайнего Севера (оплата проезда к месту использования отпуска ';
+              _GARANT += 'и обратно; оплата расходов, связанных с переездом, и другие), порядок, условия и размер предоставления ';
+              _GARANT += 'которых определяются Трудовым кодексом Российской Федерации, действующими в Обществе коллективным ';
+              _GARANT += 'договором, локальными нормативными актами.'
+        }
+
+    }
+
+    var _USLOV_B: string = '';
+    var _USLOV_V: string = '';
+    var _REGIMV: string = '';
+    var _REGIM : string = '';
+    var _REGIM1: string = '';
+    var _REGIM2: string = '';
+    var _VRED  : string = '';
+    var _REGIM33: string = '';
+    var _REGIM3: widestring = '';
+
+    if true /*( getfirst StaffStructTmp where (( Appointments.STAFFSTR == StaffStructTmp.NRec and
+                                          (_StrFunc.isHitPeriod(StaffStructTmp.dNew1, StaffStructTmp.dNew2
+                                             , _iWWC.GetContractBegin(Appointments.ResComp[1])  ) )
+                                       )) = tsOK )  */
+    {
+      var cTmp: comp = StaffStruct.WorkCond; //StaffStructTmp.WorkCond;
+
+      if ( getfirst Advises where (( cTmp == Advises.Nrec )) = tsOk )
+      {
+        case Advises.OldPerc of
+          1:   _USLOV_B := 'Оптимальные - класс 1';
+          2:   _USLOV_B := 'Допустимые - класс 2';
+          3.1: _USLOV_V := 'Вредные 1 степени - подкласс 3.1';
+          3.2: _USLOV_V := 'Вредные 2 степени - подкласс 3.2';
+          3.3: _USLOV_V := 'Вредные 3 степени - подкласс 3.3';
+          3.4: _USLOV_V := 'Вредные 3 степени - подкласс 3.3';
+          4:   _USLOV_V := 'Опасные - класс 4';
+        end;
+
+   // if ( getfirst Advises where (( ContDoc.cNew3 == Advises.Nrec )) = tsOk )
+
+      if ( Advises.OldPerc = 3.3)
+      or ( Advises.OldPerc = 3.4)
+      or ( Advises.OldPerc = 4)
+      {
+        _REGIMV := 'увеличенная продолжительность рабочего времени ______________';
+        _REGIM := '(до 40 часов)';
+        _REGIM1 := 'в неделю в соответствии с действующим в Обществе коллективным договором;';
+        _REGIM2 := 'максимально допустимая продолжительность ежедневной работы (смены) увеличена до _____ часов';
+      }
+      case Advises.OldPerc of
+        1, 2, 3.1:
+        {
+          _VRED := 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда в количестве и порядке, установленными ';
+          _VRED += 'действующим в Обществе коллективным договором и нормативными правовыми актами Российской Федерации';
+        }
+        3.2, 3.3, 3.4, 4:
+        {
+          _VRED := 'дополнительный отпуск за работу с вредными и (или) опасными условиями труда ____ календарных дней в порядке и на ';
+          _VRED += 'условиях, которые установлены действующим в Обществе коллективным договором и нормативными правовыми актами Российской Федерации.'
+        }
+      end;
+      case Advises.OldPerc of
+        3.3, 3.4, 4:
+        {
+          _REGIM33 := 'гарантированные выплаты:';
+          _REGIM3 := 'за увеличение продолжительности рабочего времени свыше 36 часов в неделю ежемесячно выплачивается ';
+          _REGIM3 += 'денежная компенсация в размере ____ % часовой ставки (оклада) за каждый час работы сверх ';
+          _REGIM3 += '36 до 40 часов в неделю (при суммированном учете рабочего времени - суммарно за месяц).'
+        }
+      end;
+     }
+   }
+
+   var _REGIMR: string = '';
+   var _REGIMO: string = '';
+   var _SUMM1: string = '';
+   var _SUMM2: string = '';
+   var _SVERHUR: string = '';
+
+      if getfirst KlRejimTmp      where (( Appointments.WorkRegime == KlRejimTmp.NRec )) = tsOk
+      if getfirst GrafikTmp       where (( KlRejimTmp.cCalendar == GrafikTmp.NRec )) = tsOk
+      _loop SPGRAFTmp  where (( GrafikTmp.NRec == SPGRAFTmp.CGRAFIK ))
+      if SPGRAFTmp.CWORKPATTERN <> 0
+      {
+         _REGIMR := 'c ' + TimeToStr(SPGRAFTmp.TSTART, 'HH:MM') + ' по ' + TimeToStr(SPGRAFTmp.TEND, 'HH:MM');
+
+         if ( getfirst WorkPatternExtAltTmp where (( SPGRAFTmp.cWorkPattern == WorkPatternExtAltTmp.cWorkPattern )) = tsOk )
+         _REGIMO := 'c ' + TimeToStr(WorkPatternExtAltTmp.StartBreak1, 'HH:MM') + ' по ' + TimeToStr(WorkPatternExtAltTmp.EndBreak1, 'HH:MM');
+
+         break;
+
+      }
+
+    #ifndef BoxDict
+      if Appointments.OWMODE=2
+      {
+         case Appointments.PERIODOW of
+           0 : _SUMM2 := 'месяц';
+           1 : _SUMM2 := 'квартал';
+           2 : _SUMM2 := 'полугодие';
+           3 : _SUMM2 := 'год';
+         end;
+         if _SUMM2 <> ''
+            _SUMM1 := '1';
+      }
+      case Appointments.OWMODE of
+        2: _SVERHUR := 'за сверхурочную работу (по ставке, установленной на последний рабочий день учетного периода)';
+        4: _SVERHUR := 'за сверхурочную работу';
+      end;
+    #end
+
+    //----------------
+    var _RAION_KOEF: string = '';
+    if ( getfirst TarStavTmp where (( AppHist.Tariff == TarStavTmp.NRec )) = tsOk )
+    if ( getfirst cat_search where (( TarStavTmp.TarZone == cat_search.NRec )) = tsOK )
+    {
+        case cat_search.Code of
+           1: _RAION_KOEF := '-';
+           2: _RAION_KOEF := '20%';
+           3: _RAION_KOEF := '30%';
+           4: _RAION_KOEF := '40%';
+           5: _RAION_KOEF := '50%';
+           7: _RAION_KOEF := '70%';
+           8: _RAION_KOEF := '80%';
+          15: _RAION_KOEF := '15%';
+          17: _RAION_KOEF := '70%';
+          27: _RAION_KOEF := '70%';
+          37: _RAION_KOEF := '50%';
+        end;
+    }
+
+    //----------------
+     #addArrayElementString(RABOTA_1)
+     #addArrayElementString(SROK_D)
+     #addArrayElementString(BEGDAT)
+     #addArrayElementString(ENDDAT)
+     #addArrayElementString(SROK)
+     #addArrayElementString(RABOTA_HAR)
+
+     #addArrayElementString(PUNKT)
+     #addArrayElementString(TRANSP)
+
+
+     #addArrayElementString(USLOV_B)
+     #addArrayElementString(USLOV_V)
+     #addArrayElementString(REGIMR)
+     #addArrayElementString(REGIMO)
+     #addArrayElementString(SUMM1)
+     #addArrayElementString(SUMM2)
+     #addArrayElementString(REGIMV)
+     #addArrayElementString(REGIM)
+     #addArrayElementString(REGIM1)
+     #addArrayElementString(REGIM2)
+     #addArrayElementString(OTPUSK)
+
+     #addArrayElementlongstringW(GARANT, _GARANT)
+
+     #addArrayElementString(KADIN)
+     #addArrayElementString(KADIN2)
+     #addArrayElementString(VRED)
+
+   //----------------
+     #addArrayElementString(OKLAD_D)
+     #addArrayElementString(TEXT1_OKLAD_D)
+     #addArrayElementString(TEXT2_OKLAD_D)
+     #addArrayElementString(OKLAD_P)
+     #addArrayElementString(TEXT1_OKLAD_P)
+     #addArrayElementString(TEXT2_OKLAD_P)
+     #addArrayElementString(OKLAD_M)
+     #addArrayElementString(TEXT1_OKLAD_M)
+     #addArrayElementString(TEXT2_OKLAD_M)
+     #addArrayElementString(TEXT3_OKLAD_M)
+     #addArrayElementString(TEXT4_OKLAD_M2)
+     #addArrayElementString(TARIF)
+     #addArrayElementString(TEXT1_TARIF)
+     #addArrayElementString(TEXT2_TARIF)
+     #addArrayElementString(TARIF_P)
+     #addArrayElementString(TEXT1_TARIF_P)
+     #addArrayElementString(TEXT2_TARIF_P)
+
+     #addArrayElementString(RAION_KOEF)
+     #addArrayElementString(SEV_KOEF)
+     #addArrayElementString(REGIM33)
+     #addArrayElementlongstringW(REGIM3, _REGIM3)
+
+     #addArrayElementString(SVERHUR)
+     #addArrayElementlongstringW(VAHTA_N, _VAHTA_N)
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+}

@@ -1,0 +1,887 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+//#ifdef Atl60
+// 844424930131983
+//#include SNG_IntegrDirectum_out.Vih
+
+//#define BoxDict
+
+#include NumberOfAddAgreement.vih
+#include Func_AppHist.vih
+#include adrfunc.vih
+#include PsnFuncs.vih
+#include StrFunc.vih
+#include DeptIer.vih
+#include RunRaise.vih
+#include CatFunc.vih
+#include WorkWithContract.vih
+#include OrderWF.vih
+#include SNG_IntegrDirectum_out_base.Vih
+#include SNG_IntegrDirectum_out.Vih
+
+#component "API_DIRECTUM"
+
+const
+  cnRx = 1;
+  co_unknown_value = '--не указано как заполнять--';
+  co_formatdatetostr = 'DD/MM/YYYY'; // никто не сказал в каком виде передавать...
+#include SKK.const
+end;
+
+Table struct tmpRPDTable
+(
+  nrec   : comp
+, crec   : comp
+, sort   : longint
+, crec2  : comp
+, date1  : date
+, date2  : date
+, str1   : string
+, str2   : string
+)
+With index
+(
+  ind1 = sort (asc)
+, ind2 = nrec
+)
+;
+
+interface SNG_IntegrDirectum_out 'Интеграция с Directum по API' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+File TextOfDocument;
+
+var todestroyJSON_obj: array[0..0] of TPTR;
+
+Create view
+var
+   _isDebug : boolean = false;
+    API_url
+  , API_Username
+  , API_Password : string;
+
+  _addrfunc: AddressFunc;
+  _PersFunc : PersonsFunctions;
+  _StrFunc : StringFunctions;
+  _IDepartIer: DepartIer;
+  _iWWC: WorkWithContract;
+  _iAH: Func_AppHist;
+  _iRaise: RunRaise;
+  iCatFunc : CatalogsFunctions;
+
+  API_methodFromTune : string;
+  API_method : byte;
+  BodyMess   : string;
+  _MainCrec : comp;
+
+  _mylog : string;
+  _sfileout : string;
+  lsFileProtFile : string;
+  lenValHeader : integer;
+  lcCurrTitleDoc : comp;
+  lnTypeDoc, lnTypeOper : word;
+  lbSendAllDocs, lbSetUserTab : boolean;
+
+as select
+ catalogs.nrec
+from
+    advises
+  , catalogs
+  , catalogs catalogs_2
+  , catalogs catalogs_api
+  , Catalogs cat_search
+  , catalogs Catalogs_podr
+  , catalogs Catalogs_td
+  , catalogs CatalogsTmp
+  , catalogs DepCat
+  , Persons
+  , Appointments
+  , Appointments AppointmentsTmp
+  , Appointments AppointmentsNew
+  , contDoc
+  , contDoc ContDocNew
+  , PartDoc
+  , Titledoc
+  , TYPEPR
+  , TYPEPR TYPEPR_api
+  , staffStruct
+//, staffStruct staffStructTmp
+  , staffStruct staffStructNew
+  , SpAllStaff SpAllStaff_TD
+  , SpAllStaff SpAllStaff_16
+  , SpAllStaff SpAllStaffTmp
+//, SpAllStaff SpAllStaff_pers
+//, SpAllStaff SpAllStaff_6
+  , SpAllStaff SpAllStaff_aggreement
+  , PutVacCon (PUTVACCON02)
+  , KlOtpusk
+  , PutVacation
+  , WorkPeriod
+  , APPHIST
+//, APPHIST APPHIST_last
+  , APPHIST APPHISTNew
+  , TarStav
+  , TarStav TarStavTmp
+  , katorg
+  , passports
+  , addressn
+  , klkatego
+//, klkatego klkategoTmp
+//, klsovm
+//, externalasm
+  , raise
+  , KlRejim KlRejimTmp
+  , Grafik GrafikTmp
+  , SPGRAF SPGRAFTmp
+//, WorkPattern WorkPatternTmp
+  , WorkPatternExtAlt WorkPatternExtAltTmp
+  , InfPsn1
+  , tmpRPDTable
+  , UOWRKTABEL
+  , AllMemo
+;
+
+procedure mylog(_str : string);
+ {
+   if _isDebug = False then exit;
+   if _mylog = '' then  {
+     _sfileout := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0))+ 'SNG_APIDIRECTUMOUT_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
+     _mylog := _sfileout+'_'+OleGenerateGUID+'.log';
+     }
+   logstrtofile(_mylog,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + '|'+_str );
+ }
+
+//-----------------------------
+// lsFileProtFile := GetFileLogPath  + 'Prot_LOG_'   + DateToStr(cur_date,'YYYYMMDD')+'.txt';
+// lsFileProtFile := GetFileLogPath  + 'ProtRX_LOG_' + DateToStr(cur_date,'YYYYMMDD')+'.txt';
+//
+// чтобы  падало в общую директорию в один файл со всех юзеров
+function GetFileLogPath( parUser : string = '') : string;
+{
+  var lsFileProtFile, lsFilePath : string;
+
+  lsFileProtFile := AddSlashToPath(GetStringParameter('Files','LogFilesDirectory',0))
+  lsFilePath := '/users/';     //  /srv/galsrv_2/users/shalukho/out/
+
+  if parUser <> ''
+     lsFileProtFile := Replace(lsFileProtFile, userName(), parUser)
+
+// if POS( lsFilePath, lsFileProtFile) > 0
+// lsFileProtFile := SubStr( lsFileProtFile, 1, POS( lsFilePath, lsFileProtFile + Length(lsFilePath) )) +'mainlog/'
+
+  result := lsFileProtFile;
+
+}
+
+function OpenResultProtFile ( parNrec : comp = 0 ) : boolean;
+{
+   result := true;
+
+   RunInterface( 'API_DIRECTUM::InfoConfirmRX', if(parNrec = 0, 1, parNrec ) )
+
+/*
+   var lsFilePath, lsFileProtFile : string = '';
+/*
+   lsFilePath := GetFileLogPath('GATE_DIRECTUM_RX') ;
+   lsFileProtFile := lsFilePath + 'ProtRX_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'.txt'
+   LogStrToFile(lsFileProtFile, timetostr(cur_time,'HHMMSS')+' попытка скачивания  GATE_DIRECTUM_RX' )
+   PutFileToClient(lsFileProtFile,false);
+*/
+ /*
+
+   lsFilePath := GetFileLogPath;
+   lsFileProtFile := lsFilePath + 'Prot_LOG_'  +DateToStr(cur_date,'YYYYMMDD')+'.txt';
+   LogStrToFile(lsFileProtFile, timetostr(cur_time,'HHMMSS')+' попытка скачивания')
+   PutFileToClient(lsFileProtFile,false);
+
+   lsFileProtFile :=  lsFilePath +'*.txt'
+   GetFileName(lsFileProtFile, 'Файлы протоколов обмена');
+*/
+
+}
+
+//любой ответ записать в какой-то хранимый протокол
+function SetResultToProtFile( parMess : string; parErr : boolean; parNrec : comp; parTip : word = 0 ) : boolean;
+{  //объектная, нужно инициализировать куда писать
+
+  result := true;
+/**/
+  _try
+  {
+    if parNrec = 0  parNrec := 1; //общий протокол обмена с RX
+
+    if GetFirst AllMemo where (( 38899 == AllMemo.wTable and parNrec == AllMemo.cRec and  coTitleDoc == AllMemo.Tip)) <> tsOk
+    {
+       insert AllMemo set
+          AllMemo.Nrec   := 0
+        , AllMemo.wTable := 38899
+        , AllMemo.cRec   := parNrec
+        , AllMemo.Tip    := coTitleDoc
+        ;
+    }
+    if TextOfDocument.OpenMemo(AllMemo.mem)
+    {
+       TextOfDocument.Seek(TextOfDocument.GetSize);
+       TextOfDocument.WriteLn(DateToStr(cur_date,'DD.MM.YYYY')+' '+timetostr(cur_time,'HH:MM:SS') +'  '
+                          + '|'+ UserName
+                          + '|'+ case(parTip; 0:'GalERP', cnRX:'Dir-RX';'-')
+                          + '|'+ if(NOT parErr, 'ОШИБКА', '     ')
+                          + '|'+'  '+ SubStr(parMess,1,200) );
+     //if lnSizeMemo>0   ImportFileToMemo(AllMemo.mem, TextToAppend,true);
+       TextOfDocument.Close;
+       update current AllMemo;
+    }
+  }
+/**/
+  //---- чтобы это падало в общую директорию в один файл со всех юзеров
+//lsFileProtFile := GetFileLogPath('GATE_DIRECTUM_RX') + 'ProtRX_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'.txt';
+
+//LogStrToFile( lsFileProtFile, timetostr(cur_time,'HHMMSS') + '|'+ UserName + '|'+ parErr + '|'+ parMess );
+
+}
+function SetResultToProt11( parMess : string; parErr : boolean) : boolean;
+{ //локальная, инициализация lsFileProtFile куда писать в IsTestMode
+   result := true;
+// 'Запись в протокол: '+parErr+' '+parMess
+
+   LogStrToFile( lsFileProtFile, timetostr(cur_time,'HHMMSS') + '|'+ UserName + '|'+ string(parErr) + '|'+ parMess );
+}
+//---
+function LogMessage(parMessage: string; mode: longInt; parTip : word = 0 )  : boolean;
+{
+   result := true;
+
+   SetResultToProtFile(parMessage, if(mode= error, false, true), lcCurrTitleDoc, parTip )
+
+   if _isDebug
+     Message(parMessage,  mode+okButton)
+}
+function IsTestMode( parMethodstr : string = '') : boolean;
+{
+  _isDebug := false;
+
+  //----------
+  //вставила блок  //Шалухо АИ 05112023   для возможности тестирования
+  var lsTest : string = sgettune('DirectumIntegration_Test')
+
+  if lsTest <> ''
+     _isDebug := true;
+
+  if parMethodstr = '---miss_http_request---'
+    _isDebug := true;
+
+
+  result := _isDebug;
+
+  //---- чтобы это падало в общую директорию в один файл со всех юзеров
+  lsFileProtFile := GetFileLogPath + 'Prot_LOG_'+DateToStr(cur_date,'YYYYMMDD')+'.txt';
+
+}
+//-----------------------------
+
+function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : comp;
+{
+
+  mylog(' getpodrunder_nrec   _code = '  + _code+'  _crec = '+_crec + '  _cParent = '+ _cParent);
+  if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
+  {
+     mylog(' getpodrunder_nrec   cat_search.code = ' + cat_search.code);
+     if cat_search.code = _code
+     {
+        if getfirst fastfirstrow cat_search where ((_crec == cat_search.nrec)) = tsOK
+        {
+          result := cat_search.nrec;
+          exit;
+        }
+        else
+        {
+         result := 0h;
+         exit;
+
+        }
+     }
+     else
+     {
+        result := getpodrunder_nrec(_code, cat_search.nrec, cat_search.cParent)
+     }
+  }
+  else
+  {
+     result := 0h;
+     exit;
+  }
+}
+function getpodrunder(_code : string; _crec , _cParent: comp) : string;
+{
+  result := '';
+  var _crec : comp = getpodrunder_nrec(_code, _crec, _cParent);
+  if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname ;
+}
+
+
+function getperson_passport_by_code(_cPers: comp; _code : string) : string; {
+result := '';
+ _loop Passports where ((_cPers == Passports.person))
+    and Passports.filialno = 0  { // не является предыдущим доком
+     if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          if cat_search.code = _code then  {
+            result := cat_search.name ;
+            exit;
+           }
+        }
+      }
+}
+function GetFillialDepName( DepCatNRec : comp; parTip : word = 0 ) : string;
+{
+//оригинал взят из GetFulDepNameNoSys.vip GetFulDepNameNoSys + включен фильтр по -2 уровня сверху
+// result := _IDepartIer.GetFulDepName(Catalogs_podr.Nrec); //Catalogs_podr.longname;
+
+// Возвращает полное название подразделения с учетом уровня иерархии
+
+  var tmpStr          : string = '';
+  var tmpNrec         : comp = 0;
+  var parentNRec      : comp;
+  var countIer        : longInt = 30;   //wGetTune('UP.STAFF.LEVEL_IER');
+  var i               : longInt;
+
+  if (DepCatNRec = 0)
+    exit;
+
+  if (GetFirst DepCat where ((DepCatNRec == DepCat.NRec)) = tsOk)
+      parentNRec := DepCat.cParent;
+
+  i := 1;
+  while (i < countIer and DepCat.SysCode <> (-11) and
+         DepCat.SysCode <> -112)
+    {
+      if (GetFirst DepCat where ((parentNRec == DepCat.NRec)) = tsOk)
+        {
+          parentNRec := DepCat.cParent;
+          inc(i);
+          if (parentNRec = 0)
+            exit;
+        }
+      else
+        exit;
+    }
+
+  countIer := i - 2;  //уровень филлиала
+  parentNRec := DepCatNRec;
+
+  for(i:=1; i <= countIer; i++)
+  if (GetFirst DepCat where (( parentNRec == DepCat.NRec )) = tsOk)
+  {
+       parentNRec := DepCat.cParent;
+       if ((word(DepCat.bPick) and word(1)) = 0)
+       {
+           tmpStr  := DepCat.LongName;
+           tmpNrec := DepCat.Nrec;
+       }
+  }
+
+  if parTip = 1
+        result := string(tmpNrec);
+  else  result := tmpStr;
+
+}
+function GetFulDepName( DepCatNRec : comp ) : widestring;
+{
+//оригинал взят из GetFulDepNameNoSys.vip GetFulDepNameNoSys + включен фильтр по -2 уровня сверху
+// result := _IDepartIer.GetFulDepName(Catalogs_podr.Nrec); //Catalogs_podr.longname;
+
+// Возвращает полное название подразделения с учетом уровня иерархии
+
+  var tmpStr          : array [1..30] of string;
+  var parentNRec      : comp;
+  var countIer        : longInt = 30;   //wGetTune('UP.STAFF.LEVEL_IER');
+  var i               : longInt;
+
+  if (DepCatNRec = 0)
+    exit;
+
+  if (GetFirst DepCat where ((DepCatNRec == DepCat.NRec)) = tsOk)
+     parentNRec := DepCat.cParent;
+
+  i := 1;
+  while (i < countIer and DepCat.SysCode <> (-11) and
+         DepCat.SysCode <> -112)
+    {
+      if (GetFirst DepCat where ((parentNRec == DepCat.NRec)) = tsOk)
+        {
+          parentNRec := DepCat.cParent;
+          inc(i);
+          if (parentNRec = 0)
+            exit;
+        }
+      else
+        exit;
+    }
+
+  countIer := i - 3; //уровень на 1 ниже филлиала
+  parentNRec := DepCatNRec;
+
+  for(i:=1; i <= countIer; i++)
+  if (GetFirst DepCat where (( parentNRec == DepCat.NRec )) = tsOk)
+  {
+       parentNRec := DepCat.cParent;
+       if ((word(DepCat.bPick) and word(1)) = 0)
+           tmpStr[i] := DepCat.LongName;
+  }
+
+  result := widestring('')
+  for(i:=countIer; i >=1; i--)
+    result += tmpStr[i] + if(i=1, '', ', ');
+
+}
+function getsumraise(_cPers, _appoint: comp; _date : date): double; {
+//надбавка RAISE.SUM при RAISE.FROMDATE<= SPALLSTAFF.RESDATE[2] для ДС при SPALLSTAFF.WNOCON=6 <= RAISE.TODATE"
+  var _result : double = 0;
+  _loop RAISE where ((_cPers == RAISE.PERSON
+                and _appoint == RAISE.APPOINT
+                  and _date >>= RAISE.FROMDATE )) {
+         if RAISE.todate = to_date(0,0,0) or RAISE.todate >= _date {
+           _result := _result + RAISE.sum;
+         }
+       }
+ result := _result;
+}
+
+function GetSumApp(AppNRec : comp; RunDate : date) : double;
+{
+//оригинал взят из RunRaise.vip GetSumApp + включен фильтр по датам
+//result := _iRaise.GetSumApp(AppNRec, RunDate);
+
+  var sumRaise : double = 0;
+
+  if (GetFirst Appointments where ((AppNRec == Appointments.NRec)) = tsOk) {}
+
+  _loop Raise where ((AppNRec == Raise.Appoint))
+  if _StrFunc.isHitPeriod( RAISE.FROMDATE, RAISE.ToDATE, RunDate)
+  {
+    if (Raise.RaiseAttr = cn_RaiseInPercent) // в процентах
+     {
+     if (GetFirst AppHist where ((RunDate >>= AppHist.DRec)) = tsOk)
+      {
+      if(AppHist.PayModel = 30) // оклад
+       {
+       sumRaise := sumRaise + AppHist.TaxRate * Raise.Sum/100;
+       }
+      else
+       {
+       sumRaise := sumRaise + ObjCatFunc1(iCatFunc).ReceiveSMH_Tuning(AppHist.WorkRegime) * AppHist.TaxRate * Raise.Sum/100;
+       }
+      }
+     else
+      {
+      if(AppHist.PayModel = 30) // оклад
+       {
+       sumRaise := sumRaise + Appointments.TaxRate * Raise.Sum/100;
+       }
+      else
+       {
+       sumRaise := sumRaise + ObjCatFunc1(iCatFunc).ReceiveSMH_Tuning(Appointments.WorkRegime) * Appointments.TaxRate * Raise.Sum/100;
+       }
+      }
+     }
+    else
+     {
+     sumRaise := sumRaise + Raise.Sum;
+     }
+  }
+
+  GetSumApp := sumRaise;
+}
+
+Procedure FillPersonnelOrder_API_header(_m_service: TPtr; _JSONObj : TPtr); {
+/*
+ВНИМАНИЕ!!
+для использования функции разработчик обязан предварительно спозиционироваться на все таблицы используемые в процедуре
+
+пока пусто.... нет фактуры..
+
+но идея есть идея, и не икеа
+*/
+}
+
+
+function GetStrMonth(wNum: word): string;
+{
+  result := '';
+
+  case wNum of
+    1: result := 'января';
+    2: result := 'февраля';
+    3: result := 'марта';
+    4: result := 'апреля';
+    5: result := 'мая';
+    6: result := 'июня';
+    7: result := 'июля';
+    8: result := 'августа';
+    9: result := 'сентября';
+    10: result := 'октября';
+    11: result := 'ноября';
+    12: result := 'декабря';
+  end;
+}
+Function getpassport_string(_passRus,_cPers: comp) : string; {
+
+  var _result : string = '';
+      if getfirst Passports where ((_passRus == Passports.Nrec)) = tsOK
+    // and Passports.filialno = 0 { // не является предыдущим доком    //закоментировала условие  //Шалухо АИ 06112023
+     {  if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          case cat_search.code of
+           '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+           '10': _result := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+           '12': _result := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+          end;
+        }
+      }
+      // как вариант основной документ не указан или не попадает под условия 21 10 12
+      // потому поищем просто среди доков
+#declare getperson_passport_by_code(code)
+ _loop Passports where ((_cPers == Passports.person))
+ // and Passports.filialno = 0  { // не является предыдущим доком   //закоментировала условие  //Шалухо АИ 06112023
+      { if getfirst cat_search where ((Passports.DocName == cat_search.nRec)) = tsOK {
+          if cat_search.code = #code then  {
+            case cat_search.code of
+             '21': _result := 'Паспорт гражданина РФ' // а я бы делал cat_search.name
+             '10': _result := 'Паспорт иностранного гражданина' // а я бы делал cat_search.name
+             '12': _result := 'Вид на жительство в РФ' // а я бы делал cat_search.name
+            end;
+            break;
+           }
+        }
+      }
+#end
+      if _result = '' {
+        #getperson_passport_by_code('21')
+      }
+      if _result = '' {
+        #getperson_passport_by_code('10')
+      }
+      if _result = '' {
+        #getperson_passport_by_code('12')
+      }
+  result := _result
+}
+
+//-------------
+function GetFrenchMarks( parStr : string ) : string;
+{
+   var lnPosMark, lnKolMark : integer = 0;
+   var lsMark : string = '<<';
+
+   for(lnKolMark:=1; lnKolMark <= 1000; lnKolMark++ )
+   {
+      lnPosMark := Pos('"', parStr)
+      if lnPosMark < 1
+         break;
+
+      if ( lnKolMark mod 2 ) = 0
+           lsMark := '>>'
+      else lsMark := '<<' ;
+
+      parStr := SubStr(parStr,1,lnPosMark-1) + lsMark + SubStr(parStr, lnPosMark+1, 255)
+
+   }
+
+   result := parStr;
+}
+
+//-------------
+// формирование заголовка с параметрами типа null
+// для использования переменные должны меть названия  m_service, JSONObj strHeader
+//
+Function GetComma: string;
+{
+  result := if( lenValHeader > 0, ',', '');
+  lenValHeader++
+}
+
+#declare addHeaderBegin(param)
+  mylog(' start JSONObj_Array');
+
+    var JSONObj       : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    var strHeader     : TPtr = HttpConnect_CreateLongString(m_service);
+    var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+
+   lenValHeader := 0;
+
+   HttpConnect_AddValueToLongString(m_service, '{', strHeader);
+   mylog('{');
+#end
+#declare addHeaderEnd(param)
+
+   HttpConnect_AddValueToLongString(m_service, '}', strHeader);
+   JSONObj :=  HttpConnect_JSONObjectByLongString(m_service, strHeader);
+   mylog('}');
+/*
+ mylog(' save Header');
+ Message(' save Header');
+   //для теста выгрузки только звголовка
+   var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(m_service, JSONObj);
+   var _sfileHeaderJSON : string = _sfileout + '_Header_'+OleGenerateGUID+'.txt';
+   HttpConnect_SaveToFileEx(m_service, JSONSJSON, _sfileHeaderJSON, cpUTF8, false);
+   PutFileToClient(_sfileHeaderJSON,false);
+
+   PutFileToClient(_mylog,false);
+*/
+#end
+
+#declare addHeaderElementInteger(param)
+
+   if _#param = ''
+          HttpConnect_AddValueToLongString(m_service, GetComma +'"#param":null'       ,strHeader);
+   else   HttpConnect_AddValueToLongString(m_service, GetComma +'"#param":'+ _#param  ,strHeader);
+
+ mylog('"#param":"int_'+ _#param +'"');
+#end
+#declare addHeaderElementString(param)
+
+   HttpConnect_AddValueToLongString(m_service, GetComma+'"#param":"'+ GetFrenchMarks(_#param)  +'"' ,strHeader);
+// mylog('"#param":"'+ _#param +'"');
+#end
+#declare addHeaderElementNull(param)
+
+   HttpConnect_AddValueToLongString(m_service, GetComma+'"#param": null' ,strHeader);
+// mylog('"#param":"'+ _#param +'"');
+#end
+#declare addHeaderElementArrString(param)
+//это сейчас крайне по-черновому: только один параметр , а не список параметров!!!  GetFrenchMarks не использовать здесь!!!
+   HttpConnect_AddValueToLongString(m_service, GetComma+'"#param":["'+ _#param +'"]' ,strHeader);
+//  mylog('"#param":["'+ _#param +'"]');
+#end
+//---------------------
+#declare addArrayElementStringPart(param,num1)
+  mylog(' JSONObj_ArrayOneElement_ #param#num1 '+_#param);
+   var JSONObj_ArrayOneElement_#param#num1 : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param#num1, 'Param', '#param#num1');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param#num1, 'Value', GetFrenchMarks(_#param));
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param#num1);
+#end
+//---------------------
+#declare addArrayElementString(param)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+  mylog(' addArrayElementString param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Value', GetFrenchMarks(_#param));
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+#end
+#declare addSubArrayElementString(param,subarr)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+  mylog(' addArrayElementString param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Value', GetFrenchMarks(_#param));
+    HttpConnect_JsonArrayAddObject(m_service, #subarr, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+#end
+#declare addArrayElementlongstring(param,longstring)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+GetFrenchMarks видимо нужно использовать еще при формировании строк, до вызова
+*/
+
+  mylog(' addArrayElementlongstring param = #param');
+   var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+    HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, 'Value', #longstring);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+//а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются     HttpConnect_JSONObjectDestroy(m_service, JSONObj_ArrayOneElement_#param);
+// а нельзя уничтожать так сразу.. там походу в памяти все связи просто указываются и только в момент обращения считываются    HttpConnect_DestroyLongString(m_service,#longstring);
+#end
+
+#declare addArrayElementlongstringW(param,widestring)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+  mylog(' addArrayElementlongstringW param = #param');
+
+  {
+    var _wStr: widestring = #widestring;
+
+    if ( Length(_wStr) > 0 )
+    {
+      var _LStr: TPtr = HttpConnect_CreateLongString(m_service);
+      var _i: longint = 0;
+      var _str: string = '';
+
+      _try
+      {
+        for (_i := 1; _i <= Length(_wStr); _i += 200 )
+        HttpConnect_AddValueToLongString(m_service, SubStr(_wStr, _i, 200), _LStr);
+
+        var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+        _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+        HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement_#param, 'Value', _LStr);
+        HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+      }
+      _finally
+        HttpConnect_DestroyLongString(m_service, _LStr);
+    }
+    else
+    {
+      var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Param', '#param');
+      _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement_#param, 'Value', GetFrenchMarks(''));
+      HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+    }
+  }
+#end
+
+#declare addArrayElementNull(param)
+/*
+для использования переменные должны меть названия m_service JSONObj_Array
+*/
+  mylog(' addArrayElementNull param = #param');
+
+  {
+    var JSONObj_ArrayOneElement_#param : TPtr = HttpConnect_JsonObjectCreate(m_service);
+    var stringNULL : TPtr =  HttpConnect_CreateLongString(m_service);
+
+    HttpConnect_AddValueToLongString(m_service, '{ "Param" : "#param", "Value" : null }', stringNULL);
+    JSONObj_ArrayOneElement_#param := HttpConnect_JSONObjectByLongString(m_service, stringNULL);
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement_#param);
+
+    HttpConnect_DestroyLongString(m_service, stringNULL);
+  }
+#end
+
+#include CreateUpdate_RPD_Header.Vpp
+
+#include CreateUpdate_EmploymentContract.Vpp
+#include CreateUpdate_RPD1.Vpp
+
+#include CreateAdditionalAgreement_5.Vpp
+#include CreateUpdate_RPD5.Vpp
+
+#include CreateAdditionalAgreement_105.Vpp
+#include CreateUpdate_RPD105.Vpp
+
+#include CreateAdditionalAgreement_50.Vpp
+#include CreateUpdate_RPD50.Vpp
+
+#include CreateUpdate_RPD6.Vpp
+#include CreateUpdate_RPD6_ZR.Vpp
+
+#include CreateUpdateRPD_API.Vpp
+#include CreateUpdateReasonForOrder_api.Vpp
+#include CreateUpdateKindTD_API.Vpp
+#include CreateUpdateKindDC_API.Vpp
+
+#include CreatePersonnelOrder_API.Vpp
+
+Window winDEBUGAPIRESTDIRECTUM;
+screen scrDEBUGAPIRESTDIRECTUM 'API DIRECTUM';
+  show at(,,,);
+fields
+  Api_url      ('Адрес',,): Skip;
+  API_Username ('Username',,): Skip;
+!  API_Password ('Password',,): Skip;
+
+  API_method       ('Метод',,): [LIST 0 'CreateUpdateKindDC'
+                                    , 1 'CreatePersonnelOrder- TEST'
+                                    , 2 'CreateUpdateKindTD'
+                                    , 3 'CreateUpdateRPD'
+                                    , 4 'CreateUpdateReasonForOrder'
+
+                                    , 10 'CreatePersonnelOrder_API'
+                                ],protect;
+  API_methodFromTune   ('Метод из настройки',,): Skip;
+  _MainCrec  ('ссылка на экземпляр объекта - параметр для метода'): NoProtect;
+buttons
+  cmValue1;
+<<
+Данный интерфейс содержит все функции по интеграции с "Директумом".
+Сейчас вы запустили его напрямую. это DEBUG-вариант: все запросы будут сопровождаться сообщениями
+    и будут скачаны файлы ответом от API "Директума"
+
+Из настроек системы:
+  `URL API`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `API_Username`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!  `API_Password`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+`Выберите метод:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Метод из настройки системы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `cREC`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   <.    Отправить    .>
+>>
+end; // screen scrGLX586REST
+end;
+windowevent  winDEBUGAPIRESTDIRECTUM;
+cmValue1: {
+      case API_method of
+         0 : CreateUpdateKindDC_ALL
+         1 : CreatePersonnelOrder_API_test
+         2 : CreateUpdateKindTD_ALL
+         3 : CreateUpdateRPD_ALL
+         4 : CreateUpdateReasonForOrder_ALL
+        10 : CreatePersonnelOrder_API(_MainCrec)
+      end;
+}
+end;
+
+Procedure setvisiblefields;
+{
+  var _isVisible: boolean = False;
+       case API_method of
+         0,1,2,3,4 : _isVisible := False;
+         5,6,7,8,9,10 : _isVisible := true;
+       end;
+ cfssetprop('L_SCRDEBUGAPIRESTDIRECTUM_cREC','Visible', _isVisible) ;
+ cfssetprop('i_SCRDEBUGAPIRESTDIRECTUM_MAINCREC','Visible', _isVisible)
+}
+
+HandleEvent
+
+cmInit: {
+//  gettunes;
+  API_method := 0;
+  API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindDC');
+  setvisiblefields;
+  if ( BodyMess = '' )
+  {
+    set BodyMess := '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
+  }
+  _isDebug := true;
+  _SNG_IntegrDirectum_out_base.set_debug_mode;
+  runwindowmodal(winDEBUGAPIRESTDIRECTUM);
+  closeinterface(-1);
+}
+
+cmCheckField: {
+  case curfield of
+   #API_method:
+       case API_method of
+         0 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindDC');
+              }
+         1 :  { API_methodFromTune := sgettune('DirectumIntegration_CreatePersonnelOrder');
+              }
+         2 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateKindTD');
+              }
+         3 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateRPD');
+              }
+         4 :  { API_methodFromTune := sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
+              }
+
+        10 :  { API_methodFromTune := sgettune('DirectumIntegration_CreatePersonnelOrder');//CreateUpdate_RPD41
+              }
+
+       end;
+   end;
+   setvisiblefields;
+   rereadrecord;
+}
+end; // HandleEvent
+end.

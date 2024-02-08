@@ -38,27 +38,6 @@ end; //TableEvent table #table
 {Font={BackColor=if(#FldCondition,ColorNeed,0)}}
 #end
 
-
-/*
-
-window wintFields 'Выбор поля таблиц', cyan;
-browse brwintFields;
- table tFields;
-  Fields
-   tFields.SYSNAMETBL 'Таблица','системная'    : [8], Protect, NoPickButton;
-   tFields.NAMETBL    'Синоним','в запросе'    : [8], Protect, NoPickButton;
-   tFields.NAME       'Поле'      :[10], Protect, NoPickButton;
-   tFields.TITLE      'Описание'  :[15], Protect, NoPickButton;
-   tFields.DATATYPE   'Тип данных'   : [4], Protect, NoPickButton;
-end;
-end;
-windowevent wintFields ;
- cmdefault: {
-   closewindowex(wintFields, cmDefault)
- }
-end;
-*/
-
 window winSelectSysTable 'Выбор системной таблицы', cyan;
 browse brSelectSysTable ;
  table x$files_br;
@@ -159,7 +138,7 @@ cmValue1:{
 end;
 
 
-browse brQRY_TMPLT;
+browse brQRY_TMPLT, CYAN;
  table QRY_TMPLT;
   Fields
   QRY_TMPLT.code        'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.CODE)='');

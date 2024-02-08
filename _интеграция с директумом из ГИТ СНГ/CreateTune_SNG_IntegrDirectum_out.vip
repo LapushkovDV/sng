@@ -1,0 +1,50 @@
+/*************************************************************************************************\
+* Наименование:  Настройки для интеграции с Directum                                              *
+* Контур/Модуль: Интеграция                                                                       *
+* Примечание:                                                                                     *
+\*************************************************************************************************/
+
+#include CreateTune.vih
+//------------------------------------------------------------------------------
+Handler with replace CreateTune_SNG_IntegrDirectum on extensionPoint epCreateTuneComponent (TR: ObjCreateTuneEx) [220]
+  // Внимание, приоритеты вызова обработчиков см. в CreateTune.vih
+Action
+{
+  Result := true;
+
+  TR.SetParent('TUNE');
+  TR.AddPart(ttSYSUSERTUNE,'SNG','TUNE','Настройки СНГ','');
+
+  TR.SetParent('SNG');
+//  TR.SetComponent('P_Test');
+  // ------------------------------------------------------------------------
+  // Создаём разделы настроек
+  // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \ Directum
+  TR.AddPart(ttSYSUSERTUNE,'DirectumIntegration','SNG','Директум интеграция','');
+//  TR.AddPartU('DirectumIntegration', 'Directum', '');
+  // ------------------------------------------------------------------------
+  // Создаём общие настройки для переключения, логина и пароля
+
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_URL', 'DirectumIntegration', 'URL API', ftString, '', '100', hcNoContext);    // https://directumrxtst
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_UserName', 'DirectumIntegration', 'Пользователь', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_Password', 'DirectumIntegration', 'Пароль', ftString, '', '100', hcNoContext);
+  TR.AddIntr('SETPASSWORD_DIRECTUM');
+
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreatePersonnelOrder', 'DirectumIntegration', 'Метод создания приказа ', ftString, '', '100', hcNoContext);  // /DrxIntegration/Odata/HRDocflow/CreatePersonnelOrder
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateUpdateKindDC', 'DirectumIntegration', 'Метод создания/обновления справочника "Виды дополнительных соглашений". ', ftString, '', '100', hcNoContext);  // /DrxIntegration/Odata/HRDocflow/CreateUpdateKindDC
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateUpdateKindTD', 'DirectumIntegration', 'Метод создания/обновления справочника "Виды трудовых договоров". ', ftString, '', '100', hcNoContext);  // /DrxIntegration/Odata/HRDocflow/CreateUpdateKindTD
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateUpdateRPD', 'DirectumIntegration', 'Метод создания/обновления справочника "Распорядительные действия". ', ftString, '', '100', hcNoContext);  // /DrxIntegration/odata/HRDocflow/CreateUpdateRPD
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateUpdateReasonForOrder', 'DirectumIntegration', 'Метод создания/обновления справочника "Причины мероприятий". ', ftString, '', '100', hcNoContext);  // /DrxIntegration/odata/HRDocflow/CreateUpdateReasonForOrder
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateUpdateEmploymentContract', 'DirectumIntegration', 'Метод создания трудового договора. ', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateAdditionalAgreement', 'DirectumIntegration', 'Метод создания доп.соглашения на изменение оклада', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_CreateCalculationNote', 'DirectumIntegration', 'Метод Записка-расчет РПД-6, РПД-41', ftString, '', '100', hcNoContext);
+  TR.AddTune(    ttUserTune, 'DirectumIntegration_Test', 'DirectumIntegration', 'Тестовый режим', ftString, '', '100', hcNoContext);
+  TR.AddTune(    ttUserTune, 'DirectumIntegration_SendDoc', 'DirectumIntegration', 'Отправка связанного документа', ftList, '0', '', hcNoContext);
+    TR.AddList(0, 'нет');
+    TR.AddList(1, 'да');
+  // ------------------------------------------------------------------------
+// TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_RPD1', 'DirectumIntegration', 'Метод создания/обновления РПД1. ', ftString, '', '100', hcNoContext);
+// TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_RPD8', 'DirectumIntegration', 'Метод создания/обновления РПД8. ', ftString, '', '100', hcNoContext);
+// TR.AddTune(     ttSYSTUNE, 'DirectumIntegration_RPD41', 'DirectumIntegration', 'Метод создания/обновления РПД41. ', ftString, '', '100', hcNoContext);
+
+}

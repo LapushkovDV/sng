@@ -108,7 +108,8 @@
 			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
-			<Marker FileName="Source\Z_zar##GLX-932_zp_alg.vip" Caption="Нумерованная закладка 1" Line="197" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
+			<Marker FileName="Source\Z_zar##GLX-932_zp_alg.vip" Caption="Нумерованная закладка 1" Line="75" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
+			<Marker FileName="Source\SNG##GLX_932_zp_alg_1_7.vip" Caption="Нумерованная закладка 9" Line="207" NumIndex="9" MarkerType="mtNumBookmark" Comment="mylog('lschet.PENSNAL = '+ stringlschet.PENSNAL);"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -118,25 +119,29 @@
 			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="227"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45327,9292777083" DateTimeCompile="6,25694447080605E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" DateTimeStart="45330,3606045833" DateTimeCompile="0,000309768518491182" StateHistory="False">
 				<CompileMessageList>
+					<CompileMessage MessageType="mtError" MessageText="шибка открытия (создания) компонента C:\Galaktika\_git\sng\GLX-932\GLX-932.res Процесс не может получить доступ к файлу, так как этот файл зан" SourceLine="-1" SourceColumn="-1"/>
 					<CompileMessage MessageType="mtError" MessageText="Ошибка при открытии include файла C_ARCHIVELINK.VIL" SourceFileName="C:\GALAKTIKA\GAL\FRM\INC\galaktika.vil" SourceLine="21" SourceColumn="27">
 						<StackIncludeList>
 							<StackInclude FileName="C:\Galaktika\_git\sng\GLX-932\GLX-932.prj" Line="5" Column="1"/>
 						</StackIncludeList>
 					</CompileMessage>
-					<CompileMessage MessageType="mtEndCompile" MessageText="05.02.2024 22:18:15"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="08.02.2024 8:39:43"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="GLX-932.prj" PosX="27" PosY="22" OpenEditor="True"/>
-			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="49" PosY="78" OpenEditor="True" Active="True"/>
+			<File Name="GLX-932.prj" PosX="42" PosY="22" OpenEditor="True"/>
+			<File Name="Source\Z_zar##GLX-932_zp_alg.vip" PosX="14" PosY="74" OpenEditor="True"/>
 			<File Name="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Zp\Vip\Z_zar##ZarAlgorithm_58vo.Vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_Zar\vip\ZarAlg.vih" PosX="22" PosY="7" OpenEditor="True"/>
-			<File Name="sng31vid_1_пример.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="sng31vid_1_пример.vip" PosX="41" PosY="70" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\Inc\galaktika.vil" PosX="80" PosY="25" OpenEditor="True"/>
+			<File Name="..\_интеграция с директумом из ГИТ СНГ\RPD_Fields_ForAll.vpp" PosX="21" PosY="132" OpenEditor="True"/>
+			<File Name="Source\SNG##GLX_932_zp_alg_1_7.vip" PosX="34" PosY="305" OpenEditor="True" Active="True"/>
+			<File Name="Source\SNG##GLX_932_zp_alg_1_7.vih" PosX="91" PosY="36" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="GLX-932.prj" Priority="0">

@@ -1,0 +1,71 @@
+function CreateUpdate_RPD5(_cRec : comp): boolean;  //GLX-1456
+{
+   lnTypeDoc := 1;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+    //-----------------------
+    //формируем шаблон заголовка через JSONObj strHeader
+    #addHeaderBegin(no_param)
+
+    #addHeaderElementInteger(IdRX)
+    #addHeaderElementString(HRCode)
+    #addHeaderElementArrString(HRCodeRPD)
+    #addHeaderElementNull(HRCodeEvent)
+    #addHeaderElementNull(HRCodeAbsence)
+    #addHeaderElementString(HRCodeReason)
+    #addHeaderElementArrString(Employees)
+
+    if _DissmissalDate = ''
+    {
+    #addHeaderElementInteger(DissmissalDate)
+    }
+    else
+    {
+    #addHeaderElementString(DissmissalDate)
+    }
+
+    #addHeaderElementInteger(IdMainDoc)
+    #addHeaderElementString(Author)
+    #addHeaderElementString(IsArhive)
+
+    #addHeaderEnd(no_param)
+
+  //-----------------------
+  //заполнение массива параметров 'Content'  через JSONObj_Array
+    _DocShablon := 'PRIKAZ_PEREVOD';
+    #addArrayElementString(DOCSHABLON)
+
+    #addArrayElementString(NAME_ORG_SHORT)
+    #addArrayElementString(NAME)
+
+    #addArrayElementString(PERNR)
+    #addArrayElementString(NACHN)
+    #addArrayElementString(VORNA)
+    #addArrayElementString(MIDNM)
+
+  //-----------------------
+
+    #addArrayElementString(VID)
+    #addArrayElementString(NAME1)
+    #addArrayElementlongstringW(PODROLD,_PODROLD)
+    #addArrayElementString(SHDOLOLD)
+    #addArrayElementString(PRICH)
+    #addArrayElementlongstringW(PODR,_PODR)
+    #addArrayElementString(SHDOL)
+    #addArrayElementString(MEDPOC)
+    #addArrayElementString(DETIDO)
+    #addArrayElementString(OSN)
+    #addArrayElementString(DPRIEM)
+    #addArrayElementString(DKON)
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+
+}

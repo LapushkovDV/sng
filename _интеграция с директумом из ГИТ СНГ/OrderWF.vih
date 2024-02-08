@@ -1,0 +1,42 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 10.1 - Управление персоналом
+//------------------------------------------------------------------------------
+
+#ifndef _ORDERWF_INCLUDED_
+#define _ORDERWF_INCLUDED_
+
+#component "SNG_RPD_Basket"
+
+#doc
+Работа с приказами в workFlow
+#end
+objInterface iOrderWF01;
+
+  #doc
+  Проверка приказа перед отправкой в directum
+  #end
+  public function CheckOrderWF(cTitleDoc : comp): boolean;
+
+  #doc
+  Проверка приказа перед отправкой в directum
+  #end
+  public procedure ConfirmOrderWF(cTitleDoc : comp);
+
+  #doc
+  Добавление приказа в коризину после подписания в directum
+  #end
+  public function InsertOrderIntoBasketWF(cTitleDoc : comp): boolean;
+
+  #doc
+  Проверка приказа перед отправкой в directum
+  #end
+  public procedure ShowBasketOrders();
+
+end;
+
+VipInterface OrderWF
+  implements iOrderWF01
+  Licensed (free);
+
+#end

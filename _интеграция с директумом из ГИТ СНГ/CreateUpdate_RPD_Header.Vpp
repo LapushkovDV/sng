@@ -1,0 +1,42 @@
+function CreateUpdate_RPD_Header(_cRec : comp): boolean;  //GLX-1104
+{
+   lnTypeDoc := 1;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+    //-----------------------
+    //формируем шаблон заголовка через JSONObj strHeader
+    #addHeaderBegin(no_param)
+
+    #addHeaderElementInteger(IdRX)
+    #addHeaderElementString(HRCode)
+    #addHeaderElementArrString(HRCodeRPD)
+    #addHeaderElementString(HRCodeEvent)
+    #addHeaderElementString(HRCodeAbsence)
+    #addHeaderElementString(HRCodeReason)
+    #addHeaderElementArrString(Employees)
+
+    if _DissmissalDate = ''
+    {
+    #addHeaderElementInteger(DissmissalDate)
+    }
+    else
+    {
+    #addHeaderElementString(DissmissalDate)
+    }
+
+    #addHeaderElementInteger(IdMainDoc)
+    #addHeaderElementString(Author)
+    #addHeaderElementString(IsArhive)
+
+    #addHeaderEnd(no_param)
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+}

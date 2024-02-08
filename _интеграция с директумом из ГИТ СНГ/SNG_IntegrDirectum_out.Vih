@@ -1,0 +1,95 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+//------------------------------------------------------------------------------
+
+
+#ifndef _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+#define _SNG_INTEGRDIRECTUM_OUT_INCLUDED_
+
+#component "API_DIRECTUM"
+
+vipInterface SNG_IntegrDirectum_out
+  licensed(Free);
+public:
+
+#doc
+Приказ поместить в корзину
+входной параметр - Titledoc.nrec
+#end
+function SetTitleDocToRPDBasket( _cTitleDoc : comp ) : boolean;
+
+#doc
+Создать приказ
+входной параметр - Titledoc.nrec
+внутри функции цикл по разделам приказа и вызов соответствующих функций по номерам РПД
+#end
+Function CreatePersonnelOrder_API(_cTitledoc : comp; parParam : word = 0) : boolean;
+
+#doc
+Синхронизировать весь каталог "Виды дополнительных соглашений"
+#end
+ function CreateUpdateKindDC_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Виды дополнительных соглашений" по NREC
+#end
+ Function CreateUpdateKindDC_API( _cRec : comp; var lResponse :TPtr) : boolean;
+
+#doc
+Синхронизировать весь каталог "Виды трудовых договоров"
+#end
+ function CreateUpdateKindTD_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Виды трудовых договоров" по NREC
+#end
+ Function CreateUpdateKindTD_API( _cRec : comp; var lResponse : tptr) : boolean;
+
+
+#doc
+Синхронизировать весь каталог "Распорядительные действия по персоналу"
+#end
+ function CreateUpdateRPD_ALL() : boolean;
+#doc
+Синхронизировать элемент каталога "Распорядительные действия по персоналу" по NREC
+#end
+ function CreateUpdateRPD_API( _cRec : comp; var lResponse :TPtr) : boolean;
+
+#doc
+Синхронизировать весь каталог "Причины мероприятий"
+#end
+ function CreateUpdateReasonForOrder_api(_crec : comp; var lResponse :TPtr) : boolean;
+#doc
+Синхронизировать элемент каталога "Причины мероприятий" по NREC
+#end
+ function CreateUpdateReasonForOrder_ALL(): boolean;
+
+#doc
+Сгенерировать и отправить JSON по РПД1 - переделать как дадут структуру от директума
+#end
+  function CreateUpdate_RPD1(_cRec : comp) : boolean;
+
+#doc
+Сгенерировать и отправить JSON по трудовому договору
+#end
+function CreateUpdate_EmploymentContract(_cRec : comp): boolean;
+
+#doc
+Сгенерировать и отправить JSON по приказу по персоналу "приказ на отпуск" РПД6
+входной параметр - Partdoc.nrec
+
+Для работы целиком по приказу используйте
+Function CreatePersonnelOrder_API(_cTitledoc : comp) : boolean;
+#end
+function CreateUpdate_RPD6(_cRec : comp): boolean;
+
+#doc
+записать в  хранимый протокол
+#end
+function SetResultToProtFile( parMess : string; parErr : boolean; parNrec : comp; parTip : word = 0 ) : boolean;
+function OpenResultProtFile ( parNrec : comp = 0 ) : boolean;
+function LogMessage(parMessage: string; mode: longInt; parTip : word = 0 ) : boolean;
+function IsTestMode( parMethodstr : string = '') : boolean;
+
+end;
+var _SNG_IntegrDirectum_out, _iOut : SNG_IntegrDirectum_out;
+#end // __GLX586_VIH__

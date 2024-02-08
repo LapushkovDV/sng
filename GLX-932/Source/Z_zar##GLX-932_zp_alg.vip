@@ -16,6 +16,7 @@
 \**************************************************************************************************/
 
 
+#include SNG##GLX_932_zp_alg_1_7.vih
 #include ZarAlg.vih
 
 #component "Z_Zar"
@@ -26,60 +27,11 @@ interface zarAlgorithm_GLX_932_zp_alg cacheable;
 // посомтреть  Z_zar##ZarAlgorithm_58vo.Vip
   create view
    var _log_OUT : string;
-     PeriodBegin
-   , PeriodEnd : date;
-     pLschet : comp;
-     wMes
-   , wYear : word;
-
-    from
-       Nachisl
-     , KlVidOpl
-     , PrNaryad
-     , PrNaryad PrNaryad_cur
-     , sys_nar
-where ((
-       pLschet == Lschet.Nrec
-/*    //---------------------
-   and lschet.nrec==lstab.clschet
-   and wYear      ==lstab.yearn
-   and wMes       ==lstab.mesn
-
-   and  pLschet == prnaryad.clsch
-   and  (  wYear=Year (prnaryad.DataN)
-       and wMes =Month(prnaryad.DataN)
-        )
-*/
-       ))
-
+    _isLogging : boolean = false;
 ;
   var
-      _isLogging: Boolean = false;
-      AlgNumberInner : word = 0;
-
-Function GenerateNewLogFile: string;
-{
- _log_OUT := GetStringParameter('Files','OutputFilesDirectory',0)+ '\zarAlgorithm_GLX_932_zp_alg_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS');
-
- if Lschet.STRTABN <> ''
-  then _log_OUT := _log_OUT+'_tabn_' +Lschet.STRTABN
-   else  _log_OUT := _log_OUT+'_tabn_' +string(Lschet.TABN);
-
- _log_OUT := _log_OUT+'.log';
- result := _log_OUT;
-}
-
-function GetLogFile : string;
-{
-  if _log_OUT = '' then _log_OUT := GenerateNewLogFile;
-  result := _log_OUT;
-}
-
-Procedure MyLog(_str: string);
-{
-  if _isLogging = false then exit;
-  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
-}
+      AlgNumberInner : word = 0
+     ;
 
 procedure ParseAlgParams(ParamStr: String);
 {
@@ -105,116 +57,26 @@ procedure ParseAlgParams(ParamStr: String);
           2: _isLogging := (Value = 'on' or Value = 'true');
         end;
     } while P > 0;
-
-  mylog('parameters:  ');
-  mylog('    AlgNumberInner = '+AlgNumberInner);
-  mylog('        _isLogging = '+string(_isLogging));
-  mylog('end parameters');
-}
-
-function getsumAlg1 : double;
-{
-  result := 0;
-    if getfirst prnaryad_cur where ((nar_nrec == prnaryad_cur.nrec)) <> tsOK then exit;
-
-    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
-
-    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
-    var _sumPremBeforeKoefCur : double = 0;
-    var _sumPremBeforeKoefTotal : double = 0;
-    var _koeff : double = 0;
-      _loop prnaryad where ((prnaryad_cur.mnrec==prnaryad.mnrec))
-       {
-          mylog('prnaryad.SUMMA = '+string(prnaryad.SUMMA));
-          mylog('prnaryad.KTY  = '+string(prnaryad.KTY));
-
-          var _KTY : double = prnaryad.KTY;
-          var _summaSdel : double = prnaryad.SUMMA;
-          var _summaDopl : double = 0;
-         _loop klvidopl where KLVIDOPL.VHVO[36]='+'
-          {
-            _loop nachisl where ((prnaryad.clsch==nachisl.clsch))
-                              and klvidopl.vidopl=nachisl.vidopls
-                              and prnaryad.datan >= nachisl.datan
-                              and nachisl.datok <= prnaryad.datok
-            {
-              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
-              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
-              mylog('   nachisl.summa = ' + string(nachisl.summa));
-              _summaDopl :=_summaDopl + nachisl.summa;
-            }
-          }
-          var _sumPremBeforeKoef : double = (prnaryad.SUMMA+_summaDopl)*prnaryad.KTY;
-          _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
-          if prnaryad_cur.nrec = prnaryad.nrec
-             then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
-          mylog(' _summaDopl = ' + string(_summaDopl));
-          mylog(' (prnaryad.SUMMA+_summaDopl)*prnaryad.KTY = '+ string(_sumPremBeforeKoef));
-      }
-      if _sumPremBeforeKoefTotal <> 0
-         then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
-
-      mylog(' _koeff = ' + string(_koeff));
-      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
-      result := _koeff*_sumPremBeforeKoefCur;
-}
-
-function getsumAlg2 : double; {
-  result := 0;
-}
-
-function getsumAlg3 : double; {
-  result := 0;
 }
 
 function CalcSum(Parameter: String): Double;
 {
-    set pLschet    :=uch_lsch;
-
-    GenerateNewLogFile;
-
     result := 0;
     ParseAlgParams(Parameter);
-    mylog(Parameter)
-  	PeriodBegin:=uch_datan;
-    PeriodEnd  :=uch_datok;
-
-    mylog(' PeriodBegin = ' + PeriodBegin);
-    mylog('   PeriodEnd = ' + PeriodEnd);
-    mylog('     pLschet = ' + pLschet);
-    mylog('    nar_nrec = ' + nar_nrec);
-    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
-    mylog('    Lschet.TABN = '+Lschet.TABN);
-
+  var iGLX_932_zp_alg_1_7 : GLX_932_zp_alg_1_7 new;
     case AlgNumberInner of
-      1: result := getsumAlg1;
-      2: result := getsumAlg2;
-      3: result := getsumAlg3;
+      1: result := iGLX_932_zp_alg_1_7.getsumAlg1(nar_nrec, _isLogging);
+      2: result := iGLX_932_zp_alg_1_7.getsumAlg2(nar_nrec, _isLogging);
+      3: result := iGLX_932_zp_alg_1_7.getsumAlg3(nar_nrec, _isLogging);
+      4: result := iGLX_932_zp_alg_1_7.getsumAlg4(nar_nrec, _isLogging);
+      5: result := iGLX_932_zp_alg_1_7.getsumAlg5(nar_nrec, _isLogging);
+      6: result := iGLX_932_zp_alg_1_7.getsumAlg6(nar_nrec, _isLogging);
+      7: result := iGLX_932_zp_alg_1_7.getsumAlg7(nar_nrec, _isLogging);
     end;
-
-   mylog(' result = '+ string(result));
-   if _isLogging then PutFileToClient(GetLogFile,false);
-
 }
 
-function GetDescription: String;
-{
+function GetDescription: String; {
     GetDescription := 'Расчет премии в наряде задача GLX-932. Параметры: номер алгоритма (1, 2 или 3), показывать лог true/false, логировать действия true/false';
 }
 
-Function LoadInterface:boolean;
-{
-    Result:=False;
-    _isLogging := true;
-    MyLog('LoadInterface');
-    _isLogging := false;
-    Result:=True;
-
-} //Function LoadInterface:boolean;
-HandleEvent
-cmOnVipLoad: {
-  LoadInterface;
-}
-end;
 end.

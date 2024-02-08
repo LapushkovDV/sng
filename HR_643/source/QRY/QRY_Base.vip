@@ -38,8 +38,19 @@ var
 from
     QRY_Template   QRY_TMPLT
   , QRY_TemplateSP QRY_TMPLTSP
+
+  , QRY_INSTANCE QRY_INST
+  , QRY_Instance_FLD QRY_INST_FLD
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_FLD
+
+  , QRY_Template   QRY_INST_TMPLT
+  , QRY_TemplateSP QRY_INST_TMPLTSP
+
+
 //  , KatDoc KatDocWin
   , x$files TblTMPLT
+  , x$files TblINST
   , x$files TblTMPLTSP
   , x$files
   , x$fields
@@ -52,6 +63,14 @@ from
                          and 0 <<= QRY_TMPLTSP.npp
      and  QRY_TMPLTSP.TABLECODE == TblTMPLTSP.XF$CODE
 
+     // связка для экземпляра запроса
+         and QRY_INST.nrec == QRY_INST_FLD.nrec
+         and QRY_INST.nrec == QRY_INST_FLD_LVL.cInstance
+                    and 0 <<= QRY_INST_FLD_LVL.level (noindex)
+          and QRY_INST_FLD.cLevel == QRY_INST_FLD_LVL_FLD.nrec
+              and QRY_INST.cTmplt == QRY_INST_TMPLT.nrec
+     and QRY_INST_TMPLT.TABLECODE == TblINST.XF$CODE
+          and QRY_INST_TMPLT.nrec == QRY_INST_TMPLTSP.cTmplt
        ))
 ;
 
@@ -117,6 +136,7 @@ function GetTableNameByCode(_tableCode : word) : string; {
        result := x$files.XF$NAME;
    }
 }
+
 procedure inserttFieldsByTableName(_tableCode : word; _SynonimName : string);
 {
   if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK

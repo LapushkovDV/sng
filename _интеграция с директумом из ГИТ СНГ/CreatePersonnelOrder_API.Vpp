@@ -1,0 +1,256 @@
+procedure CreatePersonnelOrder_API_test;
+{
+/*
+ '{"personnelOrder": {"Id":null,"DocumentKind":"PersOrder", "Author":"00220401", "Employees":["00220401","00076778"]}}';
+*/
+  var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+  var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+   var stringNULL : TPtr =  HttpConnect_CreateLongString(m_service);
+
+   HttpConnect_AddValueToLongString(m_service, '{"Id":null,"DocumentKind":"PersOrder"}',stringNULL);
+   JSONObj_Element :=  HttpConnect_JSONObjectByLongString(m_service, stringNULL);
+
+//   HttpConnect_JsonObjectAddLongString(m_service, JSONObj_Element, 'Id', stringNULL);
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'DocumentKind', 'PersOrder');
+
+//   my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+   _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Author', '00220401');
+
+  var JSONObj_Array : TPtr = HttpConnect_JsonArrayCreate(m_service);
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00220401');
+   HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, '00076778');
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj_Element, 'Employees', JSONObj_Array);
+
+   HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'personnelOrder', JSONObj_Element);
+
+ var lResponse : TPtr;
+   var methodstr : string = sgettune('DirectumIntegration_CreatePersonnelOrder');
+   if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+     /*что то надо сделать*/
+
+   }
+   else {
+   }
+  HttpConnect_JSONArrayDestroy( m_service, JSONObj_Array);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj_Element);
+  HttpConnect_JSONObjectDestroy(m_service, JSONObj);
+  HttpConnect_Free(m_service);
+
+
+}
+
+function SetTitleDocToRPDBasket( _cTitleDoc : comp ) : boolean;
+{
+  result := true;
+
+  lcCurrTitleDoc := 0;
+  if getfirst Titledoc where ((_cTitledoc == Titledoc.nrec)) <> tsOK
+  {
+    LogMessage('Ошибка добавления приказа в корзину: не найден приказ c Titledoc.nrec = ' + string(_cTitledoc, 0, 0),error)
+    exit;
+  }
+
+  lcCurrTitleDoc := _cTitleDoc;
+
+  var OWF: iOrderWF01;
+  if (NullVipRef(OWF))
+  if (not LoadVipRef(OWF, 'SNG_RPD_Basket::OrderWF'))
+  {
+     LogMessage('Ошибка добавления приказа в корзину: не загружен объект SNG_RPD_Basket::OrderWF!', error);
+     exit;
+  }
+
+  var lbProvOrder : boolean = iOrderWF01(OWF).InsertOrderIntoBasketWF(_cTitleDoc);
+  if NOT lbProvOrder
+  {
+     LogMessage('Ошибка добавления приказа в корзину: запись не вставлена', error);
+     exit;
+  }
+  else
+  {
+     LogMessage('Приказ добавлен в корзину', Information);
+  }
+
+}
+Function CreatePersonnelOrder_API(_cTitledoc : comp; parParam : word = 0) : boolean;
+{
+  result := false;
+
+  IsTestMode;    /// _cTitledoc := 0005000000000202H;
+
+  lcCurrTitleDoc := 0;
+
+//это входная точка. далее определяем тип РПД и вызываем соответствующую функцию
+  if getfirst Titledoc where ((_cTitledoc == Titledoc.nrec)) <> tsOK
+  {
+    LogMessage('Ошибка отправки приказа в RX: не найден приказ c Titledoc.nrec=' + string(_cTitledoc, 0, 0),error)
+    exit;
+  }
+
+  lcCurrTitleDoc := Titledoc.nrec;
+
+  if(getfirst partdoc where ((titledoc.nrec == partdoc.CDOC))) <> tsOK
+  {
+    LogMessage('Ошибка отправки приказа в RX: в приказе Titledoc.nrec='+string(titledoc.nrec,0,0)+' нет разделов '
+             + ' titledoc.nrec=partdoc.CDOC ',error)
+    exit;
+  }
+
+  //------ блок проверки приказа
+  var OWF: iOrderWF01;
+  if (NullVipRef(OWF))
+  if (not LoadVipRef(OWF, 'SNG_RPD_Basket::OrderWF'))
+  {
+     LogMessage('Ошибка отправки приказа в RX: не загружен объект проверки приказов SNG_RPD_Basket::OrderWF!', error);
+     exit;
+  }
+
+  var lbProvOrder : boolean = false;
+
+  //проверяем толко приказы "не утвержден", пропускаем "исполняемый"
+  //т.е пропускаем на 2ом этапе отправки документов
+  if TitleDoc.wStatus = 0
+  {
+     lbProvOrder := iOrderWF01(OWF).CheckOrderWF(Titledoc.nrec);
+     if NOT lbProvOrder
+     {
+        LogMessage('Ошибка отправки приказа в RX: обнаружены ошибки заполнения приказа', error);
+        //if message('результат проверки: ' + string(lbProvOrder), YesNo) <> cmYes
+        exit;
+     }
+     else
+     {
+        LogMessage('Приказ проверен успешно', Information);
+     }
+  }
+  //вызов из SendTitleDocDocsToRX, если подписан сам приказ
+  //отправить РПД в корзину
+  if parParam = coTitleDoc
+  {
+     //ставим "не утвержден", т.е избавляемся от "исполняемый"
+     update current TitleDoc
+        set TitleDoc.wStatus := 0;
+
+     lbProvOrder := iOrderWF01(OWF).InsertOrderIntoBasketWF(_cTitleDoc);
+     if NOT lbProvOrder
+     {
+        LogMessage('Ошибка добавления приказа в корзину: запись не вставлена', error);
+     }
+     else
+     {
+        LogMessage('Приказ добавлен в корзину', Information);
+     }
+  }
+
+  //------
+  lbSendAllDocs := lbSetUserTab := false;
+  //1 вызов документов всех уровней, для теста
+  if ((parParam and 1) = 1)  lbSendAllDocs := true;
+  //4 фиксируем табельный пользователя
+  if ((parParam and 4) = 4)  lbSetUserTab  := true;
+
+  //------
+  _loop partdoc where ((titledoc.nrec == partdoc.CDOC))
+  {
+      lcCurrTitleDoc := Titledoc.nrec;
+
+      if getfirst TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER)) <> tsOK then
+      {
+         LogMessage('В приказе указан несуществующий тип приказа в БД: '+
+            ''#13''+ 'TYPEPR where ((Partdoc.TYPEOPER == TYPEPR.CODOPER))'+
+            ''#13''+ 'Partdoc.TYPEOPER = ' + Partdoc.TYPEOPER,error)
+         continue;
+      }
+
+      lnTypeDoc  := 0;
+      lnTypeOper := Partdoc.TYPEOPER;
+
+      if NOT lbSendAllDocs
+      case lnTypeOper of
+      //--------------
+        5 : {
+               if _iOutBase.GetIdDirectRxByDocDOP( coTitledoc, lcCurrTitleDoc, true) = '' //ID  ДС нет- значит его и отправляем
+                    result := CreateAdditionalAgreement_5(lcCurrTitleDoc);  //1 этап - ДС  о переводе РПД-5
+               else
+               if _iOutBase.GetIdDirectRxByDoc( coTitledoc, lcCurrTitleDoc, true) = '' //ID приказа нет- значит его и отправляем
+                    result := CreateUpdate_RPD5(lcCurrTitleDoc);  //2 этап - приказ Приказ о переводе РПД-5
+               else //все уже было отправлено
+                    result := true;
+            }
+      105 : {
+               if _iOutBase.GetIdDirectRxByDocDOP( coTitledoc, lcCurrTitleDoc, true) = '' //ID  ДС нет- значит его и отправляем
+                    result := CreateAdditionalAgreement_105(lcCurrTitleDoc);  //1 этап - ДС  о переводе РПД-105
+               else
+               if _iOutBase.GetIdDirectRxByDoc( coTitledoc, lcCurrTitleDoc, true) = '' //ID приказа нет- значит его и отправляем
+                    result := CreateUpdate_RPD105(lcCurrTitleDoc);  //2 этап - приказ Приказ о переводе РПД-105
+               else //все уже было отправлено
+                    result := true;
+
+            }
+        50: {
+               if _iOutBase.GetIdDirectRxByDocDOP( coTitledoc, lcCurrTitleDoc, true) = '' //ID  ДС нет- значит его и отправляем
+                    result := CreateAdditionalAgreement_50(lcCurrTitleDoc);  //1 этап - ДС на изменнение оклада
+               else
+               if _iOutBase.GetIdDirectRxByDoc( coTitledoc, lcCurrTitleDoc, true) = '' //ID приказа нет- значит его и отправляем
+                    result := CreateUpdate_RPD50(lcCurrTitleDoc);  //2 этап - приказ на изменнение оклада
+               else //все уже было отправлено
+                    result := true;
+
+            }
+         6: {
+               if _iOutBase.GetIdDirectRxByDoc( coTitledoc, lcCurrTitleDoc, true) = '' //ID приказа нет- значит его и отправляем
+                    result := CreateUpdate_RPD6(lcCurrTitleDoc);    //1 этап - приказ на отпуск
+               else
+               if true // по ЗР ничего не проверяем, просто отправляем //_iOutBase.GetIdDirectRxByDocDOP( coTitledoc, lcCurrTitleDoc, true) = '' //ID ТД/ДС/прочие нет- значит его и отправляем
+                    result := CreateUpdate_RPD6_ZR(lcCurrTitleDoc); //2 этап - записка-расчет
+               else //все уже было отправлено
+                    result := true;
+            }
+        1 : {
+               if _iOutBase.GetIdDirectRxByDocDOP( coTitledoc, lcCurrTitleDoc, true) = '' //ID ТД  значит его и отправляем
+                    result := CreateUpdate_EmploymentContract(lcCurrTitleDoc);  //1 этап - Трудовой договор
+               else
+               if _iOutBase.GetIdDirectRxByDoc( coTitledoc, lcCurrTitleDoc, true) = '' //ID приказа нет- значит его и отправляем
+                    result := CreateUpdate_RPD1(lcCurrTitleDoc);
+               else //все уже было отправлено
+                    result := true;
+
+            }
+      //для неописанных документов отправляем общий заголовок приказа
+      else  {
+                result := CreateUpdate_RPD_Header(lcCurrTitleDoc);
+
+            }
+      end;
+
+      if lbSendAllDocs
+      case lnTypeOper of
+      //--------------
+        5 : {  result := CreateAdditionalAgreement_5(lcCurrTitleDoc);
+               lbSetUserTab := false;
+               result := CreateUpdate_RPD5(lcCurrTitleDoc);
+            }
+      105 : {  result := CreateUpdate_RPD105(lcCurrTitleDoc);
+               lbSetUserTab := false;
+               result := CreateAdditionalAgreement_105(lcCurrTitleDoc);
+            }
+        50: {  result := CreateUpdate_RPD50(lcCurrTitleDoc);
+               lbSetUserTab := false;
+               result := CreateAdditionalAgreement_50(lcCurrTitleDoc);
+            }
+         6: {  result := CreateUpdate_RPD6(lcCurrTitleDoc);
+               lbSetUserTab := false;
+               result := CreateUpdate_RPD6_ZR(lcCurrTitleDoc);
+            }
+        1 : {
+               result := CreateUpdate_EmploymentContract(lcCurrTitleDoc);
+               lbSetUserTab := false;
+               result := CreateUpdate_RPD1(lcCurrTitleDoc);
+            }
+      end;
+
+     break;
+  }
+
+}

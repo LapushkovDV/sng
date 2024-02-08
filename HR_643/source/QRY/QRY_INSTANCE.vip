@@ -25,13 +25,6 @@ from
 
 #include QRY_INSTANCE.pan
 
-function GetTable : word; {
- result := 0;
- if runwindowmodal(winSelectSysTable) = cmDefault {
-   result := x$files_br.XF$CODE;
- }
-}
-
 handleevent // фейса
 cmCheckField: {
  updatetable;

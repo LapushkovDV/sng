@@ -58,12 +58,12 @@ end;
 
 
 
-Window wnQRY_INSTANCE_Edit 'Редактирование шаблона запроса' ;
+Window wnQRY_INSTANCE_Edit 'Редактирование экземпляра запроса' ;
 Show at (3,5,120,28);
 //---------------------------------------------
-Screen ScrQRY_TMPLT_Edit (,,Sci178Esc);
+Screen ScrQRY_INSTANCE_Edit (,,Sci178Esc);
 Show at (,,,5);
-Table QRY_TMPLT;
+Table QRY_INSTANCE;
 Fields
  QRY_TMPLT.CODE        : NoProtect, #colorneed(QRY_TMPLT.CODE='');
  QRY_TMPLT.NAME        : NoProtect, #colorneed(QRY_TMPLT.NAME='');
@@ -116,9 +116,9 @@ end;
 */
 panel panWhereTerms;
  show at ( ,16,,);
- table QRY_TMPLT;
+ table QRY_INST_TMPLT;
 // text memoID=memoDepDesc
- text QRY_TMPLT.WhereTerms 'Секция where';
+ text QRY_INST_TMPLT.WhereTerms 'Секция where из шаблона';
 end;
 
 end;
@@ -142,14 +142,24 @@ cmValue1:{
 }
 end;
 
+         and QRY_INST.nrec == QRY_INST_FLD.nrec
+         and QRY_INST.nrec == QRY_INST_FLD_LVL.cInstance
+                    and 0 <<= QRY_INST_FLD_LVL.level (noindex)
+         and QRY_INST_FLD.cLevel == QRY_INST_FLD_LVL_FLD.nrec
+       and QRY_INST.cTmplt == QRY_INST_TMPLT.nrec
+   and QRY_INST_TMPLT.nrec == QRY_INST_TMPLTSP.cTmplt
 
-browse brQRY_TMPLT;
- table QRY_TMPLT;
+browse brQRY_INST;
+ table QRY_INST;
   Fields
-  QRY_TMPLT.code        'Код' : [3] , Protect, nopickbutton, #colorneed(QRY_TMPLT.CODE='');
-  QRY_TMPLT.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.name='');
-  TblTMPLT.XF$NAME   'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.TABLECODE =0);
+  QRY_INST.code        'Код'          : [3] , Protect, nopickbutton, #colorneed(QRY_INST.CODE='');
+  QRY_INST.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST.name='');
+  QRY_INST.Description 'Описание'     : [10] , Protect, nopickbutton;
+  QRY_INST_TMPLT.code  'Шаблон','код'          : [3]  , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.CODE='');
+  QRY_INST_TMPLT.NAME  'Шаблон','наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.name='');
+  TblINST.XF$NAME      'Корневая','таблица'    : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.TABLECODE =0);
 end;
 
-#tableeventtable(QRY_TMPLT)
-#tableeventtable(QRY_TMPLTSP)
+#tableeventtable(QRY_INST)
+#tableeventtable(QRY_INST_TMPLT)
+#tableeventtable(QRY_INST_FLD_LVL)

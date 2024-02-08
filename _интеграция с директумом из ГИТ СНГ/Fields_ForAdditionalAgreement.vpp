@@ -1,0 +1,184 @@
+
+    //--------
+    var lcAppointDS_Nrec : comp = 0;
+    var lcAppHistDS_Nrec : comp = 0;
+    var lcAppHistDS_Date : date = 0;
+
+    if lnTypeOper = 5       //для переводов ДС привязана к новому назначению
+    or lnTypeOper = 105
+    {
+       lcAppHistDS_Nrec := AppHistNew.NRec;
+       lcAppHistDS_Date := AppHistNew.dRec;
+       lcAppointDS_Nrec := AppointmentsNew.NRec;
+    }
+    else
+    {
+       lcAppointDS_Nrec := Appointments.NRec;
+       lcAppHistDS_Nrec := AppHist.NRec;
+       lcAppHistDS_Date := AppHist.dRec;
+    }
+
+    var NOAA: NumberOfAddAgreement new;
+
+    //ссылка на ДС
+    var _cAgreement : comp = NOAA.GetFirstAgreementByLink(coAppHist, lcAppHistDS_Nrec );
+     if _cAgreement = 0
+     or getfirst SpAllStaff_aggreement where ((_cAgreement == SpAllStaff_aggreement.nrec )) <> tsOK
+     {
+         LogMessage('Не нашли ДС'+
+            ''#13''+ ' NOAA.GetFirstAgreementByLink(coAppHist, AppHist.NRec);'+
+            ''#13''+ 'AppHist.NRec  = '+ string(lcAppHistDS_Nrec, 0, 0)+
+            ''#13''+ 'tmpLink  = '+ string(_cAgreement , 0, 0),error)
+         exit; // continue;
+     }
+    //ссылка на Вид ДС
+     if ( getfirst SpAllStaff_16 where ((                         16 == SpAllStaff_16.WNOCON and
+                                          SpAllStaff_aggreement.nrec == SpAllStaff_16.CBASET     )) <> tsOK )
+     {
+         LogMessage('Не нашли Вид ДС по ДС '
+             +''#13''+'16=SpAllStaff.WNOCON и SpAllStaff.CBASET='+ string(SpAllStaff_aggreement.nrec, 0, 0) ,error)
+         exit; // continue;
+     }
+     if ( (SpAllStaff_16.RESCOMP[7] = 0) or
+          (getfirst cat_search where (( SpAllStaff_16.RESCOMP[7] == cat_search.nrec )) <> tsOK) )
+     {
+        LogMessage('Не нашли значение для "Вид ДС"'
+            +''#13''+'ДС SpAllStaff_aggreement.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
+            +''#13''+'вид ДС SpAllStaff_16.nrec = '+ string(SpAllStaff_aggreement.nrec, 0, 0)
+            +''#13''+'каталог видов ДС SpAllStaff_16.RESCOMP[7] = '+ string(SpAllStaff_aggreement.RESCOMP[7], 0, 0)
+            ,error)
+        exit; //continue;
+     }
+
+    //-----------------------
+    // ID ДС
+    _IdRX      := _iOutBase.GetIdDirectRxByDoc( coSpAllStaff, SpAllStaff_aggreement.Nrec);
+    _IdMainDoc := _iOutBase.GetIdDirectRxByDoc( coTitledoc, Titledoc.Nrec);
+
+    var dDSBegin: date = SpAllStaff_aggreement.ResDate[2]; // Дата начала ДС
+
+    //ссылка на Вид ДС
+    _HRCodeKindAdditionalAgreement := string(cat_search.nrec,0,0);
+    //Для ДС необходимо передавать ИД ТД, в рамках которого создается ДС.
+    _HRCodeEmploymentContract := _iOutBase.GetIdDirectRxByDoc( coSpAllStaff, NOAA.GetContractByAgreement(SpAllStaff_aggreement.Nrec));
+
+    _Shablon   := _iOutBase.GetDocShablonDS(cat_search.Nrec);
+    _DateStart := _iOutBase.SetDateToHeader(dDSBegin);
+    _Employee  := GetStrTabn(Persons.TabNmb, Persons.StrTabN);
+
+    //-----
+    var _OKLAD  : string = '';
+    var _TARIF  : string = '';
+    var _OKLAD_SHTAT: string = '';
+    var _OKLAD_M: string = '';
+    var _TARIF_SHTAT: string = '';
+    var _OKLAD_P: string = '';
+    var _TARIF_P: string = '';
+
+    var _BEGDA_DS : string = '';
+    var _ENDDA_DS : string = '';
+    var _REGIMR   : string = '';
+    var _REGIMO   : string = '';
+
+   //-----
+   var lnOklP       : double = GetSumApp(lcAppointDS_Nrec, lcAppHistDS_Date);
+   var lnOklSh      : double = _iAH.AH_GetTaxRateOnDate(lcAppointDS_Nrec, dDSBegin);
+   var lnOklSh_Tax  : double = 0;
+
+   if lnTypeOper = 5       //для переводов ДС привязана к новому назначению
+   or lnTypeOper = 105
+   {
+       lnOklSh_Tax  := APPHISTNew.TAXRATE
+   }
+   else
+   {
+       lnOklSh_Tax  := APPHIST.TAXRATE
+   }
+
+   if lnTypeOper = 50 // ДС на изменение оклада  // glx-1101
+   {
+     if lnOklSh_Tax > 0
+     case wCodeCat4 of
+      01..03: _OKLAD_SHTAT := string(lnOklSh_Tax, 0,0)
+      04:     _TARIF_SHTAT := string(lnOklSh_Tax, 0,2)
+      05:     _OKLAD_M     := string(lnOklSh_Tax, 0,0)
+     end;
+
+     if lnOklP > 0  //если доплат нет, то ничего не выдаем!
+     case wCodeCat4 of
+      01..03, 05: _OKLAD_P := string(lnOklSh_Tax +lnOklP, 0,0);
+      04:         _TARIF_P := string(lnOklSh_Tax +lnOklP, 0,2);
+     end;
+   }
+
+   if lnTypeOper = 5    //GLX-1456
+   or lnTypeOper = 105  //GLX-1474
+   {
+
+     if lnOklSh > 0
+     case wCodeCat4 of
+      01..03, 05 : _OKLAD := string(lnOklSh, 0,0)
+      04         : _TARIF := string(lnOklSh, 0,2)
+     end;
+
+     if lnOklSh > 0
+     case wCodeCat4 of
+      01..03: _OKLAD_SHTAT := string(lnOklSh, 0,0)
+      04:     _TARIF_SHTAT := string(lnOklSh, 0,2)
+      05:     _OKLAD_M     := string(lnOklSh, 0,0)
+     end;
+
+     if lnOklP > 0  //если доплат нет, то ничего не выдаем!
+     case wCodeCat4 of
+      01..03, 05: _OKLAD_P := string(lnOklSh + lnOklP, 0,0)
+      04:         _TARIF_P := string(lnOklSh + lnOklP, 0,2)
+     end;
+
+     if ( getfirst cat_search where (( SpAllStaff_16.ResComp[7] == cat_search.NRec )) = tsOK )
+     {
+       if ( SpAllStaff_aggreement.ResDate[2] <> ZERODATE )
+          _BEGDA_DS :=  LPadCh(string(Day(SpAllStaff_aggreement.ResDate[2])), '0', 2)
+                      + GetStrMonth(Month(SpAllStaff_aggreement.ResDate[2]))
+                      + Year(SpAllStaff_aggreement.ResDate[2]) + ' г.'
+
+       if ( ((SpAllStaff_aggreement.ResDate[2] = ZERODATE)
+          or (SpAllStaff_aggreement.ResDate[2] = date(31,12,9999)))
+          and ((cat_search.Code = 5) or (cat_search.Code = 9))
+          )
+          _ENDDA_DS := 'до выхода временно отсутствующего работника на работу';
+       else
+       if ( ((SpAllStaff_aggreement.ResDate[2] = ZERODATE)
+          or (SpAllStaff_aggreement.ResDate[2] = date(31,12,9999)))
+          and (cat_search.Code = 25)
+          )
+          _ENDDA_DS := 'бессрочно';
+       else
+       if ( (SpAllStaff_aggreement.ResDate[2] < date(31,12,9999))
+           and ((cat_search.Code = 11) or (cat_search.Code = 12) or(cat_search.Code = 22)
+              or(cat_search.Code = 23) or (cat_search.Code = 25) or(cat_search.Code = 27) or(cat_search.Code = 05))
+          )
+
+          _ENDDA_DS := 'по ' + LPadCh(string(Day(SpAllStaff_aggreement.ResDate[3])), '0', 2)
+                      + GetStrMonth(Month(SpAllStaff_aggreement.ResDate[3]))
+                      + Year(SpAllStaff_aggreement.ResDate[3]) + ' г.';
+       else
+
+          _ENDDA_DS := LPadCh(string(Day(SpAllStaff_aggreement.ResDate[3])), '0', 2)
+                      + GetStrMonth(Month(SpAllStaff_aggreement.ResDate[3]))
+                      + Year(SpAllStaff_aggreement.ResDate[3]) + ' г.'
+     }
+
+      if getfirst AppointmentsTmp where (( lcAppointDS_Nrec == AppointmentsTmp.NRec )) = tsOk
+      if getfirst KlRejimTmp      where (( AppointmentsTmp.WorkRegime == KlRejimTmp.NRec )) = tsOk
+      if getfirst GrafikTmp       where (( KlRejimTmp.cCalendar == GrafikTmp.NRec )) = tsOk
+      _loop SPGRAFTmp  where (( GrafikTmp.NRec == SPGRAFTmp.CGRAFIK ))
+      if SPGRAFTmp.CWORKPATTERN <> 0
+      {
+        _REGIMR := 'c ' + TimeToStr(SPGRAFTmp.TSTART, 'HH:MM') + ' по ' + TimeToStr(SPGRAFTmp.TEND, 'HH:MM');
+
+        if ( getfirst WorkPatternExtAltTmp where (( SPGRAFTmp.cWorkPattern  == WorkPatternExtAltTmp.NRec )) = tsOk )
+        _REGIMO := 'c ' + TimeToStr(WorkPatternExtAltTmp.StartBreak1, 'HH:MM') + ' по ' + TimeToStr(WorkPatternExtAltTmp.EndBreak1, 'HH:MM');
+
+      }
+
+   }

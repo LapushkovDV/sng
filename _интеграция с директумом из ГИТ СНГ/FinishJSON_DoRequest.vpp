@@ -1,0 +1,119 @@
+     //---------
+     // создаем первый раз EXTERNALASM документа либо позиционируемся на имеющийся
+     // + при lbSetUserTab=true
+     //   зафиксируем табельный пользователя, отправившего запрос
+     //   в EXTERNALASM для ПРИКАЗА (!!!)
+     //---------
+     var lcExtASMNrec : comp = 0;
+      //приказ  Titledoc.nrec
+     if lnTypeDoc = 1
+     or lbSetUserTab  //ручная отправка - зафиксируем табельный
+     {
+        lcExtASMNrec := _iOutBase.SetExtASMDirectRx(coTitleDoc, Titledoc.nrec, Titledoc.nrec, if(lbSetUserTab, _Author,'') )
+        if lcExtASMNrec = 0
+        {
+           LogMessage('Ошибка создания EXTERNALASM по приказу',error);
+           exit;
+        }
+     }
+     case lnTypeDoc of
+       //приказ  Titledoc.nrec
+       1 :  {}
+       //ДС  SpAllStaff_aggreement.Nrec
+       2 :  lcExtASMNrec := _iOutBase.SetExtASMDirectRx(coSpAllStaff, SpAllStaff_aggreement.Nrec, Titledoc.nrec);
+       //ТД  SpAllStaff_TD.Nrec
+       3 :  lcExtASMNrec := _iOutBase.SetExtASMDirectRx(coSpAllStaff, SpAllStaff_TD.Nrec, Titledoc.nrec);
+       //др документы, по lcContDocID = ContDoc.Nrec типа записка-расчет
+       4 :  lcExtASMNrec := _iOutBase.SetExtASMDirectRx(coContDoc, lcContDocID, Titledoc.nrec);
+       else
+            lcExtASMNrec := 0;
+     end;
+     if lcExtASMNrec = 0
+     {
+        LogMessage('Ошибка создания EXTERNALASM по документу',error);
+        exit;
+     }
+
+
+     //---------
+     //в дальнейшем здесь при работе из очереди
+     // поставим в очередь обмена по ссылке на EXTERNALASM (!!!) (вместо отправки напрямую)
+     // блокируем приказ от редактирования  со статусом "В очереди"
+     //---------
+
+
+     //---------
+     HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'Content', JSONObj_Array);
+
+     //----
+     var JSONObjStruct : TPtr = HttpConnect_JsonObjectCreate(m_service);
+     HttpConnect_JsonObjectAddObject(m_service, JSONObjStruct, sDocStructName, JSONObj);
+
+     //----
+     var Id, sURLRX : string = ''
+     var lResponse  : tptr;
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObjStruct, lResponse )
+     {
+/*
+{
+ "@odata.context": "https://directumrxtst/odata/$metadata#Sungero.IntegrationService.Models.Generated.HRDocflow.IResultResponseDto",
+ "Id": 10704156,
+ "TypeMessage": "Success",
+ "Message": "Personnel order with Id 10704156 created successfully.",
+ "Url": "https://directumrxtst/DirectumRx?type=05a72ca1-2759-4a92-b461-d5ea5c8906fa&id=10704156"
+ }
+*/
+        var JSONResponse : TPtr = HttpConnect_JSONObjectByLongString(m_service, lResponse);
+        var lsMess  : string = HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Message');
+
+        if upcase(HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'TypeMessage')) <> upcase('Success')
+        {                                                                                           //для теста
+           LogMessage('Ошибка обработки документа в DirectumRX: ' +   ''#13''+ if(lsMess<>'', lsMess, sDocStructName),error, cnRx);
+           result := false;
+        }
+        else
+        {
+
+              Id     := HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Id');
+              sURLRX := HttpConnect_JsonObjectValueByName(m_service,JSONResponse,'Url');
+
+              LogMessage('Документ успешно создан в DirectumRX: Id = "' + Id+'"'+ ''#13''+ lsMess, Information, cnRx);
+
+             result := true;
+        }
+      }
+      else
+      {
+           result := false;
+      }
+
+
+   // var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Array);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_Free(m_service);
+
+    if Id <> ''
+    {
+       _iOutBase.SetIdDirectRx( lcExtASMNrec, Id, sURLRX);
+
+      /*
+       case lnTypeDoc of
+         //приказ  Titledoc.nrec
+         1 :  _iOutBase.SetIdDirectRxOld(coTitleDoc, Titledoc.nrec, Id, sURLRX, Titledoc.nrec);
+         //ДС  SpAllStaff_aggreement.Nrec
+         2 :  _iOutBase.SetIdDirectRxOld(coSpAllStaff, SpAllStaff_aggreement.Nrec, Id, sURLRX, Titledoc.nrec);
+         //ТД  SpAllStaff_TD.Nrec
+         3 :  _iOutBase.SetIdDirectRxOld(coSpAllStaff, SpAllStaff_TD.Nrec, Id, sURLRX, Titledoc.nrec);
+         //др документы, по lcContDocID = ContDoc.Nrec типа записка-расчет
+         4 : _iOutBase.SetIdDirectRxOld(coContDoc, lcContDocID, Id, sURLRX, Titledoc.nrec);
+       end;
+       */
+    }
+    else
+    {
+       //в дальнейшем здесь при работе из очереди
+       //нужно описывать разблокировку документа
+       //для правки данных и повторной отправки
+       //если RX ругнулся на документ по своим проверкам и не вернул ID
+    }

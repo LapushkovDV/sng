@@ -1,0 +1,51 @@
+ Function CreateUpdateKindDC_API( _cRec : comp; var lResponse :TPtr) : boolean ;{
+/*
+ {"KindDC": {
+              "IdHR": 1,
+              "Name": "О ПОСТОЯННОМ ПЕРЕВОДЕ"
+            }
+ }
+*/
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindDC');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+//    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindDC', JSONObj_Element);
+HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindAdditionalAgreementStructure', JSONObj_Element);
+
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        result := true;
+       }
+       else {
+         result := false;
+       }
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+Function CreateUpdateKindDC_ALL() : boolean; {
+  result := false;
+  if (getfirst fastfirstrow catalogs where catalogs.syscode= -31681  )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+     LogMessage(' Не найден каталог "Виды дополнительных соглашений" ' +
+              ''#13''+ 'catalogs.syscode=-31681' ,error);
+     exit;
+  }
+  var _KindDCParent : comp = catalogs.nrec;
+  var lResponse : TPtr;
+  _loop catalogs where ((_KindDCParent == catalogs.cParent)) {
+     if CreateUpdateKindDC_API(catalogs.nrec, lResponse) {
+       /*что то надо сделать.. или нет*/
+     }
+     else {
+
+       exit;
+     }
+  }
+  result :=  true;
+}

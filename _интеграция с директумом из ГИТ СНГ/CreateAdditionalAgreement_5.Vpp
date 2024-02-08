@@ -1,0 +1,86 @@
+function CreateAdditionalAgreement_5(_cRec : comp): boolean;  //GLX-1456
+{
+  lnTypeDoc := 2;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+#include Fields_ForAdditionalAgreement.vpp
+
+    //-----------------------
+    //формируем шаблон заголовка через JSONObj strHeader
+
+    #addHeaderBegin(no_param)
+
+    #addHeaderElementInteger(IdRX)
+    #addHeaderElementString(HRCode)
+    #addHeaderElementString(HRCodeKindAdditionalAgreement)
+    #addHeaderElementInteger(HRCodeEmploymentContract)
+    #addHeaderElementString(Employee)
+    if _DateStart = ''
+    {
+    #addHeaderElementInteger(DateStart)
+    }
+    else
+    {
+    #addHeaderElementString(DateStart)
+    }
+    #addHeaderElementString(Shablon)
+    #addHeaderElementInteger(IdMainDoc)
+    #addHeaderElementString(Author)
+    #addHeaderElementString(IsArhive)
+
+    #addHeaderEnd(no_param)
+
+  //-----------------------
+  //заполнение массива параметров 'Content'  через JSONObj_Array
+  //параметры именуем в верхнем регистре!!!
+
+    #addArrayElementString(NAME_ORG)
+    #addArrayElementString(NAME_ORG_SHORT)
+    #addArrayElementString(NAME)
+    #addArrayElementString(GOROD)
+    #addArrayElementString(NACHN)
+    #addArrayElementString(VORNA)
+    #addArrayElementString(MIDNM)
+    #addArrayElementString(ADR)
+    #addArrayElementString(DOCTY)
+    #addArrayElementString(SERIYA)
+    #addArrayElementString(NOMER)
+    #addArrayElementString(DVYD)
+    #addArrayElementString(KEM_VYD)
+
+   //-------------
+
+    #addArrayElementlongstringW(PODR,_PODR)
+    #addArrayElementString(SHDOL)
+    #addArrayElementString(SHDOL_K)
+    #addArrayElementString(INSTRUK)
+
+   //-------------
+
+   #addArrayElementString(BEGDA_DS)
+   #addArrayElementString(ENDDA_DS)
+   #addArrayElementString(REGIMR)
+   #addArrayElementString(REGIMO)
+
+   //-------------
+
+   #addArrayElementString(OKLAD)
+   #addArrayElementString(TARIF)
+   #addArrayElementString(OKLAD_SHTAT)
+   #addArrayElementString(OKLAD_M)
+   #addArrayElementString(TARIF_SHTAT)
+   #addArrayElementString(OKLAD_P)
+   #addArrayElementString(TARIF_P)
+
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+
+}

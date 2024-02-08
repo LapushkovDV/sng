@@ -1,0 +1,219 @@
+function CreateUpdate_RPD1(_cRec : comp): boolean;         //GLX-1429
+{
+    lnTypeDoc := 1;
+
+#include RPD_Fields_ForAll.vpp
+
+//_loop contdoc where ((partdoc.nrec == contdoc.CPART)) //внутри RPD_Fields_ForAll.vpp
+
+      //-----------------------
+      //формируем шаблон заголовка через JSONObj strHeader
+      #addHeaderBegin(no_param)
+
+      #addHeaderElementInteger(IdRX)
+      #addHeaderElementString(HRCode)
+      #addHeaderElementArrString(HRCodeRPD)
+      #addHeaderElementNull(HRCodeEvent)
+      #addHeaderElementNull(HRCodeAbsence)
+      #addHeaderElementString(HRCodeReason)
+      #addHeaderElementArrString(Employees)
+
+      if _DissmissalDate = ''
+      {
+      #addHeaderElementInteger(DissmissalDate)
+      }
+      else
+      {
+      #addHeaderElementString(DissmissalDate)
+      }
+
+      #addHeaderElementInteger(IdMainDoc)
+      #addHeaderElementString(Author)
+      #addHeaderElementString(IsArhive)
+
+      #addHeaderEnd(no_param)
+
+  //-----------------------
+  //заполнение массива параметров 'Content'  через JSONObj_Array
+      _DocShablon := 'PRIKAZ_PRIEM';
+      #addArrayElementString(DOCSHABLON)
+
+      #addArrayElementString(NAME_ORG)
+      #addArrayElementString(NAME_ORG_SHORT)
+      #addArrayElementString(NAME)
+
+      #addArrayElementString(EMPLOYEES)
+      #addArrayElementString(NACHN)
+      #addArrayElementString(VORNA)
+      #addArrayElementString(MIDNM)
+
+      #addArrayElementlongstringW(PODR,_PODR)
+      #addArrayElementString(SHDOL)
+
+      #addArrayElementString(DPRIEM)
+      #addArrayElementString(DKON)
+
+      //-----------------------
+      var _MVHT1   : string = '';
+      var _MVHT1_1 : string = '';
+      var _MVHT1_2 : string = '';
+      var _MVHT2   : string = '';
+      var _MVHT3   : string = '';
+      var _MVHT3_1 : string = '';
+      var _MVHT3_2 : string = '';
+      var _MVHT3_3 : string = '';
+      var sTmpPKK  : string = '';
+      var sTmpPM   : string = '';
+      var _PRBZT1: string = '';
+      var _PRBZT2: string = '';
+      var _MESTO : string = '';
+      var _PUNKT : string = '';
+      var _TRANSP: string = '';
+
+
+      if ( getfirst SpAllStaffTmp where (( 5            == SpAllStaffTmp.wNoCon  and
+                                           Persons.NRec == SpAllStaffTmp.cBaseT      )) = tsOk )
+      {
+        var cTmp: comp = SpAllStaffTmp.Nrec;
+
+
+        if ( getfirst SpAllStaffTmp where (( 16   == SpAllStaffTmp.wNoCon and
+                                             cTmp == SpAllStaffTmp.cBaseT     )) = tsOk )
+        {
+
+          sTmpPKK := sGetAttr(coCATALOGS, SpAllStaffTmp.RESCOMP[3], 'РРК');
+          sTmpPM  := sGetAttr(coCATALOGS, SpAllStaffTmp.RESCOMP[3], 'РКС/МКС');
+
+          if ( getfirst CatalogsTmp where (( SpAllStaffTmp.ResComp[4] == CatalogsTmp.NRec )) = tsOk )
+              _PUNKT := CatalogsTmp.Name;
+
+          if ( getfirst CatalogsTmp where (( SpAllStaffTmp.ResComp[5] == CatalogsTmp.NRec )) = tsOk )
+             _TRANSP := CatalogsTmp.Name;
+
+          if ( getfirst cat_search where  (( SpAllStaffTmp.ResComp[3] == cat_search.NRec )) = tsOk )
+          if  (cat_search.Code <> 01)
+          and (cat_search.Code <> 02)
+          {
+             _MESTO := cat_search.Name;
+          }
+        }
+
+        if ( POS( 'РКС', sTmpPM) > 0  and (sTmpPKK <> '') and (sTmpPKK <> '0') )
+             _MVHT1_1 := 'районах Крайнего Севера';
+        else
+        if ( POS( 'МКС', sTmpPM) > 0  and (sTmpPKK <> '') and (sTmpPKK <> '0') )
+             _MVHT1_1 := 'местностях, приравненных к районам Крайнего Севера, либо в иных местностях с особыми климатическими условиями';
+        else
+        if ( (sTmpPM = '')            and (sTmpPKK <> '') and (sTmpPKK <> '0') )
+             _MVHT1_1 := '___________________________';
+
+
+      }
+
+      if ( (sTmpPKK <> '') and (sTmpPKK <> '0') )
+      {
+         _MVHT1 := 'Выплачивать процентную надбавку к заработной плате за работу в ';
+         _MVHT1_2 := 'в размере';
+      }
+
+      if ( (sTmpPKK <> '') and (sTmpPKK <> '0') )
+      {
+            _MVHT2 := '(районах Крайнего Севера или местностях, приравненных к районам Крайнего Севера, либо в иных местностях с особыми климатическими условиями)';
+            _MVHT3 := 'в месяц с';
+            if Appointments.AppointDate <> ZeroDate
+            {
+            _MVHT3_1 := LPadCh( string(Day(Appointments.AppointDate)), '0', 2);
+            _MVHT3_2 := string(GetStrMonth(Month(Appointments.AppointDate)));
+            _MVHT3_3 := string(Year(Appointments.AppointDate));
+            }
+      }
+
+      if ( ContDoc.Dat1 <> ZERODATE )
+      {
+            _PRBZT1 := 'С испытанием при приеме на работу на срок';
+            _PRBZT2 := 'месяца(ев) (недель, дней, часов).';
+      }
+
+         #addArrayElementString(MVHT1)
+         #addArrayElementString(MVHT1_2)
+         #addArrayElementString(MVHT1_1)
+         #addArrayElementString(SEV_KOEF)
+         #addArrayElementString(MVHT2)
+         #addArrayElementString(MVHT3)
+         #addArrayElementString(MVHT3_1)
+         #addArrayElementString(MVHT3_2)
+         if _MVHT3_3 <> ''
+         {
+         #addArrayElementString(MVHT3_3)
+         }
+         else
+         {
+         #addArrayElementNull(MVHT3_3)
+         }
+
+         #addArrayElementString(PRBZT1)
+         #addArrayElementString(PRBZT2)
+
+      var _SROK_ISP: string = '';
+      var d1: Date = ContDoc.dPrik;   //10.03.2023
+      var d2: Date = ContDoc.Dat1;    //19.07.2023
+      var wDelta: word = Months_Between(d1, d2);
+      if ( Add_Months(d1, wDelta) = d2 )
+      {
+        if ( double(word(wDelta/12)) = double(wDelta/12) )
+          wDelta := word(wDelta/12)
+      }
+      else
+        wDelta := CalcDaysBetweenDates(d1, d2, false)
+      if wDelta > 0
+        _SROK_ISP := string(wDelta);
+
+        #addArrayElementString(SROK_ISP)
+        #addArrayElementString(OSN)
+
+
+      var dContractBegin: date = _iWWC.GetContractBegin(Appointments.ResComp[1]); // Дата начала договора
+
+      var _OKLAD  : string = '';
+      var _TARIF1 : string = ''; //рубли
+      var _TARIF2 : string = ''; //копейки
+
+      var lnOklSh      : double = _iAH.AH_GetTaxRateOnDate(Appointments.Nrec, dContractBegin);
+      var lnOklSh_Tax  : double = AppHist.TAXRATE;
+
+      case wCodeCat4 of
+        01..03, 05 : _OKLAD  := string( lnOklSh_Tax, 0,0)
+        04 :  {      _TARIF1 := string( Trunc(lnOklSh_Tax) ,0,0)   //рубли
+
+                    var doTmp: double = lnOklSh_Tax;
+                    doTmp := Trunc((doTmp - Trunc(doTmp)) * 100);
+                    if ( doTmp > 0 ) //если копейки = 0, то оставляем пусто
+                    {
+                      _TARIF2 := LPadCh( string(doTmp,0,0), '0', 2)   //копейки
+                    }
+              }
+      end;
+
+      var _SROK_D: string = '';
+      if ( getfirst cat_search where (( _iWWC.GetContractType(Appointments.ResComp[1]) == cat_search.NRec )) = tsOk )
+        _SROK_D := cat_search.Name;
+
+
+      #addArrayElementString(OKLAD)
+      #addArrayElementString(TARIF1)
+      #addArrayElementString(TARIF2)
+      #addArrayElementString(RABOTA_HAR)
+      #addArrayElementString(SROK_D)
+      #addArrayElementString(MESTO)
+      #addArrayElementString(PUNKT)
+      #addArrayElementString(TRANSP)
+
+
+//-----
+#include FinishJSON_DoRequest.vpp
+
+     break;
+
+  } //_loop contdoc
+
+}

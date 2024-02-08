@@ -1,0 +1,57 @@
+ Function CreateUpdateKindTD_API( _cRec : comp; var lResponse : tptr) : boolean; {
+/*
+ {"KindDC": {
+              "IdHR": 1,
+              "Name": "О ПОСТОЯННОМ ПЕРЕВОДЕ"
+            }
+ }
+*/
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateKindTD');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+//    my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'IdHR', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTD', JSONObj_Element);
+//    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'KindTDStructure', JSONObj_Element);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'kindWorkContractStructure', JSONObj_Element);
+
+
+
+     var lResponse : TPtr;
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+Function CreateUpdateKindTD_ALL() : boolean; {
+  result := false;
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=-133 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+      LogMessage(' Не найден каталог "Виды трудовых договоров" ' +
+              ''#13''+ 'catalogs.syscode=-133' ,error);
+    exit;
+  }
+  var _KindTDParent : comp = catalogs.nrec;
+  _loop catalogs where ((_KindTDParent == catalogs.cParent)) {
+    var lResponse : tptr;
+     if CreateUpdateKindTD_API(catalogs.nrec, lResponse) {
+      /* надо что то сделать */
+     }
+     else {
+       result := false;
+       exit;
+     }
+  }
+  result := true;
+}

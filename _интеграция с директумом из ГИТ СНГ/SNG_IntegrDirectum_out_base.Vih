@@ -1,0 +1,134 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// GLX586
+//------------------------------------------------------------------------------
+
+
+#ifndef _SNG_INTEGRDIRECTUM_OUT__BASE_INCLUDED_
+#define _SNG_INTEGRDIRECTUM_OUT__BASE_INCLUDED_
+
+#component "API_DIRECTUM"
+
+
+#doc
+Класс для интеграции с Директумом.
+Содержит в себе все методы для интеграции
+#end
+objInterface oSNG_IntegrDirectum_out_base;
+
+end;
+
+vipInterface SNG_IntegrDirectum_out_base implements oSNG_IntegrDirectum_out_base
+  licensed(Free);
+public:
+#doc
+Зашифровать строку
+#end
+ function encrypt(_str:string):string;
+
+#doc
+Расшифровать строку
+#end
+ function decrypt(_str:string):string;
+
+#doc
+костыль для экранирования - ждем решения от галактики
+#end
+function my_HttpConnect_JsonObjectAddString(_m_service : tptr; _JSONObj_Element : TPtr; _parent : string; _value : string): TPtr ;
+
+#doc
+set debug mode
+#end
+procedure set_debug_mode;
+
+#doc
+собственно сама отправка запроса в директум
+#end
+ Function DoRequest(methodstr: string; bodyJSON: TPtr; var _lResponse :TPtr ) : boolean;
+
+#doc
+Возвращает срок использования в формате
+  год, года, лет
+  месяц, месяца, месяцев
+  неделя,недели,недель
+  день, дня, дней
+#end
+function Get_SrokIsp( dBeg, dEnd : date; parType : word) : string;
+
+#doc
+Сохранить ID из DirectRx по документу
+#end
+function SetIdDirectRx( parExtASMNrec : comp; parId : string; parURL : string ): boolean;
+function SetIdDirectRxOld( parTableDoc : word; parNrecDoc : comp; parId : string; parURL : string ; parTitleDoc : comp ): boolean;
+
+#doc
+Получить ID из DirectRx документа (приказ/ТД/ДС/прочие) по Nrec и типу
+#end
+function GetIdDirectRxByDoc( parTableDoc : word; parNrecDoc : comp; parSend : boolean = false  ): string;
+
+#doc
+Получить ID из DirectRx доп документа (ТД/ДС/прочие) по Nrec приказа
+#end
+function GetIdDirectRxByDocDOP( parTableDoc : word; parNrecDoc : comp; parSend : boolean = false ): string;
+
+#doc
+Получить документ по ID из DirectRx вариант 1
+здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+#end
+function GetDocDirectRxById( parId : string; var parTableDoc : word; var parNrecDoc : comp ): boolean;
+
+#doc
+Сохранить статус, номер, дату документа по ID из DirectRx вариант 1
+здесь рассчитываем на то, что ID будет уникальный по всему DirectRx
+#end
+function SetDocStateDirectRxById( parId : string; parNumDoc, parDateDoc : string; var parState : string ): boolean;
+
+#doc
+создаем первый раз EXTERNALASM для документа либо позиционируемся на имеющийся
++ зафиксируем табельный пользователя, отправившего запрос для ПРИКАЗА (!!!)
+#end
+function SetExtASMDirectRx( parTableDoc : word; parNrecDoc : comp; parTitleDoc : comp; parAuthor : string='' ) : comp;
+#doc
+Получить из  EXTERNALASM для ПРИКАЗА (!!!)  зафиксированный табельный
+#end
+function GetDocUserTabNExt( parTitleDoc : comp ): string;
+
+#doc
+Получить шаблон ДС - параметр DocShablon
+пока передаем Сatalogs.Nrec - Вид ДС
+#end
+function GetDocShablonDS ( parNrec : comp ) : string;
+
+#doc
+Получить шаблон ТД  - параметр DocShablon
+пока черновик
+#end
+function GetDocShablonTD( parDocParam, parDocKat, parTarZona : string ) : string;
+
+#doc
+Получить табельный номер пользователя, заполнившего документ, параметр  Author
+пока черновик
+#end
+function GetDocUserTabN : string;
+
+#doc
+код главного структурного ПАО СНГ
+#end
+function GetMainCode_PAOSNG : string;
+#doc
+получить дату в формате для заголовков
+#end
+function SetDateToHeader( parDate : date) : string;
+#doc
+получить дату в формате для параметров
+#end
+function SetDateToValue( parDate : date) : string;
+#doc
+получить дату в формате строки
+#end
+function SetDateToString( parDate : date) : string;
+
+end;
+var _SNG_IntegrDirectum_out_base, _iOutBase : SNG_IntegrDirectum_out_base;
+#end // __GLX586_VIH__

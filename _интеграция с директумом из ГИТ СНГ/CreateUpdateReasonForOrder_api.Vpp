@@ -1,0 +1,81 @@
+ function CreateUpdateReasonForOrder_api(_crec : comp; var lResponse :TPtr) : boolean; {
+  /*
+{"reasonStructure": {
+"HRCode": "ttstst-668u98fu-hjh",
+"Name": "(отзыв)"
+}}
+  */
+ if getfirst Catalogs_api where (( _cRec == Catalogs_api.nrec)) <> tsOK then exit;
+// gettunes;
+   var methodstr : string = sgettune('DirectumIntegration_CreateUpdateReasonForOrder');
+   var  m_service : TPtr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var JSONObj : TPtr = HttpConnect_JsonObjectCreate(m_service);
+   var JSONObj_Element : tptr = HttpConnect_JsonObjectCreate(m_service);
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'HRCode', string(Catalogs_api.nrec,0,0));
+    _SNG_IntegrDirectum_out_base.my_HttpConnect_JsonObjectAddString(m_service, JSONObj_Element, 'Name', Catalogs_api.name);
+    HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'reasonStructure', JSONObj_Element);
+
+
+     if _SNG_IntegrDirectum_out_base.DoRequest(methodstr, JSONObj, lResponse) {
+        /*чтот то надо сделать*/
+        result := true;
+       }
+       else {
+         result := false;
+       }
+
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj);
+    HttpConnect_JSONObjectDestroy(m_service,JSONObj_Element);
+    HttpConnect_Free(m_service);
+}
+
+function CreateUpdateReasonForOrder_ALL_recursion(_cParent: comp) : boolean;
+{
+  result := true; //  если вообще нет детей, то надо чтобы продолжал
+  _loop catalogs where ((_cParent == catalogs.cParent)) {
+    var lResponse : tptr;
+     if CreateUpdateReasonForOrder_api(catalogs.nrec, lResponse) {
+       /*что то надо сделать или нет*/
+        result := true;
+       }
+       else {
+         result := false;
+         exit;
+       }
+     pushpos(tncatalogs);
+     if CreateUpdateReasonForOrder_ALL_recursion(catalogs.nrec) {
+       result := true;
+     }
+     else {
+       result := false;
+        exit;
+     }
+     poppos(tncatalogs);
+  }
+}
+
+function CreateUpdateReasonForOrder_ALL(): boolean;{
+  if (getfirst fastfirstrow catalogs where catalogs.syscode=-32000 )<> tsOK { // "Виды дополнительных соглашений" catalogs.syscode=-31681.
+     LogMessage(' Не найден каталог "Причины мероприятий" ' +
+              ''#13''+ 'catalogs.syscode=-32000' ,error);
+    exit;
+  }
+  var _cParent : comp = catalogs.nrec;
+
+// сказали, что вложенные не надо элементы result := CreateUpdateReasonForOrder_ALL_recursion(_cParent);
+//  _loop catalogs where ((_cParent == catalogs.cParent)) {
+//  теперь второй уровень надо говорят
+  _loop catalogs where catalogs.cParent = _cParent {
+    _loop catalogs_2 where catalogs_2.cParent = catalogs.nrec {
+     var lResponse : tptr;
+     if CreateUpdateReasonForOrder_api(catalogs_2.nrec, lResponse) {
+       /*что то надо сделать или нет*/
+        result := true;
+       }
+       else {
+         result := false;
+         exit;
+       }
+    }
+  }
+}
