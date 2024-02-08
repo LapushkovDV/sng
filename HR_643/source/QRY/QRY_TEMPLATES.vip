@@ -14,23 +14,15 @@
 //************************************************************
 const
 end;
-Interface QRY_TEMPLATES 'Шаблоны запросов. Просмотр/редактирование';
+Interface QRY_TEMPLATES 'Шаблоны запросов. Просмотр/редактирование', CYAN;
 
 create view
 from
-     x$files x$files_br
-   , QRY_TemplateSP QRY_TMPLTSP1
+    QRY_TemplateSP QRY_TMPLTSP1
 ;
 
 
 #include QRY_TEMPLATES.pan
-
-function GetTable : word; {
- result := 0;
- if runwindowmodal(winSelectSysTable) = cmDefault {
-   result := x$files_br.XF$CODE;
- }
-}
 
 handleevent // фейса
 cmCheckField: {

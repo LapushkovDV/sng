@@ -41,6 +41,16 @@ Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
 function GetTableNameByCode(_tableCode : word) : string;
 
 #doc
+Выбор шаблона
+#end
+function GetTemplate : comp;
+
+#doc
+Выбор таблицы
+#end
+function GetTable : word;
+
+#doc
 заполнить в запросе секции from и where из шаблона
 #end
 procedure addSection_from_where_fromTMLT(_qryID: TPTR);

@@ -83,10 +83,13 @@ Create Table QRY_Instance_FLD "Поля экземпляра запроса"
   NRec          : comp   "Номер записи"
 , cInstance     : ref(QRY_Instance) "Ссылка на экземпляр запроса"
 , cLevel        : ref(QRY_Instance_FLD_LVL) "Ссылка на уровень вложенности"
+, TABLECODE     : string "Код системной таблицы"
 , TableName     : string "Наименование таблицы/синонима"
 , FieldName     : string "Наименование поля из таблицы"
 , FieldSynonim  : string "Наименование синонима поля"
 , FieldJSON     : string "Наименование поля в JSON"
+, PostFunction  : string "функция для постобработки"
+, Description   : string "Описание"
 )
 with Index
 (

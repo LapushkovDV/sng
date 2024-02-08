@@ -1,3 +1,7 @@
+#declare colorneed (FldCondition)
+{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
+#end
+
 /*************************************************************************************************\
 * Наименование: Ведение телефонного справочника                                                   *
 * Контур/Модуль: Кадры                                                                            *
@@ -20,7 +24,7 @@ table struct tFields
    NAME       : string
  , TITLE      : string
  , NAMETBL    : string
- , SYSNAMETBL : string
+ , tableCode  : word
  , DATATYPE   : string
 )
 with index
@@ -38,6 +42,7 @@ var
 from
     QRY_Template   QRY_TMPLT
   , QRY_TemplateSP QRY_TMPLTSP
+  , QRY_Template   QRY_TMPLT_BR
 
   , QRY_INSTANCE QRY_INST
   , QRY_Instance_FLD QRY_INST_FLD
@@ -50,31 +55,107 @@ from
 
 //  , KatDoc KatDocWin
   , x$files TblTMPLT
+  , x$files TblTMPLT_RB
   , x$files TblINST
   , x$files TblTMPLTSP
+  , x$files TblINST_TMPLTSP
   , x$files
+  , x$files x$files_br
   , x$fields
 
   , tFields
  where ((                  root == QRY_TMPLT.nrec
         and QRY_TMPLT.TABLECODE == TblTMPLT.XF$CODE
 
+    and QRY_TMPLT_BR.TABLECODE  == TblTMPLT_RB.XF$CODE
+
              and QRY_TMPLT.nrec == QRY_TMPLTSP.cTmplt
                          and 0 <<= QRY_TMPLTSP.npp
      and  QRY_TMPLTSP.TABLECODE == TblTMPLTSP.XF$CODE
 
      // связка для экземпляра запроса
-         and QRY_INST.nrec == QRY_INST_FLD.nrec
+         and QRY_INST.nrec == QRY_INST_FLD.cInstance
          and QRY_INST.nrec == QRY_INST_FLD_LVL.cInstance
                     and 0 <<= QRY_INST_FLD_LVL.level (noindex)
           and QRY_INST_FLD.cLevel == QRY_INST_FLD_LVL_FLD.nrec
               and QRY_INST.cTmplt == QRY_INST_TMPLT.nrec
      and QRY_INST_TMPLT.TABLECODE == TblINST.XF$CODE
           and QRY_INST_TMPLT.nrec == QRY_INST_TMPLTSP.cTmplt
+                           and 0 <<= QRY_INST_TMPLTSP.npp
+   and QRY_INST_TMPLTSP.TABLECODE == TblINST_TMPLTSP.XF$CODE
        ))
 ;
 
 File MemoFile;
+
+procedure filltFieldsByTableCode(_tableCode : word; _SynonimName : string);
+{
+  if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK
+  _loop x$fields where (( _tableCode == x$fields.XE$FILECODE))
+    {
+        Insert tFields set
+            tFields.NAME       := x$fields.XE$NAME
+          , tFields.TITLE      := x$fields.XE$TITLE
+          , tFields.NAMETBL    := if (_SynonimName = '', x$files.XF$NAME, _SynonimName)
+          , tFields.tableCode  := _tableCode
+          , tFields.DATATYPE   := getNameDataType(x$fields.XE$DATATYPE)
+        ;
+    }
+}
+
+
+Procedure filltFields; {
+  delete all tFields;
+  if getfirst QRY_INST_TMPLT = tsOK {
+    filltFieldsByTableCode(TblINST.XF$CODE, '');
+    _loop QRY_INST_TMPLTSP {
+       filltFieldsByTableCode(TblINST_TMPLTSP.XF$CODE, QRY_INST_TMPLTSP.SynonimName);
+    }
+  }
+}
+
+window winSelectQRY_TEMPLATE 'Выбор системной таблицы', cyan;
+browse brSelectQRY_TEMPLATE;
+ table QRY_TMPLT_BR;
+  Fields
+  QRY_TMPLT_BR.code     'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT_BR.CODE)='');
+  QRY_TMPLT_BR.NAME     'Наименование' : [10] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT_BR.name)='');
+  TblTMPLT_RB.XF$NAME   'Корневая','таблица' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT_BR.TABLECODE =0);
+end;
+end;
+windowevent winSelectQRY_TEMPLATE ;
+ cmdefault: {
+   closewindowex(winSelectQRY_TEMPLATE, cmDefault)
+ }
+end;
+function GetTemplate : comp; {
+ result := 0;
+ if runwindowmodal(winSelectQRY_TEMPLATE) = cmDefault {
+   result := QRY_TMPLT_BR.nrec;
+ }
+}
+
+window winSelectSysTable 'Выбор системной таблицы', cyan;
+browse brSelectSysTable ;
+ table x$files_br;
+  Fields
+   x$files_br.XF$CODE  'Код'      :[5] , Protect, NoPickButton;
+   x$files_br.XF$NAME  'Имя'      :[10], Protect, NoPickButton;
+   x$files_br.XF$TITLE 'Описание' :[15], Protect, NoPickButton;
+end;
+end;
+windowevent winSelectSysTable ;
+ cmdefault: {
+   closewindowex(winSelectSysTable, cmDefault)
+ }
+end;
+
+function GetTable : word; {
+ result := 0;
+ if runwindowmodal(winSelectSysTable) = cmDefault {
+   result := x$files_br.XF$CODE;
+ }
+}
 
 Function GenerateNewFile: string;
 {
@@ -137,27 +218,23 @@ function GetTableNameByCode(_tableCode : word) : string; {
    }
 }
 
-procedure inserttFieldsByTableName(_tableCode : word; _SynonimName : string);
-{
-  if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK
-  _loop x$fields where (( _tableCode == x$fields.XE$FILECODE))
-    {
-        Insert tFields set
-            tFields.NAME       := x$fields.XE$NAME
-          , tFields.TITLE      := x$fields.XE$TITLE
-          , tFields.NAMETBL    := _SynonimName
-          , tFields.SYSNAMETBL := x$files.XF$NAME
-          , tFields.DATATYPE   := getNameDataType(x$fields.XE$DATATYPE)
-        ;
-    }
-}
+
 // function is_query_result_array_by_level
 
-Function isExistSpec : boolean;
+Function isExistSpecTMPLT : boolean;
 {
   result := false;
   if ( getfirst QRY_TMPLTSP = tsOK
     and getfirst TblTMPLTSP = tsOK
+   ) then {
+     result := true;
+   }
+}
+
+Function isExistSpecINST : boolean;
+{
+  result := false;
+  if ( getfirst QRY_INST_FLD = tsOK
    ) then {
      result := true;
    }

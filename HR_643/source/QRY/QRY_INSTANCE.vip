@@ -14,12 +14,10 @@
 //************************************************************
 const
 end;
-Interface QRY_INSTANCE 'Шаблоны запросов. Просмотр/редактирование';
+Interface QRY_INSTANCE 'Экземпляры запросов. Просмотр/редактирование', CYAN;
 
 create view
-from
-     x$files x$files_br
-   , QRY_TemplateSP QRY_TMPLTSP1
+var  ShowpanInstWithOutTmplt : byte;
 ;
 
 
@@ -27,20 +25,39 @@ from
 
 handleevent // фейса
 cmCheckField: {
+   case curfield of
+    #ShowpanInstWithOutTmplt: {
+       if ShowpanInstWithOutTmplt = 0
+        then setformat(panInstWithOutTmplt)
+        else setformat(panInstWithTmplt)
+   }
+  end;
  updatetable;
  rereadrecord;
 }
 cmPick:{
   case curfield of
-     #TblTMPLT.XF$NAME :{
-         set QRY_TMPLT.TABLECODE := GetTable;
-         updatetable;
+     #QRY_INST_TMPLT.CODE :{
+        set QRY_INST.cTmplt := GetTemplate;
+        updatetable;
+       }
+     #QRY_INST_FLD.FieldName :{
+        filltFields;
+        if runwindowmodal(wintFields) = cmDefault {
+          set QRY_INST_FLD.TABLECODE := tFields.tableCode;
+          set QRY_INST_FLD.TableName := tFields.NAMETBL;
+          set QRY_INST_FLD.FieldName := tFields.NAMETBL + '.'+tFields.NAME;
+          updatetable;
+         }
      }
-     #TblTMPLTSP.XF$NAME :{
-         set QRY_TMPLTSP.TABLECODE := GetTable;
+     #QRY_INST_FLD_LVL_FLD.level
+    ,#QRY_INST_FLD_LVL_FLD.fld_json_name: {
+       if runwindowmodal(winSelQRY_INST_FLD_LVL) = cmDefault {
+         set QRY_INST_FLD.cLevel := QRY_INST_FLD_LVL.nrec;
          updatetable;
+       }
      }
-  end
+  end;
   rereadrecord;
 }
 
@@ -53,7 +70,7 @@ cmEdit: {
 }
 
 cmdefault:{
-  runwindowmodal(wnQRY_TMPLT_Edit);
+  runwindowmodal(wnQRY_INSTANCE_Edit);
   rereadrecord;
 }
 end;

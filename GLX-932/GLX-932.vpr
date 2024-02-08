@@ -140,7 +140,7 @@
 			<File Name="sng31vid_1_пример.vip" PosX="41" PosY="70" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\Inc\galaktika.vil" PosX="80" PosY="25" OpenEditor="True"/>
 			<File Name="..\_интеграция с директумом из ГИТ СНГ\RPD_Fields_ForAll.vpp" PosX="21" PosY="132" OpenEditor="True"/>
-			<File Name="Source\SNG##GLX_932_zp_alg_1_7.vip" PosX="34" PosY="305" OpenEditor="True" Active="True"/>
+			<File Name="Source\SNG##GLX_932_zp_alg_1_7.vip" PosX="58" PosY="316" OpenEditor="True" Active="True"/>
 			<File Name="Source\SNG##GLX_932_zp_alg_1_7.vih" PosX="91" PosY="36" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>

@@ -1,3 +1,7 @@
+#declare colorneed (FldCondition)
+{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
+#end
+
 #declare tableeventtable (table)
 TableEvent table #table;
 cmSetDefault: {
@@ -21,7 +25,7 @@ cmUpdateRecord:
 cmDeleteRecord:
 {
   if curtable = tnQRY_TMPLT {
-      if isExistSpec then  {
+      if isExistSpecTMPLT then  {
        message('У шаблона есть спецификация, удаление невозможно',error);
        stop;abort;exit
      }
@@ -34,24 +38,6 @@ cmDeleteRecord:
 end; //TableEvent table #table
 #end
 
-#declare colorneed (FldCondition)
-{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
-#end
-
-window winSelectSysTable 'Выбор системной таблицы', cyan;
-browse brSelectSysTable ;
- table x$files_br;
-  Fields
-   x$files_br.XF$CODE  'Код'      :[5] , Protect, NoPickButton;
-   x$files_br.XF$NAME  'Имя'      :[10], Protect, NoPickButton;
-   x$files_br.XF$TITLE 'Описание' :[15], Protect, NoPickButton;
-end;
-end;
-windowevent winSelectSysTable ;
- cmdefault: {
-   closewindowex(winSelectSysTable, cmDefault)
- }
-end;
 
 Window wnQRY_TMPLT_Edit 'Редактирование шаблона запроса' ;
 Show at (3,5,120,28);
@@ -124,13 +110,12 @@ cmValue1:{
   var _err : string = '';
   if not iQRY_OUT.TestQueryTemplate(QRY_TMPLT.nrec, _err) {
 //    message(iQRY_OUT.GetLogFile);
-   if message('Ошибка построения запроса' +
-    + ''#13'' + _err
-    +''#13''+ 'Показать лог?', error+ YesNo) = cmYes {
-      ProcessText(iQRY_OUT.GetLogFile, vfDefault , 'Результат проверки запроса');
-    }
-
-  }
+  var __log : string = iQRY_OUT.GetLogFile;
+   message('Ошибка построения запроса' +
+    + ''#13'' + 'информация в логе'+
+    + ''#13'' +__log,error);
+      PutFileToClient(__log,false);
+   }
   else {
    message('Запрос корректный');
   }
@@ -138,12 +123,12 @@ cmValue1:{
 end;
 
 
-browse brQRY_TMPLT, CYAN;
+browse brQRY_TMPLT;
  table QRY_TMPLT;
   Fields
-  QRY_TMPLT.code        'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.CODE)='');
-  QRY_TMPLT.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.name)='');
-  TblTMPLT.XF$NAME   'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.TABLECODE =0);
+  QRY_TMPLT.code     'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.CODE)='');
+  QRY_TMPLT.NAME     'Наименование' : [10] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT.name)='');
+  TblTMPLT.XF$NAME   'Корневая','таблица' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT.TABLECODE =0);
 end;
 
 #tableeventtable(QRY_TMPLT)
