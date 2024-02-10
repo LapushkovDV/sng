@@ -24,6 +24,10 @@ public
 #end
 function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean;
 
+#doc
+ Тестирование запроса в экземпляре
+#end
+function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;
 end;
 
 VipInterface QRY_OUT(QRY_Base) implements oQRY_OUT;

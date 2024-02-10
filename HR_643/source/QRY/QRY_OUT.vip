@@ -14,12 +14,67 @@
 //************************************************************
 const
 end;
+type String_x200  = Array [1..200] of string ;
+table struct tCheckFields
+(
+     nrec : comp
+   , FieldNam     : string
+   , FieldSynonim : string
+   , FieldJSON    : string
+   , cLevel       : comp
+)
+with index
+(
+ ind0 = nrec
+)
+;
+
+
+table struct tAbstrResultValues
+(
+     nrec     : comp
+   , value    : String_x200
+)
+with index
+(
+   ind0 = nrec (unique, surrogate)
+)
+;
+table struct tForExportJSON
+(
+     nrec    : comp
+   , cParent : comp
+   , cLVL    : comp
+   , value   : String_x200
+)
+with index
+(
+   ind0 = nrec (unique, surrogate)
+ , ind1 = cParent + cLVL
+// , ind2 = cLVL
+)
+;
 Interface QRY_OUT 'Генерация запросов и файлов на основе шаблонов и инстансов';
 
-create view
-var _cQRY_TMPLT : comp;
 
-bounds byQRY_TMPLTNrec _cQRY_TMPLT == QRY_TMPLT.nrec
+var arrAbstrResultFldNames : array [1..1] of string;
+create view
+var
+  m_service : TPTR;
+//  JSONObj_ArrayOneElement : tptr;
+//  JSONObj_Array : tptr;
+  JSONObj : TPtr;
+as select
+  tCheckFields_1.FieldNam
+from
+   tCheckFields tCheckFields_1
+ , tCheckFields tCheckFields_2
+ , tForExportJSON
+ , tForExportJSON tForExportJSON_1
+ , tAbstrResultValues
+ , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
+ , QRY_Instance_FLD QRY_INST_FLD_LOOP
+
 
 ;
 
@@ -36,28 +91,409 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
  }
 
   var objQuery: iQuery;
-  var qryID   : tPtR;
+  var _qryID   : tPtR;
   var oResultSet : IResultSet;
 
-  sqlFreeStr(qryID);
-  qryID := 0;
+  sqlFreeStr(_qryID);
+  _qryID := 0;
 
-  MysqlAddStr(qryID, ' select top 1 1                                    ');
+  MysqlAddStr(_qryID, ' select top 1 1                                    ');
 
-  addSection_from_where_fromTMLT(qryID);
+  MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_TMPLT.TABLECODE));
+  _loop QRY_TMPLTSP {
+      MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
+    }
+  MysqlAddStr(_qryID, ' where');
 
-  objQuery := queryManager.createQuery(qryID);
+   MemoFile.OpenMemo(QRY_TMPLT.WhereTerms);
+   do {
+      var StringValue1 : string = '';
+      MemoFile.readln(StringValue1);
+      MysqlAddStr(_qryID, StringValue1);
+    } while (not MemoFile.EOF);
+   MemoFile.Close;
+
+  objQuery := queryManager.createQuery(_qryID);
   if (objQuery.execute.errorCode != tsOk) then {
     _err := 'Ошибка проверки записей'+ objQuery.ErrorCode;
     mylog(_err);
     result := false;
-    sqlFreeStr(qryID);
+    sqlFreeStr(_qryID);
     Exit;
   }
   else{
     result := true;
   }
 }
+function checkFieldsDuplicate(var _err: string) : boolean; {
+  delete all tCheckFields_1;
+  _loop QRY_INST_FLD {
+    insert tCheckFields_1 set
+       tCheckFields_1.nrec         := QRY_INST_FLD.nrec
+     , tCheckFields_1.FieldNam    := QRY_INST_FLD.FieldName
+     , tCheckFields_1.FieldSynonim := QRY_INST_FLD.FieldSynonim
+     , tCheckFields_1.FieldJSON    := QRY_INST_FLD.FieldJSON
+     , tCheckFields_1.cLevel       := QRY_INST_FLD.cLevel
+    ;
+  }
+
+  _Loop tCheckFields_1 {
+      var _prohstr : string = '';
+
+      if IsStrHaveProhibitSymbols(trim(tCheckFields_1.FieldSynonim), _prohstr) {
+        _err := 'У поля "'+tCheckFields_1.FieldNam+'" синоним "'+ trim(tCheckFields_1.FieldSynonim)+'" содержит запрещенный символ "'+_prohstr+'"';
+        result := false;
+        exit;
+      }
+
+      if trim(tCheckFields_1.FieldNam) = '' {
+          _err := 'Есть пустое поле в запросе nrec = ' + string(tCheckFields_1.nrec,0,0);
+          result := false;
+          exit;
+        }
+
+      if trim(tCheckFields_1.FieldJSON) = '' {
+          _err := 'Не указано наименование поля JSON "'+tCheckFields_1.FieldNam+'"';
+          result := false;
+          exit;
+        }
+
+      if trim(tCheckFields_1.FieldSynonim) = '' {
+          _err := 'Не указан синоним поля "'+tCheckFields_1.FieldNam+'"';
+          result := false;
+          exit;
+        }
+
+      if(getfirst tCheckFields_2 where
+                              tCheckFields_2.nrec         <> tCheckFields_1.nrec
+                          and trim(tCheckFields_2.FieldSynonim) = trim(tCheckFields_1.FieldSynonim)
+        ) = tsok {
+          _err := 'Дубль синонима поля "'+tCheckFields_2.FieldSynonim+'"';
+          result := false;
+          exit;
+        }
+
+      if(getfirst tCheckFields_2 where
+                              tCheckFields_2.nrec         <> tCheckFields_1.nrec
+                          and tCheckFields_2.cLevel      = tCheckFields_1.cLevel
+                          and trim(tCheckFields_2.FieldJSON) = trim(tCheckFields_1.FieldJSON)
+        ) = tsok {
+          _err := 'Дубль наименование поля JSON на одном уровне вложенности"'+tCheckFields_1.FieldJSON+'"';
+          result := false;
+          exit;
+        }
+  }
+  result := True;
+}
+
+function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_x200; _cParentJSON : comp): comp; {
+ result := 0h;
+  var _arrNumsOfValue : array[1..1] of byte;
+    _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
+                                and _cLevel == QRY_INST_FLD_LOOP.cLevel)) {
+        var _i : byte = 0;
+        for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
+          if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
+           then {
+             _arrNumsOfValue[getlimit(_arrNumsOfValue)] := _i;
+             setlimit(_arrNumsOfValue,getlimit(_arrNumsOfValue)+1);
+           }
+        }
+      }
+    setlimit(_arrNumsOfValue,getlimit(_arrNumsOfValue)-1);
+    if getlimit(_arrNumsOfValue) = 0 then exit;
+    var _isequal : boolean = False;
+    var _i : byte = 0;
+       _loop tForExportJSON where ((_cLevel == tForExportJSON.cLVL
+                           and _cParentJSON == tForExportJSON.cParent))
+                   and tForExportJSON.value[_arrNumsOfValue[1]] = _arrOneValue[_arrNumsOfValue[1]] // встаем на позицию по первому значению, а потом сравним в строке остальные
+         {
+          _isequal := True;
+          if getlimit(_arrNumsOfValue) > 1 then {
+              for (_i := 2; _i<= getlimit(_arrNumsOfValue); _i++) {
+                 if tForExportJSON.value[_arrNumsOfValue[_i]] <> _arrOneValue[_arrNumsOfValue[_i]] then { // сравниваем все значения в строке
+                    _isequal := false;
+                    break;
+                 }
+               }
+           }
+           if _isequal then break; // все значения по строке сошлись
+         }
+
+
+    if _isequal = false {
+      clearbuffer(#tForExportJSON);
+      for (_i := 1; _i<= getlimit(_arrNumsOfValue); _i++) {
+         tForExportJSON.value[_arrNumsOfValue[_i]] := _arrOneValue[_arrNumsOfValue[_i]];
+        }
+       tForExportJSON.cLVL    := _cLevel;
+       tForExportJSON.cParent := _cParentJSON;
+      insert current tForExportJSON;
+    }
+  result := tForExportJSON.nrec;
+}
+procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_x200; _cParentJSON : comp);
+{
+ _cParentJSON := getinsertUniqValuesByLVL(_fcLevel,_arrOneValue,_cParentJSON);
+
+  _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance
+                                     and _fcLevel == QRY_INST_FLD_LVL_LOOP.cLevel (noindex)
+                                     )) {
+    pushpos(#QRY_INST_FLD_LVL_LOOP);
+     insertvaluesbylevel(QRY_INST_FLD_LVL_LOOP.nrec, _arrOneValue, _cParentJSON);
+    poppos(#QRY_INST_FLD_LVL_LOOP);
+  }
+}
+
+function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_json_name : string) : tptr;
+{
+  mylog('-----------------');
+//  JSONObj := HttpConnect_JsonObjectCreate(m_service);
+  var JSONObj_Array : tptr;
+  var JSONObj_ArrayOneElement : tptr;
+
+   var isFound : boolean = false;
+
+   if getfirst QRY_INST_FLD_LVL_LOOP where ((_cLVL == QRY_INST_FLD_LVL_LOOP.nrec)) <> tsOK then exit;
+
+  _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
+    mylog('QRY_INST_FLD_LVL_LOOP ' + QRY_INST_FLD_LVL_LOOP.fld_json_name);
+    mylog('_loop tForExportJSON tForExportJSON.nrec = ' + string(tForExportJSON.nrec));
+    if isFound = false {
+      JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
+      isFound := true;
+     }
+
+   if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
+   JSONObj_ArrayOneElement := HttpConnect_JsonObjectCreate(m_service);
+    var _arrNumsOfValue : array[1..1] of byte;
+    _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
+                       and tForExportJSON.cLvl == QRY_INST_FLD_LOOP.cLevel)) {
+       if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
+        var _i : byte = 0;
+        for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
+          if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
+           then {
+             mylog('QRY_INST_FLD_LOOP.FieldSynonim = ' + QRY_INST_FLD_LOOP.FieldSynonim + ' value = ' + tForExportJSON.value[_i]);
+             HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldSynonim, tForExportJSON.value[_i]);
+             if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
+           }
+        }
+      }
+
+    if getfirst tForExportJSON_1 where ((tForExportJSON.nrec  == tForExportJSON_1.CPARENT))  = tsOK {
+      mylog('tForExportJSON_1: exists childs');
+      pushpos(#tForExportJSON);
+       _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance)){
+            pushpos(#QRY_INST_FLD_LVL_LOOP);
+            var _JSONObj_ArraySUB : tptr = GenerateJSONfromtForExportJSON(tForExportJSON.nrec, QRY_INST_FLD_LVL_LOOP.nrec, _fld_json_name);
+            if _fld_json_name <> '' then {
+               mylog('add subarray to oneelement ' + _fld_json_name);
+              HttpConnect_JsonObjectAddObject(m_service, JSONObj_ArrayOneElement, _fld_json_name, _JSONObj_ArraySUB);
+            }
+            poppos(#QRY_INST_FLD_LVL_LOOP);
+          }
+      poppos(#tForExportJSON);
+
+  /*   var JSONSJSON     : TPtr;
+      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
+      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_before.json', cpUTF8, false);
+
+      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,_JSONObj_ArraySUB);
+      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'__JSONObj_ArraySUB.json', cpUTF8, false);
+      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
+      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_after.json', cpUTF8, false);
+  */
+
+
+    }
+/*
+    JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
+    HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_After.json', cpUTF8, false);
+*/
+    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
+    if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
+    _fld_json_name := QRY_INST_FLD_LVL_LOOP.fld_json_name;
+     mylog('_fld_json_name = ' + _fld_json_name);
+   }
+
+ result := JSONObj_Array;
+}
+
+
+function generateJSONFromtAbstrResultValues : tptr; {
+   _loop tAbstrResultValues {
+     var _arrOneValue : String_x200;
+     var _i : byte = 0;
+     for(_i:=1;_i <= 200; _i++){
+         _arrOneValue[_i] := tAbstrResultValues.value[_i];
+       }
+      insertvaluesbylevel(0h, _arrOneValue, 0h);  // заполняем tForExportJSON
+    }
+
+
+      putTableToDBF(#tForExportJSON, GenerateNewFile+'_tForExportJSON.dbf', ptfFullTable);
+
+   var _fld_json_name : string = '';
+   var JSONObj_Array : tptr;
+   JSONObj := HttpConnect_JsonObjectCreate(m_service);
+       _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance)){
+             pushpos(#QRY_INST_FLD_LVL_LOOP);
+              JSONObj_Array := GenerateJSONfromtForExportJSON(0h, QRY_INST_FLD_LVL_LOOP.nrec, _fld_json_name);
+             poppos(#QRY_INST_FLD_LVL_LOOP);
+              if _fld_json_name <> '' then {
+              mylog('add subarray to oneelement ' + _fld_json_name);
+              HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, JSONObj_Array);
+
+            }
+
+
+          }
+   result := JSONObj;
+}
+
+function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _err: string): boolean; {
+   if BoundActive(tbbyQRY_INSTNrec) {
+       popbounds(tbbyQRY_INSTNrec);
+   }
+   set _cQRY_INST := _fcQRY_INST;
+    pushbounds(tbbyQRY_INSTNrec);
+
+   if NullVipRef(_iRes) then {
+     _err := 'ОШИБКА ВЫПОЛНЕНИЯ ЗАПРОСА В БД';
+     mylog(_err);
+     result := false;
+     exit;
+    }
+
+   if _iRes.getFirst <>  tsOk {
+     _err := 'В результате запроса нет данных';
+     mylog(_err);
+     result := false;
+     exit;
+    }
+
+
+  m_service := HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+
+    SetLimit(arrAbstrResultFldNames,0);
+    SetLimit(arrAbstrResultFldNames,1);
+   _loop QRY_INST_FLD {
+      arrAbstrResultFldNames[getlimit(arrAbstrResultFldNames)] := QRY_INST_FLD.FieldSynonim;
+      SetLimit(arrAbstrResultFldNames, GetLimit(arrAbstrResultFldNames) + 1);
+    }
+   SetLimit(arrAbstrResultFldNames, GetLimit(arrAbstrResultFldNames) - 1);
+  delete all tAbstrResultValues;
+    do {
+        var _i : byte = 1;
+        clearbuffer(tntAbstrResultValues);
+        for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
+           tAbstrResultValues.value[_i] := _iRes.row.val(arrAbstrResultFldNames[_i]);
+         }
+        insert current tAbstrResultValues;
+     } while _iRes.getNext = tsOk;
+
+   var JSONObj_Array : tptr = 0;
+    JSONObj_Array := generateJSONFromtAbstrResultValues;
+
+   var JSONSJSON     : TPtr    = HttpConnect_JSONObjectToJSON(m_service,JSONObj_Array);
+   HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'.json', cpUTF8, false);
+   HttpConnect_Free(m_service) ;
+   result := true;
+}
+
+function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
+
+ if BoundActive(tbbyQRY_INSTNrec) {
+     popbounds(tbbyQRY_INSTNrec);
+ }
+ set _cQRY_INST := _fcQRY_INST;
+  pushbounds(tbbyQRY_INSTNrec);
+
+ if not checkFieldsDuplicate(_err) {
+   mylog(_err);
+   result := false;
+   exit;
+ }
+
+ if getfirst QRY_INST <> tsOK {
+   _err := 'Не найден запрос ';
+   mylog(_err);
+   result := false;
+   exit;
+ }
+  if getfirst QRY_INST_FLD <> tsOK {
+   _err := 'Не найдены поля запроса ';
+   mylog(_err);
+   result := false;
+   exit;
+  }
+
+
+ if getfirst QRY_INST_TMPLT <> tsOK {
+   _err := 'Не найден шаблон в запросе';
+   mylog(_err);
+   result := false;
+   exit;
+ }
+
+  var objQuery: iQuery;
+  var _qryID   : tPtR;
+  var oResultSet : IResultSet;
+
+  sqlFreeStr(_qryID);
+  _qryID := 0;
+
+  MysqlAddStr(_qryID, ' select ');
+   var _isFirstStep : boolean = True;
+  _loop QRY_INST_FLD {
+     MysqlAddStr(_qryID, if(_isFirstStep,'',',')+QRY_INST_FLD.FieldName  + if(trim(QRY_INST_FLD.FieldSynonim) <> '',' as "'  +trim(QRY_INST_FLD.FieldSynonim)+'"',''));
+    _isFirstStep := false;
+  }
+
+
+  MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_INST_TMPLT.TABLECODE));
+  _loop QRY_INST_TMPLTSP {
+      MysqlAddStr(_qryID, QRY_INST_TMPLTSP.join_type + ' ' +TblINST_TMPLTSP.XF$NAME + ' ' + QRY_INST_TMPLTSP.SynonimName + ' on ' + QRY_INST_TMPLTSP.JoinTerms);
+    }
+  MysqlAddStr(_qryID, ' where');
+
+  //условия в секцию WHERE из шаблона
+   MemoFile.OpenMemo(QRY_INST_TMPLT.WhereTerms);
+   do {
+      var StringValue1 : string = '';
+      MemoFile.readln(StringValue1);
+      MysqlAddStr(_qryID, StringValue1);
+    } while (not MemoFile.EOF);
+   MemoFile.Close;
+
+  // добавляем условия в секцию WHERE из экземпляра
+   MemoFile.OpenMemo(QRY_INST.AddWhereTerms);
+   do {
+      var StringValue1 : string = '';
+      MemoFile.readln(StringValue1);
+      MysqlAddStr(_qryID, StringValue1);
+    } while (not MemoFile.EOF);
+   MemoFile.Close;
+
+  objQuery := queryManager.createQuery(_qryID);
+  if (objQuery.execute.errorCode != tsOk) then {
+    _err := 'Ошибка проверки записей в запросе '+ objQuery.ErrorCode;
+    mylog(_err);
+    sqlFreeStr(_qryID);
+    result := false;
+    Exit;
+  }
+  else{
+    if not generateJSONByResultSet(_cQRY_INST, objQuery.getResultSet, _err) {
+      result := false;
+      Exit;
+    }
+  }
+ result := true;
+}
+
 
 handleevent // фейса
 

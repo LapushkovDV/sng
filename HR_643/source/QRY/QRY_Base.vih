@@ -51,9 +51,12 @@ function GetTemplate : comp;
 function GetTable : word;
 
 #doc
-заполнить в запросе секции from и where из шаблона
+Выбор уровня вложенности
+_fcQRY_INST - ссылка на экземпляр запроса
+_fcurINST_FLD_LVL - nrec текущей записи уровня вложенности (для того что бы не выбрать саму себя)
 #end
-procedure addSection_from_where_fromTMLT(_qryID: TPTR);
+function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp;
+
 end;
 
 VipInterface QRY_BASE Implements oQRY_Base #Licensed_Free;

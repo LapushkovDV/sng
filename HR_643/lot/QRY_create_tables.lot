@@ -1,6 +1,9 @@
+/*
+13580-13589
+*/
 alter dictionary;
 Create Table QRY_Template "Шаблоны для формирования запросов"
-  With Table_CODE = 32157
+  With Table_CODE = 13580
   With Replace
   With TableOptions Branched
 (
@@ -18,7 +21,7 @@ with Index
 );
 
 Create Table  QRY_TemplateSP "Строки для формирования запросов"
-  With Table_CODE = 32158
+  With Table_CODE = 13581
   With Replace
   With TableOptions Branched
 (
@@ -39,7 +42,7 @@ with Index
 
 
 Create Table QRY_Instance "Экземпляр запроса на основании шаблона"
-  With Table_CODE = 32159
+  With Table_CODE = 13582
   With Replace
   With TableOptions Branched
 (
@@ -59,24 +62,25 @@ with Index
 );
 
 Create Table QRY_Instance_FLD_LVL "Уровень вложенности поля запроса"
-  With Table_CODE = 32160
+  With Table_CODE = 13583
   With Replace
   With TableOptions Branched
 (
   NRec          : comp   "Номер записи"
 , cInstance     : ref(QRY_Instance) "Ссылка на экземпляр запроса"
-, level         : string "код"
+, cLevel        : comp "Ссылка на вышестоящий"
 , fld_json_name : string "Наименование"
 , Description   : string "Описание"
 )
 with Index
 (
   QRY_InstncFLDLVL01 = NRec (unique, surrogate, journal)
- ,QRY_InstncFLDLVL02 = cInstance + level (unique)
+ ,QRY_InstncFLDLVL02 = cInstance
+ ,QRY_InstncFLDLVL03 = cLevel
 );
 
 Create Table QRY_Instance_FLD "Поля экземпляра запроса"
-  With Table_CODE = 32161
+  With Table_CODE = 13584
   With Replace
   With TableOptions Branched
 (

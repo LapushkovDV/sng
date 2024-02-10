@@ -19,6 +19,15 @@
 const
 end;
 Interface QRY_BASE 'QRY базовый объект';
+table struct tProhibitSymbols
+(
+ value : string
+)
+with index
+(
+ ind0 = value
+)
+;
 table struct tFields
 (
    NAME       : string
@@ -35,8 +44,10 @@ with index
 
 create view
 var
- _logQRY_OUT : string; //глобальная
-
+     _logQRY_OUT : string; //глобальная
+     _cQRY_TMPLT
+   , _cQRY_INST
+   , _curINST_FLD_LVL : comp;
  as select
     QRY_TMPLT.nrec
 from
@@ -47,6 +58,7 @@ from
   , QRY_INSTANCE QRY_INST
   , QRY_Instance_FLD QRY_INST_FLD
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_UP
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_FLD
 
   , QRY_Template   QRY_INST_TMPLT
@@ -64,6 +76,7 @@ from
   , x$fields
 
   , tFields
+  , tProhibitSymbols
  where ((                  root == QRY_TMPLT.nrec
         and QRY_TMPLT.TABLECODE == TblTMPLT.XF$CODE
 
@@ -76,7 +89,7 @@ from
      // связка для экземпляра запроса
          and QRY_INST.nrec == QRY_INST_FLD.cInstance
          and QRY_INST.nrec == QRY_INST_FLD_LVL.cInstance
-                    and 0 <<= QRY_INST_FLD_LVL.level (noindex)
+         and QRY_INST_FLD_LVL.cLevel == QRY_INST_FLD_LVL_UP.nrec
           and QRY_INST_FLD.cLevel == QRY_INST_FLD_LVL_FLD.nrec
               and QRY_INST.cTmplt == QRY_INST_TMPLT.nrec
      and QRY_INST_TMPLT.TABLECODE == TblINST.XF$CODE
@@ -84,6 +97,12 @@ from
                            and 0 <<= QRY_INST_TMPLTSP.npp
    and QRY_INST_TMPLTSP.TABLECODE == TblINST_TMPLTSP.XF$CODE
        ))
+bounds byQRY_TMPLTNrec _cQRY_TMPLT == QRY_TMPLT.nrec
+
+bounds byQRY_INSTNrec _cQRY_INST == QRY_INST.nrec
+
+condition by_curINST_FLD_LVL QRY_INST_FLD_LVL.nrec <> _curINST_FLD_LVL
+
 ;
 
 File MemoFile;
@@ -135,6 +154,39 @@ function GetTemplate : comp; {
  }
 }
 
+window winSelQRY_INST_FLD_LVL 'Выбор уровня вложенности JSON', cyan;
+browse brselQRY_INST_FLD_LVL;
+ table QRY_INST_FLD_LVL;
+  Fields
+//   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], Protect, NoPickButton;
+   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'         : [8], Protect, NoPickButton;
+   QRY_INST_FLD_LVL.Description   'Описание',''           : [12], Protect, NoPickButton;
+   QRY_INST_FLD_LVL_UP.fld_json_name 'Секция','Родитель'   : [8], Protect, NoPickButton;
+   QRY_INST_FLD_LVL_UP.Description   'Описание','Родитель' : [12], Protect, NoPickButton;
+end;
+end;
+windowevent winSelQRY_INST_FLD_LVL ;
+ cmdefault: {
+   closewindowex(winSelQRY_INST_FLD_LVL, cmDefault)
+ }
+end;
+function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp; {
+   if BoundActive(tbbyQRY_INSTNrec) {
+       popbounds(tbbyQRY_INSTNrec);
+   }
+   set _cQRY_INST := _fcQRY_INST;
+   set _curINST_FLD_LVL := _fcurINST_FLD_LVL;
+    pushbounds(tbbyQRY_INSTNrec);
+
+    if (ConditionActive(tcby_curINST_FLD_LVL)) then PopCondition(tcby_curINST_FLD_LVL);
+    PushConditionForLeave(tcby_curINST_FLD_LVL, tnQRY_INST_FLD_LVL);
+
+   result := 0;
+   if runwindowmodal(winSelQRY_INST_FLD_LVL) = cmDefault {
+     result := QRY_INST_FLD_LVL.nrec;
+   }
+}
+
 window winSelectSysTable 'Выбор системной таблицы', cyan;
 browse brSelectSysTable ;
  table x$files_br;
@@ -157,6 +209,51 @@ function GetTable : word; {
  }
 }
 
+procedure FillTableProhibitSymbolsForQuery; {
+ if recordsintable(tntProhibitSymbols) = 0 then delete all tProhibitSymbols;
+ insert tProhibitSymbols set value := '''';
+ insert tProhibitSymbols set value :=  '/';
+ insert tProhibitSymbols set value :=  '+';
+ insert tProhibitSymbols set value :=  '`';
+ insert tProhibitSymbols set value :=  '~';
+ insert tProhibitSymbols set value :=  '-';
+ insert tProhibitSymbols set value :=  '[';
+ insert tProhibitSymbols set value :=  ']';
+ insert tProhibitSymbols set value :=  '{';
+ insert tProhibitSymbols set value :=  '}';
+ insert tProhibitSymbols set value :=  '(';
+ insert tProhibitSymbols set value :=  ')';
+ insert tProhibitSymbols set value :=  '!';
+ insert tProhibitSymbols set value :=  '@';
+ insert tProhibitSymbols set value :=  '#';
+ insert tProhibitSymbols set value :=  '$';
+ insert tProhibitSymbols set value :=  '%';
+ insert tProhibitSymbols set value :=  '^';
+ insert tProhibitSymbols set value :=  '&';
+ insert tProhibitSymbols set value :=  '*';
+}
+
+Function IsStrHaveProhibitSymbols(_str : string; var _prohstr : string): boolean; {
+  FillTableProhibitSymbolsForQuery;
+   _prohstr := '';
+   _loop tProhibitSymbols {
+     if pos(tProhibitSymbols.value,_str) <> 0 then {
+       _prohstr := tProhibitSymbols.value;
+       result := true;
+       exit;
+     }
+   }
+ result := false;
+}
+
+function replaceProhibitSymbols(_str: string) : string; {
+  FillTableProhibitSymbolsForQuery;
+   _loop tProhibitSymbols {
+      _str :=  replace(_str, tProhibitSymbols.value, '');
+     }
+ result := _str;
+}
+
 Function GenerateNewFile: string;
 {
  result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
@@ -172,7 +269,7 @@ Procedure MyLog(_str: string; _needlog : boolean = false);
 {
   if isvalidall(tnQRY_TMPLT)
 //  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
-  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
 }
 
 function getNameDataType(_type : byte) : string; cacheable;
@@ -195,21 +292,6 @@ Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
    MyLog('sql: ' + add_query_str);
 } //Function MysqlAddStr(var query_handle: longInt; add_query_str: string): longInt;
 
-procedure addSection_from_where_fromTMLT(_qryID: TPTR); {
-  MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_TMPLT.TABLECODE));
-  _loop QRY_TMPLTSP {
-      MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
-    }
-  MysqlAddStr(_qryID, ' where');
-
-   MemoFile.OpenMemo(QRY_TMPLT.WhereTerms);
-   do {
-      var StringValue1 : string = '';
-      MemoFile.readln(StringValue1);
-      MysqlAddStr(_qryID, StringValue1);
-    } while (not MemoFile.EOF);
-   MemoFile.Close;
-}
 
 function GetTableNameByCode(_tableCode : word) : string; {
   result := '';

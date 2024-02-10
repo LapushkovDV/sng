@@ -38,25 +38,44 @@ cmCheckField: {
 cmPick:{
   case curfield of
      #QRY_INST_TMPLT.CODE :{
-        set QRY_INST.cTmplt := GetTemplate;
-        updatetable;
+       var _crec : comp = GetTemplate;
+        if _crec <> 0h {
+          set QRY_INST.cTmplt := GetTemplate;
+          updatetable;
+        }
        }
      #QRY_INST_FLD.FieldName :{
         filltFields;
         if runwindowmodal(wintFields) = cmDefault {
-          set QRY_INST_FLD.TABLECODE := tFields.tableCode;
-          set QRY_INST_FLD.TableName := tFields.NAMETBL;
-          set QRY_INST_FLD.FieldName := tFields.NAMETBL + '.'+tFields.NAME;
+          set QRY_INST_FLD.TABLECODE   := tFields.tableCode;
+          set QRY_INST_FLD.TableName   := tFields.NAMETBL;
+          set QRY_INST_FLD.FieldName   := tFields.NAMETBL + '.'+tFields.NAME;
+          set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(tFields.NAME);
+          set QRY_INST_FLD.FieldJSON    := tFields.NAME;
           updatetable;
          }
      }
-     #QRY_INST_FLD_LVL_FLD.level
-    ,#QRY_INST_FLD_LVL_FLD.fld_json_name: {
-       if runwindowmodal(winSelQRY_INST_FLD_LVL) = cmDefault {
-         set QRY_INST_FLD.cLevel := QRY_INST_FLD_LVL.nrec;
+    #QRY_INST_FLD_LVL_FLD.fld_json_name: {
+       var iQRY_BASE : QRY_BASE new;
+       var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, 0h);
+       if _crec <> 0h {
+         set QRY_INST_FLD.cLevel := _crec;
          updatetable;
        }
+       FreeVipInterFace(iQRY_BASE);
      }
+
+     #QRY_INST_FLD_LVL_UP.fld_json_name
+    ,#QRY_INST_FLD_LVL_UP.Description : {
+         var iQRY_BASE : QRY_BASE new;
+         var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, QRY_INST_FLD_LVL.nrec);
+         if _crec <> 0h {
+           set QRY_INST_FLD_LVL.cLevel := _crec;
+           updatetable;
+         }
+       FreeVipInterFace(iQRY_BASE);
+     }
+
   end;
   rereadrecord;
 }

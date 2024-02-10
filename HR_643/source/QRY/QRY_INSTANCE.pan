@@ -36,28 +36,16 @@ end; //TableEvent table #table
 
 
 
-window winSelQRY_INST_FLD_LVL 'Выбор поля таблиц', cyan;
-browse brselQRY_INST_FLD_LVL;
- table QRY_INST_FLD_LVL;
-  Fields
-   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], Protect, NoPickButton;
-   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'         : [8], Protect, NoPickButton;
-   QRY_INST_FLD_LVL.Description   'Описание',''           : [12], Protect, NoPickButton;
-end;
-end;
-windowevent winSelQRY_INST_FLD_LVL ;
- cmdefault: {
-   closewindowex(winSelQRY_INST_FLD_LVL, cmDefault)
- }
-end;
 
-window winEditQRY_INST_FLD_LVL 'Выбор поля таблиц';
+window winEditQRY_INST_FLD_LVL 'Редактирование структуры вложенности полей JSON';
 browse brEditQRY_INST_FLD_LVL;
  table QRY_INST_FLD_LVL;
   Fields
-   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], NoProtect, NoPickButton;
-   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'         : [8], NoProtect, NoPickButton;
-   QRY_INST_FLD_LVL.Description   'Описание',''           : [12], NoProtect, NoPickButton;
+//   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'          : [8], NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL.Description   'Описание',''            : [12], NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL_UP.fld_json_name 'Секция','Родитель'   : [8], Protect, PickButton;
+   QRY_INST_FLD_LVL_UP.Description   'Описание','Родитель' : [12], Protect, PickButton;
 end;
 end;
 
@@ -124,12 +112,12 @@ Window wnQRY_INSTANCE_Edit 'Редактирование экземпляра запроса' ;
     Show at (,7,,20);
    Table QRY_INST_FLD;
     Fields
-     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
-     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [5] , Protect,PickButton;
+//     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
+     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton;
      //QRY_INST_FLD.TableName     'Таблица','поле'    : [5] , Protect,PickButton;
-     QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton;
-     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;
-     QRY_INST_FLD.FieldJSON     'Поле','JSON'    : [5] , NoProtect,NoPickButton;
+     QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton, #colorneed(trim(QRY_INST_FLD.FieldName)='');
+     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
+     QRY_INST_FLD.FieldJSON     'Поле','JSON'    : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldJSON)='');
      QRY_INST_FLD.PostFunction  'Пост','функция' : [5] , NoProtect,NoPickButton;
      QRY_INST_FLD.Description   'Описание',''    : [5] , NoProtect,NoPickButton;
    end;//Browse brNormPercent
@@ -154,8 +142,8 @@ formatsGroup panInstWithTmplt;
     Show at (,7,59,20);
    Table QRY_INST_FLD;
     Fields
-     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
-     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [5] , Protect,PickButton;
+//     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
+     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton;
 //     QRY_INST_FLD.TableName     'Таблица№',''    : [5] , Protect,PickButton;
      QRY_INST_FLD.FieldName     'Поле',''        : [5] , Protect,PickButton;
      QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;
@@ -170,9 +158,9 @@ formatsGroup panInstWithTmplt;
   //---------------------------------------------
   Screen ScrQRY_TMPLT_Edit_panel_with(,,Sci178Esc);
   Show at (60,6,,6) Fixed_y;
-  <<
+<<
   `Подцепки таблиц JOIN из шаблона`
-  >>
+>>
   end;
   //---------------------------------------------
   Browse brQRY_TMPLTSP_with;
@@ -180,10 +168,10 @@ formatsGroup panInstWithTmplt;
   Table QRY_INST_TMPLTSP;
   Fields
     QRY_INST_TMPLTSP.npp            '№','п/п' : [1] , Skip;
-    QRY_INST_TMPLTSP.join_type      'тип связи' : [6] , Skip;
-    TblINST_TMPLTSP.XF$NAME         'Таблица','системная' : [10] , Skip;
-    QRY_INST_TMPLTSP.SynonimName    'Наименование','синонима'   : [10] , Skip;
-    'on'                       '',''  : [1] , Skip;
+    QRY_INST_TMPLTSP.join_type      'тип связи' : [5] , Skip;
+    TblINST_TMPLTSP.XF$NAME         'Таблица','системная' : [9] , Skip;
+    QRY_INST_TMPLTSP.SynonimName    'Наименование','синонима'   : [9] , Skip;
+    'on'                             '',''  : [1] , Skip;
     QRY_INST_TMPLTSP.JoinTerms      'Подцепка','условия'  : [20] , Skip;
     QRY_INST_TMPLTSP.Description    'Описание'            : [10] , Skip;
   end;//Browse brNormPercent
@@ -214,4 +202,25 @@ windowevent wnQRY_INSTANCE_Edit;
 cmValue1:{
   RunWindowModal(winEditQRY_INST_FLD_LVL);
 }
+cmValue2:{
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  if getfirst QRY_INST_TMPLT <> tsOK {
+   message('Не указан шаблон',error);
+  }
+
+  if not iQRY_OUT.RunQueryInstance(QRY_INST.nrec, _err) {
+  var __log : string = iQRY_OUT.GetLogFile;
+   message('Ошибка построения запроса' +
+    + ''#13'' + 'информация в логе'+
+    + ''#13'' +__log,error);
+      PutFileToClient(__log,false);
+   }
+  else {
+
+   message('Запрос корректный');
+  }
+}
+
 end;
+
