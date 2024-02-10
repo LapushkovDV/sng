@@ -248,6 +248,10 @@ procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_x200; _cPar
 function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_json_name : string) : tptr;
 {
   mylog('-----------------');
+  mylog('GenerateJSONfromtForExportJSON _cParentJSON   = ' +_cParentJSON);
+  mylog('GenerateJSONfromtForExportJSON _cLVL          = ' +_cLVL);
+  mylog('GenerateJSONfromtForExportJSON _fld_json_name = ' +_fld_json_name);
+  mylog('   ');
 //  JSONObj := HttpConnect_JsonObjectCreate(m_service);
   var JSONObj_Array : tptr;
   var JSONObj_ArrayOneElement : tptr;
@@ -283,17 +287,18 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
     if getfirst tForExportJSON_1 where ((tForExportJSON.nrec  == tForExportJSON_1.CPARENT))  = tsOK {
       mylog('tForExportJSON_1: exists childs');
-      pushpos(#tForExportJSON);
        _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance)){
             pushpos(#QRY_INST_FLD_LVL_LOOP);
+            pushpos(#tForExportJSON);
             var _JSONObj_ArraySUB : tptr = GenerateJSONfromtForExportJSON(tForExportJSON.nrec, QRY_INST_FLD_LVL_LOOP.nrec, _fld_json_name);
+            poppos(#tForExportJSON);
+            poppos(#QRY_INST_FLD_LVL_LOOP);
             if _fld_json_name <> '' then {
                mylog('add subarray to oneelement ' + _fld_json_name);
               HttpConnect_JsonObjectAddObject(m_service, JSONObj_ArrayOneElement, _fld_json_name, _JSONObj_ArraySUB);
             }
-            poppos(#QRY_INST_FLD_LVL_LOOP);
           }
-      poppos(#tForExportJSON);
+
 
   /*   var JSONSJSON     : TPtr;
       JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
