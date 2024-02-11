@@ -36,3 +36,5 @@ LicenseControlInclude=""
 #make "source\QRY\QRY_TEMPLATES.vip"
 #make "source\QRY\QRY_INSTANCE.vip"
 #make "source\QRY\QRY_OUT.vip"
+//#make "source\QRY\SNG_Odecl.Vip
+//#make "source\QRY\SNG_DepFunc.vip

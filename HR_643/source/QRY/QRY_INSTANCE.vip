@@ -75,6 +75,11 @@ cmPick:{
          }
        FreeVipInterFace(iQRY_BASE);
      }
+     #QRY_INST_FLD.PostFunction :{
+         var iQRY_OUT : QRY_OUT new;
+         set QRY_INST_FLD.PostFunction := QRY_INST_FLD.PostFunction + iQRY_OUT.GetFormula;
+         updatetable;
+     }
 
   end;
   rereadrecord;

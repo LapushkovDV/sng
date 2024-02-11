@@ -28,6 +28,13 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean;
  Тестирование запроса в экземпляре
 #end
 function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;
+
+#doc
+  Функция открывает окно выбора алгоритмов и возвращает строку с алгоритмом
+#end
+Function GetFormula : string;
+
+
 end;
 
 VipInterface QRY_OUT(QRY_Base) implements oQRY_OUT;

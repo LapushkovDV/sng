@@ -11,10 +11,22 @@
 
 #include Query.vih
 #include QRY_OUT.vih
+#include odecl.vih
 //************************************************************
 const
 end;
 type String_x200  = Array [1..200] of string ;
+Table Struct Tmp_Alg
+(
+   Npp  : word        "Порядковый номер"
+ , Key  : string[100] "Ключ"
+ , Prim : String      "Использование"
+)
+With Index
+( Tmp_Alg01 = Key
+ ,Tmp_Alg02 = Npp
+);
+
 table struct tCheckFields
 (
      nrec : comp
@@ -58,9 +70,12 @@ Interface QRY_OUT 'Генерация запросов и файлов на основе шаблонов и инстансов';
 
 
 var arrAbstrResultFldNames : array [1..1] of string;
+var arrFldFormulas         : array [1..1] of string;
+Function Fill_Tmp_alg : boolean; forward;
 create view
 var
   m_service : TPTR;
+  odecl : declension ; // склонение фио
 //  JSONObj_ArrayOneElement : tptr;
 //  JSONObj_Array : tptr;
   JSONObj : TPtr;
@@ -71,12 +86,39 @@ from
  , tCheckFields tCheckFields_2
  , tForExportJSON
  , tForExportJSON tForExportJSON_1
+ , Tmp_Alg
  , tAbstrResultValues
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
  , QRY_Instance_FLD QRY_INST_FLD_LOOP
-
+ , Persons Persons_DECL
 
 ;
+
+window winTmp_Alg 'Выбор алгоритма', cyan;
+browse brTmp_Alg;
+ table Tmp_Alg;
+  Fields
+   Tmp_Alg.Npp  '№','п/п'            : [1], Protect, NoPickButton;
+   Tmp_Alg.Key  'Ключ','формула'     : [6], Protect, NoPickButton;
+   Tmp_Alg.Prim 'Описание','формулы' : [12], Protect, NoPickButton;
+end;
+end;
+windowevent winTmp_Alg ;
+ cminit:{
+  Fill_Tmp_alg;
+ }
+ cmdefault: {
+   closewindowex(winTmp_Alg, cmDefault)
+ }
+end;
+function GetFormula : string; {
+ result := '';
+ if runwindowmodal(winTmp_Alg) = cmDefault {
+   result := Tmp_Alg.Key;
+ }
+}
+
+
 
 function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
    if BoundActive(tbbyQRY_TMPLTNrec) {
@@ -148,6 +190,13 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
 
       if trim(tCheckFields_1.FieldNam) = '' {
           _err := 'Есть пустое поле в запросе nrec = ' + string(tCheckFields_1.nrec,0,0);
+          result := false;
+          exit;
+        }
+
+
+      if trim(tCheckFields_1.cLevel) = 0h {
+          _err := 'Не указан уровень вложенности поля JSON "'+tCheckFields_1.FieldNam+'"';
           result := false;
           exit;
         }
@@ -289,24 +338,8 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
               HttpConnect_JsonObjectAddObject(m_service, JSONObj_ArrayOneElement, _fld_json_name, _JSONObj_ArraySUB);
             }
           }
-
-
-  /*   var JSONSJSON     : TPtr;
-      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
-      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_before.json', cpUTF8, false);
-
-      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,_JSONObj_ArraySUB);
-      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'__JSONObj_ArraySUB.json', cpUTF8, false);
-      JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
-      HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_after.json', cpUTF8, false);
-  */
-
-
     }
-/*
-    JSONSJSON     := HttpConnect_JSONObjectToJSON(m_service,JSONObj_ArrayOneElement);
-    HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'_JSONObj_ArrayOneElement_After.json', cpUTF8, false);
-*/
+
     HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
     if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
     _fld_json_name := QRY_INST_FLD_LVL_LOOP.fld_json_name;
@@ -340,12 +373,115 @@ function generateJSONFromtAbstrResultValues : tptr; {
               HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, JSONObj_Array);
 
             }
-
-
           }
    result := JSONObj;
 }
+Procedure Fill_Tmp_alg_One(_Npp:word; _Key:string; _Prim:string='');
+{  Insert into Tmp_Alg set
+      Tmp_Alg.Npp :=_Npp
+    , Tmp_Alg.Key :=_Key
+    , Tmp_Alg.Prim:=_Prim
+   ;
+}
+#doc
+  Заполнить справочник алгоритмов
+#end
+Function Fill_Tmp_alg : boolean;
+{ Result:=True;
+  //if wType_Alg=_wType_Alg
+  // if (getfirst Tmp_Alg)=tsok      Exit;
+  // delete Tmp_Alg;
+  if (getfirst Tmp_Alg)=tsok
+     Exit;
+   Fill_Tmp_alg_One(01,'%DECLENSION(%VALUE,2-6)%','%DECLENSION(%VALUE%,NCASE)%. Склонение ФИО %VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
+} //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
+function ReplaceByValues(Formula:string; _value: string):string;
+{
+  Fill_Tmp_alg;
+  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
+  Formula := replace(UPCASE(Formula),UPCASE('%value%'),_value);
 
+
+  result:=UpCase(Formula);
+  mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
+  _Loop Tmp_Alg ordered by Index Tmp_Alg02
+  {
+     //нужно вычислять
+      var _Key,_SubKey:string;
+      var _stop:word=0;
+      _SubKey:='';
+      _Key:=UpCase(Tmp_Alg.Key);
+      if pos('(',_Key)>0
+      { _Key:=substr(_Key,1,pos('(',_Key));
+        _SubKey:=')%'
+      }
+//if timelog_Status>2 then timelog('_Key='+_Key+'; _SubKey='+_SubKey);
+      do {
+        var ii_first,_Len:word;
+        ii_first:=pos(_Key,Result);
+        var _Parameter:string='';
+        _Len:=0;
+        if ii_first=0 break;
+        //длина подстроки всегда короче на 2 символа
+        if _SubKey<>''
+        { _Len:=Pos(_SubKey,Substr(Result,ii_first+Length(_Key),255))-1;
+          _Parameter:=Substr(Result,ii_first+Length(_Key),_Len);
+        }
+        else _len:=0;
+
+        mylog('_Len='+string(_Len)+'; _Parameter='+_Parameter+'; _Key='+_Key+'; Formula='+ Formula);
+
+        var _Res:string;//результат
+        _Res:='';
+        case _Key of
+        //01, %EM_FieldDocbyPers(wtype,Filedname,param)% -  wtype = word,
+        // Filedname = string, param - string. Получает значение поля ведомости по типу док-та
+        //и наименованию поля: в текущем месяце находится док-нт типа,
+        //в нем ищется строка по человеку и в этой строке берется значение поля
+        //FieldName. Param - дополнительный параметр');
+        '%DECLENSION(':
+        {
+          /*
+          %VALUE% - NREC persons
+          1-6 - номер падежа
+          */
+          var _cPerson : comp = comp(ParseWord(_Parameter,1,','));
+          var _NCase   : word = ParseWord(_Parameter,2,',');
+
+          mylog('_cPerson = ' + _cPerson + ' _NCase = ' + _NCase);
+
+          var _Infinitive : string = '';
+          if getfirst persons_decl where ((_cPerson == persons_decl.nrec)) = tsOK {
+            _Infinitive := persons_decl.fio
+          }
+          _res:=''''+Odecl.FIODeclension(_cPerson, _Infinitive, _NCase)+'''';
+          mylog('_res = ' + _res);
+        }
+        end;
+        //Timelog('_Res='+_Res);
+        Result:=Substr(Result,1,ii_first-1)
+               +_Res
+               +Substr(Result,ii_first+Length(_Key)+if(_len=0,0,_Len+2),255);
+        //Timelog('Result='+Result);
+        //подстрахуемся, если что то пойдет не так
+        _stop++;
+        if _stop>0 break;
+        //Break;
+      } while True;
+  } //_Loop Tmp_Alg ordered by Imdex Tmp_Alg02
+  mylog('ReplaceByValues = ' +Result);
+} //function ReplaceByValues(Formula:string):string;
+
+function ApplyFormulaToValue(_value, _Formula: string) : string; {
+  mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
+  result := _value;
+  if trim(_Formula)<> '' {
+    var _error : string;
+    var _ReplaceByValues : string = ReplaceByValues(_Formula, _value );
+    result := LotExpressionFunc(_ReplaceByValues, _error);
+    mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
+   }
+}
 function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _err: string): boolean; {
    if BoundActive(tbbyQRY_INSTNrec) {
        popbounds(tbbyQRY_INSTNrec);
@@ -373,17 +509,24 @@ function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _er
 
     SetLimit(arrAbstrResultFldNames,0);
     SetLimit(arrAbstrResultFldNames,1);
+    SetLimit(arrFldFormulas,0);
+    SetLimit(arrFldFormulas,1);
+
    _loop QRY_INST_FLD {
       arrAbstrResultFldNames[getlimit(arrAbstrResultFldNames)] := QRY_INST_FLD.FieldSynonim;
+      arrFldFormulas[getlimit(arrFldFormulas)] := QRY_INST_FLD.PostFunction;
       SetLimit(arrAbstrResultFldNames, GetLimit(arrAbstrResultFldNames) + 1);
+      SetLimit(arrFldFormulas, GetLimit(arrFldFormulas) + 1);
     }
    SetLimit(arrAbstrResultFldNames, GetLimit(arrAbstrResultFldNames) - 1);
+   SetLimit(arrFldFormulas, GetLimit(arrFldFormulas) - 1);
+
   delete all tAbstrResultValues;
     do {
         var _i : byte = 1;
         clearbuffer(tntAbstrResultValues);
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
-           tAbstrResultValues.value[_i] := _iRes.row.val(arrAbstrResultFldNames[_i]);
+           tAbstrResultValues.value[_i] := ApplyFormulaToValue(_iRes.row.val(arrAbstrResultFldNames[_i]),arrFldFormulas[_i]);
          }
         insert current tAbstrResultValues;
      } while _iRes.getNext = tsOk;
