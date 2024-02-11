@@ -49,7 +49,7 @@ cmPick:{
         if runwindowmodal(wintFields) = cmDefault {
           set QRY_INST_FLD.TABLECODE   := tFields.tableCode;
           set QRY_INST_FLD.TableName   := tFields.NAMETBL;
-          set QRY_INST_FLD.FieldName   := tFields.NAMETBL + '.'+tFields.NAME;
+          set QRY_INST_FLD.FieldName   := if(tFields.tableCode <> word(-1),tFields.NAMETBL + '.','')+tFields.NAME;
           set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(tFields.NAME);
           set QRY_INST_FLD.FieldJSON    := tFields.NAME;
           updatetable;

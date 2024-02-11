@@ -91,6 +91,7 @@ from
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
  , QRY_Instance_FLD QRY_INST_FLD_LOOP
  , Persons Persons_DECL
+ , catalogs cat_search
 
 ;
 
@@ -320,7 +321,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
           if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
            then {
-             HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldSynonim, tForExportJSON.value[_i]);
+             HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldJSON, tForExportJSON.value[_i]);
              if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
            }
         }
@@ -394,16 +395,53 @@ Function Fill_Tmp_alg : boolean;
   if (getfirst Tmp_Alg)=tsok
      Exit;
    Fill_Tmp_alg_One(01,'%DECLENSION(%VALUE,2-6)%','%DECLENSION(%VALUE%,NCASE)%. Склонение ФИО %VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
+   Fill_Tmp_alg_One(02,'%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр');
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
+
+function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : comp; cacheable;{
+
+//  mylog('getpodrunder_nrec _code = ' +_code+' _crec = '+ _crec+ ' _cParent = '+ _cParent);
+
+  if getfirst fastfirstrow cat_search where ((_cParent == cat_search.nrec)) = tsOK
+   {
+    if cat_search.code = _code {
+        if getfirst fastfirstrow cat_search where ((_crec == cat_search.nrec)) = tsOK {
+          result := cat_search.nrec;
+          exit;
+        }
+        else {
+         result := 0h;
+         exit;
+        }
+      }
+      else {
+        result := getpodrunder_nrec(_code, cat_search.nrec, cat_search.cParent)
+      }
+   }
+   else {
+     result := 0h;
+     exit;
+   }
+}
+
+function getpodrunder(_code : string; _crec , _cParent: comp) : string; cacheable;{
+  result := '';
+//  mylog('getpodrunder _code = ' +_code+' _crec = '+ _crec+ ' _cParent = '+ _cParent);
+  var _crec : comp = getpodrunder_nrec(_code, _crec, _cParent);
+//  mylog('getpodrunder _crec = ' +_crec);
+   if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname ;
+}
+
 function ReplaceByValues(Formula:string; _value: string):string;
 {
   Fill_Tmp_alg;
-  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
+//  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
   Formula := replace(UPCASE(Formula),UPCASE('%value%'),_value);
 
 
   result:=UpCase(Formula);
-  mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
+//   mylog('ReplaceByValues Formula = ' + Formula);
+//  mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
   _Loop Tmp_Alg ordered by Index Tmp_Alg02
   {
      //нужно вычислять
@@ -429,7 +467,7 @@ function ReplaceByValues(Formula:string; _value: string):string;
         }
         else _len:=0;
 
-        mylog('_Len='+string(_Len)+'; _Parameter='+_Parameter+'; _Key='+_Key+'; Formula='+ Formula);
+//        mylog('_Len='+string(_Len)+'; _Parameter='+_Parameter+'; _Key='+_Key+'; Formula='+ Formula);
 
         var _Res:string;//результат
         _Res:='';
@@ -439,8 +477,7 @@ function ReplaceByValues(Formula:string; _value: string):string;
         //и наименованию поля: в текущем месяце находится док-нт типа,
         //в нем ищется строка по человеку и в этой строке берется значение поля
         //FieldName. Param - дополнительный параметр');
-        '%DECLENSION(':
-        {
+        '%DECLENSION(': {
           /*
           %VALUE% - NREC persons
           1-6 - номер падежа
@@ -448,14 +485,24 @@ function ReplaceByValues(Formula:string; _value: string):string;
           var _cPerson : comp = comp(ParseWord(_Parameter,1,','));
           var _NCase   : word = ParseWord(_Parameter,2,',');
 
-          mylog('_cPerson = ' + _cPerson + ' _NCase = ' + _NCase);
+          //mylog('_cPerson = ' + _cPerson + ' _NCase = ' + _NCase);
 
           var _Infinitive : string = '';
-          if getfirst persons_decl where ((_cPerson == persons_decl.nrec)) = tsOK {
+          if getfirst fastfirstrow persons_decl where ((_cPerson == persons_decl.nrec)) = tsOK {
             _Infinitive := persons_decl.fio
           }
           _res:=''''+Odecl.FIODeclension(_cPerson, _Infinitive, _NCase)+'''';
-          mylog('_res = ' + _res);
+          //mylog('_res = ' + _res);
+        }
+        '%UP_CATALOGS_UNDER_CODE(': {
+          _res := ''' ''';
+          var _cCatalogs : comp = comp(ParseWord(_Parameter,1,','));
+          var _UpperCode : string = ParseWord(_Parameter,2,',');
+//          mylog('%UP_CATALOGS_UNDER_CODE( _cCatalogs = ' + _cCatalogs + ' _UpperCode = '  + _UpperCode);
+          if getfirst fastfirstrow cat_search where ((_cCatalogs == cat_search.nrec)) = tsOK {
+             _res := ''''+getpodrunder(_UpperCode, cat_search.nrec, cat_search.cParent)+'''';
+//             mylog('_res =' + _res);
+           }
         }
         end;
         //Timelog('_Res='+_Res);
@@ -469,17 +516,17 @@ function ReplaceByValues(Formula:string; _value: string):string;
         //Break;
       } while True;
   } //_Loop Tmp_Alg ordered by Imdex Tmp_Alg02
-  mylog('ReplaceByValues = ' +Result);
+  //mylog('ReplaceByValues = ' +Result);
 } //function ReplaceByValues(Formula:string):string;
 
 function ApplyFormulaToValue(_value, _Formula: string) : string; {
-  mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
+  //mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
   result := _value;
   if trim(_Formula)<> '' {
     var _error : string;
     var _ReplaceByValues : string = ReplaceByValues(_Formula, _value );
     result := LotExpressionFunc(_ReplaceByValues, _error);
-    mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
+    if trim(_error) <> '' then mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
    }
 }
 function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _err: string): boolean; {
@@ -540,6 +587,9 @@ function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _er
    result := true;
 }
 
+function replaceMacro(_FieldName : string): string; {
+   result := replace(Upcase(_FieldName),UPCASE('%USERNAME%'),UserName)
+}
 function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
 
  if BoundActive(tbbyQRY_INSTNrec) {
@@ -585,7 +635,7 @@ function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
   MysqlAddStr(_qryID, ' select ');
    var _isFirstStep : boolean = True;
   _loop QRY_INST_FLD {
-     MysqlAddStr(_qryID, if(_isFirstStep,'',',')+QRY_INST_FLD.FieldName  + if(trim(QRY_INST_FLD.FieldSynonim) <> '',' as "'  +trim(QRY_INST_FLD.FieldSynonim)+'"',''));
+     MysqlAddStr(_qryID, if(_isFirstStep,'',',')+replaceMacro(QRY_INST_FLD.FieldName)  + if(trim(QRY_INST_FLD.FieldSynonim) <> '',' as "'  +trim(QRY_INST_FLD.FieldSynonim)+'"',''));
     _isFirstStep := false;
   }
 

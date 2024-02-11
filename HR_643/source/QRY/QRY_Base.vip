@@ -28,6 +28,8 @@ with index
  ind0 = value
 )
 ;
+
+
 table struct tFields
 (
    NAME       : string
@@ -106,7 +108,15 @@ condition by_curINST_FLD_LVL QRY_INST_FLD_LVL.nrec <> _curINST_FLD_LVL
 ;
 
 File MemoFile;
-
+procedure insert_notable_field(_NAME, _Title : string); {
+        Insert tFields set
+            tFields.NAME       := _NAME
+          , tFields.TITLE      := _Title
+          , tFields.NAMETBL    := 'NO TABLE'
+          , tFields.tableCode  := word(-1)
+          , tFields.DATATYPE   := ''
+        ;
+}
 procedure filltFieldsByTableCode(_tableCode : word; _SynonimName : string);
 {
   if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK
@@ -122,7 +132,10 @@ procedure filltFieldsByTableCode(_tableCode : word; _SynonimName : string);
     }
 }
 
-
+procedure insert_notable_fields;{
+    insert_notable_field(''''''          , 'EMPTY FIELD');
+    insert_notable_field('''%USERNAME%''', '%USERNAME% - макроподстановка в запрос текущего пользователя');
+}
 Procedure filltFields; {
   delete all tFields;
   if getfirst QRY_INST_TMPLT = tsOK {
@@ -130,6 +143,7 @@ Procedure filltFields; {
     _loop QRY_INST_TMPLTSP {
        filltFieldsByTableCode(TblINST_TMPLTSP.XF$CODE, QRY_INST_TMPLTSP.SynonimName);
     }
+   insert_notable_fields;
   }
 }
 
