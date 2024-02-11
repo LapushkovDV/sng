@@ -116,7 +116,7 @@ Window wnQRY_INSTANCE_Edit 'Редактирование экземпляра запроса' ;
      QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
      //QRY_INST_FLD.TableName     'Таблица','поле'    : [5] , Protect,PickButton;
      QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton, #colorneed(trim(QRY_INST_FLD.FieldName)='');
-     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
+//     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
      QRY_INST_FLD.FieldJSON     'Поле','JSON'    : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldJSON)='');
      QRY_INST_FLD.PostFunction  'Пост','функция' : [5] , NoProtect,PickButton;
      QRY_INST_FLD.Description   'Описание',''    : [5] , NoProtect,NoPickButton;
@@ -144,11 +144,11 @@ formatsGroup panInstWithTmplt;
     Fields
 //     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
      QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
-//     QRY_INST_FLD.TableName     'Таблица№',''    : [5] , Protect,PickButton;
-     QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton;
-     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;
-     QRY_INST_FLD.FieldJSON     'Поле','JSON'    : [5] , NoProtect,NoPickButton;
-     QRY_INST_FLD.PostFunction  'Пост','функция' : [5] , NoProtect,NoPickButton;
+     //QRY_INST_FLD.TableName     'Таблица','поле'    : [5] , Protect,PickButton;
+     QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton, #colorneed(trim(QRY_INST_FLD.FieldName)='');
+//     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
+     QRY_INST_FLD.FieldJSON     'Поле','JSON'    : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldJSON)='');
+     QRY_INST_FLD.PostFunction  'Пост','функция' : [5] , NoProtect,PickButton;
      QRY_INST_FLD.Description   'Описание',''    : [5] , NoProtect,NoPickButton;
    end;//Browse brNormPercent
 

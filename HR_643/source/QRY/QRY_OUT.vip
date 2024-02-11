@@ -12,10 +12,13 @@
 #include Query.vih
 #include QRY_OUT.vih
 #include odecl.vih
+#include StrFunc.vih
 //************************************************************
 const
+  coMaxElemets = 256;
 end;
-type String_x200  = Array [1..200] of string ;
+
+type String_xMaxEl  = Array [1..coMaxElemets] of string ;
 Table Struct Tmp_Alg
 (
    Npp  : word        "Порядковый номер"
@@ -23,8 +26,8 @@ Table Struct Tmp_Alg
  , Prim : String      "Использование"
 )
 With Index
-( Tmp_Alg01 = Key
- ,Tmp_Alg02 = Npp
+( Tmp_Alg01 = Npp
+ ,Tmp_Alg02 = Key
 );
 
 table struct tCheckFields
@@ -45,7 +48,7 @@ with index
 table struct tAbstrResultValues
 (
      nrec     : comp
-   , value    : String_x200
+   , value    : String_xMaxEl
 )
 with index
 (
@@ -57,7 +60,7 @@ table struct tForExportJSON
      nrec    : comp
    , cParent : comp
    , cLVL    : comp
-   , value   : String_x200
+   , value   : String_xMaxEl
 )
 with index
 (
@@ -76,6 +79,7 @@ create view
 var
   m_service : TPTR;
   odecl : declension ; // склонение фио
+  _iStrFunc : StringFunctions; // Функции работы со строками
 //  JSONObj_ArrayOneElement : tptr;
 //  JSONObj_Array : tptr;
   JSONObj : TPtr;
@@ -89,6 +93,8 @@ from
  , Tmp_Alg
  , tAbstrResultValues
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
+ , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_1
+ , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_2
  , QRY_Instance_FLD QRY_INST_FLD_LOOP
  , Persons Persons_DECL
  , catalogs cat_search
@@ -182,20 +188,6 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
 
   _Loop tCheckFields_1 {
       var _prohstr : string = '';
-
-      if IsStrHaveProhibitSymbols(trim(tCheckFields_1.FieldSynonim), _prohstr) {
-        _err := 'У поля "'+tCheckFields_1.FieldNam+'" синоним "'+ trim(tCheckFields_1.FieldSynonim)+'" содержит запрещенный символ "'+_prohstr+'"';
-        result := false;
-        exit;
-      }
-
-      if trim(tCheckFields_1.FieldNam) = '' {
-          _err := 'Есть пустое поле в запросе nrec = ' + string(tCheckFields_1.nrec,0,0);
-          result := false;
-          exit;
-        }
-
-
       if trim(tCheckFields_1.cLevel) = 0h {
           _err := 'Не указан уровень вложенности поля JSON "'+tCheckFields_1.FieldNam+'"';
           result := false;
@@ -207,6 +199,30 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
           result := false;
           exit;
         }
+
+      if(getfirst tCheckFields_2 where
+                              tCheckFields_2.nrec         <> tCheckFields_1.nrec
+                          and tCheckFields_2.cLevel      = tCheckFields_1.cLevel
+                          and trim(tCheckFields_2.FieldJSON) = trim(tCheckFields_1.FieldJSON)
+        ) = tsok {
+          _err := 'Дубль наименование поля JSON "'+tCheckFields_1.FieldJSON+'" на одном уровне вложенности "'+
+              if(getfirst QRY_INST_FLD_LVL_LOOP_1 where ((tCheckFields_1.cLevel == QRY_INST_FLD_LVL_LOOP_1.nrec)) = tsOK,QRY_INST_FLD_LVL_LOOP_1.fld_json_name,'НЕ ВЫБРАН')+'"';
+          result := false;
+          exit;
+        }
+
+      if IsStrHaveProhibitSymbols(trim(tCheckFields_1.FieldSynonim), _prohstr) {
+        _err := 'Поле "'+tCheckFields_1.FieldNam+'" синоним "'+ trim(tCheckFields_1.FieldSynonim)+'" содержит запрещенный символ "'+_prohstr+'"';
+        result := false;
+        exit;
+      }
+
+      if trim(tCheckFields_1.FieldNam) = '' {
+          _err := 'Есть пустое поле в запросе nrec = ' + string(tCheckFields_1.nrec,0,0);
+          result := false;
+          exit;
+        }
+
 
       if trim(tCheckFields_1.FieldSynonim) = '' {
           _err := 'Не указан синоним поля "'+tCheckFields_1.FieldNam+'"';
@@ -223,25 +239,16 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
           exit;
         }
 
-      if(getfirst tCheckFields_2 where
-                              tCheckFields_2.nrec         <> tCheckFields_1.nrec
-                          and tCheckFields_2.cLevel      = tCheckFields_1.cLevel
-                          and trim(tCheckFields_2.FieldJSON) = trim(tCheckFields_1.FieldJSON)
-        ) = tsok {
-          _err := 'Дубль наименование поля JSON на одном уровне вложенности"'+tCheckFields_1.FieldJSON+'"';
-          result := false;
-          exit;
-        }
   }
   result := True;
 }
 
-function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_x200; _cParentJSON : comp): comp; {
+function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp): comp; {
  result := 0h;
-  var _arrNumsOfValue : array[1..1] of byte;
+  var _arrNumsOfValue : array[1..1] of word;
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
                                 and _cLevel == QRY_INST_FLD_LOOP.cLevel)) {
-        var _i : byte = 0;
+        var _i : word = 0;
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
           if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
            then {
@@ -253,7 +260,7 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_x200; _c
     setlimit(_arrNumsOfValue,getlimit(_arrNumsOfValue)-1);
     if getlimit(_arrNumsOfValue) = 0 then exit;
     var _isequal : boolean = False;
-    var _i : byte = 0;
+    var _i : word = 0;
        _loop tForExportJSON where ((_cLevel == tForExportJSON.cLVL
                            and _cParentJSON == tForExportJSON.cParent))
                    and tForExportJSON.value[_arrNumsOfValue[1]] = _arrOneValue[_arrNumsOfValue[1]] // встаем на позицию по первому значению, а потом сравним в строке остальные
@@ -282,7 +289,7 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_x200; _c
     }
   result := tForExportJSON.nrec;
 }
-procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_x200; _cParentJSON : comp);
+procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp);
 {
  _cParentJSON := getinsertUniqValuesByLVL(_fcLevel,_arrOneValue,_cParentJSON);
 
@@ -303,7 +310,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
    var isFound : boolean = false;
 
-   if getfirst QRY_INST_FLD_LVL_LOOP where ((_cLVL == QRY_INST_FLD_LVL_LOOP.nrec)) <> tsOK then exit;
+   if getfirst QRY_INST_FLD_LVL_LOOP_2 where ((_cLVL == QRY_INST_FLD_LVL_LOOP_2.nrec)) <> tsOK then exit;
 
   _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
     if isFound = false {
@@ -313,11 +320,11 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
    if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
    JSONObj_ArrayOneElement := HttpConnect_JsonObjectCreate(m_service);
-    var _arrNumsOfValue : array[1..1] of byte;
+    var _arrNumsOfValue : array[1..1] of word;
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
                        and tForExportJSON.cLvl == QRY_INST_FLD_LOOP.cLevel)) {
        if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
-        var _i : byte = 0;
+        var _i : word = 0;
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
           if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
            then {
@@ -343,7 +350,9 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
     HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
     if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
-    _fld_json_name := QRY_INST_FLD_LVL_LOOP.fld_json_name;
+    if getfirst QRY_INST_FLD_LVL_LOOP_2 where ((_cLVL == QRY_INST_FLD_LVL_LOOP_2.nrec)) <> tsOK then exit;
+    _fld_json_name := QRY_INST_FLD_LVL_LOOP_2.fld_json_name;
+    // mylog('_fld_json_name = ' + _fld_json_name)
    }
 
  result := JSONObj_Array;
@@ -352,27 +361,24 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
 function generateJSONFromtAbstrResultValues : tptr; {
    _loop tAbstrResultValues {
-     var _arrOneValue : String_x200;
-     var _i : byte = 0;
-     for(_i:=1;_i <= 200; _i++){
+     var _arrOneValue : String_xMaxEl;
+     var _i : word = 0;
+     for(_i:=1;_i <= coMaxElemets; _i++){
          _arrOneValue[_i] := tAbstrResultValues.value[_i];
        }
       insertvaluesbylevel(0h, _arrOneValue, 0h);  // заполняем tForExportJSON
     }
 
 
-//      putTableToDBF(#tForExportJSON, GenerateNewFile+'_tForExportJSON.dbf', ptfFullTable);
+   putTableToDBF(#tForExportJSON, GenerateNewFile+'_tForExportJSON.dbf', ptfFullTable);
 
    var _fld_json_name : string = '';
    var JSONObj_Array : tptr;
    JSONObj := HttpConnect_JsonObjectCreate(m_service);
-       _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance)){
-             pushpos(#QRY_INST_FLD_LVL_LOOP);
-              JSONObj_Array := GenerateJSONfromtForExportJSON(0h, QRY_INST_FLD_LVL_LOOP.nrec, _fld_json_name);
-             poppos(#QRY_INST_FLD_LVL_LOOP);
+       _loop QRY_INST_FLD_LVL_LOOP_1 where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP_1.cInstance)) {
+              JSONObj_Array := GenerateJSONfromtForExportJSON(0h, QRY_INST_FLD_LVL_LOOP_1.nrec, _fld_json_name);
               if _fld_json_name <> '' then {
               HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, JSONObj_Array);
-
             }
           }
    result := JSONObj;
@@ -394,8 +400,19 @@ Function Fill_Tmp_alg : boolean;
   // delete Tmp_Alg;
   if (getfirst Tmp_Alg)=tsok
      Exit;
-   Fill_Tmp_alg_One(01,'%DECLENSION(%VALUE,2-6)%','%DECLENSION(%VALUE%,NCASE)%. Склонение ФИО %VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
-   Fill_Tmp_alg_One(02,'%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр');
+//   Fill_Tmp_alg_One(00,'USERNAME','Имя текущего пользователя');
+   Fill_Tmp_alg_One(01,'%DECLENSION(%VALUE%,NCASE)%','Склонение ФИО ,%VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
+   Fill_Tmp_alg_One(02,'%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр. %VALUE% = CATALOGS.NREC ');
+   Fill_Tmp_alg_One(03,'%DIVSTR(%VALUE%)%','Из указанной строки выделяется первое слово, в том числе и с дефисами. %VALUE% = ФИО');
+   Fill_Tmp_alg_One(04,'%GET_LASTNAME(%VALUE%)%','Извлечение фамилии из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One(05,'%GET_FIRSTNAME(%VALUE%)%','Извлечение имени из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One(06,'%GETPATRONYMIC(%VALUE%)%','Извлечение отчества из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One(07,'%GETFIOIN(%VALUE%)%','ФИО в формате "Фамилия И.О.". %VALUE% = ФИО');
+   Fill_Tmp_alg_One(08,'%GETFIO_ZAR(%VALUE%)%','ФИО в формате, заданном настройкой "Настройки Галактики \ Управление персоналом \ Расчеты с персоналом \ Отчеты \ Вывод ФИО". %VALUE% = ФИО');
+   Fill_Tmp_alg_One(09,'%GETRUB(%VALUE%,okrug1)%','Выделяет рубли из суммы = %VALUE%, okrug1 - количество знаков после запятой');
+   Fill_Tmp_alg_One(10,'%GETKOP(%VALUE%, okrug1)%','Выделяет копейки из суммы = %VALUE% и округляет с указанной точностью');
+   Fill_Tmp_alg_One(11,'%GETSUMRATE(%VALUE%,okrug1)%','Округляет сумму=%VALUE% с указанной точностью и преобразует в строку');
+   Fill_Tmp_alg_One(12,'%GETFIODIR%','ФИО из настройки "Право подписи приказов по персоналу" или из настройки "Руководитель"');
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
 
 function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : comp; cacheable;{
@@ -440,8 +457,8 @@ function ReplaceByValues(Formula:string; _value: string):string;
 
 
   result:=UpCase(Formula);
-//   mylog('ReplaceByValues Formula = ' + Formula);
-//  mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
+//  mylog('ReplaceByValues Formula = ' + Formula);
+//   mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
   _Loop Tmp_Alg ordered by Index Tmp_Alg02
   {
      //нужно вычислять
@@ -493,7 +510,7 @@ function ReplaceByValues(Formula:string; _value: string):string;
           }
           _res:=''''+Odecl.FIODeclension(_cPerson, _Infinitive, _NCase)+'''';
           //mylog('_res = ' + _res);
-        }
+         }
         '%UP_CATALOGS_UNDER_CODE(': {
           _res := ''' ''';
           var _cCatalogs : comp = comp(ParseWord(_Parameter,1,','));
@@ -503,9 +520,50 @@ function ReplaceByValues(Formula:string; _value: string):string;
              _res := ''''+getpodrunder(_UpperCode, cat_search.nrec, cat_search.cParent)+'''';
 //             mylog('_res =' + _res);
            }
-        }
+         }
+        '%DIVSTR(': { // Из указанной строки выделяется первое слово, в том числе и с дефисами
+                var _Fio : string = ParseWord(_Parameter,1,',');
+               _res := ''''+_iStrFunc.DivStr(_Fio)+'''';
+         }
+        '%GET_LASTNAME(':{ // Извлечение фамилии из заданной строки ФИО
+                var _Fio : string = ParseWord(_Parameter,1,',');
+               _res := ''''+_iStrFunc.Get_LastName(_Fio)+'''';
+         }
+        '%GET_FIRSTNAME(':{ // Извлечение имени из заданной строки ФИО
+                var _Fio : string = ParseWord(_Parameter,1,',');
+               _res := ''''+_iStrFunc.Get_FirstName(_Fio)+'''';
+         }
+        '%GETPATRONYMIC(':{ // Извлечение отчества из заданной строки ФИО
+                var _Fio : string = ParseWord(_Parameter,1,',');
+               _res := ''''+_iStrFunc.GetPatronymic(_Fio)+'''';
+         }
+        '%GETFIOIN(':{ // ФИО в формате "Фамилия И.О."
+                var _Fio : string = ParseWord(_Parameter,1,',');
+                if _iStrFunc.GetFioIn(_Fio) then {
+                 _res := ''''+_Fio+'''';
+                }
+         }
+        '%GETFIO_ZAR(':{ // ФИО в формате, заданном настройкой "Настройки Галактики \ Управление персоналом \ Расчеты с персоналом \ Отчеты \ Вывод ФИО"
+                var _Fio : string = ParseWord(_Parameter,1,',');
+               _res := ''''+_iStrFunc.GetFIO_ZAR(_Fio)+'''';
+         }
+        '%GETRUB(':{ // Выделяет рубли из суммы
+                var _Sum : double = ParseWord(_Parameter,1,',');
+                var _okrug1 : double = ParseWord(_Parameter,2,',');
+               _res := ''''+_iStrFunc.GetRub(_Sum, _okrug1)+'''';
+         }
+        '%GETKOP(':{ // Выделяет копейки из суммы и округляет с указанной точностью
+                var _Sum : double = ParseWord(_Parameter,1,',');
+                var _okrug1 : double = ParseWord(_Parameter,2,',');
+               _res := ''''+_iStrFunc.GetKop(_Sum, _okrug1)+'''';
+         }
+        '%GETSUMRATE(':{ // Округляет сумму с указанной точностью и преобразует в строку
+                var _Sum : double = ParseWord(_Parameter,1,',');
+                var _okrug1 : double = ParseWord(_Parameter,2,',');
+               _res := ''''+_iStrFunc.GetSumRate(_Sum, _okrug1)+'''';
+         }
         end;
-        //Timelog('_Res='+_Res);
+//        mylog('_Res='+_Res);
         Result:=Substr(Result,1,ii_first-1)
                +_Res
                +Substr(Result,ii_first+Length(_Key)+if(_len=0,0,_Len+2),255);
@@ -524,7 +582,9 @@ function ApplyFormulaToValue(_value, _Formula: string) : string; {
   result := _value;
   if trim(_Formula)<> '' {
     var _error : string;
+//    mylog('ApplyFormulaToValue _Formula = '+ _Formula);
     var _ReplaceByValues : string = ReplaceByValues(_Formula, _value );
+//    mylog('ApplyFormulaToValue _ReplaceByValues = '+ _ReplaceByValues);
     result := LotExpressionFunc(_ReplaceByValues, _error);
     if trim(_error) <> '' then mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
    }
@@ -570,7 +630,7 @@ function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _er
 
   delete all tAbstrResultValues;
     do {
-        var _i : byte = 1;
+        var _i : word = 1;
         clearbuffer(tntAbstrResultValues);
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
            tAbstrResultValues.value[_i] := ApplyFormulaToValue(_iRes.row.val(arrAbstrResultFldNames[_i]),arrFldFormulas[_i]);
@@ -597,6 +657,8 @@ function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
  }
  set _cQRY_INST := _fcQRY_INST;
   pushbounds(tbbyQRY_INSTNrec);
+
+ setFieldSynonims;
 
  if not checkFieldsDuplicate(_err) {
    mylog(_err);

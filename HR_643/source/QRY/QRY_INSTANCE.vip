@@ -20,7 +20,6 @@ create view
 var  ShowpanInstWithOutTmplt : byte;
 ;
 
-
 #include QRY_INSTANCE.pan
 
 handleevent // фейса
@@ -30,7 +29,10 @@ cmCheckField: {
        if ShowpanInstWithOutTmplt = 0
         then setformat(panInstWithOutTmplt)
         else setformat(panInstWithTmplt)
-   }
+     }
+    #QRY_INST_FLD.FieldJSON: {
+      setFieldSynonims;
+     }
   end;
  updatetable;
  rereadrecord;
@@ -50,9 +52,10 @@ cmPick:{
           set QRY_INST_FLD.TABLECODE   := tFields.tableCode;
           set QRY_INST_FLD.TableName   := tFields.NAMETBL;
           set QRY_INST_FLD.FieldName   := if(tFields.tableCode <> word(-1),tFields.NAMETBL + '.','')+tFields.NAME;
-          set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(tFields.NAME);
+          //set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(tFields.NAME);
           set QRY_INST_FLD.FieldJSON    := tFields.NAME;
           updatetable;
+          setFieldSynonims;
          }
      }
     #QRY_INST_FLD_LVL_FLD.fld_json_name: {
@@ -60,7 +63,9 @@ cmPick:{
        var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, 0h);
        if _crec <> 0h {
          set QRY_INST_FLD.cLevel := _crec;
+         //set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(QRY_INST_FLD_LVL_FLD.fld_json_name + '_' + QRY_INST_FLD.FieldJSON);
          updatetable;
+         setFieldSynonims;
        }
        FreeVipInterFace(iQRY_BASE);
      }
