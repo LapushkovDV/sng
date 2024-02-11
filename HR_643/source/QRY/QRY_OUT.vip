@@ -13,6 +13,8 @@
 #include QRY_OUT.vih
 #include odecl.vih
 #include StrFunc.vih
+//#include SpecialPropetiesForG.vih
+//#include CatFunc.vih
 //************************************************************
 const
   coMaxElemets = 256;
@@ -150,7 +152,8 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
 
   MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_TMPLT.TABLECODE));
   _loop QRY_TMPLTSP {
-      MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
+      if QRY_TMPLTSP.TABLECODE > 0 // на случай если нет спецификации т.е. JOIN
+       MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
     }
   MysqlAddStr(_qryID, ' where');
 
@@ -704,6 +707,7 @@ function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
 
   MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_INST_TMPLT.TABLECODE));
   _loop QRY_INST_TMPLTSP {
+     if QRY_INST_TMPLTSP.TABLECODE > 0 //  на случай, если нет спецификации т.е. JOIN
       MysqlAddStr(_qryID, QRY_INST_TMPLTSP.join_type + ' ' +TblINST_TMPLTSP.XF$NAME + ' ' + QRY_INST_TMPLTSP.SynonimName + ' on ' + QRY_INST_TMPLTSP.JoinTerms);
     }
   MysqlAddStr(_qryID, ' where');

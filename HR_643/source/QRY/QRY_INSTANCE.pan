@@ -167,16 +167,16 @@ formatsGroup panInstWithTmplt;
     Show at (60,7,,20);
   Table QRY_INST_TMPLTSP;
   Fields
-    QRY_INST_TMPLTSP.npp            '№','п/п' : [1] , Skip;
-    QRY_INST_TMPLTSP.join_type      'тип связи' : [5] , Skip;
-    TblINST_TMPLTSP.XF$NAME         'Таблица','системная' : [9] , Skip;
-    QRY_INST_TMPLTSP.SynonimName    'Наименование','синонима'   : [9] , Skip;
+    QRY_INST_TMPLTSP.npp            '№','п/п' : [1] , Protect, NoPickButton;
+    QRY_INST_TMPLTSP.join_type      'тип связи' : [5] , Protect, NoPickButton;
+    TblINST_TMPLTSP.XF$NAME         'Таблица','системная' : [9] , Protect, NoPickButton;
+    QRY_INST_TMPLTSP.SynonimName    'Наименование','синонима'   : [9] , Protect, NoPickButton;
     'on'                             '',''  : [1] , Skip;
-    QRY_INST_TMPLTSP.JoinTerms      'Подцепка','условия'  : [20] , Skip;
-    QRY_INST_TMPLTSP.Description    'Описание'            : [10] , Skip;
+    QRY_INST_TMPLTSP.JoinTerms      'Подцепка','условия'  : [20] , Protect, NoPickButton;
+    QRY_INST_TMPLTSP.Description    'Описание'            : [10] , Protect, NoPickButton;
   end;//Browse brNormPercent
 
-    text QRY_INST_TMPLT.WhereTerms 'Секция where из шаблона': Skip;
+    text QRY_INST_TMPLT.WhereTerms 'Секция where из шаблона': Protect;
      show at ( 60,21,,);
 
  end; // formatsGroup panInstWithOutTmplt;
