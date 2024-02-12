@@ -128,13 +128,13 @@
 			<File Name="SNG_IntegrDirectum.prj" PosX="27" PosY="32" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_REST.Vip" PosX="1" PosY="51" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_REST.Vih" PosX="45" PosY="25" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\CreateUpdate_RPD6.Vpp" PosX="63" PosY="4" OpenEditor="True"/>
-			<File Name="vip\CreateUpdate_RPD8.Vpp" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\CreateAdditionalAgreement.Vpp" PosX="21" PosY="20" OpenEditor="True"/>
-			<File Name="..\..\..\..\..\Users\ִלטענטי\YandexDisk\Work\!Gal_Source\Z_M_L_F_C_20230112\CompSrc\F\F_PlPor\Vip\Tools\KKTInfo.vip" PosX="35" PosY="121" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="24" PosY="122" OpenEditor="True"/>
+			<File Name="vip\CreateUpdate_RPD8.Vpp" PosX="1" PosY="1" OpenEditor="True" Active="True"/>
+			<File Name="vip\CreateAdditionalAgreement.Vpp" PosX="28" PosY="283" OpenEditor="True"/>
+			<File Name="..\..\..\..\..\Users\ִלטענטי\YandexDisk\Work\!Gal_Source\Z_M_L_F_C_20230112\CompSrc\F\F_PlPor\Vip\Tools\KKTInfo.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\SNG_IntegrDirectum_out_base.Vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="29" PosY="145" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_Func.vpp" PosX="1" PosY="143" OpenEditor="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out_base.Vih" PosX="21" PosY="110" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_IntegrDirectum.prj" Priority="0">

@@ -58,7 +58,8 @@ cmPick:{
           setFieldSynonims;
          }
      }
-    #QRY_INST_FLD_LVL_FLD.fld_json_name: {
+    #QRY_INST_FLD_LVL_FLD.fld_json_name
+   ,#QRY_INST_FLD_LVL_FLD.Description: {
        var iQRY_BASE : QRY_BASE new;
        var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, 0h);
        if _crec <> 0h {

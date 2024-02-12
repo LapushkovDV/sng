@@ -114,6 +114,7 @@ Window wnQRY_INSTANCE_Edit 'Редактирование экземпляра запроса' ;
     Fields
 //     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
      QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
+     QRY_INST_FLD_LVL_FLD.Description 'Уровень','описание'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
      //QRY_INST_FLD.TableName     'Таблица','поле'    : [5] , Protect,PickButton;
      QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton, #colorneed(trim(QRY_INST_FLD.FieldName)='');
 //     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
@@ -143,7 +144,8 @@ formatsGroup panInstWithTmplt;
    Table QRY_INST_FLD;
     Fields
 //     QRY_INST_FLD_LVL_FLD.level         'Уровень','подчиненности' : [1] , Protect,PickButton;
-     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
+     QRY_INST_FLD_LVL_FLD.fld_json_name 'Уровень','название'    : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
+     QRY_INST_FLD_LVL_FLD.Description 'Уровень','описание'      : [3] , Protect,PickButton,#colorneed(not isvalidall(tnQRY_INST_FLD_LVL_FLD));
      //QRY_INST_FLD.TableName     'Таблица','поле'    : [5] , Protect,PickButton;
      QRY_INST_FLD.FieldName     'Поле',''        : [5] , NoProtect,PickButton, #colorneed(trim(QRY_INST_FLD.FieldName)='');
 //     QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton, #colorneed(trim(QRY_INST_FLD.FieldSynonim)='');
