@@ -1,6 +1,6 @@
 /*************************************************************************************************\
-* Наименование: Ведение телефонного справочника                                                   *
-* Контур/Модуль: Кадры                                                                            *
+* Наименование: Формирование/выполнение экземпляра запроса с формирование JSON                    *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
 * Примечание:                                                                                     *
 *                                                                                                 *
 * Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
@@ -10,6 +10,7 @@
 #ifnDef _QRY_OUT_INCLUDED_
 #define _QRY_OUT_INCLUDED_
 
+#include Query.vih
 #include QRY_BASE.vih
 
 #component "QRY"
@@ -26,8 +27,56 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean;
 
 #doc
  Тестирование запроса в экземпляре
+     _fQRY_INST_CODE - строковый код экземпляра запроса (QRY_Instance.code)
+     _err - возвращаемый. Содержит строковое описание ошибки
 #end
-function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;
+function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean;
+
+#doc
+ Выполнение экземпляра запроса по NREC корневой таблицы
+  TRUE - Успешное выполнение
+
+     _fQRY_INST_CODE - строковый код экземпляра запроса (QRY_Instance.code)
+     _RootTableNrec - NREC корневой таблицы (указан в шаблоне запроса)
+     _iRes - возвращаемый. Содержит результат выполнения запроса
+     _err - возвращаемый. Содержит строковое описание ошибки
+#end
+function ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var _iRes : iResultSet; var _err : string): boolean;
+
+#doc
+ Выполнение экземпляра запроса c добавлением строкового условия
+  TRUE - Успешное выполнение
+
+     _fQRY_INST_CODE - строковый код экземпляра запроса (QRY_Instance.code)
+     _addWhereString - строка-условие, которое будет добавлено в запрос
+     _iRes - возвращаемый. Содержит результат выполнения запроса
+     _err - возвращаемый. Содержит строковое описание ошибки
+#end
+function ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var _iRes : iResultSet; var _err : string): boolean;
+
+
+#doc
+Генерация JSON на основе экземпляра запроса c добавлением строкового условия (произвольное)
+  TRUE - Успешное выполнение
+
+     _fQRY_INST_CODE - строковый код экземпляра запроса (QRY_Instance.code)
+     _addWhereString - условие, которое будет добавлено в запрос
+     JSON - возвращаемый. Ссылка на сгенерированный JSON
+     _err - возвращаемый. Содержит строковое описание ошибки
+#end
+function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string): boolean;
+
+#doc
+Генерация JSON на основе экземпляра запроса (по конкретной записи Генерация JSON на основе экземпляра запроса по NREC)
+  TRUE - Успешное выполнение
+
+     _fQRY_INST_CODE - строковый код экземпляра запроса (QRY_Instance.code)
+     _RootTableNrec - NREC корневой таблицы (Таблица указана в шаблоне запроса)
+     _JSON - возвращаемый. Содержит результат выполнения запроса
+     _err - возвращаемый. Содержит строковое описание ошибки
+#end
+function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string): boolean;
+
 
 #doc
   Функция открывает окно выбора алгоритмов и возвращает строку с алгоритмом

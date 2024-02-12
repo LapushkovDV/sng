@@ -1,7 +1,6 @@
 /*************************************************************************************************\
-
-* Наименование: Ведение телефонного справочника                                                   *
-* Контур/Модуль: абстракция интеграция                                                            *
+* Наименование: Формирование/выполнение экземпляра запроса с формирование JSON                    *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
 * Примечание:                                                                                     *
 *                                                                                                 *
 * Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
@@ -94,6 +93,7 @@ from
  , tForExportJSON tForExportJSON_1
  , Tmp_Alg
  , tAbstrResultValues
+ , QRY_Instance QRY_Instance_1
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_1
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_2
@@ -156,7 +156,6 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
        MysqlAddStr(_qryID, QRY_TMPLTSP.join_type + ' ' +TblTMPLTSP.XF$NAME + ' ' + QRY_TMPLTSP.SynonimName + ' on ' + QRY_TMPLTSP.JoinTerms);
     }
   MysqlAddStr(_qryID, ' where');
-
    MemoFile.OpenMemo(QRY_TMPLT.WhereTerms);
    do {
       var StringValue1 : string = '';
@@ -592,12 +591,19 @@ function ApplyFormulaToValue(_value, _Formula: string) : string; {
     if trim(_error) <> '' then mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
    }
 }
-function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _err: string): boolean; {
-   if BoundActive(tbbyQRY_INSTNrec) {
-       popbounds(tbbyQRY_INSTNrec);
-   }
-   set _cQRY_INST := _fcQRY_INST;
-    pushbounds(tbbyQRY_INSTNrec);
+function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; var FNservice, JSONSJSON : TPtr;  var _err: string): boolean; {
+
+ if getfirst QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
+   _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
+   mylog(_err);
+   exit;
+  }
+
+ if BoundActive(tbbyQRY_INSTNrec) {
+     popbounds(tbbyQRY_INSTNrec);
+ }
+ set _cQRY_INST := QRY_Instance_1.nrec;
+  pushbounds(tbbyQRY_INSTNrec);
 
    if NullVipRef(_iRes) then {
      _err := 'ОШИБКА ВЫПОЛНЕНИЯ ЗАПРОСА В БД';
@@ -615,6 +621,7 @@ function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _er
 
 
   m_service := HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  FNservice := m_service;
 
 
     SetLimit(arrAbstrResultFldNames,0);
@@ -644,21 +651,26 @@ function generateJSONByResultSet(_fcQRY_INST : comp; _iRes : iResultSet; var _er
    var JSONObj_Array : tptr = 0;
     JSONObj_Array := generateJSONFromtAbstrResultValues;
 
-   var JSONSJSON     : TPtr    = HttpConnect_JSONObjectToJSON(m_service,JSONObj_Array);
-   HttpConnect_SaveToFileEx(m_service, JSONSJSON, GenerateNewFile+'.json', cpUTF8, false);
-   HttpConnect_Free(m_service) ;
+   JSONSJSON := HttpConnect_JSONObjectToJSON(m_service,JSONObj_Array);
+//   HttpConnect_Free(m_service) ;
    result := true;
 }
 
 function replaceMacro(_FieldName : string): string; {
    result := replace(Upcase(_FieldName),UPCASE('%USERNAME%'),UserName)
 }
-function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
+function ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var _iRes : iResultSet; var _err : string): boolean;{
+ result := false;
+ if getfirst QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
+   _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
+   mylog(_err);
+   exit;
+  }
 
  if BoundActive(tbbyQRY_INSTNrec) {
      popbounds(tbbyQRY_INSTNrec);
  }
- set _cQRY_INST := _fcQRY_INST;
+ set _cQRY_INST := QRY_Instance_1.nrec;
   pushbounds(tbbyQRY_INSTNrec);
 
  setFieldSynonims;
@@ -711,7 +723,7 @@ function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
       MysqlAddStr(_qryID, QRY_INST_TMPLTSP.join_type + ' ' +TblINST_TMPLTSP.XF$NAME + ' ' + QRY_INST_TMPLTSP.SynonimName + ' on ' + QRY_INST_TMPLTSP.JoinTerms);
     }
   MysqlAddStr(_qryID, ' where');
-
+  MysqlAddStr(_qryID, '(');
   //условия в секцию WHERE из шаблона
    MemoFile.OpenMemo(QRY_INST_TMPLT.WhereTerms);
    do {
@@ -729,23 +741,74 @@ function RunQueryInstance(_fcQRY_INST : comp; var _err : string): boolean;{
       MysqlAddStr(_qryID, StringValue1);
     } while (not MemoFile.EOF);
    MemoFile.Close;
-
+  MysqlAddStr(_qryID, ')');
+  MysqlAddStr(_qryID, _addWhereString);
   objQuery := queryManager.createQuery(_qryID);
   if (objQuery.execute.errorCode != tsOk) then {
     _err := 'Ошибка проверки записей в запросе '+ objQuery.ErrorCode;
     mylog(_err);
     sqlFreeStr(_qryID);
-    result := false;
     Exit;
   }
-  else{
-    if not generateJSONByResultSet(_cQRY_INST, objQuery.getResultSet, _err) {
-      result := false;
-      Exit;
-    }
-  }
+ _iRes := objQuery.getResultSet;
  result := true;
 }
+function ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var _iRes : iResultSet; var _err : string): boolean;{
+
+ if getfirst QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
+   _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
+   mylog(_err);
+   exit;
+  }
+
+ if BoundActive(tbbyQRY_INSTNrec) {
+     popbounds(tbbyQRY_INSTNrec);
+ }
+ set _cQRY_INST := QRY_Instance_1.nrec;
+  pushbounds(tbbyQRY_INSTNrec);
+
+   var _addWhereString : string = 'and ' + GetTableNameByCode(QRY_INST_TMPLT.TABLECODE) + '.nrec = ' + string(_RootTableNrec);
+   result := ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, _addWhereString,_iRes,_err);
+}
+
+function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean;{
+  var _iRes : iResultSet;
+  result := false;
+
+  if not ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, '',_iRes,_err) then exit;
+
+  var _JSON : tptr;
+
+  var FNservice : tptr;
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+
+  HttpConnect_SaveToFileEx(FNservice, _JSON, GenerateNewFile+'.json', cpUTF8, false);
+  result := true;
+}
+
+
+function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string): boolean;{
+  var _iRes : iResultSet;
+  result := false;
+
+  if not ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE, _RootTableNrec, _iRes, _err) then exit;
+
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+
+  result := true;
+}
+
+function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string): boolean;{
+  var _iRes : iResultSet;
+  result := false;
+
+  if not ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, _addWhereString, _iRes, _err) then exit;
+
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+
+  result := true;
+}
+
 
 
 handleevent // фейса

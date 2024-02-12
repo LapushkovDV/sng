@@ -92,7 +92,8 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="HR_643.prj" PosX="145" PosY="8" OpenEditor="True" Active="True"/>
+			<File Name="HR_643.prj" PosX="15" PosY="25" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="28" PosY="648" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

@@ -1,0 +1,88 @@
+/*************************************************************************************************\
+
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_INSTANCE.vih
+#include QRY_OUT.vih
+
+//************************************************************
+const
+end;
+Interface QRY_INSTANCE_TEST 'Экземпляры запросов. ТЕСТОВЫЙ ИНТЕРФЕЙС', CYAN;
+
+create view
+ var
+     _fQRY_INST_CODE
+   , _AddWhereString : string;
+     _RootTableNrec  : comp;
+;
+  Screen ScrQRY_INSTANCE_TEST (,,Sci1Esc);
+  Show at (,,,);
+    noTableNavigation;
+  Fields
+    _fQRY_INST_CODE : NoProtect;
+    _RootTableNrec  : NoProtect;
+    _AddWhereString : NoProtect;
+  buttons
+   cmValue1,,,;
+   cmValue2,,,;
+<<
+Демонстрация работы формирования вызова объекта экземпляра запроса для формирования JSON
+
+   Код экземпляра запроса.@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `1 по NREC  корневой таблицы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <.    по NREC   .>
+
+  `2   по доп.условия в запрос`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <.по доп.условию.>
+>>
+  end;//Screen ScrQRY_getParameter
+
+
+handleevent // фейса
+ cmValue1: {
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  var FNservice, _JSON : tptr;
+  if not iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE,_RootTableNrec, FNservice, _JSON, _err) {
+   var __log : string = iQRY_OUT.GetLogFile;
+   message('Ошибка построения запроса' +
+    + ''#13'' + 'информация в логе'+
+    + ''#13'' +__log,error);
+      PutFileToClient(__log,false);
+   }
+  else {
+   var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+   HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+   PutFileToClient(_jsonFile,false);
+   message('Сгенерирован файл _jsonFile'+
+          +''#13'' + _jsonFile);
+  }
+ }
+ cmValue2: {
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  var FNservice, _JSON : tptr;
+  if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE,_addWhereString, FNservice, _JSON, _err){
+   var __log : string = iQRY_OUT.GetLogFile;
+   message('Ошибка построения запроса' +
+    + ''#13'' + 'информация в логе'+
+    + ''#13'' +__log,error);
+      PutFileToClient(__log,false);
+   }
+  else {
+   var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+   HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+   PutFileToClient(_jsonFile,false);
+   message('Сгенерирован файл _jsonFile'+
+          +''#13'' + _jsonFile);
+  }
+ }
+end;
+end.

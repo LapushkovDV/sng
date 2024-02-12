@@ -211,7 +211,7 @@ cmValue2:{
    message('Не указан шаблон',error);
   }
 
-  if not iQRY_OUT.RunQueryInstance(QRY_INST.nrec, _err) {
+  if not iQRY_OUT.TestQueryInstance(QRY_INST.code, _err) {
   var __log : string = iQRY_OUT.GetLogFile;
    message('Ошибка построения запроса' +
     + ''#13'' + 'информация в логе'+
