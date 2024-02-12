@@ -93,18 +93,18 @@
 		</DatabaseConfiguration>
 		<FileList>
 			<File Name="HR_643.prj" PosX="30" PosY="40" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_INSTANCE.vip" PosX="39" PosY="56" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_INSTANCE.pan" PosX="38" PosY="117" OpenEditor="True"/>
+			<File Name="source\QRY\QRY_INSTANCE.vip" PosX="1" PosY="23" OpenEditor="True"/>
+			<File Name="source\QRY\QRY_INSTANCE.pan" PosX="74" PosY="163" OpenEditor="True" Active="True"/>
 			<File Name="source\QRY\QRY_TEMPLATES.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="source\QRY\QRY_TEMPLATES.pan" PosX="102" PosY="79" OpenEditor="True"/>
 			<File Name="source\QRY\QRY_Base.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_OUT.vip" PosX="18" PosY="722" OpenEditor="True" Active="True"/>
+			<File Name="source\QRY\QRY_OUT.vip" PosX="20" PosY="16" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\StrFunc.vih" PosX="26" PosY="116" OpenEditor="True"/>
 			<File Name="source\QRY\QRY_Base.vip" PosX="34" PosY="100" OpenEditor="True"/>
 			<File Name="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Staff\Vip\GP_KPI_Alg.vip" PosX="61" PosY="2694" OpenEditor="True"/>
 			<File Name="source\QRY\SNG_Odecl.Vip" PosX="44" PosY="93" OpenEditor="True"/>
 			<File Name="source\QRY\SNG_ODecl.Vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_OUT.vih" PosX="26" PosY="30" OpenEditor="True"/>
+			<File Name="source\QRY\QRY_OUT.vih" PosX="29" PosY="35" OpenEditor="True"/>
 			<File Name="source\QRY\SNG_DepFunc.vip" PosX="61" PosY="34" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vih" PosX="34" PosY="83" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vip" PosX="34" PosY="92" OpenEditor="True"/>
@@ -152,7 +152,7 @@
 			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="650" NumIndex="1" MarkerType="mtNumBookmark" Comment=", SpBox_makeAction.cSALDOBOX := SaldoBox_makeAction.nrec"/>
 			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 2" Line="1291" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst"/>
 			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 1" Line="2045" NumIndex="1" MarkerType="mtNumBookmark" Comment="cmDeleteRecord:{   Delete current JOBJECTS;   }"/>
-			<Marker FileName="source\QRY\QRY_INSTANCE.pan" Caption="Нумерованная закладка 1" Line="120" NumIndex="1" MarkerType="mtNumBookmark" Comment="QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;"/>
+			<Marker FileName="source\QRY\QRY_INSTANCE.pan" Caption="Нумерованная закладка 1" Line="119" NumIndex="1" MarkerType="mtNumBookmark" Comment="QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;"/>
 			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 2" Line="197" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 3" Line="387" NumIndex="3" MarkerType="mtNumBookmark" Comment="result := HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, _JSONObj_Array);"/>
 			<Marker FileName="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Staff\Vip\GP_KPI_Alg.vip" Caption="Нумерованная закладка 1" Line="2403" NumIndex="1" MarkerType="mtNumBookmark" Comment="if tmp_KPI_Alg.KeyR&lt;&gt;''"/>

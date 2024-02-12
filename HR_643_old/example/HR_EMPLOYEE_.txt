@@ -1,0 +1,35 @@
+{
+  "HR_EMPLOYEE": {
+    "_OPERATION": "CREATE",
+    "PERSONNEL_ID": 112233,
+    "LAST_NAME": "Иванов",
+    "NAME": "Иван",
+    "SURNAME": "Иванович",
+    "INITIAL": "И.И.",
+    "FULL_NAME": "Иванов Иван Иванович",
+    "GENDER": "М",
+    "BIRTH_DATE": "1980-01-01",
+    "DECLINATION": {                                
+            "items": [                        
+                {
+                    "_OPERATION": "CREATE",
+                    "_KEYS": {                
+                        "NOMINATIVE_CASE_FIO": "Иванов Иван Иванович"          
+                    }
+                }
+            ]
+        },
+   "CITIZENSHIP": {                                
+            "items": [                        
+                {
+                    "_OPERATION": "CREATE",
+                    "_KEYS": {                
+                        "ID": "010"          
+                    }
+                }
+            ]
+        },
+    "PHONE_NUMBER": "8999543211",
+    "CONTACT_EMAIL": "test@email.ru"
+  }
+}

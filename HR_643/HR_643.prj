@@ -12,29 +12,14 @@
   #CompTitle
 #end
 
-
-
-#include source\TempTablesGlob.vpp
-//#make  "source\*.vip"
-
 #params
 [vip]
 LicenseControlInclude=""
 #end
 
 
-//#make "source\absTables.vip"
-#make "source\GetField.vip"
-#make "source\GetTable.vip"
-#make "source\JournalObjectsSpecFlt.vip"
-#make "source\JournalObjectsSpecif.vip"
-#make "source\InterfaceSqlJournResp.vip"
-#make "source\InterfaceSqlJournResp_userreport.vip"
-
 #component "QRY"
-#make "source\QRY\QRY_BASE.vip"
-#make "source\QRY\QRY_TEMPLATES.vip"
-#make "source\QRY\QRY_INSTANCE.vip"
-#make "source\QRY\QRY_OUT.vip"
-//#make "source\QRY\SNG_Odecl.Vip
-//#make "source\QRY\SNG_DepFunc.vip
+#make "vip\QRY_BASE.vip"
+#make "vip\QRY_TEMPLATES.vip"
+#make "vip\QRY_INSTANCE.vip"
+#make "vip\QRY_OUT.vip"

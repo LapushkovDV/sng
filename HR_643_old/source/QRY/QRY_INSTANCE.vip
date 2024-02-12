@@ -1,0 +1,107 @@
+/*************************************************************************************************\
+
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_INSTANCE.vih
+#include QRY_OUT.vih
+//************************************************************
+const
+end;
+Interface QRY_INSTANCE 'Экземпляры запросов. Просмотр/редактирование', CYAN;
+
+create view
+var  ShowpanInstWithOutTmplt : byte;
+;
+
+#include QRY_INSTANCE.pan
+
+handleevent // фейса
+cmCheckField: {
+   case curfield of
+    #ShowpanInstWithOutTmplt: {
+       if ShowpanInstWithOutTmplt = 0
+        then setformat(panInstWithOutTmplt)
+        else setformat(panInstWithTmplt)
+     }
+    #QRY_INST_FLD.FieldJSON: {
+      setFieldSynonims;
+     }
+  end;
+ updatetable;
+ rereadrecord;
+}
+cmPick:{
+  case curfield of
+     #QRY_INST_TMPLT.CODE :{
+       var _crec : comp = GetTemplate;
+        if _crec <> 0h {
+          set QRY_INST.cTmplt := GetTemplate;
+          updatetable;
+        }
+       }
+     #QRY_INST_FLD.FieldName :{
+        filltFields;
+        if runwindowmodal(wintFields) = cmDefault {
+          set QRY_INST_FLD.TABLECODE   := tFields.tableCode;
+          set QRY_INST_FLD.TableName   := tFields.NAMETBL;
+          set QRY_INST_FLD.FieldName   := if(tFields.tableCode <> word(-1),tFields.NAMETBL + '.','')+tFields.NAME;
+          //set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(tFields.NAME);
+          set QRY_INST_FLD.FieldJSON    := tFields.NAME;
+          updatetable;
+          setFieldSynonims;
+         }
+     }
+    #QRY_INST_FLD_LVL_FLD.fld_json_name
+   ,#QRY_INST_FLD_LVL_FLD.Description: {
+       var iQRY_BASE : QRY_BASE new;
+       var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, 0h);
+       if _crec <> 0h {
+         set QRY_INST_FLD.cLevel := _crec;
+         //set QRY_INST_FLD.FieldSynonim := replaceProhibitSymbols(QRY_INST_FLD_LVL_FLD.fld_json_name + '_' + QRY_INST_FLD.FieldJSON);
+         updatetable;
+         setFieldSynonims;
+       }
+       FreeVipInterFace(iQRY_BASE);
+     }
+
+     #QRY_INST_FLD_LVL_UP.fld_json_name
+    ,#QRY_INST_FLD_LVL_UP.Description : {
+         var iQRY_BASE : QRY_BASE new;
+         var _crec : comp = iQRY_BASE.select_INST_FLD_LVL(QRY_INST.nrec, QRY_INST_FLD_LVL.nrec);
+         if _crec <> 0h {
+           set QRY_INST_FLD_LVL.cLevel := _crec;
+           updatetable;
+         }
+       FreeVipInterFace(iQRY_BASE);
+     }
+     #QRY_INST_FLD.PostFunction :{
+         var iQRY_OUT : QRY_OUT new;
+         set QRY_INST_FLD.PostFunction := QRY_INST_FLD.PostFunction + iQRY_OUT.GetFormula;
+         updatetable;
+     }
+
+  end;
+  rereadrecord;
+}
+
+cmInit:{
+ if getfirst QRY_TMPLT = tsOK {}
+ // HttpConnect_JsonObjectCreate
+}
+cmEdit: {
+  putcommand(cmdefault)
+}
+
+cmdefault:{
+  runwindowmodal(wnQRY_INSTANCE_Edit);
+  rereadrecord;
+}
+end;
+end.

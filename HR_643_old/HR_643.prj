@@ -1,0 +1,40 @@
+#statusline "statgal"
+
+#define  Atl60
+
+#include galnet.inc end;
+#include glovars.inc
+#INCLUDE galaktika.vil
+
+
+#define CompTitle
+#doc
+  #CompTitle
+#end
+
+
+
+#include source\TempTablesGlob.vpp
+//#make  "source\*.vip"
+
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
+
+//#make "source\absTables.vip"
+#make "source\GetField.vip"
+#make "source\GetTable.vip"
+#make "source\JournalObjectsSpecFlt.vip"
+#make "source\JournalObjectsSpecif.vip"
+#make "source\InterfaceSqlJournResp.vip"
+#make "source\InterfaceSqlJournResp_userreport.vip"
+
+#component "QRY"
+#make "source\QRY\QRY_BASE.vip"
+#make "source\QRY\QRY_TEMPLATES.vip"
+#make "source\QRY\QRY_INSTANCE.vip"
+#make "source\QRY\QRY_OUT.vip"
+//#make "source\QRY\SNG_Odecl.Vip
+//#make "source\QRY\SNG_DepFunc.vip

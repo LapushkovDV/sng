@@ -1,0 +1,64 @@
+/*************************************************************************************************\
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+*/
+
+#ifnDef _QRY_BASE_INCLUDED_
+#define _QRY_BASE_INCLUDED_
+#component "QRY"
+
+ObjInterface oQRY_Base;
+public:
+#doc
+#end
+
+#doc
+Получить путь на текущий файл логов
+#end
+function GetLogFile : string;
+
+#doc
+#end
+function getNameDataType(_type : byte) : string;
+
+#doc
+Создать новый файл логов
+#end
+Function GenerateNewFile: string;
+
+#doc
+добавить строку в запрос с логированием
+#end
+Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
+
+#doc
+Получить имя таблицы по коду
+#end
+function GetTableNameByCode(_tableCode : word) : string;
+
+#doc
+Выбор шаблона
+#end
+function GetTemplate : comp;
+
+#doc
+Выбор таблицы
+#end
+function GetTable : word;
+
+#doc
+Выбор уровня вложенности
+_fcQRY_INST - ссылка на экземпляр запроса
+_fcurINST_FLD_LVL - nrec текущей записи уровня вложенности (для того что бы не выбрать саму себя)
+#end
+function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp;
+
+end;
+
+VipInterface QRY_BASE Implements oQRY_Base #Licensed_Free;
+
+#end
