@@ -13,7 +13,7 @@
 #include Query.vih
 #include QRY_BASE.vih
 
-#component "QRY"
+#component "SNG_QRY"
 
 #doc
  Генерация запросов и файлов на основе шаблонов и инстансов

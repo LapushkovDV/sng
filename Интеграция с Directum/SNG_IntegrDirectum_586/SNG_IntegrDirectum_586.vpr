@@ -68,7 +68,7 @@
 					<SqlServerParameters>ncacn_ip_tcp:localhost\SQLEXPRESS[32777]</SqlServerParameters>
 					<HwKeyTransport>1</HwKeyTransport>
 					<HwKeyDirectory>localhost:55555</HwKeyDirectory>
-					<LicFileName>..\..\..\..\..\..\..\..\Galaktika\sup\exe\License.lic</LicFileName>
+					<LicFileName>..\..\..\..\sup\exe\License.lic</LicFileName>
 				</VipDatabase>
 			</ConfigurationList>
 		</DatabaseConfiguration>
@@ -130,7 +130,9 @@
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="SNG_IntegrDirectum_586.prj" PosX="55" PosY="14" OpenEditor="True"/>
-			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="75" PosY="73" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_IntegrDirectum_out.Vip" PosX="47" PosY="113" OpenEditor="True" Active="True"/>
+			<File Name="..\SNG_IntegrDirectum\vip\CreateUpdate_EmploymentContract.Vpp" PosX="10" PosY="690" OpenEditor="True"/>
+			<File Name="..\SNG_IntegrDirectum\vip\SNG_IntegrDirectum_out_base.Vip" PosX="12" PosY="250" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_IntegrDirectum_586.prj" Priority="0">

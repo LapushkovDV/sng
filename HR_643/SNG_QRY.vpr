@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <Viper Version="5005020000">
 	<ProjectManager>
-		<ProjectName>HR_643</ProjectName>
+		<ProjectName>SNG_QRY</ProjectName>
 		<ProjectVarList>
 			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\ATL6\Update_10.1.2230\galsrv\"/>
 			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
@@ -65,7 +65,7 @@
 		</CoreVip>
 		<ActiveIndex>1</ActiveIndex>
 		<ProjectItems>
-			<ProjectCompileFile FileName="HR_643.prj" Priority="0">
+			<ProjectCompileFile FileName="SNG_QRY.prj" Priority="0">
 				<CoreVip>
 					<VipParameters>
 						<StrictVip>True</StrictVip>
@@ -92,8 +92,14 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="HR_643.prj" PosX="15" PosY="25" OpenEditor="True" Active="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="28" PosY="648" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="18" PosY="25" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.vip" PosX="16" PosY="11" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.vih" PosX="21" PosY="15" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.vip" PosX="14" PosY="11" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.vih" PosX="21" PosY="15" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="18" PosY="12" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vih" PosX="21" PosY="16" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="15" PosY="12" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -145,6 +151,7 @@
 			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="135" NumIndex="1" MarkerType="mtNumBookmark" Comment="procedure insert_notable_fields;{"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="669" NumIndex="1" MarkerType="mtNumBookmark"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

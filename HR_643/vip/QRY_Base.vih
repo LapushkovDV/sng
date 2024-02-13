@@ -10,7 +10,7 @@
 
 #ifnDef _QRY_BASE_INCLUDED_
 #define _QRY_BASE_INCLUDED_
-#component "QRY"
+#component "SNG_QRY"
 
 ObjInterface oQRY_Base;
 public:

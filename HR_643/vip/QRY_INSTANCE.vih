@@ -12,7 +12,7 @@
 
 #include QRY_BASE.vih
 
-#component "QRY"
+#component "SNG_QRY"
 
 #doc
  шаблоны запросов

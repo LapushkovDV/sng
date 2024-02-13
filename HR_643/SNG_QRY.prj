@@ -6,8 +6,7 @@
 #include glovars.inc
 #INCLUDE galaktika.vil
 
-
-#define CompTitle
+#define CompTitle Генерация JSON по шаблонам
 #doc
   #CompTitle
 #end
@@ -17,8 +16,8 @@
 LicenseControlInclude=""
 #end
 
-
-#component "QRY"
+#include SNG_QRY.ver
+#component "SNG_QRY"
 #make "vip\QRY_BASE.vip"
 #make "vip\QRY_TEMPLATES.vip"
 #make "vip\QRY_INSTANCE.vip"
