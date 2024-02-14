@@ -1,23 +1,20 @@
+//------------------------------------------------------------------------------
+// SNG_QRY
+//------------------------------------------------------------------------------
+
 #statusline "statgal"
 
-#define  Atl60
-
-#include galnet.inc end;
-#include glovars.inc
-#INCLUDE galaktika.vil
-
+#include GalNet.inc end;
+#include GloVars.inc
+// #include galaktika.vil
+ 
+#component "SNG_QRY"
 #define CompTitle Генерация JSON по шаблонам
 #doc
   #CompTitle
 #end
-
-#params
-[vip]
-LicenseControlInclude=""
-#end
-
 #include SNG_QRY.ver
-#component "SNG_QRY"
+
 #make "vip\QRY_BASE.vip"
 #make "vip\QRY_TEMPLATES.vip"
 #make "vip\QRY_INSTANCE.vip"

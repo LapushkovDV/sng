@@ -502,7 +502,7 @@ function ReplaceByValues(Formula:string; _value: string):string;
           1-6 - номер падежа
           */
           var _cPerson : comp = comp(ParseWord(_Parameter,1,','));
-          var _NCase   : word = ParseWord(_Parameter,2,',');
+          var _NCase   : word = word(ParseWord(_Parameter,2,','));
 
           //mylog('_cPerson = ' + _cPerson + ' _NCase = ' + _NCase);
 
@@ -550,18 +550,18 @@ function ReplaceByValues(Formula:string; _value: string):string;
                _res := ''''+_iStrFunc.GetFIO_ZAR(_Fio)+'''';
          }
         '%GETRUB(':{ // Выделяет рубли из суммы
-                var _Sum : double = ParseWord(_Parameter,1,',');
-                var _okrug1 : double = ParseWord(_Parameter,2,',');
+                var _Sum : double = double(ParseWord(_Parameter,1,','));
+                var _okrug1 : double = double(ParseWord(_Parameter,2,','));
                _res := ''''+_iStrFunc.GetRub(_Sum, _okrug1)+'''';
          }
         '%GETKOP(':{ // Выделяет копейки из суммы и округляет с указанной точностью
-                var _Sum : double = ParseWord(_Parameter,1,',');
-                var _okrug1 : double = ParseWord(_Parameter,2,',');
+                var _Sum : double = double(ParseWord(_Parameter,1,','));
+                var _okrug1 : double = double(ParseWord(_Parameter,2,','));
                _res := ''''+_iStrFunc.GetKop(_Sum, _okrug1)+'''';
          }
         '%GETSUMRATE(':{ // Округляет сумму с указанной точностью и преобразует в строку
-                var _Sum : double = ParseWord(_Parameter,1,',');
-                var _okrug1 : double = ParseWord(_Parameter,2,',');
+                var _Sum : double = double(ParseWord(_Parameter,1,','));
+                var _okrug1 : double = double(ParseWord(_Parameter,2,','));
                _res := ''''+_iStrFunc.GetSumRate(_Sum, _okrug1)+'''';
          }
         end;

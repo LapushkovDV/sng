@@ -15,6 +15,9 @@
 //************************************************************
 const
 end;
+
+VipInterface QRY_INSTANCE_TEST #Licensed_Free;
+
 Interface QRY_INSTANCE_TEST 'Экземпляры запросов. ТЕСТОВЫЙ ИНТЕРФЕЙС', CYAN;
 
 create view

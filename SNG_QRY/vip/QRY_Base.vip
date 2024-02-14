@@ -185,7 +185,7 @@ windowevent winSelQRY_INST_FLD_LVL ;
  }
 end;
 function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp; {
-   if BoundActive(tbbyQRY_INSTNrec) {
+if BoundActive(tbbyQRY_INSTNrec) {
        popbounds(tbbyQRY_INSTNrec);
    }
    set _cQRY_INST := _fcQRY_INST;

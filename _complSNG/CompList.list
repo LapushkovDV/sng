@@ -1,0 +1,27 @@
+// --------------------------------------------------------------------------------
+// ПАО Сургутнефтегаз. Сборка компонент
+// --------------------------------------------------------------------------------
+// Z_StaffOrders gal
+// Z_StaffAddFirst gal
+// SNG_Check_105 sng
+SNG_HisLoad sng
+// SNG_HisLoad\SNG_HisObject_0001 sng
+// SNG_HisLoad\SNG_HisObject_0006 sng
+// SNG_HisLoad\SNG_HisObject_0007 sng
+// SNG_HisLoad\SNG_HisObject_0049 sng
+// SNG_HisLoad\SNG_HisObject_0058 sng
+// SNG_HisLoad\SNG_HisObject_0078 sng
+SNG_RPD_105 sng
+SNG_StaffStrRep sng
+Z_Staff sng
+Z_StaffCat sng
+Z_StaffSHR sng
+// Z_WT sng
+Z_StaffMoves sng
+Z_StaffOrders sng
+
+// SNG_WorkPatternExt sng
+SNG_HisLoad\SNG_HisObject_0026 sng
+SNG_HisLoad\SNG_HisObject_0031 sng
+SNG_HisLoad\SNG_HisObject_0032 sng
+SNG_HisLoad\SNG_HisObject_0033 sng

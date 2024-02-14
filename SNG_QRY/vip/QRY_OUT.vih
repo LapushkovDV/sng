@@ -11,7 +11,7 @@
 #define _QRY_OUT_INCLUDED_
 
 #include Query.vih
-#include QRY_BASE.vih
+#include QRY_Base.vih
 
 #component "SNG_QRY"
 
