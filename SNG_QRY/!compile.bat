@@ -12,7 +12,7 @@ del Atlantis*.res
 
 @set exedir=C:\Galaktika\ATL6\Update_10.1.2230\support
 
-@%exedir%\vip.EXE SNG_QRY.prj /r:HR_643.res /c:vip.cfg /u:lapus /p:Zraeqw123
+@%exedir%\vip.EXE SNG_QRY.prj /r:HR_643.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
 
 rem /c:support_res.cfg
 @echo Компиляция завершена

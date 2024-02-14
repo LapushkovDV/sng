@@ -185,6 +185,11 @@ windowevent winSelQRY_INST_FLD_LVL ;
  }
 end;
 function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp; {
+
+if BoundActive(tbbyQRY_TMPLTNrec) {
+  #__UNUSED__(0)
+}
+
 if BoundActive(tbbyQRY_INSTNrec) {
        popbounds(tbbyQRY_INSTNrec);
    }
@@ -354,4 +359,5 @@ Function isExistSpecINST : boolean;
      result := true;
    }
 }
+
 end.
