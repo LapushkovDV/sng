@@ -1,5 +1,5 @@
 /*
-13580-13589
+13585-13589
 */
 alter dictionary;
 Create Table QUE_EntriesForReview "Записи в очередь на рассмотрении"
@@ -22,7 +22,6 @@ with Index
  ,EntriesForReview02 = cParent
  ,EntriesForReview03 = Status
  ,EntriesForReview04 = QRY_Instance_code
- ,
 );
 
 
@@ -46,11 +45,11 @@ Create Table QUE_OUT "Исходящая очередь"
 with Index
 (
   QUE_OUT01 = NRec (unique, surrogate, journal)
- ,QUE_OUT02 = cParent
- ,QUE_OUT02 = Status
- ,QUE_OUT03 = cQUE_EntriesReview
- ,QUE_OUT04 = QRY_Instance_code
- ,
+ ,QUE_OUT02 = DateTime_in
+ ,QUE_OUT03 = cParent
+ ,QUE_OUT04 = Status + cParent
+ ,QUE_OUT05 = cQUE_EntriesReview
+ ,QUE_OUT06 = QRY_Instance_code
 );
 
 Create Table QUE_LOG "Лог попытоки отсыла сообщения очереди"
@@ -91,5 +90,21 @@ with Index
  ,QUE_Locator02 = wTable + TableNrec
  ,QUE_Locator03 = QRY_Instance_code
  ,QUE_Locator04 = RecipientSystem + ID_RecipientSystem
+);
+
+Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
+  With Table_CODE = 13589
+  With Replace
+  With TableOptions Branched
+(
+  Nrec           : comp   "Номер записи"
+, code           : word   "Код системы"
+, name           : comp   "Наименование системы"
+, interface_name : string "Интерфейс формирования запроса во внешнюю системы"
+)
+with Index
+(
+  RecipientSystem01 = NRec (unique, surrogate, journal)
+ ,RecipientSystem02 = code (unique)
 );
 

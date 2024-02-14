@@ -1,0 +1,86 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+  Status|  QUE_EntriesForReview                                   |  QUE_OUT
+------------------------------------------------------------------------------------
+       0|   ожидает обработки для формирования JSON               |
+       1|   готова к передаче в очередь (JSON сформирован)        | готова к передаче во внешнюю систему
+       2|   ожидает обработки связанных записей (JSON сформирован)| ожидает вставки связанных записей в очередь
+       3|   ошибка при генерации JSON                             | ошибка передачи во внешнюю систему
+       4|   успешно передана в очередь                            | успешно передана
+       5|   ошибка передачи в очередь                             | не все записи из пула переданы во внешнюю систему
+*/
+#include QUE_BASE.vih
+
+//************************************************************
+const
+end;
+Interface QUE_BASE 'QUE базовый объект';
+create view
+var
+   _logQUE_OUT : string; //глобальная
+ as select
+ QUE_OUT.nrec
+from
+   QUE_OUT
+ , QUE_EntriesForReview QUE_EntrRvwIns
+ , QUE_EntriesForReview QUE_EntrRvwIns_1
+;
+Function GenerateNewFile: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string; {
+  if _logQUE_OUT = '' then _logQUE_OUT := GenerateNewFile+'.log';
+  result := _logQUE_OUT;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+Function InsertEntriesForReview(_cParent : comp; _Status : word; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
+  result := 0h;
+   ClearBuffer(tnQUE_EntrRvwIns);
+   QUE_EntrRvwIns.cParent           := _cParent          ; // "Ссылка вышестоящую запись"
+   QUE_EntrRvwIns.Status            := _Status           ; // "Статус обработки"
+   QUE_EntrRvwIns.TypeEvent         := _TypeEvent        ; // "Тип события"
+   QUE_EntrRvwIns.QRY_Instance_code := _InstanceCode; // "Код экземпляра запроса"
+   QUE_EntrRvwIns.AddWhereStr       := _AddWhereStr      ; // "Строка-доп.условия в запрос"
+  if(Insert current QUE_EntrRvwIns) = tsOK {
+    result := QUE_EntrRvwIns.nrec;
+  }
+}
+
+Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
+  result := InsertEntriesForReview(_cParent, coPreQUE_WaitForRelatedRcrdsToInsert, _TypeEvent, _InstanceCode, _AddWhereStr);
+}
+
+Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp); {
+   _loop QUE_EntrRvwIns where ((_cMainParent == QUE_EntrRvwIns.cParent)) {
+
+     if QUE_EntrRvwIns.status <> coPreQUE_WaitForRelatedRcrdsToInsert then continue; //если статус не равен ожидает вставки связанных записей, то пропускаем - видимо уже обработали
+
+     if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) = tsOK {
+         pushpos(tnQUE_EntrRvwIns);
+          SetPoolRecordsReadyToGenerateJSON(QUE_EntrRvwIns.nrec);
+         poppos(tnQUE_EntrRvwIns);
+      }
+
+     update current QUE_EntrRvwIns set QUE_EntrRvwIns.status := coPreQUE_AwaitProcessJSONgenerate;
+   }
+}
+
+
+Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
+  result := InsertEntriesForReview(0h, coPreQUE_AwaitProcessJSONgenerate, _TypeEvent, _InstanceCode, _AddWhereStr);
+}
+
+end.

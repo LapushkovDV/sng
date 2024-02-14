@@ -1,0 +1,20 @@
+//------------------------------------------------------------------------------
+// SNG_QRY
+//------------------------------------------------------------------------------
+
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+// #include galaktika.vil
+ 
+#component "SNG_QUE"
+#define CompTitle Очередь исходящих сообщений
+#doc
+  #CompTitle
+#end
+
+#include SNG_QUE.ver
+#include SNG_QUE.inc
+
+#make "vip\QUE_Base.vip"

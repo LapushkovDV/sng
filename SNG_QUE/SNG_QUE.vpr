@@ -92,7 +92,7 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="20" PosY="18" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="48" PosY="17" OpenEditor="True" Active="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="16" PosY="11" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vih" PosX="21" PosY="15" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="14" PosY="11" OpenEditor="True"/>
@@ -100,7 +100,6 @@
 			<File Name="vip\QRY_OUT.vip" PosX="115" PosY="571" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="21" PosY="16" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="35" PosY="29" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="1" PosY="307" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
