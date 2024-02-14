@@ -1,0 +1,5 @@
+alter dictionary;
+drop table QUE_EntriesForReview;
+drop table QUE_OUT;
+drop table QUE_LOG;
+drop table QUE_Locator;

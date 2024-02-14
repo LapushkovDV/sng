@@ -1,0 +1,95 @@
+/*
+13580-13589
+*/
+alter dictionary;
+Create Table QUE_EntriesForReview "Записи в очередь на рассмотрении"
+  With Table_CODE = 13585
+  With Replace
+  With TableOptions Branched
+(
+  Nrec              : comp       "Номер записи"
+, cParent           : comp       "Ссылка вышестоящую запись"
+, Status            : word       "Статус обработки"
+, TypeEvent         : string[20] "Тип события"
+, QRY_Instance_code : string     "Код экземпляра запроса"
+, AddWhereStr       : string     "Строка-доп.условия в запрос"
+, err               : string     "Описание ошибки"
+, JSON              : LVAR       "Сгенерированный JSON"
+)
+with Index
+(
+  EntriesForReview01 = NRec (unique, surrogate, journal)
+ ,EntriesForReview02 = cParent
+ ,EntriesForReview03 = Status
+ ,EntriesForReview04 = QRY_Instance_code
+ ,
+);
+
+
+Create Table QUE_OUT "Исходящая очередь"
+  With Table_CODE = 13586
+  With Replace
+  With TableOptions Branched
+(
+  Nrec               : comp       "Номер записи"
+, Status             : word       "Статус обработки"
+, TypeEvent          : string[20] "Тип события"
+, TryCount           : word       "Количество попыток отправки сообщения"
+, cParent            : comp       "Ссылка на вышестоящую запись"
+, QRY_Instance_code  : string     "Код экземпляра запроса"
+, DateTime_in        : datetime   "Дата-время поступления записи в очередь"
+, DateTime_out       : datetime   "Дата-время успешной отправки сообщения"
+, RecipientSystem    : string     "Код системы получателя"
+, cQUE_EntriesReview : ref(QUE_EntriesForReview) "Ссылка "
+, JSON               : LVAR       "Сгенерированный JSON"
+)
+with Index
+(
+  QUE_OUT01 = NRec (unique, surrogate, journal)
+ ,QUE_OUT02 = cParent
+ ,QUE_OUT02 = Status
+ ,QUE_OUT03 = cQUE_EntriesReview
+ ,QUE_OUT04 = QRY_Instance_code
+ ,
+);
+
+Create Table QUE_LOG "Лог попытоки отсыла сообщения очереди"
+  With Table_CODE = 13587
+  With Replace
+  With TableOptions Branched
+(
+  Nrec              : comp       "Номер записи"
+, cQUE_OUT          : ref(QUE_OUT) "Ссылка запись очереди"
+, Status            : word       "Статус попытки"
+, DateTime_try      : datetime   "Дата-время попытки"
+, log_string        : string     "Строкое описание ошибки"
+, log_text          : LVAR       "Полное описание ошибки"
+)
+with Index
+(
+  QUE_LOG01 = NRec (unique, surrogate, journal)
+ ,QUE_LOG02 = cQUE_OUT
+ ,QUE_LOG03 = Status
+);
+
+
+Create Table QUE_Locator "Локатор записей таблиц"
+  With Table_CODE = 13588
+  With Replace
+  With TableOptions Branched
+(
+  Nrec               : comp   "Номер записи"
+, wTable             : word   "Код таблицы"
+, TableNrec          : comp   "Nrec  таблице"
+, QRY_Instance_code  : string "Код экземпляра запроса"
+, ID_RecipientSystem : string "ID объекта в системе-получателе"
+, RecipientSystem    : string "Код системы-получателя"
+)
+with Index
+(
+  QUE_Locator01 = NRec (unique, surrogate, journal)
+ ,QUE_Locator02 = wTable + TableNrec
+ ,QUE_Locator03 = QRY_Instance_code
+ ,QUE_Locator04 = RecipientSystem + ID_RecipientSystem
+);
+
