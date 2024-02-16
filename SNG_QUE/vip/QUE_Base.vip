@@ -18,10 +18,16 @@
        5|   ошибка передачи в очередь                             | не все записи из пула переданы во внешнюю систему
 */
 #include QUE_BASE.vih
+#include QRY_OUT.vih
 
-//************************************************************
-const
-end;
+table struct tmpEntriesForReview (
+   cEntriesForReview : comp
+ , DateTime_in       : datetime
+)
+with index (
+ ind0 = cEntriesForReview
+)
+;
 Interface QUE_BASE 'QUE базовый объект';
 create view
 var
@@ -31,8 +37,31 @@ var
 from
    QUE_OUT
  , QUE_EntriesForReview QUE_EntrRvwIns
+ , QUE_EntriesForReview QUE_EntrRvwGenJSON
  , QUE_EntriesForReview QUE_EntrRvwIns_1
+ , QUE_EntriesForReview QUE_EntrRvwLoop
+
+ , tmpEntriesForReview
 ;
+
+Function GetNameStatusEntriesForReview(_Status : word) : string; cacheable;{
+ case _Status of
+   coPreQUE_AwaitProcessJSONgenerate    : result := 'ожидает обработки для формирования JSON'// 0; //  ожидает обработки для формирования JSON
+   coPreQUE_WaitForRelatedRcrdsToInsert : result := 'ожидает вставки связанных записей' // 1 //  ожидает вставки связанных записей
+   coPreQUE_ReadyToTransferToQueue      : result := 'готова к передаче в очередь (JSON сформирован)' // 2; //  готова к передаче в очередь (JSON сформирован)
+   coPreQUE_AwaitProcessRelatedRcrd     : result := 'ожидает генерации JSON в связанных записях (JSON сформирован)' // 3; //  ожидает генерации JSON в связанных записях (JSON сформирован)
+   coPreQUE_ErrorGenerateJSON           : result := 'ошибка при генерации JSON' // 4; //  ошибка при генерации JSON
+   coPreQUE_SuccessTransferToQueue      : result := 'успешно передана в очередь' // 5; //  успешно передана в очередь
+   coPreQUE_ErrorTransferToQueue        : result := 'ошибка передачи в очередь' // 6; //  ошибка передачи в очередь
+  else {
+    result := '--неизвестный статус--' //
+  }
+ end;
+
+
+}
+
+
 Function GenerateNewFile: string; {
  result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
@@ -52,8 +81,9 @@ Function InsertEntriesForReview(_cParent : comp; _Status : word; _TypeEvent : st
    QUE_EntrRvwIns.cParent           := _cParent          ; // "Ссылка вышестоящую запись"
    QUE_EntrRvwIns.Status            := _Status           ; // "Статус обработки"
    QUE_EntrRvwIns.TypeEvent         := _TypeEvent        ; // "Тип события"
-   QUE_EntrRvwIns.QRY_Instance_code := _InstanceCode; // "Код экземпляра запроса"
+   QUE_EntrRvwIns.QRY_Instance_code := _InstanceCode     ; // "Код экземпляра запроса"
    QUE_EntrRvwIns.AddWhereStr       := _AddWhereStr      ; // "Строка-доп.условия в запрос"
+   QUE_EntrRvwIns.DateTime_in       := _curdatetime      ; // Дата-время создания записи
   if(Insert current QUE_EntrRvwIns) = tsOK {
     result := QUE_EntrRvwIns.nrec;
   }
@@ -63,24 +93,123 @@ Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[
   result := InsertEntriesForReview(_cParent, coPreQUE_WaitForRelatedRcrdsToInsert, _TypeEvent, _InstanceCode, _AddWhereStr);
 }
 
-Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp); {
+Procedure SetPoolRecordsStatus(_cMainParent : comp; _CheckStatus, _ToStatus : word); {
    _loop QUE_EntrRvwIns where ((_cMainParent == QUE_EntrRvwIns.cParent)) {
 
-     if QUE_EntrRvwIns.status <> coPreQUE_WaitForRelatedRcrdsToInsert then continue; //если статус не равен ожидает вставки связанных записей, то пропускаем - видимо уже обработали
+     if QUE_EntrRvwIns.status <> _CheckStatus // coPreQUE_WaitForRelatedRcrdsToInsert
+         then continue; //если статус не равен ожидает вставки связанных записей, то пропускаем - видимо уже обработали
 
-     if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) = tsOK {
+     if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) ) = tsOK {
          pushpos(tnQUE_EntrRvwIns);
-          SetPoolRecordsReadyToGenerateJSON(QUE_EntrRvwIns.nrec);
+          SetPoolRecordsStatus(QUE_EntrRvwIns.nrec, _CheckStatus, _ToStatus);
          poppos(tnQUE_EntrRvwIns);
       }
 
-     update current QUE_EntrRvwIns set QUE_EntrRvwIns.status := coPreQUE_AwaitProcessJSONgenerate;
+     update current QUE_EntrRvwIns set QUE_EntrRvwIns.status := _ToStatus ; // coPreQUE_AwaitProcessJSONgenerate;
    }
 }
 
+Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp); {
+  SetPoolRecordsStatus(_cMainParent, coPreQUE_WaitForRelatedRcrdsToInsert, coPreQUE_AwaitProcessJSONgenerate);
+}
 
 Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
   result := InsertEntriesForReview(0h, coPreQUE_AwaitProcessJSONgenerate, _TypeEvent, _InstanceCode, _AddWhereStr);
 }
+
+Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp; _statusSucces : word); {
+  if getfirst fastfirstrow QUE_EntrRvwGenJSON where ((_cQUE_EntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOK then exit;
+
+  if QUE_EntrRvwGenJSON.Status <> coPreQUE_AwaitProcessJSONgenerate then exit; // если статус е равен "ожидает обработки для формирования JSON"
+
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  var FNservice, _JSON : tptr;
+  if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(QUE_EntrRvwGenJSON.QRY_Instance_code, QUE_EntrRvwGenJSON.AddWhereStr, FNservice, _JSON, _err){
+      var __log : string = iQRY_OUT.GetLogFile;
+       ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, __log, false);
+       QUE_EntrRvwGenJSON.Status := coPreQUE_ErrorGenerateJSON; // ошибка при генерации JSON
+       QUE_EntrRvwGenJSON.err    := _err;
+      update current QUE_EntrRvwGenJSON;
+   }
+  else {
+   var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+   HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+       ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, _jsonFile, false);
+       QUE_EntrRvwGenJSON.Status := _statusSucces;
+      update current QUE_EntrRvwGenJSON;
+  }
+}
+
+procedure RecursiveGenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp; _Status : word = coPreQUE_ReadyToTransferToQueue); {
+   if getfirst QUE_EntrRvwIns where ((_cEntriesForReview == QUE_EntrRvwIns.nrec)) = tsOK {
+
+     if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) ) = tsOK {
+         _Status := coPreQUE_AwaitProcessRelatedRcrd;
+         pushpos(tnQUE_EntrRvwIns);
+          RecursiveGenerateJSON_from_EntriesForReviewRecords(QUE_EntrRvwIns.nrec, coPreQUE_AwaitProcessRelatedRcrd); // ставим статус в "ожидает генерации JSON в связанных записях (JSON сформирован)"
+         poppos(tnQUE_EntrRvwIns);
+      }
+      GenerateJSONInEntriesForReview(QUE_EntrRvwIns.nrec, _Status);
+   }
+}
+
+function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean; {
+  result := false;
+  _loop QUE_EntrRvwLoop where ((_cEntriesForReview == QUE_EntrRvwLoop.cParent)) {
+    if QUE_EntrRvwLoop.status = _status then {
+      result := true;
+      exit;
+    }
+     pushpos(tnQUE_EntrRvwLoop);
+      result := isExistStatusInPool(QUE_EntrRvwLoop.nrec, _status);
+     poppos(tnQUE_EntrRvwLoop);
+     if result = True then exit;
+   }
+}
+
+procedure SetStatusGenerateJSON(_cMainParent : comp); {
+   if getfirst fastfirstrow QUE_EntrRvwGenJSON where ((_cMainParent == QUE_EntrRvwGenJSON.nrec )) <> tsOK then exit;
+   if QUE_EntrRvwGenJSON.status = coPreQUE_ReadyToTransferToQueue then exit; // одиночные записи уже имеют статус для передачи "готова к передаче в очередь (JSON сформирован)"
+
+    if isExistStatusInPool(QUE_EntrRvwGenJSON.nrec,coPreQUE_AwaitProcessJSONgenerate) then exit; // есть воообще необработанные записи в статусе "ожидает обработки для формирования JSON"
+
+    if isExistStatusInPool(QUE_EntrRvwGenJSON.nrec,coPreQUE_WaitForRelatedRcrdsToInsert) then exit; // есть воообще необработанные записи в статусе ожидает вставки связанных записей
+
+    if isExistStatusInPool(QUE_EntrRvwGenJSON.nrec,coPreQUE_ErrorGenerateJSON) then  {// если есть записи с "ошибка при генерации JSON
+     update current QUE_EntrRvwGenJSON set QUE_EntrRvwGenJSON.status := coPreQUE_ErrorGenerateJSON;
+     exit;
+    }
+
+    if not isExistStatusInPool(QUE_EntrRvwGenJSON.nrec,coPreQUE_AwaitProcessRelatedRcrd) then exit; // если есть записи с "ожидает генерации JSON в связанных записях (JSON сформирован)"
+
+    SetPoolRecordsStatus(_cMainParent, coPreQUE_AwaitProcessRelatedRcrd, coPreQUE_ReadyToTransferToQueue);
+}
+
+procedure ProcessEntriesForReview; {
+ delete all tmpEntriesForReview;
+ _try
+    {
+      sql
+      select top 100
+         QUE_EntriesForReview.nrec as cEntriesForReview
+       , QUE_EntriesForReview.DateTime_in as DateTime_in
+      from QUE_EntriesForReview
+      where   QUE_EntriesForReview.status = :(coPreQUE_AwaitProcessJSONgenerate)
+         and QUE_EntriesForReview.cParent = :(0h)
+      order by QUE_EntriesForReview.DateTime_in
+       into tmpEntriesForReview;
+    }
+    _except
+    else {
+      exit;
+    }
+ _loop tmpEntriesForReview {
+    RecursiveGenerateJSON_from_EntriesForReviewRecords(tmpEntriesForReview.cEntriesForReview);
+    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
+  }
+
+}
+
 
 end.

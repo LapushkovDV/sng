@@ -1,0 +1,42 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QUE_BASE.vih
+
+Interface QUE_View_QUE_EntriesForReview 'Интерфейс просмотра записей в очередь на рассмотрении';
+create view
+ var
+  _cParent : comp;
+  iQUE_BASE : QUE_BASE;
+ as select
+   iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
+ from
+   QUE_EntriesForReview QUE_EntrForReview_BR
+ , QRY_INSTANCE QRY_INST_BR
+ where ((
+  QUE_EntrForReview_BR.QRY_Instance_code == QRY_INST_BR.code
+ ))
+ Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
+;
+
+
+tree brQUE_EntrForReview_BR;
+ table QUE_EntrForReview_BR;
+  Fields
+    QUE_EntrForReview_BR.DateTime_in 'Дата вставки','записи' : [1] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.TypeEvent   'Тип события'           : [5] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.Status      'Статус','код'          : [1] , Protect, nopickbutton;
+    StatusName                       'Статус','наименование' : [5] , Protect, nopickbutton;
+    QRY_INST_BR.code                 'Запрос','код'          : [5] , Protect, nopickbutton;
+    QRY_INST_BR.name                 'Запрос','наименование' : [9] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.err         'Ошибка','текст'        : [9] , Protect, nopickbutton;
+end;
+
+
+end.

@@ -781,8 +781,9 @@ function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean
 
   var FNservice : tptr;
   if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
-
-  HttpConnect_SaveToFileEx(FNservice, _JSON, GenerateNewFile+'.json', cpUTF8, false);
+  var _file : string = GenerateNewFile+'.json';
+  HttpConnect_SaveToFileEx(FNservice, _JSON, _file, cpUTF8, false);
+  putfiletoclient(_file,false);
   result := true;
 }
 

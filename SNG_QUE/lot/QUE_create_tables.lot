@@ -11,6 +11,7 @@ Create Table QUE_EntriesForReview "Записи в очередь на рассмотрении"
 , cParent           : comp       "Ссылка вышестоящую запись"
 , Status            : word       "Статус обработки"
 , TypeEvent         : string[20] "Тип события"
+, DateTime_in       : datetime   "Дата-время создания записи"
 , QRY_Instance_code : string     "Код экземпляра запроса"
 , AddWhereStr       : string     "Строка-доп.условия в запрос"
 , err               : string     "Описание ошибки"
@@ -19,8 +20,8 @@ Create Table QUE_EntriesForReview "Записи в очередь на рассмотрении"
 with Index
 (
   EntriesForReview01 = NRec (unique, surrogate, journal)
- ,EntriesForReview02 = cParent
- ,EntriesForReview03 = Status
+ ,EntriesForReview02 = Status + cParent + DateTime_in
+ ,EntriesForReview03 = cParent
  ,EntriesForReview04 = QRY_Instance_code
 );
 

@@ -51,6 +51,21 @@ Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : 
 #end
 Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp);
 
+
+#doc
+Обработка записей в QUE_EntriesForReview
+Выборка пула записей, у которых cParent = 0h и статус = "ожидает обработки для формирования JSON"
+Далее цикл по выбранным записям и рекурсивно генерируем по ним JSON функцией RecursiveGenerateJSON_from_EntriesForReviewRecords
+Рекурсия нужна для обработки вложенных записей
+#end
+procedure ProcessEntriesForReview;
+
+#doc
+Получить строковое название статуса QUE_EntriesForReview
+#end
+Function GetNameStatusEntriesForReview(_Status : word) : string;
+
+
 end;
 
 VipInterface QUE_BASE Implements oQUE_Base #Licensed_Free;

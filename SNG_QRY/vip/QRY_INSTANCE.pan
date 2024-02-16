@@ -219,7 +219,6 @@ cmValue2:{
       PutFileToClient(__log,false);
    }
   else {
-
    message('Запрос корректный');
   }
 }

@@ -1,0 +1,45 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QUE_BASE.vih
+
+Interface Fill_QUE_EntriesForReview_RPD 'Интерфейс заполнения записей в очередь на рассмотрении по РПД';
+create view
+ var
+  _cParent : comp;
+  iQUE_BASE : QUE_BASE;
+ as select
+   iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
+ from
+   QUE_EntriesForReview QUE_EntrForReview_BR
+ , QRY_INSTANCE QRY_INST_BR
+ where ((
+  QUE_EntrForReview_BR.QRY_Instance_code == QRY_INST_BR.code
+ ))
+ Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
+;
+end.
+
+handler with replace SNG_Fill_QUE_EntriesForReview_RPD_CHECK_AFTER on ExtensionPoint epRPD_CheckAfter(cContDoc: comp);
+action
+ {
+
+ }
+  _except
+   on ExVip :
+    {
+     Message ( 'Ошибка регистрации главного меню "Заполнение каталогов"!'#13 + ExploreException, error );
+    }
+  _finally
+    {
+     if ( MenuID <> 0 )
+      DisposeLoadMenu ( MenuID );
+    }
+  timelog('GP_MenuDynamic_AddItems_GP_AllKat finish');
+} //handler with replace GP_MenuDynamic_AddItems_GP_AllKat on ExtensionPoint GP_MenuDynamic_AddItems

@@ -15,7 +15,7 @@ const
 coPreQUE_AwaitProcessJSONgenerate    = 0; //  ожидает обработки для формирования JSON
 coPreQUE_WaitForRelatedRcrdsToInsert = 1; //  ожидает вставки связанных записей
 coPreQUE_ReadyToTransferToQueue      = 2; //  готова к передаче в очередь (JSON сформирован)
-coPreQUE_AwaitProcessRelatedRcrd     = 3; //  ожидает обработки связанных записей (JSON сформирован)
+coPreQUE_AwaitProcessRelatedRcrd     = 3; //  ожидает генерации JSON в связанных записях (JSON сформирован)
 coPreQUE_ErrorGenerateJSON           = 4; //  ошибка при генерации JSON
 coPreQUE_SuccessTransferToQueue      = 5; //  успешно передана в очередь
 coPreQUE_ErrorTransferToQueue        = 6; //  ошибка передачи в очередь
