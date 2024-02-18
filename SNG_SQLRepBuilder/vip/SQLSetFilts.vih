@@ -1,0 +1,5 @@
+ObjInterface objSQLSetFilts;
+  procedure ReInit(_cOborCFG: comp);
+End;
+
+vipinterface SQLSetFilts implements objSQLSetFilts #Licensed_Free;

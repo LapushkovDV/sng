@@ -1,0 +1,153 @@
+//********************************************************************************
+//
+// Галактика 8.1 - Отчеты пользователя
+// интерфейс вызова фильтров, которых нет в КАУ
+// Автор Стрельцов С.А. (отдел ПНР) 2013 год
+//********************************************************************************
+#include GetNotKauFiltr.vih
+
+Interface GetNotKAUFiltr;
+var
+  gliPickedCount, k : longint;
+  Marker : pointer;
+  MarkerName : string;
+  Val : string;
+
+table Struct typeFlt
+(
+   Code : LongInt,
+   NAme : String,
+   MarkerNAme : string
+)
+with index
+(
+  i0 = Code,
+  i1 = Name
+)
+;
+
+create view
+as select typeFlt.Code
+from
+  typeFlt
+, GRDESCR;
+
+Window wCaseTypeFltr 'Выбор фильтра' doAccept, escClose, Dialog,cyan;
+  Show at (, ,60 ,7);
+Browse typeFlt;
+   Fields
+     typeFlt.Code 'Код'          : [4],  Protect;
+     typeflt.Name 'Наименование' : [15], Protect;
+   end;
+end;
+
+function InsFlt(_Code: LongInt; _name, _Markername: String): boolean;
+{
+  typeFlt.Code := _Code;
+  typeflt.Name := _name;
+  typeflt.MarkerName := _Markername;
+  insert current typeflt;
+  result := true;
+}
+
+Procedure FillFlt;
+{
+  Delete all from typeflt;
+  InsFlt(cgiPickNotKAU + 1, 'Дескриптор', 'UserTuneDescr');
+  InsFlt(cgiPickNotKAU + 2, 'Группа дескрипторов', 'UserTuneGrDescr');
+}
+
+function GetCaseFiltrDialog: LongInt;
+{
+  FillFlt;
+  RunWindowModal(wCaseTypeFltr);
+  GetCaseFiltrDialog := typeFlt.Code;
+}
+
+function GetFiltrName(_Kod: LongInt): string;
+{
+  if GetFirst typeflt where ((_kod == typeFlt.Code)) = tsOk
+    GetFiltrName := typeFlt.Name;
+  LogstrtoFile('Dsql.log', 'GetFiltrName=' + GetFiltrName);
+}
+
+function GetMarkerName(_Kod: LongInt): string;
+{
+  if GetFirst typeflt where ((_kod == typeFlt.Code)) = tsOk
+    GetMarkerName := typeFlt.MarkerName;
+  LogstrtoFile('Dsql.log', 'GetMarkerName=' + GetMarkerName);
+}
+
+function RunFiltrDialog(_Kod: LongInt): word;
+{
+  FillFlt;
+  case _kod of
+    cgiPickNotKAU + 1:
+    {
+      RunFiltrDialog := RunInterface('C_COMMON::GetSomeDescr', false);
+    }
+
+    cgiPickNotKAU + 2:
+    {
+      RunFiltrDialog := RunInterface('C_COMMON::GetGrDescr', '', true, true, 0);
+    }
+  end;
+}
+
+function GetPickCount(_Kod: LongInt): LongInt;
+{
+  MarkerName := GetMarkerName(_Kod);
+  Marker := InitMarker(MarkerName, 8, 100, 10);
+  GetPickCount := GetMarkerCount(Marker);
+  DoneMarker(Marker, MarkerName);
+  LogstrtoFile('Dsql.log', 'GetPickCount=' + GetPickCount);
+}
+
+function GetNrecFirstPick(_Kod: LongInt): comp;
+{
+  MarkerName := GetMarkerName(_Kod);
+  Marker := InitMarker(MarkerName, 8, 100, 10);
+  GetMarker(Marker, 0, GetNrecFirstPick);
+  DoneMarker(Marker, MarkerName);
+}
+
+#declare GetVal
+  case _kod of
+    cgiPickNotKAU+1:
+    {
+      Val := sGetTuneEx('USER.DESCR', UserOfficeFilial(cNrec), cNrec);
+    }
+    cgiPickNotKAU+2:
+    {
+      if GetFirst GRDESCR where ((cNrec == GRDESCR.Nrec)) = tsOk
+        Val := GrDescr.DESGR;
+    }
+  end;
+  LogstrtoFile('Dsql.log', 'Val=' + Val);
+#end
+
+function GetNameFirstPick(_Kod: LongInt): string;
+{
+  var
+    cNrec: comp;
+  MarkerName := GetMarkerName(_Kod);
+  Marker := InitMarker(MarkerName, 8, 100, 10);
+  GetMarker(Marker, 0, cNrec);
+  #GetVal
+  GetNameFirstPick := Val;
+  DoneMarker(Marker, MarkerName);
+}
+
+function GetValByNrec(_Kod: LongInt; cNrec: comp): variant;
+{
+  #GetVal
+  GetValByNrec := Val;
+}
+
+HandleEvent
+  cmInit:
+  {
+    FillFlt;
+  }
+End;
+end.

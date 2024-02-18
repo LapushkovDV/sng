@@ -1,0 +1,6 @@
+ObjInterface objSQLPrintToXLT;
+  procedure CreateShablon(_OborCFG : comp);
+  procedure PrintToShablon(_OborCFG : comp);
+End;
+
+vipinterface SQLPrintToXLT implements objSQLPrintToXLT #Licensed_Free;

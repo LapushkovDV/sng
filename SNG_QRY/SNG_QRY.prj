@@ -15,6 +15,11 @@
 #end
 #include SNG_QRY.ver
 
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
 #make "vip\QRY_BASE.vip"
 #make "vip\QRY_TEMPLATES.vip"
 #make "vip\QRY_INSTANCE.vip"

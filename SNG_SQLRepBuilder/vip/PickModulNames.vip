@@ -1,0 +1,135 @@
+//********************************************************************************
+//
+// Галактика 8.1 - Отчеты пользователя
+// Отчеты на DSQL запросах
+// Автор Стрельцов С.А. (отдел ПНР) 2012 год
+//********************************************************************************
+//──────────────────────────────────────────────────────────────────────
+VipInterface PickModulNames Licensed(free) Parameters(ModulCode, MarkerName: string);
+
+Interface PickModulNames 'Выбор модулей' DoAccept, EscClose, Cyan;
+  show at ( , 6, 80 , 25);
+Create View
+var
+  ModulCode : string;
+  lMarker: pointer;
+  MarkerName : string;
+From
+  Licenses
+where Licenses.Atl_OriginOffice = 1
+Condition bySelected = foundmarker(lMarker, Licenses.Atl_Nrec)
+;
+
+Parameters
+  ModulCode,
+  MarkerName;
+
+Browse  br1 (,,sci1InsPM);
+Table Licenses;
+//show at ( , , , 7);
+Fields
+  { Font = {Color =
+         if(FoundMarker(lMarker, Licenses.Atl_Nrec), 19, 0)}};
+  if(foundmarker(lMarker, Licenses.Atl_Nrec),'√', ''):[1], skip;
+  Licenses.Name 'Идентификатор модуля' : [21], Protect;
+  Licenses.TITLE 'Название модуля'  : [54], Protect;
+end;
+HandleEvent
+cmDefault:
+{
+  ModulCode:= '';
+  if GetMarkerCount(lMarker) > 0
+  _loop Licenses where foundmarker(lMarker, Licenses.Atl_Nrec)
+  {
+    if ModulCode = ''
+      ModulCode := Licenses.Name;
+    else
+      ModulCode := ModulCode +' '+Licenses.Name;
+  }
+  if GetMarkerCount(lMarker) = 0
+    InsertMarker(lMarker, Licenses.Atl_Nrec);
+
+}
+
+cmMarkUnMark:
+{
+  if (FoundMarker(lMarker, Licenses.Atl_Nrec))
+  {
+    DeleteMarker(lMarker, Licenses.Atl_Nrec);
+  }
+  else
+  {
+    InsertMarker(lMarker, Licenses.Atl_Nrec);
+  }
+  if (getnext Licenses)=tsOk {};
+
+  SetWindowTitle(wnMainWindow, 'Выбор модулей. Выбрано:'+ GetMarkerCount(lMarker));
+   ReScanPanel(#Licenses);
+}
+cmSelectAll:
+{
+  ClearMarker(lMarker);
+  StartNewVisual(vtRotateVisual, vfTimer+vfBreak, ''#3'Выбор ...'#13#3, 1);
+  _try
+  {
+    pushpos(#Licenses);
+    _loop Licenses
+    {
+      InsertMarker(lMarker, Licenses.Atl_Nrec);
+      NextVisual;
+    }
+  } // try
+  _except
+   on ExUserBreak :
+   {
+     ClearMarker(lMarker);
+   }
+   _finally
+   {
+     poppos(#Licenses);
+
+     ReReadRecord(#Licenses);
+     StopVisual('',0);
+   }
+   SetWindowTitle(wnMainWindow, 'Выбор модулей. Выбрано:'+ GetMarkerCount(lMarker));
+    ReScanPanel(#Licenses);
+}
+
+cmUnSelectAll:
+{
+  ClearMarker(lMarker);
+  SetWindowTitle(wnMainWindow, 'Выбор модулей. Выбрано:'+ GetMarkerCount(lMarker));
+  ReScanPanel(#Licenses);
+}
+
+cmInit:
+{
+ var CurRecord : comp;
+ lmarker := initmarker(MarkerName, 8, 100, 10);
+ GetMarker(lmarker, 0, CurRecord);
+
+ if GetFirst Licenses where ((CurRecord == Licenses.Atl_Nrec)) = tsOk {}
+ // message(ContourComponents.Name);
+ SetWindowTitle(wnMainWindow, 'Выбор модулей. Выбрано:'+ GetMarkerCount(lMarker));
+}
+cmDone:
+{
+  donemarker(lmarker, MarkerName);
+}
+cmHotKeys :
+  PutHotCommand(RunMenu('mnuSetModulFilt'));
+cmValue36:
+{
+  if ConditionActive(tcbySelected)
+    PopCondition(tcbySelected)
+  else
+    PushCondition(tcbySelected);
+ReReadRecord;
+}
+
+End;
+End.
+mnuSetModulFilt Menu
+{
+-'Установить\снять фильтр по выбранным', cmValue36, '', , , , sci1Esc;
+}

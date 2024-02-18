@@ -1,0 +1,8 @@
+ObjInterface objSQLFilts;
+  procedure ReInit(_cOborCFG: comp);
+  procedure ReadFiltValue(_cOborCFG : comp);
+  function ReadOneFiltValueToMarker(_cOborCFG : comp; nField : integer): boolean;
+  function GetFiltMarkerName(_cOborCFG : comp; nField : integer): string;
+End;
+
+vipinterface SQLFilts implements objSQLFilts #Licensed_Free;

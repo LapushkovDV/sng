@@ -1,0 +1,5 @@
+ObjInterface objSQLRunReport;
+  procedure Run(_cOborCFG: comp);
+End;
+
+vipinterface SQLRunReport implements objSQLRunReport #Licensed_Free;

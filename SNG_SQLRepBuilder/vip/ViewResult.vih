@@ -1,0 +1,6 @@
+ObjInterface objViewResult;
+  procedure ReDrawCaption;
+  procedure ReDrawTable;
+End;
+
+vipinterface ViewResult implements objViewResult #Licensed_Free;
