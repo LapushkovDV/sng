@@ -212,15 +212,13 @@ cmValue2:{
   }
 
   if not iQRY_OUT.TestQueryInstance(QRY_INST.code, _err) {
-  var __log : string = iQRY_OUT.GetLogFile;
-   message('Ошибка построения запроса' +
-    + ''#13'' + 'информация в логе'+
-    + ''#13'' +__log,error);
-      PutFileToClient(__log,false);
+   message('Ошибка построения запроса',error);
    }
   else {
    message('Запрос корректный');
   }
+  var __log : string = iQRY_OUT.GetLogFile;
+  PutFileToClient(__log,false);
 }
 
 end;

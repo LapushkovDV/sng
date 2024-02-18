@@ -73,11 +73,9 @@ handleevent // фейса
   var _err : string = '';
   var FNservice, _JSON : tptr;
   if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE,_addWhereString, FNservice, _JSON, _err){
-   var __log : string = iQRY_OUT.GetLogFile;
-   message('Ошибка построения запроса' +
-    + ''#13'' + 'информация в логе'+
-    + ''#13'' +__log,error);
-      PutFileToClient(__log,false);
+
+   message('Ошибка построения запроса',error);
+
    }
   else {
    var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
@@ -86,6 +84,8 @@ handleevent // фейса
    message('Сгенерирован файл _jsonFile'+
           +''#13'' + _jsonFile);
   }
+   var __log : string = iQRY_OUT.GetLogFile;
+   PutFileToClient(__log,false);
  }
 end;
 end.
