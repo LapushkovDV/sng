@@ -54,19 +54,17 @@ handleevent // фейса
   var _err : string = '';
   var FNservice, _JSON : tptr;
   if not iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE,_RootTableNrec, FNservice, _JSON, _err) {
-   var __log : string = iQRY_OUT.GetLogFile;
-   message('Ошибка построения запроса' +
-    + ''#13'' + 'информация в логе'+
-    + ''#13'' +__log,error);
-      PutFileToClient(__log,false);
+   message('Ошибка построения запроса',error);
+
    }
   else {
    var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
    HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
    PutFileToClient(_jsonFile,false);
-   message('Сгенерирован файл _jsonFile'+
-          +''#13'' + _jsonFile);
+   message('Сгенерирован файл _jsonFile');
   }
+   var __log : string = iQRY_OUT.GetLogFile;
+   PutFileToClient(__log,false);
  }
  cmValue2: {
   var iQRY_OUT : QRY_OUT new;
