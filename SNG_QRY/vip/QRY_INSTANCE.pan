@@ -9,6 +9,10 @@ cmSetDefault: {
     SelectField(#QRY_INST_FLD.FieldName);
     putcommand(cmpick);
   }
+  if curtable = tnQRY_INST {
+    putcommand(cmDefault);
+  }
+
 }
 cmInsertRecord:
 {

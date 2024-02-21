@@ -18,6 +18,12 @@ public:
 #end
 
 #doc
+Записать в лог строку.
+получить путь на лог-файл можно GetLogFile
+#end
+Procedure MyLog(_str: string; _needlog : boolean = false);
+
+#doc
 Получить путь на текущий файл логов
 #end
 function GetLogFile : string;

@@ -11,6 +11,7 @@
 #include Query.vih
 #include QRY_OUT.vih
 #include odecl.vih
+#include QRY_ALG_USER.vih
 #include StrFunc.vih
 //#include SpecialPropetiesForG.vih
 //#include CatFunc.vih
@@ -20,6 +21,19 @@ const
 end;
 
 type String_xMaxEl  = Array [1..coMaxElemets] of string ;
+
+var _arrQRY_USER_ALG : Array [1..1] of IQRY_ALG_USER;
+
+Table Struct tmp_UserAlt
+(
+   Name : string[100]
+ , num  : word
+)
+with index
+(
+ tmp_UserAlt01=Name
+);
+
 Table Struct Tmp_Alg
 (
    Npp  : word        "Порядковый номер"
@@ -100,6 +114,8 @@ from
  , QRY_Instance_FLD QRY_INST_FLD_LOOP
  , Persons Persons_DECL
  , catalogs cat_search
+
+ , tmp_UserAlt
 
 ;
 
@@ -397,6 +413,31 @@ Procedure Fill_Tmp_alg_One(_Npp:word; _Key:string; _Prim:string='');
     , Tmp_Alg.Prim:=_Prim
    ;
 }
+
+procedure Add_UserInterfaces;
+{
+  if (LoadImplementationList('SNG_QRY::IQRY_ALG_USER', 'QRY_ALG_USER_'))
+  {
+    StartNewVisual(vtNumericVisual, vfTimer + vfBreak, 'Загрузка списка пользовательских алгоритмов...', 1);
+    _try
+    {
+      var I: integer = 0;
+      for (I := 0; I < GetImplementationCount; I := I + 1) {
+        var _QRY_ALG_USER : IQRY_ALG_USER;
+        if LoadvipRef(_QRY_ALG_USER, GetImplementationName(I)) {
+          Fill_Tmp_alg_One(recordsintable(tnTmp_Alg)+1,'%USER_INTERFACE('+replace(GetImplementationName(I), 'SNG_QRY::QRY_ALG_USER_', '')+',''%VALUE%'')%',_QRY_ALG_USER.GetDescription);
+          FreeVipInterface(_QRY_ALG_USER);
+        }
+        NextVisual;
+      }
+    }
+    _except
+      on ExUserBreak : {};
+    _finally
+      StopVisual('', 0);
+  }
+} //Function ChooseInterface(_wType_Alg:word):string;
+
 #doc
   Заполнить справочник алгоритмов
 #end
@@ -420,7 +461,11 @@ Function Fill_Tmp_alg : boolean;
    Fill_Tmp_alg_One(10,'%GETKOP(%VALUE%, okrug1)%','Выделяет копейки из суммы = %VALUE% и округляет с указанной точностью');
    Fill_Tmp_alg_One(11,'%GETSUMRATE(%VALUE%,okrug1)%','Округляет сумму=%VALUE% с указанной точностью и преобразует в строку');
    Fill_Tmp_alg_One(12,'%GETFIODIR%','ФИО из настройки "Право подписи приказов по персоналу" или из настройки "Руководитель"');
+
+   Add_UserInterfaces;
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
+
+
 
 function getpodrunder_nrec(_code : string; _crec , _cParent: comp) : comp; cacheable;{
 
@@ -455,6 +500,25 @@ function getpodrunder(_code : string; _crec , _cParent: comp) : string; cacheabl
 //  mylog('getpodrunder _crec = ' +_crec);
    if getfirst cat_search where (( _crec == cat_search.nrec)) = tsOK then result := cat_search.longname ;
 }
+
+//----------------------------------------
+// освободить пользовательские алгоритмы
+//----------------------------------------
+Procedure Free_QRY_ALG_USER;
+{
+  var _cntArr, _i:word=0;
+  _cntArr:=count(_arrQRY_USER_ALG);
+  if _cntArr=0 then exit;
+
+  delete all tmp_UserAlt;
+  for(_i:=1;_i<=_cntArr;_i := _i+1) {
+    if not NullVipRef(_arrQRY_USER_ALG[_i]) {
+    FreeVipInterface(_arrQRY_USER_ALG[_i]);
+    }
+  } //for(kk:=1;kk<count(RPD_A);kk:= kk+1)
+  SetLimit(_arrQRY_USER_ALG,0)
+} //Procedure Free_QRY_ALG_USER;
+
 
 function ReplaceByValues(Formula:string; _value: string):string; cacheable;
 {
@@ -569,6 +633,34 @@ function ReplaceByValues(Formula:string; _value: string):string; cacheable;
                 var _okrug1 : double = double(ParseWord(_Parameter,2,','));
                _res := ''''+_iStrFunc.GetSumRate(_Sum, _okrug1)+'''';
          }
+        '%USER_INTERFACE(':
+        {
+          var _par2:string;
+          _par2:=ParseWord(_Parameter,2,',');
+          _Parameter:=ParseWord(_Parameter,1,',');
+
+          var ww_num:word=0;
+          if Getfirst tmp_UserAlt where (( _Parameter == tmp_UserAlt.Name )) <> tsOk {
+            Insert into tmp_UserAlt set tmp_UserAlt.Name:=_Parameter;
+          }
+          else  {
+            ww_num:=tmp_UserAlt.num;
+           }
+
+          do
+          { if ww_num=0
+            { ww_num:=count(_arrQRY_USER_ALG)+1;
+              SetLimit(_arrQRY_USER_ALG,ww_num);
+              if LoadvipRef(_arrQRY_USER_ALG[ww_num], 'SNG_QRY::QRY_ALG_USER_'+_Parameter){
+               update current tmp_UserAlt set tmp_UserAlt.Num:=ww_num;
+              }
+              else break;
+            }
+            _Res:=_arrQRY_USER_ALG[ww_num].Calc(_Par2);
+            Break;
+          } while True;
+        }
+
         end;
 //        mylog('_Res='+_Res);
         Result:=Substr(Result,1,ii_first-1)
@@ -627,6 +719,7 @@ function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; v
     }
 
 
+  Free_QRY_ALG_USER;
   m_service := HttpConnect_CreateEx('http://ya.ru', '', '', true);
   FNservice := m_service;
 

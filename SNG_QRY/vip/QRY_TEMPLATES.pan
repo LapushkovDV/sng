@@ -13,17 +13,18 @@ cmSetDefault: {
     SelectField(#TblTMPLTSP.XF$NAME);
     putcommand(cmpick);
   }
+  if curtable = tnQRY_TMPLT {
+    putcommand(cmDefault);
+  }
+
 }
-cmInsertRecord:
-{
+cmInsertRecord: {
   Insert Current #table;
 }
-cmUpdateRecord:
-{
+cmUpdateRecord: {
   Update Current #table;
 }
-cmDeleteRecord:
-{
+cmDeleteRecord: {
   if curtable = tnQRY_TMPLT {
       if isExistSpecTMPLT then  {
        message('У шаблона есть спецификация, удаление невозможно',error);

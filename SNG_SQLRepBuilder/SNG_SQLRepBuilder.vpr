@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <Viper Version="5005020000">
 	<ProjectManager>
-		<ProjectName>SNG_QRY</ProjectName>
+		<ProjectName>SNG_SQLRepBuilder</ProjectName>
 		<ProjectVarList>
 			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\ATL6\Update_10.1.2230\galsrv\"/>
 			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
@@ -159,7 +159,9 @@
 		<CheckAtlVer>6000005000</CheckAtlVer>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_SQLRepBuilder.prj" PosX="1" PosY="1" OpenEditor="True" Active="True"/>
+			<File Name="SNG_SQLRepBuilder.prj" PosX="59" PosY="40" OpenEditor="True"/>
+			<File Name="vip\SQLRunReport.vip" PosX="11" PosY="32" OpenEditor="True"/>
+			<File Name="vip\SQLBuildReport.vip" PosX="27" PosY="1482" OpenEditor="True" Active="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_SQLRepBuilder.prj" Priority="0">

@@ -1,0 +1,43 @@
+
+/*************************************************************************************************\
+* Наименование: TEST-пример реализации пользовательского алгоритма                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_BASE.vih
+//************************************************************
+const
+end;
+vipinterface QRY_ALG_USER_TEST implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_TEST;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = произвольный текстовый параметр
+#end
+Function Calc(_Parameter:string):string; {
+  #__UNUSED__(_Parameter)
+
+//  var iQRY_BASE : QRY_BASE;
+// если будем использовать такое логирование, то учтите, что на каждый запуск будет свой лог
+//  iQRY_BASE.MyLog('QRY_ALG_USER_TEST _Parameter = ' + _Parameter);
+  Result:=string(1);
+//  iQRY_BASE.MyLog('QRY_ALG_USER_TEST Result = ' + Result);
+//  var __log : string = iQRY_BASE.GetLogFile;
+//  PutFileToClient(__log,false);
+}//Function Calc(_pStatement:comp;_pStatementSpec:comp;_Parameter:string):double;
+
+#doc
+Наименование интерфейса
+#end
+function GetDescription : string; { Result:='Тестовый алгоритм - возвращает 1';
+}
+end.
+
