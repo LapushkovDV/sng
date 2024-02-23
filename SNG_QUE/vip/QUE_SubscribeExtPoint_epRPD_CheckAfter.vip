@@ -8,6 +8,8 @@
 
 \*************************************************************************************************/
 #include QUE_BASE.vih
+#include RPD.vih
+VipInterface Fill_QUE_EntriesForReview_RPD ;
 
 Interface Fill_QUE_EntriesForReview_RPD 'Интерфейс заполнения записей в очередь на рассмотрении по РПД';
 create view
@@ -26,20 +28,8 @@ create view
 ;
 end.
 
-handler with replace SNG_Fill_QUE_EntriesForReview_RPD_CHECK_AFTER on ExtensionPoint epRPD_CheckAfter(cContDoc: comp);
-action
- {
+handler with replace SNG_Fill_QUE_EntriesForReview_RPD_CHECK_AFTER on ExtensionPoint epRPD_CheckAfter(cContDoc: comp)
+action {
+  // тут в очередь будем ставить
 
- }
-  _except
-   on ExVip :
-    {
-     Message ( 'Ошибка регистрации главного меню "Заполнение каталогов"!'#13 + ExploreException, error );
-    }
-  _finally
-    {
-     if ( MenuID <> 0 )
-      DisposeLoadMenu ( MenuID );
-    }
-  timelog('GP_MenuDynamic_AddItems_GP_AllKat finish');
-} //handler with replace GP_MenuDynamic_AddItems_GP_AllKat on ExtensionPoint GP_MenuDynamic_AddItems
+}

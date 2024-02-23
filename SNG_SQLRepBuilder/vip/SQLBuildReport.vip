@@ -46,6 +46,7 @@ var
   SQLPrint : SQLPrintToXLT;
   strQuery: pointer;
   iGetNotKAUFiltr : GetNotKAUFiltr;
+  procedure InsAttrs(_name : string); forward;
 Create view
 var
  SelUsers, SelAdmins : string;
@@ -66,38 +67,41 @@ var
  sDescr, sDesgr : string;
  testmemo : string;
  SelModul :string;
+ _logQRY_DSQL : string;
 // wViewResult : ViewResult;
 As Select
 
 /* if (OborCfg.IFILTER[1] = 0, 'Excel-файл: ' + OborCFG.column,
                              'Excel-шаблон: '+ OborCFG.column)
                                              (FieldName = CaseShablon),  */
- if (OborCfg.IFILTER[1] = 0, 'Excel-файл: ' + OborCFG.column,
-                             'Excel-шаблон: '+ OborCFG.column)
+ if (OborCfg.IFILTER[1] = 0, OborCFG.column,
+                             'NOT VALID')
                                              (FieldName = sShablon),
  *
 from
   OborCfg,
 //  OborCfg snOborCfg,
-  TableCaption,
-  tempView,
-  AttrNam,
-  AttrVal,
-  AttrNam SelectAttrNam,
-  AttrVal SelectAttrVal,
-  AttrNam MacrosAttrNam,
-  AttrVal MacrosAttrVal,
+    TableCaption
+  , tempView
+  , AttrNam
+  , AttrVal
+  , AttrNam SelectAttrNam
+  , AttrVal SelectAttrVal
+  , AttrNam MacrosAttrNam
+  , AttrVal MacrosAttrVal
+  , AttrNam ExcelFileAttrNam
+  , AttrVal ExcelFileAttrVal
 
-  AttrVal AttrLog,
-  OborPick,
-  oborpick OborPickAdmin,
-  OborPick OborPickAdminGrp,
-  UserDeskRep,
-  PickREp,
-  Licenses,
+  , AttrVal AttrLog
+  , OborPick
+  , oborpick OborPickAdmin
+  , OborPick OborPickAdminGrp
+  , UserDeskRep
+  , PickREp
+  , Licenses
 
-  x$users,
-  Groups
+  , x$users
+  , Groups
 
  where
 ((
@@ -114,6 +118,14 @@ from
    and OborCfg.Nrec == MacrosAttrVal.cRec
    and MacrosAttrNam.Nrec == MacrosAttrVal.CATTRNAM
 
+
+   and 'EXCEL-файл' == ExcelFileAttrNam.Name
+   and word(9400)   == ExcelFileAttrNam.WTABLE
+   and word(9400)   == ExcelFileAttrVal.WTABLE
+   and OborCfg.Nrec == ExcelFileAttrVal.cRec
+   and ExcelFileAttrNam.Nrec == ExcelFileAttrVal.CATTRNAM
+
+
    and    UserName      == UserDeskRep.OwnName
    and OborCFG.Nrep + cgReport_30000  == UserDeskRep.nRep
 
@@ -127,6 +139,41 @@ from
 ))
 ;
 procedure ReDrawWin; forward;
+
+
+Function GenerateNewFilePath: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\DSQL_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string; {
+  if _logQRY_DSQL = '' then _logQRY_DSQL := GenerateNewFilePath+'.log';
+  result := _logQRY_DSQL;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  exit;
+//  if isvalidall(tnQRY_TMPLT)
+//  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+
+
+function PosR(_substr: string; _s: string): byte;
+var ww_str:string;
+    ii :word;
+    len_sub:word;
+{ ww_str:='';
+  Result:=0;
+  len_sub:=length(_substr);
+  for(ii:=length(_s);ii>0;ii--)
+  { ww_str:=substr(_s,ii,1)+ww_str;
+    if substr(ww_str,1,len_sub)=_substr
+    { Result:=ii;
+      break
+    }
+  }
+} //function PosR(substr: string; s: string): byte;
 
 function CreateTMPFiltTable(_Num : word):boolean;
 {
@@ -804,100 +851,80 @@ Window wSetShablon 'Настройка шаблона';
 Show at (, ,100 ,7);
 Screen ShablonSets 'Основная'(,,sci1Esc);
 fields
-  OborCfg.IFILTER[1] ('Тип отчета',,sci1Esc) :
-        [LIST 'Excel','Excel-шаблон'], protect;
-  sShablon     ('Шаблон отчетной формы',,sci13Esc) : Protect, PickButton;
-  Stroka :skip, Left;
+  OborCfg.IFILTER[1] ('Тип отчета',,sci1Esc) : [LIST 'Excel'], skip;
+//        [LIST 'Excel','Excel-шаблон'], protect;
+  sShablon     ('Шаблон EXCEL',,sci13Esc) : Protect, NoPickButton;
   OborCfg.IFILTER[0] ('Номер строки',,sci1Esc) : NoProtect;
+//  Stroka :skip, Left;
 buttons
-//  cmValue12,,, 'Выполнить',,;
-  cmValue14,,, 'Создать',,;
-  cmValue13,,, 'Настройка',,;
+  cmValue2,,, 'Загрузить',,;
+  cmValue1,,, 'Скачать',,;
+  cmValue3,,, 'Удалить',,;
 <<
-
-   `Тип отчета`            .@@@@@@@@@@@@@@@@@@@@
-   `Шаблон печатной формы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-   .@@@@@@@@@@@@@@@@@@@@@@@.@@@@@@@@
-                           <.  Создать  .>           <. Настройка  .>
+   `Тип отчета`          .@@@@@@@@@@@@@@@@@@@@
+   `Наименование файла`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+              <.  Загрузить  .><. Скачать  .><.  Удалить  .>
+   `Первая строка печати`.@@@@@@@@
 >>
 end;
 handleEvent
 
-cmvalue13: // настройка печати
-{
+cmValue2: { //загрузить файл
+  mylog('загрузить');
+  InsAttrs('EXCEL-файл');
+  if getfirst ExcelFileAttrVal = tsOK {
+        mylog(' exist ExcelFileAttrVal');
+     }
 
-  if (OborCFG.column = '')
-  {
-    ID := OborCfg.nRep+'_'+Replace(OborCfg.REPNAME,' ','_');
-    ID := Replace(ID,'(','_');
-    ID := Replace(ID,')','_');
-  #ifdef Atl51
-   // if not ExistDir(TranslatePath('%ClientStartPath%') + 'XLS\SQLReports')
-    set sXLTFileName := '%ClientStartPath%' + 'XLS\DSQlBuildReps\' + ID + '.xlt';
-  #else
-    Set sXLTFileName := StartPathName + 'XLS\DSQlBuildReps\' + ID + '.xlt';
-  #endif
-  }
-  else
-    sXLTFileName := OborCFG.column;
-  runinterface('F_XlsRep::xlrepsetup',1,ID,sXLTFileName);
-  OborCFG.column := sXLTFileName;
-  If InStr(')',OborCFG.column)>0 or InStr('(',OborCFG.column)>0
-    message('В наименовании шаблона есть скобки. Макросы работать не будут', Error);
-  Update current OborCfg;
+
+  var Path1 : string = GetFileName('*.xls;*.xlsx','Excel файл');
+
+   If (Trim(Path1) <> '') then {
+     var _FileName : string= Path1;
+     mylog('Path1 = ' + Path1);
+     var _posR : word;
+     _posR := PosR('\',Path1);
+     if _posR = 0 then _posR := PosR('/',Path1);
+     mylog('1 _posR = ' +_posR);
+     if _posR <> 0 then {
+      _FileName := substr(Path1,_posR + 1, length(Path1) - _posR);
+     }
+     mylog('_FileName = ' +_FileName);
+     //var _srvFileName : string = OleGenerateGUID + _FileName;
+     //mylog('_srvFileName = ' +_srvFileName);
+     //CopyMoveFile(Path1,_srvFileName,true,ecmfClientFrom + ecmfClientTo);
+     //GetFileFromClient(Path1, true);
+     //Path1 := ConvertClientPathToSrv(Path1);
+     mylog('ConvertClientPathToSrv Path1 = ' +Path1);
+     if ( FileExist(Path1) ) {
+        mylog('start ImportFileToMemo');
+      if ClearMemoField(ExcelFileAttrVal.VLVAR) { // какие то косяки с заменой чистой всплыли. будем чистить
+         ImportFileToMemo(ExcelFileAttrVal.VLVAR, Path1 ,false);
+       }
+     }
+     mylog('ok ImportFileToMemo');
+     //message(Path1);
+     OborCFG.column := _FileName;
+     update current OborCfg;
+     update current ExcelFileAttrVal;
+     rereadrecord;
+   }
 }
 
-cmValue14:
-{
-  //if GetFirst tableCaption <> tsok
-  SQL_Run(OborCFG.Nrec);
-  If InStr(')',OborCFG.column)>0 or InStr('(',OborCFG.column)>0
-    message('В наименовании шаблона есть скобки. Макросы работать не будут', Error);
-
-  SQLPrint.CreateShablon(OborCFG.Nrec);
-  ReDrawWin;
+cmvalue1: {// скачать
+  var _file : string = GenerateNewFilePath + '_' + OborCFG.column;
+  if ExportMemoToFile(ExcelFileAttrVal.VLVAR, _file, false) {
+   putfiletoclient(_file, false);
+ }
 }
-cmPick:
-{
-  case (CurField) of
-  #sShablon:
-  {
-    if OborCfg.IFILTER[1] = 0
-    {
-      var Path1 : string;
-      Path1:=OborCFG.column;
-      OborCFG.column:=GetFileName('*.xls','Excel файл');
-      If (Trim(OborCFG.column)='')
-        OborCFG.column:=Path1;
-   //   sShablon := OborCFG.column;
-  //    CaseShablon := 'Excel-файл: ' + sShablon;
-      update current OborCfg;
-    }
-    else
-    {
-      if (TRim(OborCFG.column) = '')
-      {
-        ID := Replace(OborCfg.nRep+'_'+OborCfg.REPNAME,' ','_');
-        ID := Replace(ID,'(','_');
-        ID := Replace(ID,')','_');
 
-        #ifdef Atl51
-          set sXLTFileName := TranslatePath('%ClientStartPath%') + 'XLS\DSQlBuildReps\' + ID + '.xlt';
-        #else
-          Set sXLTFileName := StartPathName + 'XLS\DSQlBuildReps\' + ID + '.xlt';
-        #endif
-      }
-      else
-        sXLTFileName := OborCFG.column;
-      runinterface('F_XlsRep::xlrepsetup',1,ID,sXLTFileName);
-    //   sShablon := sXLTFileName;
-      OborCFG.column := sXLTFileName;
-  //     CaseShablon := 'Excel-шаблон: ' + sShablon;
-      update current OborCfg;
-    }
-    ReDrawWin;
-  }
-  end;
+cmValue3: { // удалить
+ if ClearMemoField(ExcelFileAttrVal.VLVAR) {
+  OborCFG.column := '';
+  update current OborCfg;
+  update current ExcelFileAttrVal;
+  rereadrecord;
+ }
 }
 end;
 end;
@@ -1219,22 +1246,24 @@ procedure SetVisuals;
     Stroka := 'Первая строка печати';
     SetFieldState(#Stroka, sfVisible);
     SetFieldState(#OborCfg.IFILTER[0], sfVisible);
-    ShowButton (ShablonSets,  cmValue13, false);
-    ShowButton (ShablonSets,  cmValue14, false);
+//    ShowButton (ShablonSets,  cmValue1, false);
+//    ShowButton (ShablonSets,  cmValue3, false);
     SetFieldState(#OborCFG.iFILTER[3], sfVisible);
     SetFieldState(#OborCfg.sRep[9], sfVisible);
     SetTabbedSheetVisible (mMacros,true);
   }
+  /*
   else
   {
     ClearFieldState(#Stroka, sfVisible);
     ClearFieldState(#OborCfg.IFILTER[0], sfVisible);
-    ShowButton (ShablonSets,  cmValue13, true);
-    ShowButton (ShablonSets,  cmValue14, true);
+    ShowButton (ShablonSets,  cmValue1, true);
+    ShowButton (ShablonSets,  cmValue3, true);
     ClearFieldState(#OborCFG.iFILTER[3], sfVisible);
     ClearFieldState(#OborCfg.sRep[9], sfVisible);
     SetTabbedSheetVisible (mMacros,false);
   }
+  */
   /*if not ExistFile(OborCFG.column)
   {
     OborCFG.column := '';
@@ -1324,6 +1353,7 @@ procedure InsertNew;
 
   InsAttrs('SQl-запрос');
   InsAttrs('Макрос');
+  InsAttrs('EXCEL-файл');
 
   ClearBuffer(#OBORPICK);
 
@@ -1401,6 +1431,7 @@ Procedure SQLEdit(_cOborCFG : comp);
         RescanPanel(#OborCfg);
       }
     InsAttrs('Макрос');
+    InsAttrs('EXCEL-файл');
     ViewModulsAndAccess;
   }
 

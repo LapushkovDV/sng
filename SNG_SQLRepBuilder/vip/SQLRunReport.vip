@@ -21,16 +21,21 @@ var
 
  SQLPrint : SQLPrintToXLT;
 
+ _logQRY_DSQL : string;
+
 As Select
  *
 from
-  OborCfg,
-  TableCaption,
-  tempView,
-  UserDeskRep,
+    OborCfg
+  , TableCaption
+  , tempView
+  , UserDeskRep
 
-  AttrNam MacrosAttrNam,
-  AttrVal MacrosAttrVal
+  , AttrNam MacrosAttrNam
+  , AttrVal MacrosAttrVal
+  , AttrNam ExcelFileAttrNam
+  , AttrVal ExcelFileAttrVal
+
  where
 ((
     _OborCFG == OborCfg.Nrec
@@ -42,6 +47,14 @@ from
    and word(9400)   == MacrosAttrVal.WTABLE
    and OborCfg.Nrec == MacrosAttrVal.cRec
    and MacrosAttrNam.Nrec == MacrosAttrVal.CATTRNAM
+
+   and 'EXCEL-файл' == ExcelFileAttrNam.Name
+   and word(9400)   == ExcelFileAttrNam.WTABLE
+   and word(9400)   == ExcelFileAttrVal.WTABLE
+   and OborCfg.Nrec == ExcelFileAttrVal.cRec
+   and ExcelFileAttrNam.Nrec == ExcelFileAttrVal.CATTRNAM
+
+
 ))
 ;
 parameters
@@ -65,6 +78,20 @@ buttons
 >>
 
 end;
+Function GenerateNewFilePath: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ 'DSQL_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+function GetLogFile : string; {
+  if _logQRY_DSQL = '' then _logQRY_DSQL := GenerateNewFilePath+'.log';
+  result := _logQRY_DSQL;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  exit;
+//  if isvalidall(tnQRY_TMPLT)
+//  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
 
 function RunMacros : boolean;
 {
@@ -110,64 +137,70 @@ procedure PrintField(row1 : LongInt; num, col1 : word);
 
 procedure PrintExcel;
 {
+  MyLog('PrintExcel');
   ColumnCol := wSQLBuildReport.ColumnsCol;
+//  MyLog('PrintExcel');
 
   wViewResult.ReDrawCaption;
   wViewResult.ReDrawTable;
 
   var col1, k1 : word;
   var r1 : LongInt;
-  var NewExcel : boolean;
+//  var NewExcel : boolean;
   StartNewVisual(vtRotateVisual, vftimer, 'Печать отчета...', 0);
   xlKillExcel;
-  if OborCFG.column<>''
-  {
-    XLCreateNewExcelWithTemplate(OborCFG.column,true);
-    NewExcel := false;
+  var _ExcelFile : string = GenerateNewFilePath;
+  if OborCFG.column <> '' {
+      _ExcelFile := _ExcelFile + '_' + OborCFG.column;
+       ExportMemoToFile(ExcelFileAttrVal.VLVAR, _ExcelFile, false)
+   }
+  MyLog('_ExcelFile = ' + _ExcelFile);
+  //message(_ExcelFile);
+  if OborCFG.column<>'' {
+    XLCreateNewExcelWithTemplate(_ExcelFile,true);
+//    NewExcel := false;
     if (not xlIsExcelValid)
     {
      if (VisualizationActive())
       stopvisual('',0);
-      message('Ошибки при вызове Exel!файл шаблона не обработан'+Chr(13)+'Обратитесь к системному администратору',OkButton+error);
+      message('Ошибки при вызове Excel!файл шаблона не обработан'+Chr(13)+'Обратитесь к системному администратору',OkButton+error);
       exit;
       abort;
     }
   }
-  else
-  {
+  else {
     // открыть файл
-    xlOpenNewExcel(true);
-    NewExcel := true;
+    _ExcelFile := GenerateNewFilePath+'.xlsx';
+    xlCreateExcel(_ExcelFile, true);
+//    NewExcel := true;
   }
-  if (xlIsExcelValid)
-  {
 
+  MyLog('_ExcelFile = ' + _ExcelFile);
+  MyLog('xlIsExcelValid = ' + xlIsExcelValid);
+
+  if (xlIsExcelValid) {
     xlCreateMatrix( RecordsInTable(#tempView), ColumnCol);
-    if GetFirst tableCaption = tsok
-    {
+    if GetFirst tableCaption = tsok {
       r1:=0;
 
-      _loop tempView
-      {
+      _loop tempView {
         col1:=0;
         r1++;
-        for (k1:=1;k1<=ColumnCol;k1++)
-        {
+        for (k1:=1;k1<=ColumnCol;k1++) {
           col1++;
-          if tableCaption.fldName[k1] <> '' or  tableCaption.fldType[k1] <> 0
-          {
+          if tableCaption.fldName[k1] <> '' or  tableCaption.fldType[k1] <> 0 {
             PrintField(r1,k1,col1);
           }
         }
       }
     }
-
   }
+
   xlWriteMatrixToExcel(OborCFG.IFilter[0],1);
   xlFreeMatrix();
   RunMacros;
   xlKillExcel;
-
+//  putfiletoclient(_ExcelFile, false);
   if (VisualizationActive())
     stopvisual('',0);
 }
@@ -263,8 +296,8 @@ cmValue13:
   if bCanPrint
     if OborCfg.iFilter[1] = 0
       PrintExcel
-    else
-      SQLPrint.PrintToShablon(OborCFG.Nrec);
+//    else
+//      SQLPrint.PrintToShablon(OborCFG.Nrec);
 }
 
 cmEdit:
