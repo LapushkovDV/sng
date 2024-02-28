@@ -1,0 +1,74 @@
+
+/*************************************************************************************************\
+* Наименование: TEST-пример реализации пользовательского алгоритма                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_WERKS_BY_ORGEH implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_WERKS_BY_ORGEH;
+
+function getWerksByOE(_nRec: comp): string; forward;
+
+create view
+  as select 
+    Catalogs.nRec
+  from
+    Catalogs,
+    Catalogs Parent
+  where ((
+    Catalogs.cParent == Parent.nRec 
+  ))
+;
+
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = произвольный текстовый параметр
+#end
+Function Calc(_Parameter:string):string; {
+  
+  var cNrec : comp = comp(_Parameter);
+
+  result := getWerksByOE(cNrec);
+
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  Result:='Возвращает код структурного подразделения по nRec орг.единицы (Catalogs)';
+}
+
+function getWerksByOE(_nRec: comp): string; {
+
+  if getFirst fastfirstrow Catalogs where ((_nRec == nRec)) <> tsOk {
+    result := 'N/A';
+    exit;
+  }
+
+  if getFirst fastfirstrow Parent <> tsOk {
+    result := 'N/A';
+    exit;
+  }
+
+  if Parent.code = 'ПАО СНГ' {
+    result := Catalogs.code;
+    exit;
+  } else {
+    result := getWerksByOE(Parent.nRec);
+  }
+}
+
+end.
+

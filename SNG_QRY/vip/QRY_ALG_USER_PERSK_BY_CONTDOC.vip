@@ -1,0 +1,87 @@
+
+/*************************************************************************************************\
+* Наименование: Возвращает категорию сотрудника (PERSK) по ContDoc.nRec                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_PERSK_BY_CONTDOC implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_PERSK_BY_CONTDOC;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = ContDoc.nRec
+#end
+
+create view
+  var
+    cNrec: comp;
+  as select 
+    ContDoc.nRec
+  from
+    ContDoc,
+    Persons,
+    KlSovm,
+    Appointments,
+    AppHist,
+    KlKatego
+  where ((
+        cNrec == ContDoc.nRec
+    and ContDoc.person == Persons.nRec
+    and Persons.cSovm == KlSovm.nRec
+    and ContDoc.cStr == Appointments.nRec
+    and Appointments.nRec == AppHist.cAppoint
+    and AppHist.cSpr4 == KlKatego.nRec
+  ))
+;
+
+Function Calc(_Parameter:string):string; {
+  
+  cNrec := comp(_Parameter);
+
+  if (getFirst fastfirstrow ContDoc <> tsOk or getFirst fastfirstrow Persons <> tsOk) {
+    result := 'N/A';
+    exit;
+  }
+
+  if (getFirst fastfirstrow KlSovm = tsOk) {
+    case KlSovm.sovm of
+      2: {
+        result := '06';
+        exit;
+      }
+      4: {
+        result := '07';
+        exit;
+      } 
+    end; //case   
+  }
+
+  if (getFirst fastfirstrow Appointments = tsOk 
+		and getFirst fastfirstrow AppHist = tsOk 
+		and getFirst fastfirstrow KlKatego = tsOk) {
+    result := lPadCh(trim(KlKatego.kod),'0',2);
+  } else {
+    result := 'N/A';
+  }
+
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  Result:='Возвращает категорию сотрудника (PERSK) по ContDoc.nRec';
+}
+
+end.
+

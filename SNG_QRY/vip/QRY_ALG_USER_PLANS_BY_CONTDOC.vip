@@ -1,0 +1,71 @@
+
+/*************************************************************************************************\
+* Возвращает код штатной должности по nRec приказа (ContDoc)                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+#include QRY_ALG_USER_PERSK_BY_CONTDOC.vip
+//************************************************************
+
+vipinterface QRY_ALG_USER_PLANS_BY_CONTDOC implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_PLANS_BY_CONTDOC;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = ContDoc.nRec
+#end
+
+create view
+  var
+    cNrec: comp;
+  as select 
+    ContDoc.nRec
+  from
+    ContDoc,
+    Appointments,
+    StaffStruct
+  where ((
+        cNrec == ContDoc.nRec
+    and ContDoc.cStr == Appointments.nRec
+    and Appointments.StaffStr == StaffStruct.nRec
+  ))
+;
+
+function calc(_Parameter:string):string; {
+  
+  cNrec := comp(_Parameter);
+  var iPersk: IQRY_ALG_USER(QRY_ALG_USER_PERSK_BY_CONTDOC);
+
+  result := '99999999';
+
+  case iPersk.calc(ContDoc.nRec) of
+    '06','07': {
+      exit;
+    }
+  end; //case
+
+  if (getFirst fastFirstRow ContDoc = tsOk 
+        and getFirst fastFirstRow Appointments = tsOk
+        and getFirst fastFirstRow StaffStruct = tsOk ) {
+    result := StaffStruct.sCodeSt;
+  }
+
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  Result:='Возвращает код штатной должности по nRec приказа (ContDoc)';
+}
+
+end.
+

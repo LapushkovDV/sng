@@ -1,0 +1,80 @@
+
+/*************************************************************************************************\
+* Возвращает код штатной должности по nRec назначения (Appointments)                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_ANSVH_BY_APPOINTMENTS implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_ANSVH_BY_APPOINTMENTS;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = Appointments.nRec
+#end
+
+create view
+  var
+    cNrec: comp;
+  as select 
+    Appointments.nRec
+  from
+    Appointments,
+    AppHist,
+    Catalogs
+  where ((
+        cNrec == Appointments.nRec
+    and Appointments.nRec == AppHist.cAppoint
+    and AppHist.cRez2 == Catalogs.nRec
+  ))
+;
+
+function calc(_Parameter:string): string; {
+  
+  cNrec := comp(_Parameter);
+
+  result := '';
+
+  if (getFirst fastFirstRow Appointments <> tsOk 
+      or getFirst fastFirstRow AppHist <> tsOk 
+      or getFirst fastFirstRow Catalogs <> tsOk) {
+    exit;
+  }
+
+  case Appointments.payModel of
+    20: {
+      if (Catalogs.sysCode = -31675 or Catalogs.sysCode = -31676) {
+        result := '1';
+      } else {
+        result := '3'
+      }
+    }
+    30, 40: {
+      if (Catalogs.sysCode = -31675 or Catalogs.sysCode = -31676) {
+        result := '2';
+      } else {
+        result := '4'
+      }
+    }
+  end; //case
+
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  result:='Возвращает код Договора о найме по nRec назначения (Appointments)';
+}
+
+end.
+

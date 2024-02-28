@@ -366,7 +366,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
                        and tForExportJSON.cLvl == QRY_INST_FLD_LOOP.cLevel)) {
        if pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD_LOOP.FieldJSON) <> 0 then { // по сути мы сгенерировали пустые секции по уровням вложенности
-           mylog('QRY_INST_FLD_LOOP.FieldJSON like  ' + coYOUDONTHAVETOSEETHIS + ' continue');
+           //mylog('QRY_INST_FLD_LOOP.FieldJSON like  ' + coYOUDONTHAVETOSEETHIS + ' continue');
            continue; //
         }
 
