@@ -108,6 +108,7 @@ from
  , Tmp_Alg
  , tAbstrResultValues
  , QRY_Instance QRY_Instance_1
+ , QRY_Instance_FLD QRY_INST_FLD_CHECK_LVL
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_1
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_2
@@ -192,8 +193,27 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
     result := true;
   }
 }
+
+Procedure addSysFieldsForLevels; {
+  _loop QRY_INST_FLD_LVL {
+    if getfirst QRY_INST_FLD_CHECK_LVL where ((QRY_INST.nrec == QRY_INST_FLD_CHECK_LVL.cInstance
+                                   and QRY_INST_FLD_LVL.nrec == QRY_INST_FLD_CHECK_LVL.cLevel )) <> tsOK {
+      var _sysYOUDONTHAVETOSEETHIS : string = coYOUDONTHAVETOSEETHIS + string(QRY_INST_FLD_LVL.nrec)+ replaceProhibitSymbols(OleGenerateGUID);
+      insert current QRY_INST_FLD_CHECK_LVL set
+         QRY_INST_FLD_CHECK_LVL.cLevel       := QRY_INST_FLD_LVL.nrec
+       , QRY_INST_FLD_CHECK_LVL.cInstance    := QRY_INST.nrec
+       , QRY_INST_FLD_CHECK_LVL.TableName    := _sysYOUDONTHAVETOSEETHIS
+       , QRY_INST_FLD_CHECK_LVL.TableCode    := word(-1)
+       , QRY_INST_FLD_CHECK_LVL.FieldSynonim := _sysYOUDONTHAVETOSEETHIS
+       , QRY_INST_FLD_CHECK_LVL.FieldJSON    := _sysYOUDONTHAVETOSEETHIS
+      ;
+    }
+  }
+}
+
 function checkFieldsDuplicate(var _err: string) : boolean; {
    if VisualizationActive then setvisualheader('проверка полей запроса');
+    addSysFieldsForLevels;
     mylog('проверка полей запроса');
   delete all tCheckFields_1;
   _loop QRY_INST_FLD {
@@ -332,6 +352,8 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
    if getfirst QRY_INST_FLD_LVL_LOOP_2 where ((_cLVL == QRY_INST_FLD_LVL_LOOP_2.nrec)) <> tsOK then exit;
 
+//      JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
+
   _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
     if isFound = false {
       JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
@@ -343,6 +365,11 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
     var _arrNumsOfValue : array[1..1] of word;
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
                        and tForExportJSON.cLvl == QRY_INST_FLD_LOOP.cLevel)) {
+       if pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD_LOOP.FieldJSON) <> 0 then { // по сути мы сгенерировали пустые секции по уровням вложенности
+           mylog('QRY_INST_FLD_LOOP.FieldJSON like  ' + coYOUDONTHAVETOSEETHIS + ' continue');
+           continue; //
+        }
+
        if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
         var _i : word = 0;
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {

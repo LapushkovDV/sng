@@ -132,6 +132,8 @@
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="669" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\SQLBuildReport.vip" Caption="Нумерованная закладка 1" Line="881" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\SQLRunReport.vip" Caption="Нумерованная закладка 1" Line="143" NumIndex="1" MarkerType="mtNumBookmark" Comment="message();"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -159,9 +161,11 @@
 		<CheckAtlVer>6000005000</CheckAtlVer>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_SQLRepBuilder.prj" PosX="59" PosY="40" OpenEditor="True"/>
-			<File Name="vip\SQLRunReport.vip" PosX="11" PosY="32" OpenEditor="True"/>
-			<File Name="vip\SQLBuildReport.vip" PosX="27" PosY="1482" OpenEditor="True" Active="True"/>
+			<File Name="SNG_SQLRepBuilder.prj" PosX="82" PosY="34" OpenEditor="True"/>
+			<File Name="vip\SQLRunReport.vip" PosX="3" PosY="203" OpenEditor="True" Active="True"/>
+			<File Name="vip\SQLBuildReport.vip" PosX="3" PosY="861" OpenEditor="True"/>
+			<File Name="vip\SQLFilts.vip" PosX="82" PosY="316" OpenEditor="True"/>
+			<File Name="vip\SQLSetFilts.vip" PosX="8" PosY="96" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_SQLRepBuilder.prj" Priority="0">

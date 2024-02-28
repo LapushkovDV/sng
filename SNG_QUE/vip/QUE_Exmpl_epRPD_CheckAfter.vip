@@ -1,0 +1,64 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QRY_OUT.vih
+#include DeclarePointsOrders.vih
+
+#include QUE_Exmpl_epRPD_CheckAfter.vih
+
+Interface QUE_Exmpl_epRPD_CheckAfter 'Интерфейс заполнения записей в очередь на рассмотрении по РПД';
+create view
+as select
+Titledoc.nrec
+from
+Titledoc
+
+;
+
+procedure generateJson(NrecTitleDoc: comp); {
+
+  if getfirst Titledoc where ((NrecTitleDoc == Titledoc.nrec)) <> tsOK then exit;
+
+  if Titledoc.WSTATUS <> 1 then exit;   //тут пишем все проверки приказа, например, статус приказа должен быть таким то
+  //может какой то определенный статус надо, например "согласовано в директуме"
+
+
+ // если проверки ок, то генерируем JSON
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  var FNservice, _JSON : tptr;
+  Var _fQRY_INST_CODE : string = 'Сюда вставляем код экземпляра запроса по которому генерируем JSON';
+
+  if iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE
+                                                              , Titledoc.nrec
+                                                              , FNservice
+                                                              , _JSON
+                                                              , _err)
+   {
+   var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+   HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+   PutFileToClient(_jsonFile,false);
+   message('Сгенерирован файл _jsonFile');
+  }
+  var __log : string = iQRY_OUT.GetLogFile;
+  PutFileToClient(__log,false);
+}
+;
+end.
+
+handler with replace SNG_Fill_QUE_EntriesForReview_RPD_CHECK_AFTER on ExtensionPoint epConfirmOrder (NrecTitleDoc: Comp)
+
+action {
+  var iQUE_Exmpl_epRPD_CheckAfter : QUE_Exmpl_epRPD_CheckAfter;
+  iQUE_Exmpl_epRPD_CheckAfter.generateJson(NrecTitleDoc);   // тут в очередь будем ставить
+
+   result := true; //вне зависимости от того, что произошло, всегда продолжаем работу
+
+
+}

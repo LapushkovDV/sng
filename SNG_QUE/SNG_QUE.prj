@@ -20,3 +20,4 @@
 #make "vip\QUE_Base.vip"
 #make "vip\QUE_SubscribeExtPoint_epRPD_CheckAfter.vip"
 #make "vip\QUE_View_QUE_EntriesForReview.vip"
+#make "vip\QUE_Exmpl_epRPD_CheckAfter.vip"

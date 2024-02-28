@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <Viper Version="5005020000">
 	<ProjectManager>
-		<ProjectName>SNG_QUE</ProjectName>
+		<ProjectName>SNG_QRY</ProjectName>
 		<ProjectVarList>
 			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\ATL6\Update_10.1.2230\galsrv\"/>
 			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
@@ -63,6 +63,16 @@
 				<PackFR>True</PackFR>
 			</VipFR>
 		</CoreVip>
+		<ActiveIndex>1</ActiveIndex>
+		<ProjectItems>
+			<ProjectCompileFile FileName="SNG_QUE.prj" Priority="0">
+				<CoreVip>
+					<VipParameters>
+						<StrictVip>True</StrictVip>
+					</VipParameters>
+				</CoreVip>
+			</ProjectCompileFile>
+		</ProjectItems>
 		<DatabaseConfiguration>
 			<ConfigurationList>
 				<VipDatabase>
@@ -81,6 +91,12 @@
 				</VipDatabase>
 			</ConfigurationList>
 		</DatabaseConfiguration>
+		<FileList>
+			<File Name="SNG_QUE.prj" PosX="19" PosY="23" OpenEditor="True"/>
+			<File Name="vip\QUE_Exmpl_epRPD_CheckAfter.vip" PosX="22" PosY="28" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_Exmpl_epRPD_CheckAfter.vih" PosX="63" PosY="28" OpenEditor="True"/>
+			<File Name="..\..\..\..\Users\Дмитрий\YandexDisk\Work\!Gal_Source\Z_M_L_F_C_20230112\CompSrc\Z\Z_StaffOrders\vip\ContainerOfOrders.vip" PosX="33" PosY="1599" OpenEditor="True"/>
+		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
 			<Marker FileName="Vip\GP_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="213" NumIndex="1" MarkerType="mtNumBookmark"/>
@@ -110,4 +126,52 @@
 			<Marker FileName="Source\shk_barcode_Generate.pan" Caption="Нумерованная закладка 1" Line="181" NumIndex="1" MarkerType="mtNumBookmark" Comment="cfsSetProp('c_BRSSHK_BARCODELINK_SHK_TSD.NAME_ТСД'          ,'Visible',(wgettune('SHK.CONNECTIONTYPE') = 1));"/>
 			<Marker FileName="Source\SHK_InOut.vip" Caption="Нумерованная закладка 2" Line="1105" NumIndex="2" MarkerType="mtNumBookmark" Comment="if _pIdent = co_BatchMode and"/>
 			<Marker FileName="Source\SHK_USB_export_saldobox.vip" Caption="Нумерованная закладка 1" Line="86" NumIndex="1" MarkerType="mtNumBookmark" Comment="set _cSHKObj := _iSHK_TEMPLATES.fnSelObjActions(coTypeDocBoxSaldo);"/>
-			<Marker FileName="Source\SHK_ADMIN_PANEL.vip" Caption="Нумерованная закладка 1" Line="143" NumIndex="1" MarkerType="mtNumBookmark" Comment="if not checkDestPathfromTune then processtext
+			<Marker FileName="Source\SHK_ADMIN_PANEL.vip" Caption="Нумерованная закладка 1" Line="143" NumIndex="1" MarkerType="mtNumBookmark" Comment="if not checkDestPathfromTune then processtext(_JSONfile, vfNewTitle Or vfMacroSize, 'Сгенерированный JSON OBJECTVALUES');"/>
+			<Marker FileName="SHK_VIP.prj" Caption="Нумерованная закладка 1" Line="100" NumIndex="1" MarkerType="mtNumBookmark" Comment="coTypeDocBoxSaldo = 101423 ;//100000+1430 Сальдо по ячейкам хранения"/>
+			<Marker FileName="Source\SHK_Base.vip" Caption="Нумерованная закладка 1" Line="587" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\SHK_InOut.vip" Caption="Нумерованная закладка 1" Line="618" NumIndex="1" MarkerType="mtNumBookmark" Comment="600,101,201,501,602,601 : Result := GenerateJSON_VALUES_KATSOPR (_ActionName, _pIdent, _err, ); //'KATSOPR' // накладная на внутренее перемещение"/>
+			<Marker FileName="Source\shk_barcode_Generate.vip" Caption="Нумерованная закладка 1" Line="312" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst fastfirstrow k"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 2" Line="471" NumIndex="2" MarkerType="mtNumBookmark" Comment="}"/>
+			<Marker FileName="Source\SHK_TEMPLATES.pan" Caption="Нумерованная закладка 1" Line="331" NumIndex="1" MarkerType="mtNumBookmark" Comment="SHKObjSP_BTN.CloseDoc   'Закрывать','после нажатия' ('Закрывать документ после выполнения действия по кнопке') : [3] , [List 0 'Нет','Да'],Protect;"/>
+			<Marker FileName="Source\SHK_TEMPLATES.vip" Caption="Нумерованная закладка 1" Line="199" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 1" Line="456" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst katotped where ((SpSopr_makeAction.cotpEd == katotped.nrec)) = tsOK {"/>
+			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 2" Line="625" NumIndex="2" MarkerType="mtNumBookmark" Comment="_ckatBox_to := _iSHK_InOut.GetKATBOXNRECByIdent(_ActionSpName, _tElements.value);"/>
+			<Marker FileName="Source\SHK_MakeMove.vip" Caption="Нумерованная закладка 1" Line="984" NumIndex="1" MarkerType="mtNumBookmark" Comment="MTov := ShowNalMKRMsg2Log(ResTov);"/>
+			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="650" NumIndex="1" MarkerType="mtNumBookmark" Comment=", SpBox_makeAction.cSALDOBOX := SaldoBox_makeAction.nrec"/>
+			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 2" Line="1291" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst"/>
+			<Marker FileName="source\InterfaceSqlJournResp.vip" Caption="Нумерованная закладка 1" Line="2045" NumIndex="1" MarkerType="mtNumBookmark" Comment="cmDeleteRecord:{   Delete current JOBJECTS;   }"/>
+			<Marker FileName="source\QRY\QRY_INSTANCE.pan" Caption="Нумерованная закладка 1" Line="120" NumIndex="1" MarkerType="mtNumBookmark" Comment="QRY_INST_FLD.FieldSynonim  'Поле','синоним' : [5] , NoProtect,NoPickButton;"/>
+			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 2" Line="197" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 3" Line="387" NumIndex="3" MarkerType="mtNumBookmark" Comment="result := HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, _JSONObj_Array);"/>
+			<Marker FileName="..\..\..\..\Users\Дмитрий\YandexDisk\Work\Энергомаш\GP_GIT\GP_Staff\Vip\GP_KPI_Alg.vip" Caption="Нумерованная закладка 1" Line="2403" NumIndex="1" MarkerType="mtNumBookmark" Comment="if tmp_KPI_Alg.KeyR&lt;&gt;''"/>
+			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="135" NumIndex="1" MarkerType="mtNumBookmark" Comment="procedure insert_notable_fields;{"/>
+			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="678" NumIndex="1" MarkerType="mtNumBookmark"/>
+		</MarkerList>
+		<BreakPointList>
+			<BreakPoint FileName="Vip.prj" Line="90"/>
+			<BreakPoint FileName="SOURCE\MR_RolesAndUsers.vip" Line="13"/>
+			<BreakPoint FileName="Source\shk_barcodeFunc.vip" Line="218"/>
+			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="206"/>
+			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
+			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
+		</BreakPointList>
+		<CompileMessengerList>
+			<CompileMessenger Name="C:\Galaktika\_git\sng\HR_643\HR_643.prj" DateTimeStart="45318,8639688194" DateTimeCompile="0,000545069444342516" StateHistory="False">
+				<CompileMessageList>
+					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OPENRESOURCES&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\GALSRV\C_EXTFUN.RES&quot;" SourceLine="-1" SourceColumn="-1"/>
+					<CompileMessage MessageType="mtError" MessageText="Для компиляции &quot;record as table&quot; необходимо соединение с БД" SourceFileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\COMPSRC\L\L_MCU\VIP\KATEDIZM\OEDIZM\oEdIzm.vih" SourceLine="27" SourceColumn="47">
+						<StackIncludeList>
+							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloTypes.inc" Line="19" Column="1"/>
+							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloVars.inc" Line="9" Column="1"/>
+							<StackInclude FileName="C:\Galaktika\_git\sng\HR_643\HR_643.prj" Line="4" Column="1"/>
+						</StackIncludeList>
+					</CompileMessage>
+					<CompileMessage MessageType="mtEndCompile" MessageText="27.01.2024 20:44:54"/>
+				</CompileMessageList>
+			</CompileMessenger>
+		</CompileMessengerList>
+		<CheckAtlVer>6000005000</CheckAtlVer>
+	</ProjectManager>
+</Viper>

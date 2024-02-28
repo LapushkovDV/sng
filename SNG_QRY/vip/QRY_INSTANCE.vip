@@ -17,11 +17,18 @@ Interface QRY_INSTANCE 'Экземпляры запросов. Просмотр/редактирование', CYAN;
 
 create view
 var  ShowpanInstWithOutTmplt : byte;
+
+condition byQRY_INST_FLD_YOUDONTHAVETOSEETHIS pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD.FieldSynonim) = 0
+
 ;
 
 #include QRY_INSTANCE.pan
 
 handleevent // фейса
+cminit:{
+  if not ConditionActiveInLeave(tcbyQRY_INST_FLD_YOUDONTHAVETOSEETHIS, tnQRY_INST_FLD)
+   then PushConditionForLeave(tcbyQRY_INST_FLD_YOUDONTHAVETOSEETHIS, tnQRY_INST_FLD);
+}
 cmCheckField: {
    case curfield of
     #ShowpanInstWithOutTmplt: {

@@ -1,0 +1,30 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#ifnDef _QUE_QUE_EXMPL_EPRPD_CHECKAFTER_INCLUDED_
+#define _QUE_QUE_EXMPL_EPRPD_CHECKAFTER_INCLUDED_
+
+#component "SNG_QUE"
+
+ObjInterface oQUE_Exmpl_epRPD_CheckAfter;
+public:
+#doc
+#end
+
+#doc
+Получить путь на текущий файл логов
+#end
+procedure generateJson(NrecTitleDoc : comp);
+
+end;
+
+VipInterface QUE_Exmpl_epRPD_CheckAfter Implements oQUE_Exmpl_epRPD_CheckAfter #Licensed_Free;
+
+#end

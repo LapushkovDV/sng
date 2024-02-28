@@ -92,14 +92,14 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="24" PosY="28" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="18" PosY="26" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="11" PosY="16" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vih" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="11" PosY="19" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vih" PosX="21" PosY="15" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="67" PosY="625" OpenEditor="True" Active="True"/>
-			<File Name="vip\QRY_OUT.vih" PosX="21" PosY="16" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="95" PosY="17" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="11" PosY="12" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vih" PosX="76" PosY="17" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="33" PosY="66" OpenEditor="True"/>
 			<File Name="vip\QRY_Base.vip" PosX="47" PosY="292" OpenEditor="True"/>
 			<File Name="..\SNG_QUE\vip\QUE_Base.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="39" PosY="215" OpenEditor="True"/>
