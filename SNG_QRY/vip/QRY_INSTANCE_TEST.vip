@@ -23,7 +23,8 @@ Interface QRY_INSTANCE_TEST 'Экземпляры запросов. ТЕСТОВЫЙ ИНТЕРФЕЙС', CYAN;
 create view
  var
      _fQRY_INST_CODE
-   , _AddWhereString : string;
+   , _AddWhereString
+   , _strParameter   : string;
      _RootTableNrec  : comp;
 ;
   Screen ScrQRY_INSTANCE_TEST (,,Sci1Esc);
@@ -31,6 +32,7 @@ create view
     noTableNavigation;
   Fields
     _fQRY_INST_CODE : NoProtect;
+    _strParameter   : noprotect;
     _RootTableNrec  : NoProtect;
     _AddWhereString : NoProtect;
   buttons
@@ -40,6 +42,9 @@ create view
 Демонстрация работы формирования вызова объекта экземпляра запроса для формирования JSON
 
    Код экземпляра запроса.@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    параметр, значение которого будет возвращено постфункцией %EXTERNALPARAMETER% .@@@@@@@@@@@
+
 
   `1 по NREC  корневой таблицы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <.    по NREC   .>
 
@@ -53,7 +58,7 @@ handleevent // фейса
   var iQRY_OUT : QRY_OUT new;
   var _err : string = '';
   var FNservice, _JSON : tptr;
-  if not iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE,_RootTableNrec, FNservice, _JSON, _err) {
+  if not iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE,_RootTableNrec, FNservice, _JSON, _err, _strParameter) {
    message('Ошибка построения запроса',error);
 
    }
@@ -70,7 +75,7 @@ handleevent // фейса
   var iQRY_OUT : QRY_OUT new;
   var _err : string = '';
   var FNservice, _JSON : tptr;
-  if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE,_addWhereString, FNservice, _JSON, _err){
+  if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE,_addWhereString, FNservice, _JSON, _err, _strParameter){
 
    message('Ошибка построения запроса',error);
 

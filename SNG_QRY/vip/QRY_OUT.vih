@@ -63,9 +63,13 @@ function ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWh
      _addWhereString - условие, которое будет добавлено в запрос
      JSON - возвращаемый. Ссылка на сгенерированный JSON
      _err - возвращаемый. Содержит строковое описание ошибки
+     _strParameter - параметр, значение которого будет возвращено постфункцией %EXTERNALPARAMETER%
 #end
-function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string): boolean;
-
+function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string;
+                                                         _addWhereString : string;
+                                                         var FNservice, _JSON : tptr;
+                                                         var _err : string;
+                                                         _strParameter : string = ''): boolean;
 #doc
 Генерация JSON на основе экземпляра запроса (по конкретной записи Генерация JSON на основе экземпляра запроса по NREC)
   TRUE - Успешное выполнение
@@ -74,10 +78,13 @@ function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : strin
      _RootTableNrec - NREC корневой таблицы (Таблица указана в шаблоне запроса)
      _JSON - возвращаемый. Содержит результат выполнения запроса
      _err - возвращаемый. Содержит строковое описание ошибки
+     _strParameter - параметр, значение которого будет возвращено постфункцией %EXTERNALPARAMETER%
 #end
-function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string): boolean;
-
-
+function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string;
+                                                       _RootTableNrec : comp;
+                                                       var FNservice, _JSON : tptr;
+                                                       var _err : string;
+                                                       _strParameter : string = ''): boolean;
 #doc
   Функция открывает окно выбора алгоритмов и возвращает строку с алгоритмом
 #end

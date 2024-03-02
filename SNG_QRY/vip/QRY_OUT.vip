@@ -488,6 +488,8 @@ Function Fill_Tmp_alg : boolean;
    Fill_Tmp_alg_One(10,'%GETKOP(%VALUE%, okrug1)%','Выделяет копейки из суммы = %VALUE% и округляет с указанной точностью');
    Fill_Tmp_alg_One(11,'%GETSUMRATE(%VALUE%,okrug1)%','Округляет сумму=%VALUE% с указанной точностью и преобразует в строку');
    Fill_Tmp_alg_One(12,'%GETFIODIR%','ФИО из настройки "Право подписи приказов по персоналу" или из настройки "Руководитель"');
+   Fill_Tmp_alg_One(13,'%EXTERNALPARAMETER%','Возвращает входной внешний параметр ()');
+
 
    Add_UserInterfaces;
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
@@ -547,7 +549,7 @@ Procedure Free_QRY_ALG_USER;
 } //Procedure Free_QRY_ALG_USER;
 
 
-function ReplaceByValues(Formula:string; _value: string):string; cacheable;
+function ReplaceByValues(Formula:string; _value: string; _strParameter: string = ''):string; cacheable;
 {
   Fill_Tmp_alg;
 //  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
@@ -660,6 +662,9 @@ function ReplaceByValues(Formula:string; _value: string):string; cacheable;
                 var _okrug1 : double = double(ParseWord(_Parameter,2,','));
                _res := ''''+_iStrFunc.GetSumRate(_Sum, _okrug1)+'''';
          }
+         '%EXTERNALPARAMETER%':{
+           _res := ''''+_strParameter+'''';
+         }
         '%USER_INTERFACE(':
         {
           var _par2:string;
@@ -703,19 +708,19 @@ function ReplaceByValues(Formula:string; _value: string):string; cacheable;
   //mylog('ReplaceByValues = ' +Result);
 } //function ReplaceByValues(Formula:string):string;
 
-function ApplyFormulaToValue(_value, _Formula: string) : string; {
+function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) : string; {
   //mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
   result := _value;
   if trim(_Formula)<> '' {
     var _error : string;
 //    mylog('ApplyFormulaToValue _Formula = '+ _Formula);
-    var _ReplaceByValues : string = ReplaceByValues(_Formula, _value );
+    var _ReplaceByValues : string = ReplaceByValues(_Formula, _value , _strParameter);
 //    mylog('ApplyFormulaToValue _ReplaceByValues = '+ _ReplaceByValues);
     result := LotExpressionFunc(_ReplaceByValues, _error);
     if trim(_error) <> '' then mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
    }
 }
-function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; var FNservice, JSONSJSON : TPtr;  var _err: string): boolean; {
+function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; var FNservice, JSONSJSON : TPtr;  var _err: string; _strParameter : string = ''): boolean; {
 
  if VisualizationActive then setvisualheader('JSON формирование временной таблицы из результата запроса');
 
@@ -771,7 +776,7 @@ function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; v
         var _i : word = 1;
         clearbuffer(tntAbstrResultValues);
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
-           tAbstrResultValues.value[_i] := ApplyFormulaToValue(_iRes.row.val(arrAbstrResultFldNames[_i]),arrFldFormulas[_i]);
+           tAbstrResultValues.value[_i] := ApplyFormulaToValue(_iRes.row.val(arrAbstrResultFldNames[_i]),arrFldFormulas[_i], _strParameter);
          }
         insert current tAbstrResultValues;
      } while _iRes.getNext = tsOk;
@@ -912,7 +917,10 @@ function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean
   var _JSON : tptr;
 
   var FNservice : tptr;
-  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then {
+    stopvisual('',0);
+    exit;
+  }
   var _file : string = GenerateNewFile+'.json';
   HttpConnect_SaveToFileEx(FNservice, _JSON, _file, cpUTF8, false);
   stopvisual('',0);
@@ -921,24 +929,24 @@ function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean
 }
 
 
-function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string): boolean;{
+function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string; _strParameter : string = ''): boolean;{
   var _iRes : iResultSet;
   result := false;
 
   if not ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE, _RootTableNrec, _iRes, _err) then exit;
 
-  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err, _strParameter) then exit;
 
   result := true;
 }
 
-function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string): boolean;{
+function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string; _strParameter : string = ''): boolean;{
   var _iRes : iResultSet;
   result := false;
 
   if not ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, _addWhereString, _iRes, _err) then exit;
 
-  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err) then exit;
+  if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err, _strParameter) then exit;
 
   result := true;
 }
