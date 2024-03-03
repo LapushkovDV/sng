@@ -198,14 +198,15 @@ Procedure addSysFieldsForLevels; {
   _loop QRY_INST_FLD_LVL {
     if getfirst QRY_INST_FLD_CHECK_LVL where ((QRY_INST.nrec == QRY_INST_FLD_CHECK_LVL.cInstance
                                    and QRY_INST_FLD_LVL.nrec == QRY_INST_FLD_CHECK_LVL.cLevel )) <> tsOK {
-      var _sysYOUDONTHAVETOSEETHIS : string = coYOUDONTHAVETOSEETHIS + string(QRY_INST_FLD_LVL.nrec)+ replaceProhibitSymbols(OleGenerateGUID);
+      var _sysYOUDONTHAVETOSEETHIS : string = coYOUDONTHAVETOSEETHIS + replaceProhibitSymbols(OleGenerateGUID);
       insert current QRY_INST_FLD_CHECK_LVL set
          QRY_INST_FLD_CHECK_LVL.cLevel       := QRY_INST_FLD_LVL.nrec
        , QRY_INST_FLD_CHECK_LVL.cInstance    := QRY_INST.nrec
-       , QRY_INST_FLD_CHECK_LVL.TableName    := _sysYOUDONTHAVETOSEETHIS
+       , QRY_INST_FLD_CHECK_LVL.TableName    := 'NO TABLE'
        , QRY_INST_FLD_CHECK_LVL.TableCode    := word(-1)
        , QRY_INST_FLD_CHECK_LVL.FieldSynonim := _sysYOUDONTHAVETOSEETHIS
        , QRY_INST_FLD_CHECK_LVL.FieldJSON    := _sysYOUDONTHAVETOSEETHIS
+       , QRY_INST_FLD_CHECK_LVL.FieldName    := ''''''
       ;
     }
   }
@@ -219,7 +220,7 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
   _loop QRY_INST_FLD {
     insert tCheckFields_1 set
        tCheckFields_1.nrec         := QRY_INST_FLD.nrec
-     , tCheckFields_1.FieldNam    := QRY_INST_FLD.FieldName
+     , tCheckFields_1.FieldNam     := QRY_INST_FLD.FieldName
      , tCheckFields_1.FieldSynonim := QRY_INST_FLD.FieldSynonim
      , tCheckFields_1.FieldJSON    := QRY_INST_FLD.FieldJSON
      , tCheckFields_1.cLevel       := QRY_INST_FLD.cLevel
