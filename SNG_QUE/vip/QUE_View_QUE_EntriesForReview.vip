@@ -33,11 +33,12 @@ tree brQUE_EntrForReview_BR;
   show at ( ,,70,);
  table QUE_EntrForReview_BR;
   Fields
-    QUE_EntrForReview_BR.DateTime_in 'Дата вставки','записи' : [5] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.DateTime_in 'Дата-время вставки','записи' : [5] , Protect, nopickbutton;
     QUE_EntrForReview_BR.TypeEvent   'Тип события'           : [3] , Protect, nopickbutton;
-   [Img_Status]  GetImageStatus()    'Скан' ('Наличие прикрепленного файла') :[4],Image;
+   [Img_Status]  GetImageStatus()    'Статус'                :[4],Image;
     //QUE_EntrForReview_BR.Status      'Статус','код'          : [1] , Protect, nopickbutton;
     StatusName                       'Статус','наименование' : [15] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.DateTime_genJSON 'Дата-время ','генерации JSON/лог' : [5] , Protect, nopickbutton;
     QRY_INST_BR.code                 'Запрос','код'          : [5] , Protect, nopickbutton;
     QRY_INST_BR.name                 'Запрос','наименование' : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.ADDWHERESTR 'Запрос','до.условие'   : [9] , Protect, nopickbutton;

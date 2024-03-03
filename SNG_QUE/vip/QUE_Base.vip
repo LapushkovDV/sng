@@ -29,6 +29,7 @@ with index (
 )
 ;
 Interface QUE_BASE 'QUE базовый объект';
+function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean; forward;
 create view
 var
    _logQUE_OUT : string; //глобальная
@@ -39,7 +40,8 @@ from
  , QUE_EntriesForReview QUE_EntrRvwIns
  , QUE_EntriesForReview QUE_EntrRvwGenJSON
  , QUE_EntriesForReview QUE_EntrRvwIns_1
- , QUE_EntriesForReview QUE_EntrRvwLoop
+// , QUE_EntriesForReview QUE_EntrRvwLoop
+ , QUE_EntriesForReview QUE_EntrRvwLoop_status
  , QRY_Instance QRY_Instance_1
  , QRY_Template QRY_INST_TMPLT_1
 
@@ -51,7 +53,7 @@ Function GetNameStatusEntriesForReview(_Status : word) : string; cacheable;{
    coPreQUE_AwaitProcessJSONgenerate    : result := 'ожидает обработки для формирования JSON'// 0; //  ожидает обработки для формирования JSON
    coPreQUE_WaitForRelatedRcrdsToInsert : result := 'ожидает вставки связанных записей' // 1 //  ожидает вставки связанных записей
    coPreQUE_ReadyToTransferToQueue      : result := 'готова к передаче в очередь (JSON сформирован)' // 2; //  готова к передаче в очередь (JSON сформирован)
-   coPreQUE_AwaitProcessRelatedRcrd     : result := 'ожидает генерации JSON в связанных записях (JSON сформирован)' // 3; //  ожидает генерации JSON в связанных записях (JSON сформирован)
+   coPreQUE_AwaitProcessRelatedRcrd     : result := 'ожидает генерации JSON в связанных записях' // 3; //  ожидает генерации JSON в связанных записях (JSON сформирован)
    coPreQUE_ErrorGenerateJSON           : result := 'ошибка при генерации JSON' // 4; //  ошибка при генерации JSON
    coPreQUE_SuccessTransferToQueue      : result := 'успешно передана в очередь' // 5; //  успешно передана в очередь
    coPreQUE_ErrorTransferToQueue        : result := 'ошибка передачи в очередь' // 6; //  ошибка передачи в очередь
@@ -140,10 +142,8 @@ Function InsertEntriesForReview_PoolParent(_cParent : comp;
 
 Procedure SetPoolRecordsStatus(_cMainParent : comp; _CheckStatus, _ToStatus : word); {
    _loop QUE_EntrRvwIns where ((_cMainParent == QUE_EntrRvwIns.cParent)) {
-
      if QUE_EntrRvwIns.status <> _CheckStatus // coPreQUE_WaitForRelatedRcrdsToInsert
          then continue; //если статус не равен ожидает вставки связанных записей, то пропускаем - видимо уже обработали
-
      if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) ) = tsOK {
          pushpos(tnQUE_EntrRvwIns);
           SetPoolRecordsStatus(QUE_EntrRvwIns.nrec, _CheckStatus, _ToStatus);
@@ -155,7 +155,12 @@ Procedure SetPoolRecordsStatus(_cMainParent : comp; _CheckStatus, _ToStatus : wo
 }
 
 Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp); {
+ if getfirst QUE_EntrRvwIns where ((_cMainParent == QUE_EntrRvwIns.nrec and 0h == QUE_EntrRvwIns.cParent (noindex))) <> tsOK then exit;
+
   SetPoolRecordsStatus(_cMainParent, coPreQUE_WaitForRelatedRcrdsToInsert, coPreQUE_AwaitProcessJSONgenerate);
+   if getfirst QUE_EntrRvwIns where ((_cMainParent == QUE_EntrRvwIns.nrec)) = tsOK {
+     update current QUE_EntrRvwIns set QUE_EntrRvwIns.status := coPreQUE_AwaitProcessJSONgenerate ; // coPreQUE_AwaitProcessJSONgenerate;
+   }
 }
 
 Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp; {
@@ -166,7 +171,7 @@ Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : 
   result := InsertEntriesForReview(0h, coPreQUE_AwaitProcessJSONgenerate, _TypeEvent, _InstanceCode, _AddWhereStr);
 }
 
-Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp; _statusSucces : word); {
+Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp); {
   if getfirst fastfirstrow QUE_EntrRvwGenJSON where ((_cQUE_EntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOK then exit;
 
   if QUE_EntrRvwGenJSON.Status <> coPreQUE_AwaitProcessJSONgenerate then exit; // если статус е равен "ожидает обработки для формирования JSON"
@@ -178,6 +183,7 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp; _statusS
       var __log : string = iQRY_OUT.GetLogFile;
        ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, __log, false);
        QUE_EntrRvwGenJSON.Status := coPreQUE_ErrorGenerateJSON; // ошибка при генерации JSON
+       QUE_EntrRvwGenJSON.DateTime_genJSON := _curdatetime;
        QUE_EntrRvwGenJSON.err    := _err;
       update current QUE_EntrRvwGenJSON;
    }
@@ -185,36 +191,58 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp; _statusS
       var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
        HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
        ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, _jsonFile, false);
-       QUE_EntrRvwGenJSON.Status := _statusSucces;
+       QUE_EntrRvwGenJSON.Status := coPreQUE_ReadyToTransferToQueue;
+       QUE_EntrRvwGenJSON.DateTime_genJSON := _curdatetime;
       update current QUE_EntrRvwGenJSON;
   }
 }
 
-procedure RecursiveGenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp; _Status : word = coPreQUE_ReadyToTransferToQueue); {
-   if getfirst QUE_EntrRvwIns where ((_cEntriesForReview == QUE_EntrRvwIns.nrec)) = tsOK {
-
+procedure RecursiveGenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
+   _loop QUE_EntrRvwIns where ((_cEntriesForReview == QUE_EntrRvwIns.cParent))  {
+//      update current QUE_EntrRvwIns set QUE_EntrRvwIns.Status := coPreQUE_AwaitProcessRelatedRcrd; // идем сверху вниз и всем сначала ставим 'ожидает генерации JSON в связанных записях'
      if(getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.nrec == QUE_EntrRvwIns_1.cParent)) ) = tsOK {
-         _Status := coPreQUE_AwaitProcessRelatedRcrd;
          pushpos(tnQUE_EntrRvwIns);
-          RecursiveGenerateJSON_from_EntriesForReviewRecords(QUE_EntrRvwIns.nrec, coPreQUE_AwaitProcessRelatedRcrd); // ставим статус в "ожидает генерации JSON в связанных записях (JSON сформирован)"
+          RecursiveGenerateJSON_from_EntriesForReviewRecords(QUE_EntrRvwIns.nrec);
          poppos(tnQUE_EntrRvwIns);
       }
-      GenerateJSONInEntriesForReview(QUE_EntrRvwIns.nrec, _Status);
+
+    if isExistStatusInPool(QUE_EntrRvwIns.nrec,coPreQUE_ErrorGenerateJSON) then  {// если есть записи с "ошибка при генерации JSON
+         QUE_EntrRvwIns.status := coPreQUE_ErrorGenerateJSON;
+         QUE_EntrRvwIns.err    := 'Ошибки в подчиненных записях';
+        update current QUE_EntrRvwIns ;
+    }
+    else {
+       GenerateJSONInEntriesForReview(QUE_EntrRvwIns.nrec); // а вот тут генерим JSON  и ставим 'готова к передаче в очередь (JSON сформирован)'
+      }
    }
 }
 
 function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean; {
   result := false;
-  _loop QUE_EntrRvwLoop where ((_cEntriesForReview == QUE_EntrRvwLoop.cParent)) {
-    if QUE_EntrRvwLoop.status = _status then {
+  _loop QUE_EntrRvwLoop_status where ((_cEntriesForReview == QUE_EntrRvwLoop_status.cParent)) {
+    if QUE_EntrRvwLoop_status.status = _status then {
       result := true;
       exit;
     }
-     pushpos(tnQUE_EntrRvwLoop);
-      result := isExistStatusInPool(QUE_EntrRvwLoop.nrec, _status);
-     poppos(tnQUE_EntrRvwLoop);
+     pushpos(tnQUE_EntrRvwLoop_status);
+      result := isExistStatusInPool(QUE_EntrRvwLoop_status.nrec, _status);
+     poppos(tnQUE_EntrRvwLoop_status);
      if result = True then exit;
    }
+}
+
+procedure GenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
+   RecursiveGenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview );
+
+   if getfirst QUE_EntrRvwGenJSON where ((_cEntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOk then exit;
+    if isExistStatusInPool(QUE_EntrRvwGenJSON.nrec,coPreQUE_ErrorGenerateJSON) then  {// если есть записи с "ошибка при генерации JSON
+       QUE_EntrRvwGenJSON.err    := 'Ошибки в подчиненных записях';
+       QUE_EntrRvwGenJSON.status := coPreQUE_ErrorGenerateJSON;
+       update current QUE_EntrRvwGenJSON;
+    }
+    else {
+        GenerateJSONInEntriesForReview(_cEntriesForReview); // а вот тут генерим JSON  и ставим 'готова к передаче в очередь (JSON сформирован)'
+      }
 }
 
 procedure SetStatusGenerateJSON(_cMainParent : comp); {
@@ -254,8 +282,8 @@ procedure ProcessEntriesForReview; {
       exit;
     }
  _loop tmpEntriesForReview {
-    RecursiveGenerateJSON_from_EntriesForReviewRecords(tmpEntriesForReview.cEntriesForReview);
-    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
+    GenerateJSON_from_EntriesForReviewRecords(tmpEntriesForReview.cEntriesForReview);
+//    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
   }
 
 }

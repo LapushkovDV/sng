@@ -29,24 +29,49 @@ Function GenerateNewFile: string;
 
 #doc
 Вставить запись из пула зависимых записей в очередь на рассмотрение для формирования JSON и последующей передаче в очередь
+Возвращает NREC вставленной записи
+У вставленной записи устанавливается статус "coPreQUE_WaitForRelatedRcrdsToInsert = "ожидает вставки связанных записей" "
+После того как все записи будут вставлены необходимо вызвать SetPoolRecordsReadyToGenerateJSON с указанием NREC самого верхнего элемента пула
+так всем записям будет установлен статус "coPreQUE_AwaitProcessJSONgenerate = "ожидает обработки для формирования JSON" "
+и по ним будут генерироваться JSON процедурой ProcessEntriesForReview
+
   _cParent   : comp - ссылка на вышестоящую запись. В случае пула зависимых записей
   _TypeEvent : string[20] - тип события coQUE_TypeEvent_Insert coQUE_TypeEvent_Delete coQUE_TypeEvent_Update
   _InstanceCode : string - код экземпляра запроса
   _AddWhereStr : string - строка для добавления в условие в экземпляр запроса
   _nrecRootTable : comp - nrec корневой таблицы запроса
   если одновременно указано _AddWhereStr и _nrecRootTable, то берется _nrecRootTable
+
+Пример: сначала вставляем экземпляр запросов по генерации подразделений, получаем NREC вставленной записи,
+далее вставляем все должности и всех сотрудников этого подразделения, указывая в качестве _cParent для всех самый первый NREC
+
+Для приказа с несколькими сотрудниками можно поступить так: вставляем первого сотрудника, под него второго, под него третьего и т.д.
+под самого последнего вставляем сам приказ. Тем самым получаем последовательную выгрузку в очередь сначала всех сотрудников и только потом приказ по ним
 #end
-Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp;
+Function InsertEntriesForReview_PoolParent(_cParent : comp;
+                                           _TypeEvent : string[20];
+                                           _InstanceCode : string;
+                                           _AddWhereStr : string = '';
+                                           _nrecRootTable : comp= 0h
+                                          ) : comp;
 
 #doc
 Вставить одиночную/независимую запись в очередь на рассмотрение для формирования JSON и последующей передаче в очередь
+Возвращает NREC вставленной записи
+У вставленной записи устанавливается статус "coPreQUE_AwaitProcessJSONgenerate = "ожидает обработки для формирования JSON" "
+т.е. по ним будут генерироваться JSON процедурой ProcessEntriesForReview
+
   _TypeEvent : string[20] - тип события coQUE_TypeEvent_Insert coQUE_TypeEvent_Delete coQUE_TypeEvent_Update
   _InstanceCode : string - код экземпляра запроса
   _AddWhereStr : string - строка для добавления в условие в экземпляр запроса
   _nrecRootTable : comp - nrec корневой таблицы запроса
   если одновременно указано _AddWhereStr и _nrecRootTable, то берется _nrecRootTable
 #end
-Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp;
+Function InsertEntriesForReview_Single(_TypeEvent : string[20];
+                                       _InstanceCode : string;
+                                       _AddWhereStr : string = '';
+                                       _nrecRootTable : comp= 0h
+                                      ) : comp;
 
 #doc
 Поставить в пуле записям в статусе "ожидает вставки связанных записей" статус в "ожидает обработки для формирования JSON"
@@ -58,7 +83,7 @@ Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp);
 
 #doc
 Обработка записей в QUE_EntriesForReview
-Выборка пула записей, у которых cParent = 0h и статус = "ожидает обработки для формирования JSON"
+Выборка пула записей, у которых cParent = 0h и статус = "coPreQUE_AwaitProcessJSONgenerate "ожидает обработки для формирования JSON" "
 Далее цикл по выбранным записям и рекурсивно генерируем по ним JSON функцией RecursiveGenerateJSON_from_EntriesForReviewRecords
 Рекурсия нужна для обработки вложенных записей
 #end
