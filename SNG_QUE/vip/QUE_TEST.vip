@@ -39,6 +39,7 @@ create view
    cmValue2,,,;
    cmValue3,,,;
    cmValue4,,,;
+   cmValue5,,,;
 <<
 Демонстрация работы  объекта по вставке записей на рассмотрение и генерации JSON
 Записи на рассмотрение это "предочередь" - по ним идут проверки, пишутся логи и генерируются JSON
@@ -54,6 +55,8 @@ create view
 --------------------------------------------------
   <.    Сгенерировать JSON по записям на рассмотрении    .> - выбирается пул записей без родителей (100шт)
 
+  <.           Передать записи с JSON в очередь          .> * записи с готовыми JSON копируются в очередь
+
   <.          Открыть записи на рассмотрении             .> - интерфейс просмотра "записей на рассмотрении"
 
 >>
@@ -63,7 +66,7 @@ create view
 handleevent // фейса
  cmValue1: {
    var iQUE_BASE : QUE_BASE;
-   if iQUE_BASE.InsertEntriesForReview_Single(  'INSERT'
+   if iQUE_BASE.InsertEntriesForReview_Single(  coQUE_TypeEvent_Insert
                                            , _fQRY_INST_CODE
                                            , _AddWhereString
                                            , _RootTableNrec) <> 0h
@@ -77,7 +80,7 @@ handleevent // фейса
  cmValue2: {
      var _cMainParent : comp;
      var iQUE_BASE : QUE_BASE;
-     _cMainParent := iQUE_BASE.InsertEntriesForReview_PoolParent(0h, 'INSERT', _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
+     _cMainParent := iQUE_BASE.InsertEntriesForReview_PoolParent(0h, coQUE_TypeEvent_Insert, _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
      if _cMainParent = 0h {
        message('Ошибка добавления записи в QUE_EntriesForReview', error);
        stop; abort; exit;
@@ -85,11 +88,11 @@ handleevent // фейса
      var _i, _j, _k: byte;
      var _cSubParent, _cSubSubParent : comp = 0h;
      for(_i:= 0; _i<=3; _i++) {
-       _cSubParent := iQUE_BASE.InsertEntriesForReview_PoolParent(_cMainParent, 'INSERT', _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
+       _cSubParent := iQUE_BASE.InsertEntriesForReview_PoolParent(_cMainParent, coQUE_TypeEvent_Insert, _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
        for(_j:= 0; _j<=3; _j++) {
-         _cSubSubParent := iQUE_BASE.InsertEntriesForReview_PoolParent(_cSubParent, 'INSERT', _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
+         _cSubSubParent := iQUE_BASE.InsertEntriesForReview_PoolParent(_cSubParent, coQUE_TypeEvent_Insert, _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
          for(_k:= 0; _k<=3; _k++) {
-           iQUE_BASE.InsertEntriesForReview_PoolParent(_cSubSubParent, 'INSERT', _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
+           iQUE_BASE.InsertEntriesForReview_PoolParent(_cSubSubParent, coQUE_TypeEvent_Insert, _fQRY_INST_CODE, _AddWhereString, _RootTableNrec);
          }
        }
      }
@@ -104,6 +107,13 @@ handleevent // фейса
      message('Готово')
  }
  cmValue4: {
+   var iQUE_BASE : QUE_BASE;
+   StartNewVisual(vtRotateVisual, vfTimer + vfBreak, 'Копирование в очередь', 1);
+    iQUE_BASE.CopyEntriesForReviewToQueue;;
+   StopVisual('', 0);
+     message('Готово')
+}
+ cmValue5: {
    runinterface(SNG_QUE::QUE_View_QUE_EntriesForReview);
  }
 end;

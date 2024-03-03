@@ -90,16 +90,32 @@ Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp);
 procedure ProcessEntriesForReview;
 
 #doc
-Получить строковое название статуса QUE_EntriesForReview
+Обработка записей в QUE_EntriesForReview
+Выборка пула записей, у которых cParent = 0h и статус = coPreQUE_ReadyToTransferToQueue "готова к передаче в очередь (JSON сформирован)" "
+Далее цикл по выбранным записям и рекурсивно копируем в очередь
+Рекурсия нужна для обработки вложенных записей
+#end
+procedure CopyEntriesForReviewToQueue;
+
+#doc
+Получить строковое название статуса записей на рассмотрение QUE_EntriesForReview
 #end
 Function GetNameStatusEntriesForReview(_Status : word) : string;
 
 #doc
-Получить картинку статуса QUE_EntriesForReview
+Получить картинку статуса записей на рассмотрение QUE_EntriesForReview
 #end
 Function GetImageStatusEntriesForReview(_Status : word) : string;
 
+#doc
+Получить строковое название статуса очереди QUE_OUT
+#end
+Function GetNameStatusQueue(_Status : word) : string;
 
+#doc
+Получить картинку статуса очереди QUE_OUT
+#end
+Function GetImageStatusQueue(_Status : word) : string;
 end;
 
 VipInterface QUE_BASE Implements oQUE_Base #Licensed_Free;

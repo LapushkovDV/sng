@@ -15,18 +15,24 @@ create view
   _cParent : comp;
   iQUE_BASE : QUE_BASE;
  as select
-    iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
+     iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
+   , iQUE_BASE.GetNameStatusQueue(QUE_OUT_BR.status) (FieldName = StatusNameQueue)
  from
    QUE_EntriesForReview QUE_EntrForReview_BR
  , QRY_INSTANCE QRY_INST_BR
+ , QUE_OUT QUE_OUT_BR
  where ((
-   _cParent == QUE_EntrForReview_BR.cParent
+                                    _cParent == QUE_EntrForReview_BR.cParent
   and QUE_EntrForReview_BR.QRY_Instance_code == QRY_INST_BR.code
+               and QUE_EntrForReview_BR.nrec == QUE_OUT_BR.cQUE_EntriesReview
  ))
 // Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
 ;
 function GetImageStatus: string; {
   Result:=iQUE_BASE.GetImageStatusEntriesForReview(QUE_EntrForReview_BR.Status);
+}
+function GetImageStatusQueue: string; {
+  Result:=iQUE_BASE.GetImageStatusQueue(QUE_OUT_BR.Status);
 }
 
 tree brQUE_EntrForReview_BR;
@@ -43,6 +49,10 @@ tree brQUE_EntrForReview_BR;
     QRY_INST_BR.name                 'Запрос','наименование' : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.ADDWHERESTR 'Запрос','до.условие'   : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.err         'Ошибка','текст'        : [9] , Protect, nopickbutton;
+    QUE_OUT_BR.DateTime_in           'Очередь','время создания' : [5] , Protect, nopickbutton;
+   [Img_StatusQueue]  GetImageStatusQueue() 'Очередь','статус'       :[4],Image;
+    StatusNameQueue                  'Очередь','статус'      : [15] , Protect, nopickbutton;
+
 end;
 text QUE_EntrForReview_BR.JSON 'JSON/лог ошибок' : Protect;
   show at ( 71,,,);
