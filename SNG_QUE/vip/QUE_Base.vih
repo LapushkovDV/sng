@@ -33,16 +33,20 @@ Function GenerateNewFile: string;
   _TypeEvent : string[20] - тип события coQUE_TypeEvent_Insert coQUE_TypeEvent_Delete coQUE_TypeEvent_Update
   _InstanceCode : string - код экземпляра запроса
   _AddWhereStr : string - строка для добавления в условие в экземпляр запроса
+  _nrecRootTable : comp - nrec корневой таблицы запроса
+  если одновременно указано _AddWhereStr и _nrecRootTable, то берется _nrecRootTable
 #end
-Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp;
+Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp;
 
 #doc
 Вставить одиночную/независимую запись в очередь на рассмотрение для формирования JSON и последующей передаче в очередь
   _TypeEvent : string[20] - тип события coQUE_TypeEvent_Insert coQUE_TypeEvent_Delete coQUE_TypeEvent_Update
   _InstanceCode : string - код экземпляра запроса
   _AddWhereStr : string - строка для добавления в условие в экземпляр запроса
+  _nrecRootTable : comp - nrec корневой таблицы запроса
+  если одновременно указано _AddWhereStr и _nrecRootTable, то берется _nrecRootTable
 #end
-Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp;
+Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp;
 
 #doc
 Поставить в пуле записям в статусе "ожидает вставки связанных записей" статус в "ожидает обработки для формирования JSON"
@@ -64,6 +68,11 @@ procedure ProcessEntriesForReview;
 Получить строковое название статуса QUE_EntriesForReview
 #end
 Function GetNameStatusEntriesForReview(_Status : word) : string;
+
+#doc
+Получить картинку статуса QUE_EntriesForReview
+#end
+Function GetImageStatusEntriesForReview(_Status : word) : string;
 
 
 end;

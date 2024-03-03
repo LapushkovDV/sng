@@ -15,28 +15,85 @@ create view
   _cParent : comp;
   iQUE_BASE : QUE_BASE;
  as select
-   iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
+    iQUE_BASE.GetNameStatusEntriesForReview(QUE_EntrForReview_BR.Status) (FieldName = StatusName)
  from
    QUE_EntriesForReview QUE_EntrForReview_BR
  , QRY_INSTANCE QRY_INST_BR
  where ((
-  QUE_EntrForReview_BR.QRY_Instance_code == QRY_INST_BR.code
+   _cParent == QUE_EntrForReview_BR.cParent
+  and QUE_EntrForReview_BR.QRY_Instance_code == QRY_INST_BR.code
  ))
- Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
+// Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
 ;
-
+function GetImageStatus: string; {
+  Result:=iQUE_BASE.GetImageStatusEntriesForReview(QUE_EntrForReview_BR.Status);
+}
 
 tree brQUE_EntrForReview_BR;
+  show at ( ,,70,);
  table QUE_EntrForReview_BR;
   Fields
-    QUE_EntrForReview_BR.DateTime_in 'Дата вставки','записи' : [1] , Protect, nopickbutton;
-    QUE_EntrForReview_BR.TypeEvent   'Тип события'           : [5] , Protect, nopickbutton;
-    QUE_EntrForReview_BR.Status      'Статус','код'          : [1] , Protect, nopickbutton;
-    StatusName                       'Статус','наименование' : [5] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.DateTime_in 'Дата вставки','записи' : [5] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.TypeEvent   'Тип события'           : [3] , Protect, nopickbutton;
+   [Img_Status]  GetImageStatus()    'Скан' ('Наличие прикрепленного файла') :[4],Image;
+    //QUE_EntrForReview_BR.Status      'Статус','код'          : [1] , Protect, nopickbutton;
+    StatusName                       'Статус','наименование' : [15] , Protect, nopickbutton;
     QRY_INST_BR.code                 'Запрос','код'          : [5] , Protect, nopickbutton;
     QRY_INST_BR.name                 'Запрос','наименование' : [9] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.ADDWHERESTR 'Запрос','до.условие'   : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.err         'Ошибка','текст'        : [9] , Protect, nopickbutton;
 end;
+text QUE_EntrForReview_BR.JSON 'JSON/лог ошибок';
+  show at ( 71,,,);
 
+handleevent
+cmTreeTop: {
+    set _cParent:=0;
+ }
+cmTreeUp: {
+    set _cParent:=QUE_EntrForReview_BR.cParent;
+ }
+cmTreeDown: {
+    set _cParent:=QUE_EntrForReview_BR.nRec;
+ }
+cmTreeNodeType: {
+     if (TreeIsTerminal(brQUE_EntrForReview_BR) OR IsNew)
+        TreeSetNodeType(brQUE_EntrForReview_BR, 2);
+ }
+cmTreeNeedOwner: {
+     TreeJumpToRecord (brQUE_EntrForReview_BR, QUE_EntrForReview_BR.cParent);
+ }
+cmAttrib: {
+     if not TreeNodeIsOpen(FocusedFormat)
+     {
+        PutCommand(cmTreeOpenNode);
+     }
+     else
+     {
+        PutCommand(cmTreeCloseNode);
+     }
+ }
+cmCompressLevel: {
+      PutCommand(cmTreeCloseNode);
+ }
+ cmValue4:{
+     var _file : string = iQUE_BASE.GenerateNewFile;
+     if trim(QUE_EntrForReview_BR.err) <> ''
+      then _file := _file + '.log'
+      else _file := _file + '.JSON';
+     if ExportMemoToFile(QUE_EntrForReview_BR.JSON, _file, false)
+      then putfiletoclient(_file,false)
+       else message('Ошибка экспорта мемо-поля',error)
+ }
 
+cmHotKeys:
+{
+   PutHotCommand(RunMenu('mnuInterfaceSqlJournResp'));
+}
+
+end;
 end.
+mnuInterfaceSqlJournResp Menu
+{
+  - 'Скачать JSON/лог файл', cmValue4;
+}

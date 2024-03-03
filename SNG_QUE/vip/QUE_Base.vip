@@ -40,6 +40,8 @@ from
  , QUE_EntriesForReview QUE_EntrRvwGenJSON
  , QUE_EntriesForReview QUE_EntrRvwIns_1
  , QUE_EntriesForReview QUE_EntrRvwLoop
+ , QRY_Instance QRY_Instance_1
+ , QRY_Template QRY_INST_TMPLT_1
 
  , tmpEntriesForReview
 ;
@@ -57,8 +59,36 @@ Function GetNameStatusEntriesForReview(_Status : word) : string; cacheable;{
     result := '--неизвестный статус--' //
   }
  end;
+}
 
+Function GetImageStatusEntriesForReview(_Status : word) : string; cacheable;{
 
+case _Status of
+   coPreQUE_AwaitProcessJSONgenerate    : result := 'SNG_QUE::bmpQUE_STATUS_YellowL';  // ожидает обработки для формирования JSON
+   coPreQUE_WaitForRelatedRcrdsToInsert : result := 'SNG_QUE::bmpQUE_STATUS_YellowL';   // ожидает вставки связанных записей
+   coPreQUE_ReadyToTransferToQueue      : result := 'SNG_QUE::bmpQUE_STATUS_BlueL'; // готова к передаче в очередь (JSON сформирован)
+   coPreQUE_AwaitProcessRelatedRcrd     : result := 'SNG_QUE::bmpQUE_STATUS_YellowL';   // ожидает генерации JSON в связанных записях (JSON сформирован)
+   coPreQUE_ErrorGenerateJSON           : result := 'SNG_QUE::bmpQUE_STATUS_RedL';     // ошибка при генерации JSON
+   coPreQUE_SuccessTransferToQueue      : result := 'SNG_QUE::bmpQUE_STATUS_LimeL';  // успешно передана в очередь
+   coPreQUE_ErrorTransferToQueue        : result := 'SNG_QUE::bmpQUE_STATUS_RedL';     // ошибка передачи в очередь
+  else {
+    result := ColorSysBlack;
+  }
+ end;
+
+/* case _Status of
+   coPreQUE_AwaitProcessJSONgenerate    : result := ColorSysBlack;  // ожидает обработки для формирования JSON
+   coPreQUE_WaitForRelatedRcrdsToInsert : result := ColorSysGray;   // ожидает вставки связанных записей
+   coPreQUE_ReadyToTransferToQueue      : result := ColorSysPurple; // готова к передаче в очередь (JSON сформирован)
+   coPreQUE_AwaitProcessRelatedRcrd     : result := ColorSysGray;   // ожидает генерации JSON в связанных записях (JSON сформирован)
+   coPreQUE_ErrorGenerateJSON           : result := colorerror;     // ошибка при генерации JSON
+   coPreQUE_SuccessTransferToQueue      : result := ColorSysGreen;  // успешно передана в очередь
+   coPreQUE_ErrorTransferToQueue        : result := colorerror;     // ошибка передачи в очередь
+  else {
+    result := ColorSysBlack;
+  }
+ end;
+ */
 }
 
 
@@ -88,8 +118,23 @@ Function InsertEntriesForReview(_cParent : comp; _Status : word; _TypeEvent : st
     result := QUE_EntrRvwIns.nrec;
   }
 }
-
-Function InsertEntriesForReview_PoolParent(_cParent : comp; _TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
+function getRootTableNameByInstanceCode(_InstanceCode : string) : string; cacheable;{
+   result := '----- не найден экземпляр запроса с кодом "' + _InstanceCode+'"  -----';
+   if getfirst fastfirstrow QRY_Instance_1 where ((_InstanceCode == QRY_Instance_1.code)) = tsOK then {
+   if getfirst fastfirstrow QRY_INST_TMPLT_1 where ((QRY_Instance_1.cTmplt == QRY_INST_TMPLT_1.nrec)) = tsOK {
+      var iQRY_OUT : QRY_OUT new;
+      result := iQRY_OUT.GetTableNameByCode(QRY_INST_TMPLT_1.TABLECODE)
+    }
+   }
+}
+Function InsertEntriesForReview_PoolParent(_cParent : comp;
+                                           _TypeEvent : string[20];
+                                           _InstanceCode : string;
+                                           _AddWhereStr : string = '';
+                                           _nrecRootTable : comp= 0h) : comp; {
+  if _nrecRootTable <> 0h {
+     _AddWhereStr := 'and ' + getRootTableNameByInstanceCode(_InstanceCode) + '.nrec = ' + string(_nrecRootTable);
+    }
   result := InsertEntriesForReview(_cParent, coPreQUE_WaitForRelatedRcrdsToInsert, _TypeEvent, _InstanceCode, _AddWhereStr);
 }
 
@@ -113,7 +158,11 @@ Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp); {
   SetPoolRecordsStatus(_cMainParent, coPreQUE_WaitForRelatedRcrdsToInsert, coPreQUE_AwaitProcessJSONgenerate);
 }
 
-Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string) : comp; {
+Function InsertEntriesForReview_Single(_TypeEvent : string[20]; _InstanceCode : string; _AddWhereStr : string = ''; _nrecRootTable : comp= 0h) : comp; {
+  if _nrecRootTable <> 0h {
+     _AddWhereStr := 'and ' + getRootTableNameByInstanceCode(_InstanceCode) + '.nrec = ' + string(_nrecRootTable);
+    }
+
   result := InsertEntriesForReview(0h, coPreQUE_AwaitProcessJSONgenerate, _TypeEvent, _InstanceCode, _AddWhereStr);
 }
 
@@ -133,8 +182,8 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp; _statusS
       update current QUE_EntrRvwGenJSON;
    }
   else {
-   var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
-   HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+      var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+       HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
        ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, _jsonFile, false);
        QUE_EntrRvwGenJSON.Status := _statusSucces;
       update current QUE_EntrRvwGenJSON;

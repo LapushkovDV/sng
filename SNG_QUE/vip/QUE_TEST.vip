@@ -1,0 +1,83 @@
+/*************************************************************************************************\
+
+* Наименование: Ведение телефонного справочника                                                   *
+* Контур/Модуль: абстракция интеграция                                                            *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+
+#include QUE_BASE.vih
+
+//************************************************************
+const
+end;
+
+VipInterface QUE_TEST #Licensed_Free;
+
+Interface QUE_TEST 'Работа с очередью. ТЕСТОВЫЙ ИНТЕРФЕЙС', CYAN;
+
+create view
+ var
+     _fQRY_INST_CODE
+   , _AddWhereString
+   , _strParameter   : string;
+     _RootTableNrec  : comp;
+;
+  Screen ScrQRY_INSTANCE_TEST (,,Sci1Esc);
+  Show at (,,,);
+    noTableNavigation;
+  Fields
+    _fQRY_INST_CODE : NoProtect;
+    _RootTableNrec  : NoProtect;
+    _AddWhereString : NoProtect;
+  buttons
+   cmValue1,,,;
+   cmValue2,,,;
+   cmValue3,,,;
+<<
+Демонстрация работы формирования вызова объекта по генерации записей в очередь на генерацию JSON
+
+      Код экземпляра запроса.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `- NREC  корневой таблицы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `-   доп.условия в запрос`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     (NREC имеет приоритет над доп.условиями в запрос)
+
+  <.   Положить запись в очередь на генерацию JSON  .>
+--------------------------------------------------
+  <.   Сгенерировать JSON в очереди (100 записей)   .>
+
+  <.            Посмотреть записи очереди           .>
+
+>>
+  end;//Screen ScrQRY_getParameter
+
+
+handleevent // фейса
+ cmValue1: {
+   var iQUE_BASE : QUE_BASE;
+   if iQUE_BASE.InsertEntriesForReview_Single(  'INSERT'
+                                           , _fQRY_INST_CODE
+                                           , _AddWhereString
+                                           , _RootTableNrec) <> 0h
+                                           {
+        message('Успешно')
+      }
+      else {
+        message('Ошибка добавления записи в QUE_EntriesForReview', error)
+      }
+ }
+ cmValue2: {
+   var iQUE_BASE : QUE_BASE;
+   StartNewVisual(vtRotateVisual, vfTimer + vfBreak, 'Генерация JSON', 1);
+    iQUE_BASE.ProcessEntriesForReview;
+   StopVisual('', 0);
+ }
+ cmValue3: {
+   runinterface(SNG_QUE::QUE_View_QUE_EntriesForReview);
+ }
+end;
+end.

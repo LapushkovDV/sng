@@ -1,0 +1,5 @@
+//иконки статусов
+bmpQUE_STATUS_YellowL  BITMAP "bmp\YellowL.ico"
+bmpQUE_STATUS_RedL     BITMAP "bmp\RedL.ico"
+bmpQUE_STATUS_LimeL    BITMAP "bmp\LimeL.ico"
+bmpQUE_STATUS_BlueL    BITMAP "bmp\BlueL.ico"
