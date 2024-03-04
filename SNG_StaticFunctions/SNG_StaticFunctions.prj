@@ -1,0 +1,27 @@
+#statusline "statgal"
+#include GalNet.inc end;
+#include GloVars.inc
+const
+#include Tunes.inc
+#include AllStaff.inc
+end;
+
+//--------------------
+//--------------------
+
+//#include OBJINTPL.VIN
+
+//--------------------
+#params
+[vip]
+LicenseControlInclude="ddd!.vpp"
+#end
+
+#component "SNG_COMMON"
+//-------------------------------
+
+//-------------------------------
+
+
+#make "source\SNG_StaticFunctions.Vip"
+#make "source\SNG_epAppInit.vip"

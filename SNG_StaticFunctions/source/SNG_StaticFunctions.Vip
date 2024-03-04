@@ -1,0 +1,102 @@
+/*************************************************************************************************\
+* Наименование:  Функции используемые на проекте                                                          *
+* Контур/Модуль: Утилиты                                                                          *
+* Примечание:
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+\*************************************************************************************************/
+
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+//------------------------------------------------------------------------------
+#include Query.vih
+#include ExtAttr.Vih
+#include ExtAttr.var
+
+#include SNG_StaticFunctions.Vih
+#component "SNG_COMMON"
+InterFace SNG_StaticFunctions;
+
+create view
+ as select
+ cat.nrec
+from
+ catalogs cat
+;
+//------------------------------------------------------------------------------
+//  Получить позицию справа
+//------------------------------------------------------------------------------
+function PosR(_substr: string; _s: string): byte;
+var ww_str:string;
+    ii :word;
+    len_sub:word; { ww_str:='';
+  Result:=0;
+  len_sub:=length(_substr);
+  for(ii:=length(_s);ii>0;ii--)
+  { ww_str:=substr(_s,ii,1)+ww_str;
+    if substr(ww_str,1,len_sub)=_substr
+    { Result:=ii;
+      break
+    }
+  }
+} //function PosR(substr: string; s: string): byte;
+
+
+sql query queryCountRecordWithTerms =
+      select
+       count(1) as CNT
+       from %Table
+      where %Terms
+;
+function GetCountRecordsInTableWithterms(_TableName, _Terms : string) : longint; {
+  var qCountRecordWithTerms : iQuery = queryManager.createQuery(queryCountRecordWithTerms);
+
+  var qTableName : tptr;
+  sqlAddStr(qTableName, _TableName);
+  qCountRecordWithTerms.setMacro('Table', qTableName);
+  var qTerms : tptr= 0;
+  sqlAddStr(qTerms, _Terms);
+
+  qCountRecordWithTerms.setMacro('Terms', qTerms);
+  _Try {
+     var iRes : IResultSet = qCountRecordWithTerms.getResultSet;
+      if NullVipRef(iRes) then {
+        result := 0;
+        exit;
+      }
+     if iRes.getFirst <>  tsOk {
+        result := 0;
+        exit;
+       }
+       result :=longint(iRes.row.val('CNT'));
+    }
+  _except
+    else {
+      result := 0;
+    }
+}
+
+function RecursiveGetVAFromCatalogsTreeUp(_cCat : comp; _NameVA : string): string; {
+  Result := '';
+  if getfirst fastfirstrow cat where ((_cCat == cat.nrec)) <> tsOk then exit; // какая то битая ссылка походу
+
+  if cat.syscode = -11 then exit; // поднялись до уровня "Структурные единицы штатного расписания"
+
+  Result := sGetAttr(coCATALOGS, _cCat, _NameVA);
+
+  if Result <> '' then exit;
+
+  Result := if(cat.cParent <> 0h, RecursiveGetVAFromCatalogsTreeUp(cat.cParent, _NameVA),'');
+}
+
+function GetVAFromCatalogsTreeUp(_cCat : comp; _NameVA : string; _StartFromCurrent : boolean = true) : string; {
+  Result := '';
+  if trim(_NameVA) = '' then exit;
+  if _StartFromCurrent = true then {
+    Result := RecursiveGetVAFromCatalogsTreeUp(_cCat, _NameVA);
+  }
+  if Result <> '' then exit;
+  if getfirst fastfirstrow cat where ((_cCat == cat.nrec)) <> tsOk then exit; // какая то битая ссылка походу
+  Result := if(cat.cParent <> 0h, RecursiveGetVAFromCatalogsTreeUp(cat.cParent, _NameVA),'');
+}
+
+end.
