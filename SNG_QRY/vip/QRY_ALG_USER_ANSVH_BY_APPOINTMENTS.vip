@@ -30,10 +30,13 @@ create view
   from
     Appointments,
     AppHist,
-    Catalogs
+    Catalogs,
+    ContDoc
   where ((
         cNrec == Appointments.nRec
+    and Appointments.nRec == ContDoc.cStr
     and Appointments.nRec == AppHist.cAppoint
+    and ContDoc.typeOper == AppHist.codOper
     and AppHist.cRez2 == Catalogs.nRec
   ))
 ;
@@ -45,12 +48,15 @@ function calc(_Parameter:string): string; {
   result := '';
 
   if (getFirst fastFirstRow Appointments <> tsOk 
+      or getFirst fastFirstRow ContDoc <> tsOk
       or getFirst fastFirstRow AppHist <> tsOk 
       or getFirst fastFirstRow Catalogs <> tsOk) {
     exit;
   }
 
-  case Appointments.payModel of
+  var wPayModel: word = case(ContDoc.typeOper; 1: Appointments.payModel; AppHist.payModel);
+
+  case wPayModel of
     20: {
       if (Catalogs.sysCode = -31675 or Catalogs.sysCode = -31676) {
         result := '1';
