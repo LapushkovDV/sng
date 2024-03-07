@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <Viper Version="5005020000">
 	<ProjectManager>
-		<ProjectName>SNG_glob_funcion</ProjectName>
+		<ProjectName>SNG_StaticFunctions</ProjectName>
 		<ProjectVarList>
 			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\GAL\exe\"/>
 			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
@@ -125,13 +125,13 @@
 		</BreakPointList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_glob_funcion.prj" PosX="1" PosY="12" OpenEditor="True" Active="True"/>
-			<File Name="source\SNG_epAppInit.vip" PosX="27" PosY="13" OpenEditor="True"/>
-			<File Name="source\SNG_static_Function.Vip" PosX="81" PosY="53" OpenEditor="True"/>
-			<File Name="source\SNG_static_Function.Vih" PosX="7" PosY="45" OpenEditor="True"/>
+			<File Name="SNG_StaticFunctions.prj" PosX="54" PosY="21" OpenEditor="True"/>
+			<File Name="source\SNG_StaticFunctions.Vip" PosX="19" PosY="12" OpenEditor="True" Active="True"/>
+			<File Name="source\SNG_StaticFunctions.Vih" PosX="72" PosY="34" OpenEditor="True"/>
+			<File Name="source\SNG_epAppInit.vip" PosX="37" PosY="9" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
-			<ProjectCompileFile FileName="SNG_glob_funcion.prj" Priority="0">
+			<ProjectCompileFile FileName="SNG_StaticFunctions.prj" Priority="0">
 				<CoreVip>
 					<VipParameters>
 						<StrictVip>True</StrictVip>

@@ -55,7 +55,7 @@ with Index
  ,QUE_OUT06 = QRY_Instance_code
 );
 
-Create Table QUE_LOG "Лог попытоки отсыла сообщения очереди"
+Create Table QUE_LOG "Лог попыток отсыла сообщения очереди"
   With Table_CODE = 13587
   With Replace
   With TableOptions Branched
@@ -74,7 +74,7 @@ with Index
  ,QUE_LOG03 = Status
 );
 
-
+/*
 Create Table QUE_Locator "Локатор записей таблиц"
   With Table_CODE = 13588
   With Replace
@@ -94,7 +94,7 @@ with Index
  ,QUE_Locator03 = QRY_Instance_code
  ,QUE_Locator04 = RecipientSystem + ID_RecipientSystem
 );
-
+*/
 Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
   With Table_CODE = 13589
   With Replace
@@ -109,5 +109,21 @@ with Index
 (
   RecipientSystem01 = NRec (unique, surrogate, journal)
  ,RecipientSystem02 = code (unique)
+);
+
+Create Table QUE_QRY_RECIEPT "Связь экземпляра запроса и системы-получателя"
+  With Table_CODE = 13588
+  With Replace
+  With TableOptions Branched
+(
+  Nrec                 : comp   "Номер записи"
+, cQRY_Instance        : ref(QRY_Instance) "Экземпляр запроса"
+, cQUE_RecipientSystem : ref(QUE_RecipientSystem) "Система-получатель"
+)
+with Index
+(
+  QUE_Locator01 = NRec (unique, surrogate, journal)
+ ,QUE_Locator02 = cQRY_Instance
+ ,QUE_Locator03 = cQUE_RecipientSystem
 );
 
