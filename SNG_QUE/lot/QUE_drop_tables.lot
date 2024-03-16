@@ -4,3 +4,4 @@ drop table QUE_OUT;
 drop table QUE_LOG;
 /*drop table QUE_Locator;*/
 drop table QUE_RecipientSystem;
+drop table QUE_QRY_RECIPT;

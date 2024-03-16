@@ -1,0 +1,155 @@
+#include QRY_BASE.vih
+#include QUE_BASE.vih
+#include QUE_RecipientSystems.vih
+/*
+пример подписания на события CATALOGS
+и интерфейса проверки является ли изменяемый элемент подразделением ШР
+*/
+
+#declare colorneed (FldCondition)
+{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
+#end
+
+#declare tableeventtable (table)
+TableEvent table #table;
+cmSetDefault: {
+  if curtable = tnReciptSystem {
+    putcommand(cmDefault);
+  }
+
+  if curtable = tnQRY_RECIPT {
+//    QRY_RECIPT.cQUE_RecipientSystem := ReciptSystem.nrec;
+    SelectField(#ReciptSystem.code);
+    putcommand(cmpick);
+  }
+}
+cmInsertRecord:
+{
+  Insert Current #table;
+}
+cmUpdateRecord:
+{
+  Update Current #table;
+}
+cmDeleteRecord:
+{
+ if message('Удалить?',YesNo)<>cmYes  {
+   abort; exit;
+  }
+  if curtable = tnReciptSystem {
+   _loop QRY_RECIPT {
+     delete current QRY_RECIPT;
+   }
+ }
+  delete Current #table;
+}
+end; //TableEvent table #table
+#end
+
+Interface QUE_RecipientSystems 'Системы-получатели сообщений очереди', CYAN;
+create view
+  as select
+   ReciptSystem.nrec
+from
+   QUE_RecipientSystem ReciptSystem
+ , QUE_QRY_RECIPT QRY_RECIPT
+ , QRY_INSTANCE QRY_INST
+ where ((                 root == ReciptSystem.nrec
+         and ReciptSystem.nrec == QRY_RECIPT.cQUE_RecipientSystem
+  and QRY_RECIPT.cQRY_Instance == QRY_INST.nrec
+       ))
+;
+
+Window wnReciptSystem_Edit 'Редактирование экземпляра запроса' ;
+  Show at (,,,);
+  //---------------------------------------------
+    Screen ScrReciptSystem_Edit (,,Sci178Esc);
+    Show at (,,,5);
+    Table ReciptSystem;
+    Fields
+     ReciptSystem.code           : NoProtect, #colorneed(ReciptSystem.code='');
+     ReciptSystem.name           : NoProtect, #colorneed(ReciptSystem.name='');
+     ReciptSystem.interface_name : Protect, pickbutton, #colorneed(ReciptSystem.interface_name='');
+    buttons
+     cmValue1,[singleLine],,;
+<<
+               `Код`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Наименование`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Интерфейс передачи`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   <.Передать метаданные.>
+>>
+    end;
+  //---------------------------------------------
+   Screen ScrQRY_TMPLT_Edit_panel(,,Sci178Esc);
+    Show at (,6,,6) Fixed_y;
+<<
+  `Экземпляры запросов, подписанные на систему-получателя`
+>>
+   end;
+  //---------------------------------------------
+   Browse brQRY_RECIPT;
+    Show at (,7,,);
+   Table QRY_RECIPT;
+    Fields
+     QRY_INST.code        'Код'          : [3]  , Protect, pickbutton;
+     QRY_INST.NAME        'Наименование' : [10] , Protect, pickbutton;
+     QRY_INST.Description 'Описание'     : [10] , Protect, pickbutton;
+   end;//Browse brNormPercent
+
+
+end;
+
+browse brReciptSystem;
+ table ReciptSystem;
+  Fields
+  ReciptSystem.code           'Код'                : [3]  , Protect, nopickbutton, #colorneed(ReciptSystem.code='');
+  ReciptSystem.name           'Наименование'       : [10] , Protect, nopickbutton, #colorneed(ReciptSystem.name='');
+  ReciptSystem.interface_name 'Интерфейс отправки' : [10] , Protect, nopickbutton, #colorneed(ReciptSystem.interface_name='');
+end;
+
+#tableeventtable(ReciptSystem)
+#tableeventtable(QRY_RECIPT)
+
+HandleEvent
+cmInit:{
+ if getfirst ReciptSystem = tsOK {}
+ // HttpConnect_JsonObjectCreate
+}
+cmValue1 :{
+  message('cmValue1');
+}
+cmPick:{
+  case curfield of
+      #QRY_INST.Description
+     ,#QRY_INST.name
+     ,#QRY_INST.code :{
+       var iQRY_BASE : QRY_BASE new;
+       var _crec : comp = iQRY_BASE.GetQRY_INST;
+        if _crec <> 0h {
+          set QRY_RECIPT.cQRY_Instance := _crec;
+          updatetable;
+        }
+       }
+      #ReciptSystem.interface_name :{
+        var _iQUE_BASE : QUE_BASE new;
+        var _name : string = _iQUE_BASE.GetQUE_SENDMESSTOEXTSYS;
+        if _name <> '' {
+          set ReciptSystem.interface_name := _name;
+          updatetable;
+        }
+      }
+  end;
+}
+cmEdit: {
+  putcommand(cmdefault)
+}
+
+cmdefault:{
+  runwindowmodal(wnReciptSystem_Edit);
+  rereadrecord;
+}
+cmCheckField: {
+ updatetable;
+ rereadrecord;
+}
+end;
+end.

@@ -19,5 +19,5 @@
 LicenseControlInclude=""
 #end
 
-#make "source\SNG##GLX_932_zp_alg_1_7.vip"
-#make "source\Z_zar##GLX-932_zp_alg.vip"
+#make "source\SNG_GLX_932_zp_alg_1_7.vip"
+#make "source\SNG_GLX_932_zp_alg.vip"

@@ -1,0 +1,82 @@
+#include QUE_BASE.vih
+#include QUE_exmpl.vih
+/*
+пример подписания на события CATALOGS
+и интерфейса проверки является ли изменяемый элемент подразделением ШР
+*/
+
+Interface QUE_exmpl 'проверки является ли изменяемый элемент подразделением ШР', CYAN;
+create view
+  as select
+   cat_search.nrec
+from
+ catalogs cat_search
+;
+
+Function CatalogsIsStaffPodr(_cRec : comp) : boolean; cacheable;{
+  if getfirst fastfirstrow cat_search where ((_cRec == cat_search.nrec)) = tsOK {
+    if cat_search.syscode = -11 {
+          result := True;
+          exit;
+        }
+     result := CatalogsIsStaffPodr(cat_search.cParent);
+   } else {
+     result := false;
+   }
+}
+
+end.
+
+handler exmpl_catalogs_tgrUpdate on trigger Catalogs After update [99]
+Action
+{
+ var buf : record as table catalogs;
+ GetTableBuffer(buf);
+ var iQUE_BASE : QUE_BASE;
+ var iQUE_exmpl : QUE_exmpl;
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+     iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Update
+                                               , 'BUS_STAFF-PODR'
+                                               , ''
+                                               , buf.nrec
+                                            );
+   }
+ Result := true;
+}
+Rollback{}
+
+handler exmpl_catalogs_tgrInsert on trigger Catalogs After insert [99]
+Action
+{
+ var buf : record as table catalogs;
+ GetTableBuffer(buf);
+ var iQUE_BASE : QUE_BASE;
+ var iQUE_exmpl : QUE_exmpl;
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+    iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Insert
+                                              , 'BUS_STAFF-PODR'
+                                              , ''
+                                              , buf.nrec
+                                           );
+  }
+ Result := true;
+}
+Rollback{}
+
+handler exmpl_catalogs_tgrDelete on trigger Catalogs After delete [99]
+Action
+{
+ var buf : record as table catalogs;
+ GetTableBuffer(buf);
+ var iQUE_BASE : QUE_BASE;
+ var iQUE_exmpl : QUE_exmpl;
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+   iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Delete
+                                             , 'BUS_STAFF-PODR'
+                                             , ''
+                                             , buf.nrec
+                                          );
+  }
+ Result := true;
+}
+Rollback{}

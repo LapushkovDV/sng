@@ -92,10 +92,13 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="25" PosY="18" OpenEditor="True" Active="True"/>
+			<File Name="SNG_QUE.prj" PosX="16" PosY="29" OpenEditor="True"/>
 			<File Name="vip\QUE_Exmpl_epRPD_CheckAfter.vip" PosX="56" PosY="9" OpenEditor="True"/>
 			<File Name="vip\QUE_Exmpl_epRPD_CheckAfter.vih" PosX="63" PosY="28" OpenEditor="True"/>
-			<File Name="..\..\..\..\Users\ִלטענטי\YandexDisk\Work\!Gal_Source\Z_M_L_F_C_20230112\CompSrc\Z\Z_StaffOrders\vip\ContainerOfOrders.vip" PosX="33" PosY="1599" OpenEditor="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="16" PosY="174" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_SubscribeExtPoint_epRPD_CheckAfter.vip" PosX="115" PosY="9" OpenEditor="True"/>
+			<File Name="vip\example_trigger_catalogs.vip" PosX="2" PosY="6" OpenEditor="True"/>
+			<File Name="vip\QUE_TEST.vip" PosX="25" PosY="62" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

@@ -11,6 +11,7 @@
 
 
 #include QUE_BASE.vih
+#include QUE_View_QUE_OUT.vih
 
 //************************************************************
 const
@@ -40,6 +41,7 @@ create view
    cmValue3,,,;
    cmValue4,,,;
    cmValue5,,,;
+   cmValue6,,,;
 <<
 Демонстрация работы  объекта по вставке записей на рассмотрение и генерации JSON
 Записи на рассмотрение это "предочередь" - по ним идут проверки, пишутся логи и генерируются JSON
@@ -58,6 +60,8 @@ create view
   <.           Передать записи с JSON в очередь          .> * записи с готовыми JSON копируются в очередь
 
   <.          Открыть записи на рассмотрении             .> - интерфейс просмотра "записей на рассмотрении"
+
+  <.             Открыть исходящую очередь               .> - интерфейс просмотра "исходящей очереди"
 
 >>
   end;//Screen ScrQRY_getParameter
@@ -113,8 +117,12 @@ handleevent // фейса
    StopVisual('', 0);
      message('Готово')
 }
- cmValue5: {
+cmValue5: {
    runinterface(SNG_QUE::QUE_View_QUE_EntriesForReview);
- }
+}
+cmValue6: {
+   var iQUE_View_QUE_OUT : QUE_View_QUE_OUT new;
+   iQUE_View_QUE_OUT.showwinQUE_OUT_BR(0h);
+}
 end;
 end.

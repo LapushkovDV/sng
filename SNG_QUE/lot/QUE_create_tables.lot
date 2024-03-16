@@ -101,8 +101,8 @@ Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
   With TableOptions Branched
 (
   Nrec           : comp   "Номер записи"
-, code           : word   "Код системы"
-, name           : comp   "Наименование системы"
+, code           : string "Код системы"
+, name           : string "Наименование системы"
 , interface_name : string "Интерфейс формирования запроса во внешнюю системы"
 )
 with Index
@@ -111,7 +111,7 @@ with Index
  ,RecipientSystem02 = code (unique)
 );
 
-Create Table QUE_QRY_RECIEPT "Связь экземпляра запроса и системы-получателя"
+Create Table QUE_QRY_RECIPT "Связь экземпляра запроса и системы-получателя"
   With Table_CODE = 13588
   With Replace
   With TableOptions Branched

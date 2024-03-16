@@ -778,6 +778,7 @@ function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; v
         clearbuffer(tntAbstrResultValues);
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
            tAbstrResultValues.value[_i] := ApplyFormulaToValue(_iRes.row.val(arrAbstrResultFldNames[_i]),arrFldFormulas[_i], _strParameter);
+           // mylog('_iRes.row.val('+arrAbstrResultFldNames[_i]+') =' + _iRes.row.val(arrAbstrResultFldNames[_i]));
          }
         insert current tAbstrResultValues;
      } while _iRes.getNext = tsOk;

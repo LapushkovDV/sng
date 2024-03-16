@@ -116,6 +116,12 @@ Function GetNameStatusQueue(_Status : word) : string;
 Получить картинку статуса очереди QUE_OUT
 #end
 Function GetImageStatusQueue(_Status : word) : string;
+
+#doc
+Выбрать интерфейс для отправки сообщений из очереди во внешние системы
+#end
+function GetQUE_SENDMESSTOEXTSYS : string;
+
 end;
 
 VipInterface QUE_BASE Implements oQUE_Base #Licensed_Free;

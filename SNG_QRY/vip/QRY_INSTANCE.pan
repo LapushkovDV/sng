@@ -33,7 +33,16 @@ cmDeleteRecord:
  if message('Удалить?',YesNo)<>cmYes  {
    abort; exit;
   }
+  if curtable = tnQRY_INST_FLD_LVL {
+      var cur_nrec : comp = QRY_INST_FLD_LVL.nrec;
+    }
   delete Current #table;
+  if curtable = tnQRY_INST_FLD_LVL {
+    _loop QRY_INST_FLD_LVL_search where ((QRY_INST_FLD_LVL.nrec == QRY_INST_FLD_LVL_search.cLevel)) {
+      update current QRY_INST_FLD_LVL_search set QRY_INST_FLD_LVL_search.cLevel := 0h;
+    }
+  }
+
 }
 end; //TableEvent table #table
 #end

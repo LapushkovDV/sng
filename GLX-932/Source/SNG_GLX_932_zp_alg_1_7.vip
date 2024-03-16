@@ -16,9 +16,9 @@
 \**************************************************************************************************/
 
 
-#include SNG##GLX_932_zp_alg_1_7.vih
+#include SNG_GLX_932_zp_alg_1_7.vih
 
-#component "SNG"
+#component "SNG_ZarAlg"
 
 
 interface GLX_932_zp_alg_1_7 cacheable;

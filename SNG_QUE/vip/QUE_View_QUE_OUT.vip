@@ -1,0 +1,142 @@
+/*************************************************************************************************\
+* Наименование: Интерфейс просмотра очереди исходящих сообщений                                   *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QUE_BASE.vih
+#include QUE_View_QUE_OUT.vih
+
+
+Interface QUE_View_QUE_OUT 'Интерфейс просмотра очереди исходящих сообщений',  cyan;
+create view
+ var
+    _crec
+  , _cParent : comp;
+  iQUE_BASE : QUE_BASE;
+ as select
+     iQUE_BASE.GetNameStatusQueue(QUE_OUT_BR.status) (FieldName = StatusNameQueue)
+   , iQUE_BASE.GetNameStatusQueue(QUE_LOG_BR.status) (FieldName = LogStatusNameQueue)
+
+ from
+   QUE_OUT QUE_OUT_BR
+ , QUE_LOG QUE_LOG_BR
+ where ((
+                 _cParent == QUE_OUT_BR.cParent
+      and QUE_OUT_BR.nrec == QUE_LOG_BR.cQUE_OUT
+ ))
+// Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
+;
+function GetImageStatusQueue: string; {
+  Result:=iQUE_BASE.GetImageStatusQueue(QUE_OUT_BR.Status);
+}
+
+function GetLogImageStatusQueue: string; {
+  Result:=iQUE_BASE.GetImageStatusQueue(QUE_LOG_BR.Status);
+}
+window winQUE_OUT_BR 'Просмотр очереди исходящих сообщений', cyan;
+  tree trQUE_OUT_BR (,,Sci1Esc);
+    show at ( ,,80,15);
+  table QUE_OUT_BR;
+    Fields
+    QUE_OUT_BR.DateTime_in           'Очередь','время создания' : [5]  , Protect, nopickbutton;
+    [Img_StatusQueue]  GetImageStatusQueue() 'Очередь','статус' : [4]  , Image;
+    QUE_OUT_BR.TypeEvent             'Событие',''               : [10] , Protect, nopickbutton;
+    QUE_OUT_BR.DateTime_in           'Дата-время ','создания записи' : [5] , Protect, nopickbutton;
+    QUE_OUT_BR.DateTime_out          'Дата-время ','передачи'   : [5] , Protect, nopickbutton;
+    StatusNameQueue                  'Очередь','статус'         : [10] , Protect, nopickbutton;
+    QUE_OUT_BR.RecipientSystem       'Система','получатель'     : [10] , Protect, nopickbutton;
+    QUE_OUT_BR.TryCount              'Кол-во','попыток'         : [5] , Protect, nopickbutton;
+  end;
+
+  text QUE_LOG_BR.log_text 'Лог отправки сообщения' : Protect;
+    show at ( 81,,,);
+
+  browse brQUE_LOG_BR (,,Sci1Esc);
+    show at ( ,16,80,);
+  table QUE_LOG_BR;
+   Fields
+    QUE_LOG_BR.DateTime_try       'Лог','время попытки'          : [5]  , Protect, nopickbutton;
+    [LogImg_StatusQueue] GetLogImageStatusQueue() 'Лог','статус' : [3]  , Image;
+    LogStatusNameQueue           'Статус','попытки'              : [10]  , Protect, nopickbutton;
+    QUE_LOG_BR.log_string        'Описание',''                   : [10]  , Protect, nopickbutton;
+  end;
+end;
+windowevent winQUE_OUT_BR;
+cminit :{
+  if _crec <> 0h {
+     treejumptorecord(trQUE_OUT_BR, _crec);
+    }
+    else {
+     if getfirst QUE_OUT_BR = tsOK {
+         #__UNUSED__(0)
+     }
+    }
+}
+end;
+
+procedure showwinQUE_OUT_BR(__crec : comp = 0h); {
+  set _crec := __crec;
+  runwindowmodal(winQUE_OUT_BR);
+}
+handleevent
+cmTreeTop: {
+    set _cParent:=0;
+ }
+cmTreeUp: {
+    set _cParent:=QUE_OUT_BR.cParent;
+ }
+cmTreeDown: {
+    set _cParent:=QUE_OUT_BR.nRec;
+ }
+cmTreeNodeType: {
+     if (TreeIsTerminal(trQUE_OUT_BR) OR IsNew)
+        TreeSetNodeType(trQUE_OUT_BR, 2);
+ }
+cmTreeNeedOwner: {
+     TreeJumpToRecord (trQUE_OUT_BR, QUE_OUT_BR.cParent);
+ }
+cmAttrib: {
+     if not TreeNodeIsOpen(FocusedFormat)
+     {
+        PutCommand(cmTreeOpenNode);
+     }
+     else
+     {
+        PutCommand(cmTreeCloseNode);
+     }
+ }
+cmCompressLevel: {
+      PutCommand(cmTreeCloseNode);
+ }
+cmValue4: {
+   var _file : string = iQUE_BASE.GenerateNewFile + '.log';
+   if ExportMemoToFile(QUE_LOG_BR.log_text, _file, false)
+    then putfiletoclient(_file,false)
+     else message('Ошибка экспорта мемо-поля',error)
+}
+cmValue5: {
+   var _file : string = iQUE_BASE.GenerateNewFile + '.json';
+   if ExportMemoToFile(QUE_OUT_BR.JSON, _file, false)
+    then putfiletoclient(_file,false)
+     else message('Ошибка экспорта мемо-поля',error)
+}
+cmHotKeys: {
+  case curtable of
+    tnQUE_LOG_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_LOG'));
+    tnQUE_OUT_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_MSG'));
+  end;
+}
+
+end;
+end.
+mnuQUE_View_QUE_OUT_LOG Menu {
+  - 'Скачать лог файл', cmValue4;
+}
+
+mnuQUE_View_QUE_OUT_MSG Menu {
+  - 'Скачать файл сообщения', cmValue5;
+}

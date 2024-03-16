@@ -26,5 +26,12 @@ LicenseControlInclude=""
 #make "vip\QUE_BASE.vip"
 //#make "vip\QUE_SubscribeExtPoint_epRPD_CheckAfter.vip"
 #make "vip\QUE_View_QUE_EntriesForReview.vip"
+#make "vip\QUE_View_QUE_OUT.vip"
+
+#make "vip\QUE_RecipientSystems.vip"
+
 #make "vip\QUE_TEST.vip"
 //#make "vip\QUE_Exmpl_epRPD_CheckAfter.vip"
+#make "vip\QUE_exmpl.vip"
+
+#make "vip\QUE_SendMessToExtSys_Exmpl.vip"

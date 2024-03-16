@@ -19,9 +19,11 @@
 */
 #include QUE_BASE.vih
 #include QRY_OUT.vih
+#include QUE_SendMessToExtSys.vih
 
 table struct tmpEntriesForReview (
    cEntriesForReview : comp
+ , QRY_Instance_code : string
  , DateTime_in       : datetime
 )
 with index (
@@ -31,10 +33,20 @@ with index (
 
 table struct tEntrForReviewToQue (
    cEntriesForReview : comp
+ , QRY_Instance_code : string
  , DateTime_in       : datetime
 )
 with index (
  ind0 = cEntriesForReview
+)
+;
+
+table struct tSendMessToExtSys (
+   name  : string
+ , descr : string
+)
+with index (
+ ind0 = name
 )
 ;
 
@@ -62,10 +74,68 @@ from
  , QUE_EntriesForReview QUE_EntrRvwLoop_status
  , QRY_Instance QRY_Instance_1
  , QRY_Template QRY_INST_TMPLT_1
+ , QUE_RecipientSystem ReciptSystem
+ , QUE_QRY_RECIPT QRY_RECIPT
 
  , tmpEntriesForReview
  , tEntrForReviewToQue
+ , tSendMessToExtSys
 ;
+
+
+
+Procedure fillQUE_SENDMESSTOEXTSYS; {
+  delete all tSendMessToExtSys;
+  if (LoadImplementationList('SNG_QUE::OQUE_SendMessToExtSys', 'QUE_SENDMESSTOEXTSYS_'))
+  {
+    StartNewVisual(vtNumericVisual, vfTimer + vfBreak, 'Загрузка списка QUE_SendMessToExtSys...', 1);
+    _try
+    {
+      var I: integer = 0;
+      for (I := 0; I < GetImplementationCount; I := I + 1) {
+        var _iQUE_SendMessToExtSys : oQUE_SendMessToExtSys;
+        if LoadvipRef(_iQUE_SendMessToExtSys, GetImplementationName(I)) {
+          insert tSendMessToExtSys set
+             tSendMessToExtSys.name  :=  replace(GetImplementationName(I), 'SNG_QUE::QUE_SENDMESSTOEXTSYS_', '')
+           , tSendMessToExtSys.descr := _iQUE_SendMessToExtSys.GetDescription;
+          ;
+          FreeVipInterface(_iQUE_SendMessToExtSys);
+        }
+        NextVisual;
+      }
+    }
+    _except
+      on ExUserBreak : {};
+    _finally
+      StopVisual('', 0);
+  }
+}
+
+window winSelectQUE_SENDMESSTOEXTSYS 'Выбор шаблона запроса', cyan;
+ browse brSelectQUE_SENDMESSTOEXTSYS;
+  table tSendMessToExtSys;
+  Fields
+   tSendMessToExtSys.NAME  'Наименование' : [10] , Protect, nopickbutton;
+   tSendMessToExtSys.descr 'Описание'     : [20] , Protect, nopickbutton;
+ end;
+end;
+windowevent winSelectQUE_SENDMESSTOEXTSYS ;
+ cmdefault: {
+   closewindowex(winSelectQUE_SENDMESSTOEXTSYS, cmDefault)
+ }
+end;
+
+function GetQUE_SENDMESSTOEXTSYS : string; {
+ fillQUE_SENDMESSTOEXTSYS;
+ if getfirst tSendMessToExtSys <> tsOK {
+   message('Нет ни одной реализации объектного интерфейса OQUE_SendMessToExtSys', error);
+   exit;
+ }
+ result := '';
+ if runwindowmodal(winSelectQUE_SENDMESSTOEXTSYS) = cmDefault {
+   result := tSendMessToExtSys.NAME ;
+ }
+}
 
 Function GetNameStatusEntriesForReview(_Status : word) : string; cacheable;{
  case _Status of
@@ -76,6 +146,7 @@ Function GetNameStatusEntriesForReview(_Status : word) : string; cacheable;{
    coPreQUE_ErrorGenerateJSON           : result := 'ошибка при генерации JSON' // 4; //  ошибка при генерации JSON
    coPreQUE_SuccessTransferToQueue      : result := 'успешно передана в очередь' // 5; //  успешно передана в очередь
    coPreQUE_ErrorTransferToQueue        : result := 'ошибка передачи в очередь' // 6; //  ошибка передачи в очередь
+   coPreQUE_ErrorFindInstanceInReciept  : result := 'экземпляр запроса не подписан на внешние системы'  // 7 Экземпляр запроса не подписан на внешние системы
   else {
     result := '--неизвестный статус--' //
   }
@@ -89,12 +160,13 @@ Function GetNameStatusQueue(_Status : word) : string; cacheable;{
    coQUE_ErrorTransToExtSystem          : result := 'ошибка передачи во внешнюю систему'                //  ошибка передачи во внешнюю систему
    coQUE_SuccessTransToExtSystem        : result := 'успешно передана'                                  //  успешно передана
    coQUE_NotAllPoolRcrdTransToExtSystem : result := 'не все записи из пула переданы во внешнюю систему' //  не все записи из пула переданы во внешнюю систему
+   coQUE_ErrorFindInstanceInReciept     : result := 'Экземпляр запроса не подписан на внешние системы'  // 5; //  Экземпляр запроса не подписан на внешние системы
+   coQUE_ErrButWillContinueTryToSend    : result := 'Ошибка передачи, но еще будем пробовать'           // 6; //  Ошибка передачи, но еще будем пробовать
   else {
     result := '--неизвестный статус--' //
   }
  end;
 }
-
 
 Function GetImageStatusQueue(_Status : word) : string; cacheable;{
 
@@ -325,8 +397,12 @@ procedure GenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp); 
       }
 }
 
-function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp) : comp; {
+function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp; _codeReciptSystem : string) : comp; {
   if getfirst QUE_EntrRvwIns where ((_cEntriesForReview == QUE_EntrRvwIns.nrec)) <> tsOK then exit;
+
+  if getfirst QUE_OUT_Copy where ((_cEntriesForReview == QUE_OUT_Copy.cQUE_EntriesReview
+                              and _codeReciptSystem == QUE_OUT_Copy.RecipientSystem (noindex)
+                              )) = tsOK then exit; // уже передали в очередь позицию
 
   var _cQUE_OUT_CopyUp : comp = 0h;
   if getfirst QUE_EntrRvwIns_1 where ((QUE_EntrRvwIns.cParent == QUE_EntrRvwIns_1.nrec)) = tsOK then {
@@ -334,7 +410,6 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp) : comp; {
        _cQUE_OUT_CopyUp := QUE_OUT_Copy.nrec;
      }
   }
-
    clearbuffer(tnQUE_OUT_Copy);
     QUE_OUT_Copy.Status             := coQUE_AwaitRelatRecordToInsQue;
     QUE_OUT_Copy.TypeEvent          := QUE_EntrRvwIns.TypeEvent;
@@ -343,7 +418,7 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp) : comp; {
     QUE_OUT_Copy.QRY_Instance_code  := QUE_EntrRvwIns.QRY_Instance_code;
     QUE_OUT_Copy.DateTime_in        := _curDateTime;
 //    QUE_OUT_Copy.DateTime_out       := 0;
-//    RecipientSystem    : string     "Код системы получателя";
+    QUE_OUT_Copy.RecipientSystem    := _codeReciptSystem; // string     "Код системы получателя";
     QUE_OUT_Copy.cQUE_EntriesReview := QUE_EntrRvwIns.nrec;
     QUE_OUT_Copy.JSON               := QUE_EntrRvwIns.JSON;
 
@@ -353,10 +428,10 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp) : comp; {
    }
 }
 
-procedure RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
+procedure RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp; _codeReciptSystem : string); {
    _loop QUE_EntrCopyToQueue where ((_cEntriesForReview == QUE_EntrCopyToQueue.cParent))  {
 
-      if CopyEntriesForReviewRecordsToqueue(QUE_EntrCopyToQueue.nrec) <> 0h {
+      if CopyEntriesForReviewRecordsToqueue(QUE_EntrCopyToQueue.nrec, _codeReciptSystem) <> 0h {
         QUE_EntrCopyToQueue.status := coPreQUE_SuccessTransferToQueue;
       }
       else {
@@ -369,7 +444,7 @@ procedure RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview :
 
       if(getfirst QUE_EntrCopyToQueueUp where ((QUE_EntrCopyToQueue.nrec == QUE_EntrCopyToQueueUp.cParent)) ) = tsOK {
         pushpos(tnQUE_EntrCopyToQueue);
-         RecursiveCopyToQueue_from_EntriesForReviewRecords(QUE_EntrCopyToQueue.nrec);
+         RecursiveCopyToQueue_from_EntriesForReviewRecords(QUE_EntrCopyToQueue.nrec, _codeReciptSystem);
         poppos(tnQUE_EntrCopyToQueue);
        }
 
@@ -382,13 +457,13 @@ procedure RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview :
     }
 }
 
-procedure CopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
+procedure CopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp; _codeReciptSystem : string); {
 
    if getfirst QUE_EntrRvwGenJSON where ((_cEntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOk then exit;
 
-   if QUE_EntrRvwGenJSON.status <> coPreQUE_ReadyToTransferToQueue then exit;
+   //if QUE_EntrRvwGenJSON.status <> coPreQUE_ReadyToTransferToQueue then exit;
 
-   if CopyEntriesForReviewRecordsToqueue(_cEntriesForReview) <> 0h{
+   if CopyEntriesForReviewRecordsToqueue(_cEntriesForReview, _codeReciptSystem) <> 0h {
         QUE_EntrRvwGenJSON.status := coPreQUE_SuccessTransferToQueue;
       }
       else {
@@ -396,7 +471,7 @@ procedure CopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
       }
       update current QUE_EntrRvwGenJSON;
 
-   RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview );
+   RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview,_codeReciptSystem );
 
    if getfirst QUE_EntrRvwGenJSON where ((_cEntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOk then exit;
 
@@ -406,7 +481,8 @@ procedure CopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
       update current QUE_EntrRvwGenJSON;
     }
 
-  if getfirst QUE_OUT_Copy where ((QUE_EntrRvwGenJSON.nrec == QUE_OUT_Copy.cQUE_EntriesReview)) = tsOK {
+  if getfirst QUE_OUT_Copy where ((QUE_EntrRvwGenJSON.nrec == QUE_OUT_Copy.cQUE_EntriesReview
+                                     and _codeReciptSystem == QUE_OUT_Copy.RecipientSystem (noindex) )) = tsOK {
     SetPoolRecordsCopiedToQueue(QUE_OUT_Copy.nrec);
    }
 }
@@ -436,6 +512,7 @@ procedure ProcessEntriesForReview; {
       sql
       select top 100
          QUE_EntriesForReview.nrec as cEntriesForReview
+       , QUE_EntriesForReview.QRY_Instance_code as QRY_Instance_code
        , QUE_EntriesForReview.DateTime_in as DateTime_in
       from QUE_EntriesForReview
       where   QUE_EntriesForReview.status = :(coPreQUE_AwaitProcessJSONgenerate)
@@ -448,18 +525,28 @@ procedure ProcessEntriesForReview; {
       exit;
     }
  _loop tmpEntriesForReview {
+    if getfirst QRY_Instance_1 where (( tmpEntriesForReview.QRY_Instance_code == QRY_Instance_1.CODE)) = tsOK {
+     if getfirst QRY_RECIPT where ((QRY_Instance_1.nrec == QRY_RECIPT.cQRY_Instance)) <> tsOK {
+       if getfirst QUE_EntrRvwIns_1 where ((tmpEntriesForReview.cEntriesForReview == QUE_EntrRvwIns_1.nrec)) = tsOK {
+       update current QUE_EntrRvwIns_1 set QUE_EntrRvwIns_1.Status := coPreQUE_ErrorFindInstanceInReciept ;
+       continue;
+      }
+     }
+    }
     GenerateJSON_from_EntriesForReviewRecords(tmpEntriesForReview.cEntriesForReview);
 //    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
   }
 }
 
 procedure CopyEntriesForReviewToQueue; {
+  mylog('CopyEntriesForReviewToQueue');
  delete all tEntrForReviewToQue;
  _try
     {
       sql
       select top 100
          QUE_EntriesForReview.nrec as cEntriesForReview
+       , QUE_EntriesForReview.QRY_Instance_code as QRY_Instance_code
        , QUE_EntriesForReview.DateTime_in as DateTime_in
       from QUE_EntriesForReview
       where   QUE_EntriesForReview.status = :(coPreQUE_ReadyToTransferToQueue)
@@ -471,12 +558,25 @@ procedure CopyEntriesForReviewToQueue; {
     else {
       exit;
     }
- _loop tEntrForReviewToQue {
-   CopyToQueue_from_EntriesForReviewRecords(tEntrForReviewToQue.cEntriesForReview);
+  _loop tEntrForReviewToQue {
+//    mylog('_loop tEntrForReviewToQue tEntrForReviewToQue.QRY_Instance_code = ' + tEntrForReviewToQue.QRY_Instance_code);
+    if getfirst QRY_Instance_1 where (( tEntrForReviewToQue.QRY_Instance_code == QRY_Instance_1.CODE)) = tsOK {
+//      mylog('_loop tEntrForReviewToQue if getfirst QRY_Instance_1 = tsok');
+         if getfirst QRY_RECIPT where ((QRY_Instance_1.nrec == QRY_RECIPT.cQRY_Instance)) <> tsOK {
+           if getfirst QUE_EntrRvwIns_1 where ((tEntrForReviewToQue.cEntriesForReview == QUE_EntrRvwIns_1.nrec)) = tsOK {
+             update current QUE_EntrRvwIns_1 set QUE_EntrRvwIns_1.Status := coPreQUE_ErrorFindInstanceInReciept ;
+           }
+         }
+         _loop QRY_RECIPT where ((QRY_Instance_1.nrec == QRY_RECIPT.cQRY_Instance)) {
+           if getfirst ReciptSystem where ((QRY_RECIPT.cQUE_RecipientSystem == ReciptSystem.nrec)) <> tsok then {
+//                  mylog('if getfirst ReciptSystem where ((QRY_RECIPT.cQUE_RecipientSystem == ReciptSystem.nrec)) <> tsok');
+             continue;
+            }
+//           mylog('if getfirst ReciptSystem where ((QRY_RECIPT.cQUE_RecipientSystem == ReciptSystem.nrec)) = tsok');
+           CopyToQueue_from_EntriesForReviewRecords(tEntrForReviewToQue.cEntriesForReview, ReciptSystem.code);
+         }
 //    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
+      }
   }
 }
-
-
-
 end.

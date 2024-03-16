@@ -48,7 +48,7 @@ cmPick:{
      #QRY_INST_TMPLT.CODE :{
        var _crec : comp = GetTemplate;
         if _crec <> 0h {
-          set QRY_INST.cTmplt := GetTemplate;
+          set QRY_INST.cTmplt := _crec;
           updatetable;
         }
        }

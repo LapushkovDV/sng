@@ -1,0 +1,41 @@
+/*************************************************************************************************\
+* Наименование: Объектный интерфейс отправки сообщений во внешнюю систему                         *
+* Контур/Модуль: Очередь сообщений                                                                *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+/*
+Абстрактный объектный интерфейс отправки сообщений во внешнюю систему
+пример реализации - QUE_SendMessToExtSys_Exmpl.vip
+*/
+#ifnDef _QUE_SENDMESSTOEXTSYS_INCLUDED_
+#define _QUE_SENDMESSTOEXTSYS_INCLUDED_
+
+#component "SNG_QUE"
+
+objinterface oQUE_SendMessToExtSys;
+#doc
+  отправить сообщение во внешнюю систему
+  Возвращаемое значение:
+    TRUE - успешно
+    FALSE - неудачно
+
+  Параметры
+  _JSON - указатель на JSON объект для передачи
+  _InstanceCode - код экземпляра запроса
+  _typeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete или coQUE_TypeEvent_Update)
+  _retStatus - возвращаемый, текстовое описание статуса (в случае ошибки краткое описание ошибки)
+  _retFileLog - возвращаемый, путь на файл лога обработки/ошибки
+#end
+function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean;
+#doc
+Наименование интерфейса
+#end
+  function GetDescription : string;
+end;
+
+#end

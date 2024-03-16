@@ -62,6 +62,7 @@ from
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_UP
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_FLD
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_search
 
   , QRY_Template   QRY_INST_TMPLT
   , QRY_TemplateSP QRY_INST_TMPLTSP
@@ -147,7 +148,7 @@ Procedure filltFields; {
   }
 }
 
-window winSelectQRY_TEMPLATE 'Выбор системной таблицы', cyan;
+window winSelectQRY_TEMPLATE 'Выбор шаблона запроса', cyan;
 browse brSelectQRY_TEMPLATE;
  table QRY_TMPLT_BR;
   Fields
@@ -167,6 +168,31 @@ function GetTemplate : comp; {
    result := QRY_TMPLT_BR.nrec;
  }
 }
+
+window winSelectQRY_INST 'Выбор экземпляра запроса', cyan;
+browse brSelectQRY_INST;
+ table QRY_INST;
+  Fields
+  QRY_INST.code        'Код'          : [3] , Protect, nopickbutton, #colorneed(QRY_INST.CODE='');
+  QRY_INST.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST.name='');
+  QRY_INST.Description 'Описание'     : [10] , Protect, nopickbutton;
+  QRY_INST_TMPLT.code  'Шаблон','код'          : [3]  , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.CODE='');
+  QRY_INST_TMPLT.NAME  'Шаблон','наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.name='');
+  TblINST.XF$NAME      'Корневая','таблица'    : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.TABLECODE =0);
+end;
+end;
+windowevent winSelectQRY_INST ;
+ cmdefault: {
+   closewindowex(winSelectQRY_INST, cmDefault)
+ }
+end;
+function GetQRY_INST : comp; {
+ result := 0;
+ if runwindowmodal(winSelectQRY_INST) = cmDefault {
+   result := QRY_INST.nrec;
+ }
+}
+
 
 window winSelQRY_INST_FLD_LVL 'Выбор уровня вложенности JSON', cyan;
 browse brselQRY_INST_FLD_LVL;

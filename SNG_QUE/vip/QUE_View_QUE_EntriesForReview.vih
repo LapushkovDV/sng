@@ -1,0 +1,20 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#ifnDef _QUE_View_QUE_EntriesForReview_INCLUDED_
+#define _QUE_View_QUE_EntriesForReview_INCLUDED_
+#component "SNG_QUE"
+
+ObjInterface oQUE_View_QUE_EntriesForReview;
+end;
+
+VipInterface QUE_View_QUE_EntriesForReview Implements oQUE_View_QUE_EntriesForReview #Licensed_Free;
+
+#end

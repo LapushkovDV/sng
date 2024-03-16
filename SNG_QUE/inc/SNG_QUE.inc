@@ -19,6 +19,7 @@ coPreQUE_AwaitProcessRelatedRcrd     = 3; //  ожидает генерации JSON в связанных
 coPreQUE_ErrorGenerateJSON           = 4; //  ошибка при генерации JSON
 coPreQUE_SuccessTransferToQueue      = 5; //  успешно передана в очередь
 coPreQUE_ErrorTransferToQueue        = 6; //  ошибка передачи в очередь
+coPreQUE_ErrorFindInstanceInReciept  = 7; //  Экземпляр запроса не подписан на внешние системы
 
 
 // поле Status таблицы QUE_EntriesForReview  QUE_OUT
@@ -28,10 +29,12 @@ coQUE_AwaitRelatRecordToInsQue       = 1; //  ожидает вставки связанных записей 
 coQUE_ErrorTransToExtSystem          = 2; //  ошибка передачи во внешнюю систему
 coQUE_SuccessTransToExtSystem        = 3; //  успешно передана
 coQUE_NotAllPoolRcrdTransToExtSystem = 4; //  не все записи из пула переданы во внешнюю систему
+coQUE_ErrorFindInstanceInReciept     = 5; //  Экземпляр запроса не подписан на внешние системы
+coQUE_ErrButWillContinueTryToSend    = 6; //  Ошибка передачи, но еще будем пробовать
 
 coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
-coQUE_TypeEvent_Delete = 'UPDATE'; // Событие обновление
-coQUE_TypeEvent_Update = 'DELETE'; // Событие удаление
+coQUE_TypeEvent_Delete = 'DELETE'; // Событие обновление
+coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
 
 end;
 #end

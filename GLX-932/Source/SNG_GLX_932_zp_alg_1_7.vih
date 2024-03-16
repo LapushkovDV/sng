@@ -9,7 +9,7 @@
 
 #ifnDef _GLX_932_zp_alg_1_7_INCLUDED_
 #define _GLX_932_zp_alg_1_7_INCLUDED_
-#component "SNG"
+#component "SNG_ZarAlg"
 
 ObjInterface oGLX_932_zp_alg_1_7;
 public:

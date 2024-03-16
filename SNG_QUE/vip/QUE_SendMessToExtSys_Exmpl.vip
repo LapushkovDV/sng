@@ -1,0 +1,84 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QUE_SendMessToExtSys.vih
+#include QUE_BASE.vih
+
+//************************************************************
+
+vipinterface QUE_SendMessToExtSys_exmpl implements oQUE_SendMessToExtSys
+  Licensed(free);
+
+Interface QUE_SendMessToExtSys_exmpl;
+
+function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean; {
+ result := false;
+ var iQUE_BASE : QUE_BASE new;
+ var httpCon: TPtr = HttpConnect_CreateEx('https://oilix.net:52045', '', '', True);
+
+ HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+ HttpConnect_ResponseLogEnable(httpCon);
+
+ var lHeader: TPtr;
+  lHeader := HttpConnect_CreateLongString(httpCon);
+  HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+/*
+  HttpConnect_AddValueToLongString(httpCon, 'Host: directumrxtst' + chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Username: '+ API_Username+ chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Password: '+ API_Password+ chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+*/
+
+ // https://oilix.net:52045/ipc/data/check?type=test&action=save
+
+
+ var lbody : TPtr = HttpConnect_JSONObjectToString(httpCon, _JSON);
+
+ var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+ HttpConnect_AddValueToLongString(httpCon, '/ipc/data/check?type='+_InstanceCode+'&action=save', lAddUrl);
+
+ var  isHTTPS : boolean = True;
+ var lToken : longint = 0 ;
+
+// var lResponse : TPtr = HttpConnect_EDISendRequestEx(httpCon, lAddUrl, lToken, lbody, 'GET', isHTTPS, 'Content-Type: application/json',0);
+ var lResponse : tptr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lbody, false);
+
+ var _file : string = iQUE_BASE.GenerateNewFile;
+ HttpConnect_SaveToFile(httpCon, lResponse, _file+'lResponse.txt', 65001); // cpUTF8 = 65001
+
+
+     if (HttpConnect_LastError(httpCon) <> 0)
+      {
+       var _logHttpConnect : string = iQUE_BASE.GenerateNewFile;
+       _logHttpConnect := _logHttpConnect + '_logHttpConnect.log';
+       HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
+       _retStatus  := HttpConnect_LastErrorText(httpCon);
+       _retFileLog := _logHttpConnect;
+       Exit;
+      }
+
+  var jObjectResponse : TPtr;
+  jObjectResponse := HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+  var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(httpCon,jObjectResponse,'message');
+  var filelResponse : string = iQUE_BASE.GenerateNewFile + 'filelResponse.log';
+  HttpConnect_ResponseLogToFile(httpCon, filelResponse);
+ _retFileLog := filelResponse;
+ _retStatus := _sRESMESSAGE;
+
+   if _sRESMESSAGE = 'OK' {
+     result := true;
+   }
+}
+
+function GetDescription : string; {
+  result := 'Test send to external bus. Пример реализации отправки сообщения в https://oilix.net:52045/'
+}
+end.

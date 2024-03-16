@@ -53,6 +53,11 @@ function GetTableNameByCode(_tableCode : word) : string;
 function GetTemplate : comp;
 
 #doc
+Выбор экземпляра запроса
+#end
+function GetQRY_INST : comp;
+
+#doc
 Выбор таблицы
 #end
 function GetTable : word;
