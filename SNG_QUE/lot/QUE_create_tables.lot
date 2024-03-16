@@ -35,6 +35,7 @@ Create Table QUE_OUT "Исходящая очередь"
 (
   Nrec               : comp       "Номер записи"
 , Status             : word       "Статус обработки"
+, log_string         : string     "Строкое описание"
 , TypeEvent          : string[20] "Тип события"
 , TryCount           : word       "Количество попыток отправки сообщения"
 , cParent            : comp       "Ссылка на вышестоящую запись"
@@ -64,8 +65,8 @@ Create Table QUE_LOG "Лог попыток отсыла сообщения очереди"
 , cQUE_OUT          : ref(QUE_OUT) "Ссылка запись очереди"
 , Status            : word       "Статус попытки"
 , DateTime_try      : datetime   "Дата-время попытки"
-, log_string        : string     "Строкое описание ошибки"
-, log_text          : LVAR       "Полное описание ошибки"
+, log_string        : string     "Строкое описание"
+, log_text          : LVAR       "Полное описание"
 )
 with Index
 (

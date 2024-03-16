@@ -27,7 +27,8 @@ table struct tmpEntriesForReview (
  , DateTime_in       : datetime
 )
 with index (
- ind0 = cEntriesForReview
+   ind0 = cEntriesForReview
+ , ind1 = DateTime_in
 )
 ;
 
@@ -37,7 +38,18 @@ table struct tEntrForReviewToQue (
  , DateTime_in       : datetime
 )
 with index (
- ind0 = cEntriesForReview
+   ind0 = cEntriesForReview
+ , ind1 = DateTime_in
+)
+;
+
+table struct tQueueOut (
+   cQue_OUT    : comp
+ , DateTime_in : datetime
+)
+with index (
+   ind0 = cQue_OUT
+ , ind1 = DateTime_in
 )
 ;
 
@@ -50,6 +62,16 @@ with index (
 )
 ;
 
+Table Struct tRefSendMessToExtSys
+(
+   Name : string[100]
+ , num  : word
+)
+with index
+(
+ ind01=Name
+);
+
 
 /*
 
@@ -57,6 +79,7 @@ TODO^ пересмотреть все эти getfirst where /// по вьюху их надо убрать - быстрее 
 */
 Interface QUE_BASE 'QUE базовый объект';
 function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean; forward;
+ var _arrQUE_SendMessToExtSys : Array [1..1] of oQUE_SendMessToExtSys;
 create view
 var
    _logQUE_OUT : string; //глобальная
@@ -76,17 +99,24 @@ from
  , QRY_Template QRY_INST_TMPLT_1
  , QUE_RecipientSystem ReciptSystem
  , QUE_QRY_RECIPT QRY_RECIPT
+ , QUE_OUT QUE_OUT_SNDMSG
+ , QUE_LOG QUE_LOG_SNDMSG
+ , QUE_OUT QUE_OUT_LoopStatus
+ , QUE_OUT QUE_OUT_LoopRecursive
+ , QUE_RecipientSystem RecipSystem
 
  , tmpEntriesForReview
  , tEntrForReviewToQue
+ , tQueueOut
  , tSendMessToExtSys
+ , tRefSendMessToExtSys
 ;
 
 
 
 Procedure fillQUE_SENDMESSTOEXTSYS; {
   delete all tSendMessToExtSys;
-  if (LoadImplementationList('SNG_QUE::OQUE_SendMessToExtSys', 'QUE_SENDMESSTOEXTSYS_'))
+  if (LoadImplementationList('SNG_QUE::OQUE_SENDMESSTOEXTSYS', 'QUE_SENDMESSTOEXTSYS_'))
   {
     StartNewVisual(vtNumericVisual, vfTimer + vfBreak, 'Загрузка списка QUE_SendMessToExtSys...', 1);
     _try
@@ -162,6 +192,7 @@ Function GetNameStatusQueue(_Status : word) : string; cacheable;{
    coQUE_NotAllPoolRcrdTransToExtSystem : result := 'не все записи из пула переданы во внешнюю систему' //  не все записи из пула переданы во внешнюю систему
    coQUE_ErrorFindInstanceInReciept     : result := 'Экземпляр запроса не подписан на внешние системы'  // 5; //  Экземпляр запроса не подписан на внешние системы
    coQUE_ErrButWillContinueTryToSend    : result := 'Ошибка передачи, но еще будем пробовать'           // 6; //  Ошибка передачи, но еще будем пробовать
+   coQUE_TryToSend                      : result := 'Обрабатывается сейчас'                             // 7; //  обрабатывается сейчас
   else {
     result := '--неизвестный статус--' //
   }
@@ -377,6 +408,20 @@ function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean
    }
 }
 
+function isExistStatusInPoolQueue(_cQue: comp; _status : word) : boolean; {
+  result := false;
+  _loop QUE_OUT_LoopStatus where ((_cQue == QUE_OUT_LoopStatus.cParent)) {
+    if QUE_OUT_LoopStatus.status = _status then {
+      result := true;
+      exit;
+    }
+     pushpos(tnQUE_OUT_LoopStatus);
+      result := isExistStatusInPoolQueue(QUE_OUT_LoopStatus.nrec, _status);
+     poppos(tnQUE_OUT_LoopStatus);
+     if result = True then exit;
+   }
+}
+
 procedure GenerateJSON_from_EntriesForReviewRecords(_cEntriesForReview : comp); {
    if getfirst QUE_EntrRvwGenJSON where ((_cEntriesForReview == QUE_EntrRvwGenJSON.nrec)) <> tsOk then exit;
    if QUE_EntrRvwGenJSON.status <> coPreQUE_AwaitProcessJSONgenerate then exit;
@@ -487,6 +532,197 @@ procedure CopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp; _c
    }
 }
 
+Function GetInterfaceNameByReciptSystem(_RecipientSystemCode : string): string; cacheable;{
+  result := '';
+  if getfirst fastfirstrow RecipSystem where ((_RecipientSystemCode == RecipSystem.code )) = tsOK {
+   result := RecipSystem.interface_name
+  }
+}
+
+Function SendOneMessage(_cQue_OUT : comp) : boolean; {
+#declare updatelogSetStatusQueue(StrError)
+          QUE_LOG_SNDMSG.log_string := #StrError;
+          QUE_LOG_SNDMSG.Status     := coQUE_ErrorTransToExtSystem;
+         update current QUE_LOG_SNDMSG;
+        if QUE_OUT_SNDMSG.TryCount >= coMaxTryCount {
+           QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
+          } else {
+            QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
+          }
+          update current QUE_OUT_SNDMSG;
+#end
+ result := false;
+ if getfirst fastfirstrow QUE_OUT_SNDMSG where ((_cQue_OUT == QUE_OUT_SNDMSG.nrec)) <> tsOk then exit;
+ if QUE_OUT_SNDMSG.status = coQUE_SuccessTransToExtSystem {
+    result := true; // ну т.е. может надо по подчиненным пройтись
+  }
+
+ if  QUE_OUT_SNDMSG.status = coQUE_ErrButWillContinueTryToSend {
+   _loop QUE_LOG_SNDMSG where ((QUE_OUT_SNDMSG.nrec == QUE_LOG_SNDMSG.cQUE_OUT)) {
+      if QUE_LOG_SNDMSG.status = coQUE_SuccessTransToExtSystem then {
+       result := true; // это актуально для корневой записи у нее такой статус. если не все вложенные передались
+       break;
+      }
+    }
+  }
+
+  if result then exit;
+
+  update current QUE_OUT_SNDMSG set
+     QUE_OUT_SNDMSG.status   := coQUE_TryToSend
+   , QUE_OUT_SNDMSG.TryCount := QUE_OUT_SNDMSG.TryCount + 1
+ ;
+  insert QUE_LOG_SNDMSG set
+     QUE_LOG_SNDMSG.cQUE_OUT := _cQue_OUT
+   , QUE_LOG_SNDMSG.DateTime_try := _curdatetime
+  ;
+
+//, QUE_LOG_SNDMSG.Status            : word       "Статус попытки"
+//, QUE_LOG_SNDMSG.log_text          : LVAR       "Полное описание ошибки"
+
+
+ var _retStatus  : string = '';
+ var _retFileLog : string = '';
+   var iQUE_BASE : QUE_BASE;
+   var _FilePath : string = iQUE_BASE.GenerateNewFile+'.JSON';
+   if not ExportMemoToFile(QUE_OUT_SNDMSG.JSON, _FilePath, false) {
+         #updatelogSetStatusQueue('Ошибка экспорта мемо поля')
+         exit;
+      }
+
+   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+                                                , _FilePath // sFileName : String,
+                                                , cpUTF8 // Encoding  : LongInt
+                                                 ) ;
+   deletefile(_FilePath);
+  if (_longValue = 0) {
+       #updatelogSetStatusQueue('Ошибка загрузки файла с диска после экспорта из мемо-поля')
+       exit;
+      }
+
+  if (HttpConnect_GetLongStringLength(m_service, _longValue) <= 0) {
+       #updatelogSetStatusQueue('после экспорта из мемо-поля пустой файл')
+       Exit;
+      }
+
+  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _longValue);
+   if JSON_Object = 0 {
+      #updatelogSetStatusQueue('не смогли преобразовать файл в JSON')
+      exit;
+    }
+
+     var _interfaceName : string = GetInterfaceNameByReciptSystem(QUE_OUT_SNDMSG.RecipientSystem);
+
+     if _interfaceName = '' {
+      #updatelogSetStatusQueue('Пустое имя интерфейса отправки сообщения или нет системы-получателя')
+      exit;
+     }
+
+          var ww_num:word=0;
+          if Getfirst tRefSendMessToExtSys where (( _interfaceName == tRefSendMessToExtSys.Name )) <> tsOk {
+            Insert into tRefSendMessToExtSys set tRefSendMessToExtSys.Name:= _interfaceName;
+          }
+          else  {
+            ww_num:=tRefSendMessToExtSys.num;
+           }
+
+          do
+          { if ww_num=0
+            { ww_num:=count(_arrQUE_SendMessToExtSys)+1;
+              SetLimit(_arrQUE_SendMessToExtSys,ww_num);
+              if LoadvipRef(_arrQUE_SendMessToExtSys[ww_num], 'SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName){
+               update current tRefSendMessToExtSys set tRefSendMessToExtSys.Num:=ww_num;
+              }
+              else {
+                #updatelogSetStatusQueue('Не удалось загрузить интерфейс SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName)
+                exit;
+              }
+            }
+            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessageJSON(  JSON_Object
+                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
+                                                                   , QUE_OUT_SNDMSG.TypeEvent
+                                                                   , _retStatus
+                                                                   , _retFileLog);
+            Break;
+          } while True;
+
+       if _retFileLog <> '' {
+          ImportFileToMemo(QUE_LOG_SNDMSG.log_text, _retFileLog, false);
+          deletefile(_retFileLog);
+       }
+
+     if result {
+        QUE_LOG_SNDMSG.log_string := _retStatus;
+        QUE_LOG_SNDMSG.Status     := coQUE_SuccessTransToExtSystem;
+       update current QUE_LOG_SNDMSG;
+         QUE_OUT_SNDMSG.status := coQUE_SuccessTransToExtSystem;
+         QUE_OUT_SNDMSG.DateTime_out := _curdatetime;
+       update current QUE_OUT_SNDMSG;
+      }
+      else {
+        #updatelogSetStatusQueue(_retStatus)
+      }
+}
+Procedure FreetRefSendMessToExtSys;
+{
+  var _cntArr, _i:word=0;
+  _cntArr:=count(_arrQUE_SendMessToExtSys);
+  if _cntArr=0 then exit;
+
+  for(_i:=1;_i<=_cntArr;_i := _i+1) {
+    if not NullVipRef(_arrQUE_SendMessToExtSys[_i]) {
+    FreeVipInterface(_arrQUE_SendMessToExtSys[_i]);
+    }
+  } //for(kk:=1;kk<count(RPD_A);kk:= kk+1)
+  SetLimit(_arrQUE_SendMessToExtSys,0)
+} //Procedure tRefSendMessToExtSys;
+
+procedure RecursiveSendMessages(_cQue_OUT : comp); {
+
+   _loop QUE_OUT_LoopRecursive where ((_cQue_OUT == QUE_OUT_LoopRecursive.cParent))  {
+
+     if not SendOneMessage(QUE_OUT_LoopRecursive.nrec) then exit;
+        pushpos(tnQUE_OUT_LoopRecursive);
+         RecursiveSendMessages(QUE_OUT_LoopRecursive.nrec);
+        poppos(tnQUE_OUT_LoopRecursive);
+    }
+}
+
+procedure SendMessage(_cQue_OUT : comp); {
+
+   if getfirst fastfirstrow QUE_OUT_SNDMSG where ((_cQue_OUT == QUE_OUT_SNDMSG.nrec)) <> tsOk then exit;
+   if not (QUE_OUT_SNDMSG.status = coQUE_ReadyTransfToExtSystem        // готова к передаче во внешнюю систему
+        or QUE_OUT_SNDMSG.status = coQUE_ErrButWillContinueTryToSend) // Ошибка передачи, но еще будем пробовать
+      then exit;
+
+   if not SendOneMessage(_cQue_OUT) then exit;
+
+   RecursiveSendMessages(_cQue_OUT);
+
+  if getfirst fastfirstrow QUE_OUT_SNDMSG where ((_cQue_OUT == QUE_OUT_SNDMSG.nrec)) <> tsOk then exit;
+
+#declare updateQUE_EntrRvwGenJSON(txterror,status)
+       QUE_OUT_SNDMSG.log_string := #txterror;
+       QUE_OUT_SNDMSG.status     := #status;
+      update current QUE_OUT_SNDMSG;
+#end
+
+   if isExistStatusInPoolQueue(QUE_OUT_SNDMSG.nrec,coQUE_ErrorTransToExtSystem) then  {// если есть записи с "ошибка передачи в очередь
+      #updateQUE_EntrRvwGenJSON('Ошибки в подчиненных записях',coQUE_NotAllPoolRcrdTransToExtSystem)
+    }
+    else {
+      if isExistStatusInPoolQueue(QUE_OUT_SNDMSG.nrec,coQUE_ErrorFindInstanceInReciept) then  {// если есть записи с "ошибка передачи в очередь
+        #updateQUE_EntrRvwGenJSON('Ошибки в подчиненных записях',coQUE_NotAllPoolRcrdTransToExtSystem)
+       }
+       else {
+          if isExistStatusInPoolQueue(QUE_OUT_SNDMSG.nrec,coQUE_ErrButWillContinueTryToSend) then  {// если есть записи с "ошибка передачи в очередь
+            #updateQUE_EntrRvwGenJSON('Не все подчиненные записи переданы',coQUE_ErrButWillContinueTryToSend)
+           }
+       }
+    }
+}
+
 procedure SetStatusGenerateJSON(_cMainParent : comp); {
    if getfirst fastfirstrow QUE_EntrRvwGenJSON where ((_cMainParent == QUE_EntrRvwGenJSON.nrec )) <> tsOK then exit;
    if QUE_EntrRvwGenJSON.status = coPreQUE_ReadyToTransferToQueue then exit; // одиночные записи уже имеют статус для передачи "готова к передаче в очередь (JSON сформирован)"
@@ -518,13 +754,13 @@ procedure ProcessEntriesForReview; {
       where   QUE_EntriesForReview.status = :(coPreQUE_AwaitProcessJSONgenerate)
          and QUE_EntriesForReview.cParent = :(0h)
       order by QUE_EntriesForReview.DateTime_in
-       into tmpEntriesForReview;
+      into tmpEntriesForReview;
     }
     _except
     else {
       exit;
     }
- _loop tmpEntriesForReview {
+ _loop tmpEntriesForReview ordered by tmpEntriesForReview.DateTime_in {
     if getfirst QRY_Instance_1 where (( tmpEntriesForReview.QRY_Instance_code == QRY_Instance_1.CODE)) = tsOK {
      if getfirst QRY_RECIPT where ((QRY_Instance_1.nrec == QRY_RECIPT.cQRY_Instance)) <> tsOK {
        if getfirst QUE_EntrRvwIns_1 where ((tmpEntriesForReview.cEntriesForReview == QUE_EntrRvwIns_1.nrec)) = tsOK {
@@ -539,7 +775,7 @@ procedure ProcessEntriesForReview; {
 }
 
 procedure CopyEntriesForReviewToQueue; {
-  mylog('CopyEntriesForReviewToQueue');
+//  mylog('CopyEntriesForReviewToQueue');
  delete all tEntrForReviewToQue;
  _try
     {
@@ -552,13 +788,13 @@ procedure CopyEntriesForReviewToQueue; {
       where   QUE_EntriesForReview.status = :(coPreQUE_ReadyToTransferToQueue)
          and QUE_EntriesForReview.cParent = :(0h)
       order by QUE_EntriesForReview.DateTime_in
-       into tEntrForReviewToQue;
+      into tEntrForReviewToQue;
     }
     _except
     else {
       exit;
     }
-  _loop tEntrForReviewToQue {
+  _loop tEntrForReviewToQue ordered by tEntrForReviewToQue.DateTime_in {
 //    mylog('_loop tEntrForReviewToQue tEntrForReviewToQue.QRY_Instance_code = ' + tEntrForReviewToQue.QRY_Instance_code);
     if getfirst QRY_Instance_1 where (( tEntrForReviewToQue.QRY_Instance_code == QRY_Instance_1.CODE)) = tsOK {
 //      mylog('_loop tEntrForReviewToQue if getfirst QRY_Instance_1 = tsok');
@@ -578,5 +814,32 @@ procedure CopyEntriesForReviewToQueue; {
 //    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
       }
   }
+}
+
+procedure ProcessQueueOut; {
+ mylog('CopyEntriesForReviewToQueue');
+ delete all tEntrForReviewToQue;
+ _try
+    {
+      sql
+      select top 100
+         QUE_OUT.nrec as cQue_OUT
+       , QUE_OUT.DateTime_in as DateTime_in
+      from QUE_OUT
+      where   (QUE_OUT.status = :(coQUE_ReadyTransfToExtSystem)
+            or QUE_OUT.status = :(coQUE_ErrButWillContinueTryToSend)
+              )
+         and QUE_OUT.cParent = :(0h)
+      order by QUE_OUT.DateTime_in
+      into tQueueOut
+    }
+    _except
+    else {
+      exit;
+    }
+    FreetRefSendMessToExtSys;
+    _loop tQueueOut ordered by tQueueOut.DateTime_in {
+       SendMessage(tQueueOut.cQue_OUT);
+    }
 }
 end.

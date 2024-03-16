@@ -122,6 +122,11 @@ Function GetImageStatusQueue(_Status : word) : string;
 #end
 function GetQUE_SENDMESSTOEXTSYS : string;
 
+#doc
+Обработать записи очереди
+#end
+procedure ProcessQueueOut;
+
 end;
 
 VipInterface QUE_BASE Implements oQUE_Base #Licensed_Free;

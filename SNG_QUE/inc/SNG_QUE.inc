@@ -31,10 +31,13 @@ coQUE_SuccessTransToExtSystem        = 3; //  успешно передана
 coQUE_NotAllPoolRcrdTransToExtSystem = 4; //  не все записи из пула переданы во внешнюю систему
 coQUE_ErrorFindInstanceInReciept     = 5; //  Экземпляр запроса не подписан на внешние системы
 coQUE_ErrButWillContinueTryToSend    = 6; //  Ошибка передачи, но еще будем пробовать
+coQUE_TryToSend                      = 7; //  обрабатывается сейчас
 
 coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
 coQUE_TypeEvent_Delete = 'DELETE'; // Событие обновление
 coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
+
+coMaxTryCount = 5;
 
 end;
 #end

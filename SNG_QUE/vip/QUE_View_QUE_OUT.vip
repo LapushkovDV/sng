@@ -44,11 +44,12 @@ window winQUE_OUT_BR 'Просмотр очереди исходящих сообщений', cyan;
     Fields
     QUE_OUT_BR.DateTime_in           'Очередь','время создания' : [5]  , Protect, nopickbutton;
     [Img_StatusQueue]  GetImageStatusQueue() 'Очередь','статус' : [4]  , Image;
+    QUE_OUT_BR.RecipientSystem       'Система','получатель'     : [10] , Protect, nopickbutton;
     QUE_OUT_BR.TypeEvent             'Событие',''               : [10] , Protect, nopickbutton;
     QUE_OUT_BR.DateTime_in           'Дата-время ','создания записи' : [5] , Protect, nopickbutton;
     QUE_OUT_BR.DateTime_out          'Дата-время ','передачи'   : [5] , Protect, nopickbutton;
     StatusNameQueue                  'Очередь','статус'         : [10] , Protect, nopickbutton;
-    QUE_OUT_BR.RecipientSystem       'Система','получатель'     : [10] , Protect, nopickbutton;
+    QUE_OUT_BR.log_string            'Описание','статуса'       : [8] , Protect, nopickbutton;
     QUE_OUT_BR.TryCount              'Кол-во','попыток'         : [5] , Protect, nopickbutton;
   end;
 
