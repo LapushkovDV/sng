@@ -34,4 +34,4 @@ LicenseControlInclude=""
 //#make "vip\QUE_Exmpl_epRPD_CheckAfter.vip"
 #make "vip\QUE_exmpl.vip"
 
-#make "vip\QUE_SendMessToExtSys_Exmpl.vip"
+#make "vip\QUE_SendMessToExtSys_oilixnet.vip"

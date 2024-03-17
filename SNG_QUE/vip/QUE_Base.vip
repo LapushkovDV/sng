@@ -591,11 +591,11 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
       }
 
    var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
-  var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+   var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
                                                 , _FilePath // sFileName : String,
                                                 , cpUTF8 // Encoding  : LongInt
                                                  ) ;
-   deletefile(_FilePath);
+  // deletefile(_FilePath);
   if (_longValue = 0) {
        #updatelogSetStatusQueue('Ошибка загрузки файла с диска после экспорта из мемо-поля')
        exit;

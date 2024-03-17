@@ -53,8 +53,11 @@ window winQUE_OUT_BR 'Просмотр очереди исходящих сообщений', cyan;
     QUE_OUT_BR.TryCount              'Кол-во','попыток'         : [5] , Protect, nopickbutton;
   end;
 
+  text QUE_OUT_BR.JSON 'Тело сообщения' : Protect;
+    show at ( 81,,,15);
+
   text QUE_LOG_BR.log_text 'Лог отправки сообщения' : Protect;
-    show at ( 81,,,);
+    show at ( 81,16,,);
 
   browse brQUE_LOG_BR (,,Sci1Esc);
     show at ( ,16,80,);

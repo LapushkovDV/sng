@@ -14,10 +14,10 @@
 
 //************************************************************
 
-vipinterface QUE_SendMessToExtSys_exmpl implements oQUE_SendMessToExtSys
+vipinterface QUE_SendMessToExtSys_oilixnet implements oQUE_SendMessToExtSys
   Licensed(free);
 
-Interface QUE_SendMessToExtSys_exmpl;
+Interface QUE_SendMessToExtSys_oilixnet;
 
 function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean; {
  result := false;
@@ -51,9 +51,9 @@ function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; 
 // var lResponse : TPtr = HttpConnect_EDISendRequestEx(httpCon, lAddUrl, lToken, lbody, 'GET', isHTTPS, 'Content-Type: application/json',0);
  var lResponse : tptr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lbody, false);
 
- var _file : string = iQUE_BASE.GenerateNewFile;
+/* var _file : string = iQUE_BASE.GenerateNewFile;
  HttpConnect_SaveToFile(httpCon, lResponse, _file+'lResponse.txt', 65001); // cpUTF8 = 65001
-
+*/
 
      if (HttpConnect_LastError(httpCon) <> 0)
       {

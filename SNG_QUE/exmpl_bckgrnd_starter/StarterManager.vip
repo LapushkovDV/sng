@@ -1,0 +1,56 @@
+
+handler with replace hep_GetBSIAtl on ExtensionPoint epGetBackgroundStarters(aNames: pointer)
+Action
+{
+  Container_Insert(aNames, 'BSIAtl_Test1');
+  Result := true;
+};
+
+
+  VipInterface BSIAtl_Test1
+    implements IBackgroundStarter
+    licensed(Free);
+  Public:
+    constructor Init;
+    destructor  Done;
+  end;
+
+
+  // ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+interface BSIAtl_Test1;
+
+
+var pTitle   : string  = '’¥áâ®¢ë© ¨­â¥àä¥©á 1';
+var pNeedTune: byte    = bttNone;
+
+
+property Title:    string Read  pTitle;
+property NeedTune: byte   Read  pNeedTune;
+
+
+  constructor Init;
+  {
+     Result := true;
+  };
+
+  destructor Done;
+  {
+  };
+
+  function SelectTaskTune(aTune: String): String;
+  {
+     Result := '';
+  };
+
+  function IsTuneValid(aTune: String): Boolean;
+  {
+     Result := false;
+  };
+
+  function RunProcess(aTune: String): Word;
+  {
+     Result := tsOk;
+  };
+
+end.
