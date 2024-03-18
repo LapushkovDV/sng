@@ -10,11 +10,18 @@ create view
   as select
    cat_search.nrec
 from
- catalogs cat_search
+   catalogs cat_search
+ , extcatlinks ecl
 ;
 
 Function CatalogsIsStaffPodr(_cRec : comp) : boolean; cacheable;{
-  if getfirst fastfirstrow cat_search where ((_cRec == cat_search.nrec)) = tsOK {
+     result := false;
+if getfirst ecl where (( 11 == ecl.objtype
+                  and _cRec == ecl.staffcat
+                      and 1 == ecl.modtype
+                      )) = tsOK then result := True;
+
+/*  if getfirst fastfirstrow cat_search where ((_cRec == cat_search.nrec)) = tsOK {
     if cat_search.syscode = -11 {
           result := True;
           exit;
@@ -23,6 +30,7 @@ Function CatalogsIsStaffPodr(_cRec : comp) : boolean; cacheable;{
    } else {
      result := false;
    }
+*/
 }
 
 end.
@@ -34,7 +42,7 @@ Action
  GetTableBuffer(buf);
  var iQUE_BASE : QUE_BASE;
  var iQUE_exmpl : QUE_exmpl;
- if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.nrec) {
      iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Update
                                                , 'BUS_STAFF-PODR'
                                                , ''
@@ -52,7 +60,7 @@ Action
  GetTableBuffer(buf);
  var iQUE_BASE : QUE_BASE;
  var iQUE_exmpl : QUE_exmpl;
- if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.nrec) {
     iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Insert
                                               , 'BUS_STAFF-PODR'
                                               , ''
@@ -70,7 +78,7 @@ Action
  GetTableBuffer(buf);
  var iQUE_BASE : QUE_BASE;
  var iQUE_exmpl : QUE_exmpl;
- if iQUE_exmpl.CatalogsIsStaffPodr(buf.cParent) {
+ if iQUE_exmpl.CatalogsIsStaffPodr(buf.nrec) {
    iQUE_BASE.InsertEntriesForReview_Single(    coQUE_TypeEvent_Delete
                                              , 'BUS_STAFF-PODR'
                                              , ''

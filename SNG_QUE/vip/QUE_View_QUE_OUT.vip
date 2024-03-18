@@ -80,6 +80,25 @@ cminit :{
      }
     }
 }
+cmValue4: {
+   var _file : string = iQUE_BASE.GenerateNewFile + '.log';
+   if ExportMemoToFile(QUE_LOG_BR.log_text, _file, false)
+    then putfiletoclient(_file,false)
+     else message('Ошибка экспорта мемо-поля',error)
+}
+cmValue5: {
+   var _file : string = iQUE_BASE.GenerateNewFile + '.json';
+   if ExportMemoToFile(QUE_OUT_BR.JSON, _file, false)
+    then putfiletoclient(_file,false)
+     else message('Ошибка экспорта мемо-поля',error)
+}
+cmHotKeys: {
+  case curtable of
+    tnQUE_LOG_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_LOG'));
+    tnQUE_OUT_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_MSG'));
+  end;
+}
+
 end;
 
 procedure showwinQUE_OUT_BR(__crec : comp = 0h); {
@@ -116,24 +135,6 @@ cmAttrib: {
 cmCompressLevel: {
       PutCommand(cmTreeCloseNode);
  }
-cmValue4: {
-   var _file : string = iQUE_BASE.GenerateNewFile + '.log';
-   if ExportMemoToFile(QUE_LOG_BR.log_text, _file, false)
-    then putfiletoclient(_file,false)
-     else message('Ошибка экспорта мемо-поля',error)
-}
-cmValue5: {
-   var _file : string = iQUE_BASE.GenerateNewFile + '.json';
-   if ExportMemoToFile(QUE_OUT_BR.JSON, _file, false)
-    then putfiletoclient(_file,false)
-     else message('Ошибка экспорта мемо-поля',error)
-}
-cmHotKeys: {
-  case curtable of
-    tnQUE_LOG_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_LOG'));
-    tnQUE_OUT_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_MSG'));
-  end;
-}
 
 end;
 end.

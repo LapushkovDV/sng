@@ -547,7 +547,7 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
         if QUE_OUT_SNDMSG.TryCount >= coMaxTryCount {
            QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
           } else {
-            QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
+            QUE_OUT_SNDMSG.status := coQUE_ErrButWillContinueTryToSend
           }
           update current QUE_OUT_SNDMSG;
 #end

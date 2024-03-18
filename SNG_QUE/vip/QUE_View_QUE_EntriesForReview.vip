@@ -47,7 +47,7 @@ tree brQUE_EntrForReview_BR (,,Sci1Esc);
     //QUE_EntrForReview_BR.Status      'Статус','код'          : [1] , Protect, nopickbutton;
     StatusName                       'Статус','наименование' : [15] , Protect, nopickbutton;
     QUE_EntrForReview_BR.DateTime_genJSON 'Дата-время ','генерации JSON/лога' : [5] , Protect, nopickbutton;
-    QRY_INST_BR.code                 'Запрос','код'          : [5] , Protect, nopickbutton;
+    QUE_EntrForReview_BR.QRY_Instance_code 'Запрос','код'          : [5] , Protect, nopickbutton;
     QRY_INST_BR.name                 'Запрос','наименование' : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.ADDWHERESTR 'Запрос','доп.условие'   : [9] , Protect, nopickbutton;
     QUE_EntrForReview_BR.err         'Ошибка','текст'        : [9] , Protect, nopickbutton;
