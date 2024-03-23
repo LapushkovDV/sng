@@ -1,0 +1,108 @@
+
+/*************************************************************************************************\
+* Возвращает подраздел персонала по nRec структурного подразделения (Catalogs)                    *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_Base.vih
+#include SNG_StaticFunctions.Vih
+#include ExtAttr.Vih
+#include QRY_ALG_USER.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_BTRTL_BY_CATALOGS implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_BTRTL_BY_CATALOGS;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = Catalogs.nRec
+#end
+
+var wAttrType: word;
+var oExtAttr: iExtAttr;
+
+create view
+  var
+    cNrec: comp;
+  as select 
+    Catalogs.nRec
+  from
+    Catalogs,
+    SpKau
+;
+
+function getAttrFromCatalogsTreeUpAlg(_cCat: comp; _NameVA: string; _Field: string): string; {
+
+  result := '';
+
+  if (getFirst fastFirstRow Catalogs where ((_cCat == Catalogs.nRec)) <> tsOk or Catalogs.sysCode = -11 or Catalogs.cParent = comp(0)) {
+    exit;
+  }
+
+  case _Field of
+    'NAME': {
+      result := sGetAttr(coCATALOGS, _cCat, _NameVA);
+    }
+    'CODE': {
+      case wAttrType of
+        cgAttrType_Comp: {
+          var cCat: comp = coGetAttr(coCATALOGS, _cCat, _NameVA);
+          if (cCat <> comp(0) and getFirst fastFirstRow SpKau where ((cCat == SpKau.nRec)) = tsOk) {
+            result := SpKau.code;
+          }
+        }
+        else {
+          result := sGetAttr(coCATALOGS, _cCat, _NameVA);
+        }
+      end; //case
+    }
+  end; //case
+
+  if (result <> '') {
+    exit;
+  }
+
+  result := getAttrFromCatalogsTreeUpAlg(Catalogs.cParent, _NameVA, _Field);
+
+}
+
+function getAttrFromCatalogsTreeUp(_cCat: comp; _NameVA: string; _Field: string = 'NAME'): string; {
+
+  result := '';
+  wAttrType := oExtAttr.AttrType(coCatalogs, _NameVA);
+  if (wAttrType = 13) {
+    exit;
+  }
+
+  result := getAttrFromCatalogsTreeUpAlg(_cCat, _NameVA, _Field);
+
+}
+
+function calc(_Parameter:string):string; {
+  
+  cNrec := comp(_Parameter);
+
+  result := '';
+  if (getFirst fastFirstRow Catalogs where ((cNrec == Catalogs.nRec)) <> tsOk) {
+    exit;
+  }
+
+  result := getAttrFromCatalogsTreeUp(Catalogs.nRec, 'Подраздел персонала HR', 'CODE');
+  
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  result:='Возвращает BTRTL для орг. единицы по nRec Catalogs';
+}
+
+end.
+

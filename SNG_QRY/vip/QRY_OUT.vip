@@ -717,8 +717,19 @@ function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) :
 //    mylog('ApplyFormulaToValue _Formula = '+ _Formula);
     var _ReplaceByValues : string = ReplaceByValues(_Formula, _value , _strParameter);
 //    mylog('ApplyFormulaToValue _ReplaceByValues = '+ _ReplaceByValues);
-    result := LotExpressionFunc(_ReplaceByValues, _error);
-    if trim(_error) <> '' then mylog('LotExpressionFunc Ошибка вычисления по формуле "'+_ReplaceByValues+'". Ошибка: '+_error);
+    if _ReplaceByValues <> ''
+       then {
+             result := LotExpressionFunc(_ReplaceByValues, _error)
+            }
+       else result := '';
+    if trim(_error) <> '' then {
+         mylog('-----------------');
+         mylog('LotExpressionFunc Ошибка вычисления по формуле. Ошибка: '+_error);
+         mylog('_Formula = "'+_Formula+'"');
+         mylog('_value = "' + _value+'"');
+         mylog('_strParameter = "'+_strParameter+'"');
+         mylog('_ReplaceByValues = "' + _ReplaceByValues+'"');
+      }
    }
 }
 function generateJSONByResultSet(_fQRY_INST_CODE : string; _iRes : iResultSet; var FNservice, JSONSJSON : TPtr;  var _err: string; _strParameter : string = ''): boolean; {

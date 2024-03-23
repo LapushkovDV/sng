@@ -1,0 +1,74 @@
+
+/*************************************************************************************************\
+* Возвращает количество использованных дней по nRec PutVacation (Catalogs)                        *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_Base.vih
+#include QRY_ALG_USER.vih
+
+//************************************************************
+
+vipinterface QRY_ALG_USER_GET_ALL_LIMIT_PA2006 implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_GET_ALL_LIMIT_PA2006;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = ContDoc.nrec
+#end
+
+
+create view
+  var
+  cNrec : comp;
+  as select
+    PutVacCon.nRec
+  from
+    PutVacCon,
+    PA2006
+  where ((   coContDoc == PutVacCon.wTable and
+                 cNrec == PutVacCon.cTable and
+         coPutVacation == PA2006.WTable    and
+PutVacCon.cPutVacation == PA2006.Crec ))
+;
+
+function calc(_Parameter:string):string; {
+  result := 'Null';
+
+  cNrec := comp(_Parameter);
+
+  if (getFirst fastFirstRow PutVacCon where(( coContDoc == PutVacCon.wTable and
+                                                  cNrec == PutVacCon.cTable ))  <> tsOk) {
+    exit;
+  }
+
+  var DayLim : String = '';
+
+  _loop PutVacCon where((   coContDoc == PutVacCon.wTable and
+                                cNrec == PutVacCon.cTable ))
+    {
+
+      if (getFirst PA2006 where(( coPutVacation == PA2006.WTable and
+                         PutVacCon.cPutVacation == PA2006.Crec )) = tsOk )
+        {
+          DayLim := DayLim + PutVacCon.wDayCount +'-' + PA2006.QUONR + ';' ;
+        }
+
+    }
+   result := DayLim;
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  result:='Возвращает по каждой выбранной записи номер лимитов из PA2006 разделенных ;';
+}
+
+end.

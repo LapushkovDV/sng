@@ -62,7 +62,7 @@ from
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_UP
   , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_FLD
-  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_search
+
 
   , QRY_Template   QRY_INST_TMPLT
   , QRY_TemplateSP QRY_INST_TMPLTSP

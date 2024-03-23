@@ -1,0 +1,40 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 9.1 - Управление персоналом
+// CreatePersonnelOrder
+//------------------------------------------------------------------------------
+
+#include QUE_REST.vih
+
+#component "SNG_QUE"
+
+interface QUE_REST 'API REST очереди' (,,), EscClose, gray;
+  show at (,, 90, 13);
+
+Create view
+var
+  Api        : string;
+  HeaderMess : string;
+  BodyMess   : string;
+  _getoutdir : string;
+;
+function oQUE_REST.PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
+{
+  var res: TResultPutMessageToIncomeQueue;
+
+    res.Code     := 0 ;
+    res.Message  := 'длина body = ' + length(body) + ' substr(body,length(body) - 5, 5) = '+substr(body,length(body) - 5, 5);
+    res.ID_QUEUE := body;
+  result := res;
+}
+function oQUE_REST.GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue; {
+  var res: TResultGetStatusMessageInIncomeQueue;
+   res.status      := '';
+   res.status_code := '';
+   res.Body        := '';
+  result := res;
+}
+HandleEvent
+end; // HandleEvent
+
+end.

@@ -23,7 +23,7 @@ public:
 function GetLogFile : string;
 
 #doc
-Создать новый файл логов
+Создать новый файл
 #end
 Function GenerateNewFile: string;
 

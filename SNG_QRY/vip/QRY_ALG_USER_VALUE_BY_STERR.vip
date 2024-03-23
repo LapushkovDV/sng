@@ -1,0 +1,114 @@
+
+/*************************************************************************************************\
+* Наименование: Возвращает значение из Sterr по Address.cSterr+wType                               *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_VALUE_BY_STERR implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_VALUE_BY_STERR;
+
+const
+  coSysCodeNatio: integer := -120;
+end;
+
+create view
+  var
+    cNrec: comp;
+    wType: word;
+  as select
+    Addressn.nRec
+  from
+    Addressn,
+    Sterr,
+    Catalogs,
+    Catalogs CatParent
+;
+
+const
+  coSep: string = '|';
+end;
+
+function ParseParameter(_Parameter:string):boolean;
+{
+  var wPos: word;
+
+  Result := False;
+
+  wPos :=  Pos(coSep, _Parameter);
+  if wPos = 0
+    exit;
+
+  cNrec := comp(SubStr(_Parameter, 1, wPos-1));
+  wType := word(SubStr(_Parameter, wPos+1, Length(_Parameter)-wPos));
+
+  Result := True;
+}
+
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = Addressn.nRec+'|'+wType
+#end
+Function Calc(_Parameter:string):string;
+var
+  cSterr: comp;
+{
+
+  Result := 'N/A';
+
+  if ParseParameter(_Parameter) = False
+    exit;
+
+  cSterr := cNrec;
+
+  Result := '';
+
+  do
+  {
+    if GetFirst fastfirstrow Sterr where((cSterr == Sterr.nRec)) <> tsOK
+      exit;
+
+    if wType = Sterr.wType
+    {
+      case Sterr.wType of
+        1: {
+          if GetFirst fastfirstrow Catparent where ((coSysCodeNatio == Catparent.SysCode)) <> tsOk
+            break;
+
+          if GetFirst fastfirstrow Catalogs where ((CatParent.nRec == Catalogs.cParent
+                                              and   Sterr.Sgni_Code == Catalogs.Code)) <> tsOk
+            break;
+
+          Result := Catalogs.sDopInf;
+        }
+        2: Result := Sterr.sCode;
+        4,5: Result := Sterr.FormalName;
+      end;
+
+      break;
+    }
+
+    cSterr := Sterr.cParent;
+
+  } while Sterr.wType <> 1;
+
+}
+
+#doc
+Наименование интерфейса
+#end
+function GetDescription : string;
+{
+  Result:='Возвращает значение из Sterr по Address.cSterr+wType';
+}
+end.

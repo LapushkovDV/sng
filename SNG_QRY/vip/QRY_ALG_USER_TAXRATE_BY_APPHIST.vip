@@ -1,0 +1,53 @@
+
+/*************************************************************************************************\
+* Наименование: Возвращает сумму (TaxRate) по AppHist.nRec                              *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_TAXRATE_BY_APPHIST implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_TAXRATE_BY_APPHIST;
+
+create view
+  var
+    cNrec: comp;
+  as select
+    AppHist.nRec
+  from
+    AppHist
+;
+
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = Apphist.nRec
+#end
+Function Calc(_Parameter:string):string;
+{
+  Result := 'N/A';
+
+  cNrec := comp(_Parameter);
+
+  if GetFirst fastfirstrow AppHist where ((cNrec == Apphist.nRec)) <> tsOk
+    exit;
+
+  Result := DoubleToStr(AppHist.TaxRate, '\2p[|-]3666666666666.88');
+}
+
+#doc
+Наименование интерфейса
+#end
+function GetDescription : string;
+{
+  Result:='Возвращает сумму (TaxRate) по AppHist.nRec';
+}
+end.

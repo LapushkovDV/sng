@@ -1,0 +1,155 @@
+
+/*************************************************************************************************\
+* Наименование: Возвращает телефон по Communications.nRec+SysCode+Num                              *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_PHONE_BY_COMMUNICATIONS implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_PHONE_BY_COMMUNICATIONS;
+
+table struct tblComm
+(
+  nRec: comp,
+  SeqNmb: integer,
+  Addr: string
+)
+with index
+(
+  tblCommRec = nRec,
+  tblCommSeq = SeqNmb
+);
+
+
+
+create view
+  var
+    cNrec: comp;
+    iSysCode: integer;
+    wNum: word;
+  as select
+    Communications.nRec
+  from
+    Communications,
+    Persons,
+    Catalogs,
+    tblComm
+;
+
+const
+  coSep: string = '|';
+end;
+
+function ParseParameter(_Parameter:string):boolean;
+{
+  var i: byte;
+  var wPos: word;
+  var sPar, sElem: string;
+
+  Result := False;
+
+  sPar := _Parameter;
+
+  for (i:=1; i<=3; i:=i+1)
+  {
+      if Length(sPar) = 0
+        exit;
+
+      wPos := Pos(coSep, sPar);
+      if wPos > 0
+      {
+        sElem := SubStr(sPar, 1, wPos-1)
+        sPar := SubStr(sPar, wPos+1, Length(sPar)-wPos);
+      }
+      else
+      {
+        sElem := sPar;
+        sPar := '';
+      }
+
+      case i of
+        1: cNrec := comp(sElem);
+        2: iSysCode := Integer(sElem);
+        3: wNum := word(sElem);
+      end;
+
+  }
+
+  Result := True;
+}
+
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = Addressn.nRec+'|'+iSysCode+'|'+wType
+#end
+Function Calc(_Parameter:string):string;
+var
+  cSterr: comp;
+{
+
+  var wCurrNum: word;
+
+  Result := 'N/A';
+
+  if ParseParameter(_Parameter) = False
+    exit;
+
+  if GetFirst fastfirstrow Communications where ((cNrec == Communications.nRec)) <> tsOk
+    exit;
+
+  if GetFirst fastfirstrow Persons where ((Communications.Person == Persons.nRec)) <> tsOk
+    exit;
+
+  if GetFirst fastfirstrow Catalogs where ((iSysCode == Catalogs.SysCode)) <> tsOk
+    exit;
+
+  Result := '';
+
+  delete all tblComm;
+
+  _loop Communications where ((Persons.nRec  == Communications.Person
+                         and   Catalogs.nRec == Communications.ComType))
+  {
+    insert tblComm set nRec := Communications.nRec,
+                       SeqNmb := Communications.SeqNmb,
+                       Addr := Communications.Addr;
+  }
+
+  if RecordsInTable(#tblComm) < wNum
+  {
+    Result := '';
+    exit;
+  }
+
+  wCurrNum := 0;
+  _loop tblComm ordered by index tblCommSeq
+  {
+    wCurrNum := wCurrNum + 1;
+
+    if wCurrNum = wNum
+    {
+      Result := tblComm.Addr;
+      break;
+    }
+  }
+
+}
+
+#doc
+Наименование интерфейса
+#end
+function GetDescription : string;
+{
+  Result:='Возвращает телефон по Communications.nRec+SysCode+Num';
+}
+end.

@@ -1,0 +1,49 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы входящей очереди                                            *
+* Контур/Модуль: Очередь входящих сообщений                                                       *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#ifnDef _QUE_INCOME_BASE_INCLUDED_
+#define _QUE_INCOME_BASE_INCLUDED_
+#component "SNG_QUE"
+
+ObjInterface oQUE_INCOME_BASE;
+public:
+#doc
+#end
+
+#doc
+ Создать новый файл
+#end
+Function GenerateNewFile: string;
+
+#doc
+Получить строковое название статуса очереди QUE_OUT
+#end
+Function GetNameStatusQueue(_Status : word) : string;
+
+#doc
+Получить картинку статуса очереди QUE_OUT
+#end
+Function GetImageStatusQueue(_Status : word) : string;
+
+#doc
+Выбрать интерфейс для отправки сообщений из очереди во внешние системы
+#end
+function GetQUE_SENDMESSTOEXTSYS : string;
+
+#doc
+Обработать записи очереди
+#end
+procedure ProcessQueueIncome;
+
+end;
+
+VipInterface QUE_INCOME_BASE Implements oQUE_INCOME_BASE #Licensed_Free;
+
+#end

@@ -1,6 +1,6 @@
 
 /*************************************************************************************************\
-* Возвращает код штатной должности по nRec приказа (ContDoc)                                *
+* Возвращает количество использованных дней по nRec PutVacation (Catalogs)                        *
 * Контур/Модуль: Абстрактный конструктор JSON                                                     *
 * Примечание:                                                                                     *
 *                                                                                                 *
@@ -9,63 +9,57 @@
 
 \*************************************************************************************************/
 
-#include QRY_ALG_USER.vih
 #include QRY_Base.vih
-#include QRY_ALG_USER_PERSK_BY_CONTDOC.vip
+#include QRY_ALG_USER.vih
+
 //************************************************************
 
-vipinterface QRY_ALG_USER_PLANS_BY_CONTDOC implements IQRY_ALG_USER
+vipinterface QRY_ALG_USER_GET_ALL_LIMIT_VACATION implements IQRY_ALG_USER
   Licensed(free);
 
-Interface QRY_ALG_USER_PLANS_BY_CONTDOC;
+Interface QRY_ALG_USER_GET_ALL_LIMIT_VACATION;
 #doc
   Запустить расчет с параметрами
-  _Parameter  = ContDoc.nRec
+  _Parameter  = ContDoc.nrec
 #end
+
 
 create view
   var
-    cNrec: comp;
-  as select 
-    ContDoc.nRec
+  cNrec : comp;
+  as select
+    PutVacCon.nRec
   from
-    ContDoc,
-    Appointments,
-    StaffStruct
-  where ((
-        cNrec == ContDoc.nRec
-    and ContDoc.cStr == Appointments.nRec
-    and Appointments.StaffStr == StaffStruct.nRec
-  ))
+    PutVacCon
+  where ((   coContDoc == PutVacCon.wTable and
+                 cNrec == PutVacCon.cTable ))
 ;
 
 function calc(_Parameter:string):string; {
-  
+  result := 'Null';
+
   cNrec := comp(_Parameter);
-  var iPersk: IQRY_ALG_USER(QRY_ALG_USER_PERSK_BY_CONTDOC);
 
-  result := comp(0);
-
-  case iPersk.calc(ContDoc.nRec) of
-    '06','07': {
-      exit;
-    }
-  end; //case
-
-  if (getFirst fastFirstRow ContDoc = tsOk 
-        and getFirst fastFirstRow Appointments = tsOk
-        and getFirst fastFirstRow StaffStruct = tsOk ) {
-    result := StaffStruct.nRec;
+  if (getFirst fastFirstRow PutVacCon where(( coContDoc == PutVacCon.wTable and
+                                                  cNrec == PutVacCon.cTable ))  <> tsOk) {
+    exit;
   }
 
+  var DayLim : String = '';
+  _loop PutVacCon where((   coContDoc == PutVacCon.wTable and
+                                cNrec == PutVacCon.cTable ))
+    {
+      DayLim := DayLim + PutVacCon.wDayCount + ';' ;
+
+    }
+   result := DayLim;
 }
 
 #doc
   Описание роли интерфейса
 #end
 function GetDescription : string; { 
-  result:='Возвращает nRec штатной должности по nRec ContDoc';
+  result:='Возвращает по каждой выбранной записи число лимитов разделенных ; ';
 }
 
 end.
-

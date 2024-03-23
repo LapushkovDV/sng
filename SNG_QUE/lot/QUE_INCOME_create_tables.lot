@@ -1,0 +1,58 @@
+/*
+13570-13579
+*/
+alter dictionary;
+
+Create Table QUE_IMCOME "Входящая очередь"
+  With Table_CODE = 13570
+  With Replace
+  With TableOptions Branched
+(
+  Nrec               : comp       "Номер записи"
+, Status             : word       "Статус обработки"
+, log_string         : string     "Строкое описание"
+, DateTime_in        : datetime   "Дата-время поступления записи в очередь"
+, DateTime_done      : datetime   "Дата-время обработки"
+, system_code        : string     "Код системы-отправителя"
+, mess_body          : LVAR       "тело входящего сообщения"
+)
+with Index
+(
+  QUE_IMCOME01 = NRec (unique, surrogate, journal)
+ ,QUE_IMCOME02 = DateTime_in + Status
+ ,QUE_IMCOME03 = Status + DateTime_in
+ ,QUE_IMCOME04 = system_code
+);
+
+Create Table QUE_IMCOME_ANSWER "Входящая очередь. Ответ"
+  With Table_CODE = 13571
+  With Replace
+  With TableOptions Branched
+(
+  Nrec        : comp       "Номер записи"
+, cQUE_OUT    : ref(QUE_IMCOME) "Ссылка запись очереди"
+, answer_body : LVAR       "тело ответа"
+)
+with Index
+(
+  QUE_IMCOMEANSWR01 = NRec (unique, surrogate, journal)
+ ,QUE_IMCOMEANSWR02 = cQUE_OUT
+);
+Create Table QUE_SenderSystem "Системы-отправитель сообщений очереди"
+  With Table_CODE = 13572
+  With Replace
+  With TableOptions Branched
+(
+  Nrec           : comp   "Номер записи"
+, code           : string "Код системы"
+, name           : string "Наименование системы"
+, description    : string "описание системы"
+, interface_name : string "Интерфейс обработки сообщения от системы"
+)
+with Index
+(
+  QUE_IMCOMESENDSYS01 = NRec (unique, surrogate, journal)
+ ,QUE_IMCOMESENDSYS02 = code (unique)
+)
+;
+

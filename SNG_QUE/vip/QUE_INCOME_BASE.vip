@@ -1,0 +1,279 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+  0 - готова в обработке
+  1 - обрабатывается
+  2 - ошибка
+  3 - успешно
+*/
+#include QUE_INCOME_BASE.vih
+#include QUE_ProcessMessIncomeQueue.vih
+
+/*
+
+TODO^ пересмотреть все эти getfirst where /// по вьюху их надо убрать - быстрее быдет все работать (ну кроме рекурсий)
+*/
+Interface QUE_INCOME_BASE 'QUE_INCOME базовый объект';
+
+table struct tProcessMessInQueue (
+   name  : string
+ , descr : string
+)
+with index (
+);
+
+create view
+var
+   _logQUE_OUT : string; //глобальная
+ as select
+ tProcessMessInQueue.name
+from
+ tProcessMessInQueue
+
+;
+
+Function GenerateNewFile: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+Function GetNameStatusQueue(_Status : word) : string; cacheable;{
+  case _Status of
+    coQUE_INCOME_ReadyToProcess : result := 'Готова к обработке' // Готова к обработке
+    coQUE_INCOME_Processing     : result := 'Обрабатывается'     // Обрабатывается
+    coQUE_INCOME_Error          : result := 'Ошибка обработки'   // Ошибка обработки
+    coQUE_INCOME_Success        : result := 'Успешно обработана' // Успешно обработана
+  else {
+    result := '--неизвестный статус--' //
+  }
+ end;
+}
+
+Function GetImageStatusQueue(_Status : word) : string; {
+  case _Status of
+   coQUE_INCOME_Processing     : result := 'SNG_QUE::bmpQUE_STATUS_BlueL'
+   coQUE_INCOME_ReadyToProcess : result := 'SNG_QUE::bmpQUE_STATUS_YellowL'
+   coQUE_INCOME_Error          : result := 'SNG_QUE::bmpQUE_STATUS_RedL'
+   coQUE_INCOME_Success        : result := 'SNG_QUE::bmpQUE_STATUS_LimeL'
+  else {
+    result := 'SNG_QUE::bmpQUE_STATUS_GrayL';
+  }
+ end;
+}
+
+Procedure fillQUE_ProcessMessIncomeQueue; {
+  delete all tProcessMessInQueue;
+  if (LoadImplementationList('SNG_QUE::OQUE_PROCESSMESSINCOMEQUEUE', 'QUE_PROCESSMESSINCOMEQUEUE_'))
+  {
+    StartNewVisual(vtNumericVisual, vfTimer + vfBreak, 'Загрузка списка oQUE_ProcessMessIncomeQueue...', 1);
+    _try
+    {
+      var I: integer = 0;
+      for (I := 0; I < GetImplementationCount; I := I + 1) {
+        var _iQUE_ProcessMessIncomeQueue : oQUE_ProcessMessIncomeQueue;
+        if LoadvipRef(_iQUE_ProcessMessIncomeQueue, GetImplementationName(I)) {
+          insert tProcessMessInQueue set
+             tProcessMessInQueue.name  :=  replace(GetImplementationName(I), 'SNG_QUE::OQUE_PROCESSMESSINCOMEQUEUE_', '')
+           , tProcessMessInQueue.descr := _iQUE_ProcessMessIncomeQueue.GetDescription;
+          ;
+          FreeVipInterface(_iQUE_ProcessMessIncomeQueue);
+        }
+        NextVisual;
+      }
+    }
+    _except
+      on ExUserBreak : {};
+    _finally
+      StopVisual('', 0);
+  }
+}
+
+window winSelectQUE_ProcessMessIncomeQueue 'Выбор шаблона запроса', cyan;
+ browse brnSelectQUE_ProcessMessIncomeQueue;
+  table tProcessMessInQueue;
+  Fields
+   tProcessMessInQueue.NAME  'Наименование' : [10] , Protect, nopickbutton;
+   tProcessMessInQueue.descr 'Описание'     : [20] , Protect, nopickbutton;
+ end;
+end;
+windowevent winSelectQUE_ProcessMessIncomeQueue ;
+ cmdefault: {
+   closewindowex(winSelectQUE_ProcessMessIncomeQueue, cmDefault)
+ }
+end;
+
+
+function GetQUE_SENDMESSTOEXTSYS : string; {
+ fillQUE_ProcessMessIncomeQueue;
+ if getfirst tProcessMessInQueue <> tsOK {
+   message('Нет ни одной реализации объектного интерфейса oQUE_ProcessMessIncomeQueue', error);
+   exit;
+ }
+ result := '';
+ if runwindowmodal(winSelectQUE_ProcessMessIncomeQueue) = cmDefault {
+   result := ProcessMessInQueue.NAME ;
+ }
+}
+
+
+Function ProcessOneMessage(_cQue_OUT : comp) : boolean; {
+#declare updatelogSetStatusQueue(StrError)
+          QUE_LOG_SNDMSG.log_string := #StrError;
+          QUE_LOG_SNDMSG.Status     := coQUE_ErrorTransToExtSystem;
+         update current QUE_LOG_SNDMSG;
+        if QUE_OUT_SNDMSG.TryCount >= coMaxTryCount {
+           QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
+          } else {
+            QUE_OUT_SNDMSG.status := coQUE_ErrButWillContinueTryToSend
+          }
+          update current QUE_OUT_SNDMSG;
+#end
+ result := false;
+ if getfirst fastfirstrow QUE_OUT_SNDMSG where ((_cQue_OUT == QUE_OUT_SNDMSG.nrec)) <> tsOk then exit;
+ if QUE_OUT_SNDMSG.status = coQUE_SuccessTransToExtSystem {
+    result := true; // ну т.е. может надо по подчиненным пройтись
+  }
+
+ if  QUE_OUT_SNDMSG.status = coQUE_ErrButWillContinueTryToSend {
+   _loop QUE_LOG_SNDMSG where ((QUE_OUT_SNDMSG.nrec == QUE_LOG_SNDMSG.cQUE_OUT)) {
+      if QUE_LOG_SNDMSG.status = coQUE_SuccessTransToExtSystem then {
+       result := true; // это актуально для корневой записи у нее такой статус. если не все вложенные передались
+       break;
+      }
+    }
+  }
+
+  if result then exit;
+
+  update current QUE_OUT_SNDMSG set
+     QUE_OUT_SNDMSG.status   := coQUE_TryToSend
+   , QUE_OUT_SNDMSG.TryCount := QUE_OUT_SNDMSG.TryCount + 1
+ ;
+  insert QUE_LOG_SNDMSG set
+     QUE_LOG_SNDMSG.cQUE_OUT := _cQue_OUT
+   , QUE_LOG_SNDMSG.DateTime_try := _curdatetime
+  ;
+
+//, QUE_LOG_SNDMSG.Status            : word       "Статус попытки"
+//, QUE_LOG_SNDMSG.log_text          : LVAR       "Полное описание ошибки"
+
+
+ var _retStatus  : string = '';
+ var _retFileLog : string = '';
+   var iQUE_BASE : QUE_BASE;
+   var _FilePath : string = iQUE_BASE.GenerateNewFile+'.JSON';
+   if not ExportMemoToFile(QUE_OUT_SNDMSG.JSON, _FilePath, false) {
+         #updatelogSetStatusQueue('Ошибка экспорта мемо поля')
+         exit;
+      }
+
+   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+                                                , _FilePath // sFileName : String,
+                                                , cpUTF8 // Encoding  : LongInt
+                                                 ) ;
+  // deletefile(_FilePath);
+  if (_longValue = 0) {
+       #updatelogSetStatusQueue('Ошибка загрузки файла с диска после экспорта из мемо-поля')
+       exit;
+      }
+
+  if (HttpConnect_GetLongStringLength(m_service, _longValue) <= 0) {
+       #updatelogSetStatusQueue('после экспорта из мемо-поля пустой файл')
+       Exit;
+      }
+
+  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _longValue);
+   if JSON_Object = 0 {
+      #updatelogSetStatusQueue('не смогли преобразовать файл в JSON')
+      exit;
+    }
+
+     var _interfaceName : string = GetInterfaceNameByReciptSystem(QUE_OUT_SNDMSG.RecipientSystem);
+
+     if _interfaceName = '' {
+      #updatelogSetStatusQueue('Пустое имя интерфейса отправки сообщения или нет системы-получателя')
+      exit;
+     }
+
+          var ww_num:word=0;
+          if Getfirst tRefSendMessToExtSys where (( _interfaceName == tRefSendMessToExtSys.Name )) <> tsOk {
+            Insert into tRefSendMessToExtSys set tRefSendMessToExtSys.Name:= _interfaceName;
+          }
+          else  {
+            ww_num:=tRefSendMessToExtSys.num;
+           }
+
+          do
+          { if ww_num=0
+            { ww_num:=count(_arrQUE_SendMessToExtSys)+1;
+              SetLimit(_arrQUE_SendMessToExtSys,ww_num);
+              if LoadvipRef(_arrQUE_SendMessToExtSys[ww_num], 'SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName){
+               update current tRefSendMessToExtSys set tRefSendMessToExtSys.Num:=ww_num;
+              }
+              else {
+                #updatelogSetStatusQueue('Не удалось загрузить интерфейс SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName)
+                exit;
+              }
+            }
+            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessageJSON(  JSON_Object
+                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
+                                                                   , QUE_OUT_SNDMSG.TypeEvent
+                                                                   , _retStatus
+                                                                   , _retFileLog);
+            Break;
+          } while True;
+
+       if _retFileLog <> '' {
+          ImportFileToMemo(QUE_LOG_SNDMSG.log_text, _retFileLog, false);
+          deletefile(_retFileLog);
+       }
+
+     if result {
+        QUE_LOG_SNDMSG.log_string := _retStatus;
+        QUE_LOG_SNDMSG.Status     := coQUE_SuccessTransToExtSystem;
+       update current QUE_LOG_SNDMSG;
+         QUE_OUT_SNDMSG.status := coQUE_SuccessTransToExtSystem;
+         QUE_OUT_SNDMSG.DateTime_out := _curdatetime;
+       update current QUE_OUT_SNDMSG;
+      }
+      else {
+        #updatelogSetStatusQueue(_retStatus)
+      }
+}
+
+procedure ProcessQueueIncome; {
+ mylog('CopyEntriesForReviewToQueue');
+ delete all tEntrForReviewToQue;
+ _try
+    {
+      sql
+      select top 100
+         QUE_OUT.nrec as cQue_OUT
+       , QUE_OUT.DateTime_in as DateTime_in
+      from QUE_OUT
+      where   (QUE_OUT.status = :(coQUE_ReadyTransfToExtSystem)
+            or QUE_OUT.status = :(coQUE_ErrButWillContinueTryToSend)
+              )
+         and QUE_OUT.cParent = :(0h)
+      order by QUE_OUT.DateTime_in
+      into tQueueOut
+    }
+    _except
+    else {
+      exit;
+    }
+    FreetRefSendMessToExtSys;
+    _loop tQueueOut ordered by tQueueOut.DateTime_in {
+       SendMessage(tQueueOut.cQue_OUT);
+    }
+
+}
+
+end.

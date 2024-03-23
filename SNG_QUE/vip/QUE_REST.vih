@@ -1,0 +1,63 @@
+
+#ifndef __SNG_QUE_REST_VIH__
+#define __SNG_QUE_REST_VIH__
+
+#component "SNG_QUE"
+type
+  TResultPutMessageToIncomeQueue = record
+    Code     : string;
+    Message  : string;
+    ID_QUEUE : string[36];
+  end;
+
+type
+  TResultGetStatusMessageInIncomeQueue = record
+    status      : string;
+    status_code : string;
+    Body        : widestring[2097151];
+  end;
+
+
+#doc
+Интерфейс по работе с входящей очередью через REST
+#end
+web objInterface oQUE_REST;
+
+#doc
+Положить сообщение во входящую очередь без обработки
+ Входные параметры (все STRING)
+  system_code - код системы-источника
+  body        - тело сообщения
+
+ Возвращаемый json
+    Code      - код ответа (200 - успешно, 400 - Bad Request пустое тело, 401 - ошибка выполнения в Галактике)
+    Message   - текстовое описание ответа
+    ID_QUEUE  - ID очереди для дальнейшего опроса статуса в GetStatusMessageInIncomeQueue
+#end
+  function PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
+
+#doc
+Получить статус сообщения во входящей очереди
+ Входные параметры
+  ID_QUEUE - string[36], string[36]
+
+ Возвращаемый json
+  status      - наименование статуса
+  status_code - код статуса (0 - готова в обработке, 1 - обрабатывается, 2 - ошибка, 3 - успешно)
+  Body        - тело ответа, содержимое определяется прикладным программистом
+
+#end
+  function GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
+end;
+
+web vipInterface QUE_REST
+  implements oQUE_REST
+  licensed(Free);
+public:
+  // тестовая функция
+  function oQUE_REST.PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
+  function oQUE_REST.GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
+end;
+
+#end // __TestREST_VIH__
+

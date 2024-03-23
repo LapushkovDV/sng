@@ -39,5 +39,11 @@ coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
 
 coMaxTryCount = 5;
 
+
+coQUE_INCOME_ReadyToProcess = 0; // Готова к обработке
+coQUE_INCOME_Processing     = 1; // Обрабатывается
+coQUE_INCOME_Error          = 2; // Ошибка обработки
+coQUE_INCOME_Success        = 3; // Успешно обработана
+
 end;
 #end
