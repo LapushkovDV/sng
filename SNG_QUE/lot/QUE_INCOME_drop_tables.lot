@@ -1,7 +1,4 @@
 alter dictionary;
-drop table QUE_EntriesForReview;
-drop table QUE_OUT;
-drop table QUE_LOG;
-/*drop table QUE_Locator;*/
-drop table QUE_RecipientSystem;
-drop table QUE_QRY_RECIPT;
+drop Table QUE_INCOME;
+drop Table QUE_INCOME_ANSWER;
+drop Table QUE_SenderSystem;

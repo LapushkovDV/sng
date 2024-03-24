@@ -35,12 +35,48 @@ Function GetImageStatusQueue(_Status : word) : string;
 #doc
 Выбрать интерфейс для отправки сообщений из очереди во внешние системы
 #end
-function GetQUE_SENDMESSTOEXTSYS : string;
+function GetQUE_ProcessMessIncomeQueue : string;
+
+#doc
+Положить сообщение в очередь
+_system_code - код системы-отправителя
+bodyinbase64 - передаваемое тело в BASE64
+      _mess  - тело сообщения
+    ID_QUEUE - возвращаемый. ID очереди
+
+С учетом того, что входной формат это JSON, то корректно вложить _mess (например если он тоже JSON или содержит спецсимволы)
+в чистом виде не получится, поэтому рекомендую передавать _mess как BASE64, чтобы система понимала, что _mess в BASE64
+передаем bodyinbase64 = TRUE
+#end
+function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _mess : widestring[2097151]; var ID_QUEUE : string[36]) : boolean;
+
+#doc
+Получить статус сообщения в очереди
+ ID_QUEUE - ID очереди, полученный в методе PutMessageToQueueIncome
+
+Результат работы: TResultGetStatusMessageInIncomeQueue:
+  status      - наименование статуса
+  status_code - код статуса (0 - готова в обработке, 1 - обрабатывается, 2 - ошибка, 3 - успешно)
+  Body        - тело ответа, содержимое определяется прикладным программистом
+  BodyBase64  - тело ответа, содержимое определяется прикладным программистом в BASE64
+#end
+function GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
 
 #doc
 Обработать записи очереди
 #end
 procedure ProcessQueueIncome;
+
+#doc
+Получить длинную строку из widestring
+#end
+function widestring_to_longstring(_widestr : widestring[2097151]) : tptr;
+
+#doc
+Получить widestring из длинной строки
+#end
+function longstring_to_widestring(_longstring : tptr) : widestring[2097151];
+
 
 end;
 

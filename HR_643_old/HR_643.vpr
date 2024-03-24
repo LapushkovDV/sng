@@ -92,22 +92,9 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="HR_643.prj" PosX="30" PosY="40" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_INSTANCE.vip" PosX="1" PosY="23" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_INSTANCE.pan" PosX="74" PosY="163" OpenEditor="True" Active="True"/>
-			<File Name="source\QRY\QRY_TEMPLATES.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_TEMPLATES.pan" PosX="102" PosY="79" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_Base.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_OUT.vip" PosX="20" PosY="16" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\StrFunc.vih" PosX="26" PosY="116" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_Base.vip" PosX="34" PosY="100" OpenEditor="True"/>
-			<File Name="..\..\..\..\Users\ƒмитрий\YandexDisk\Work\Ёнергомаш\GP_GIT\GP_Staff\Vip\GP_KPI_Alg.vip" PosX="61" PosY="2694" OpenEditor="True"/>
-			<File Name="source\QRY\SNG_Odecl.Vip" PosX="44" PosY="93" OpenEditor="True"/>
-			<File Name="source\QRY\SNG_ODecl.Vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="source\QRY\QRY_OUT.vih" PosX="29" PosY="35" OpenEditor="True"/>
-			<File Name="source\QRY\SNG_DepFunc.vip" PosX="61" PosY="34" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vih" PosX="34" PosY="83" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vip" PosX="34" PosY="92" OpenEditor="True"/>
+			<File Name="HR_643.prj" PosX="19" PosY="31" OpenEditor="True"/>
+			<File Name="source\InterfaceSqlJournResp.vip" PosX="19" PosY="313" OpenEditor="True"/>
+			<File Name="source\JsonExport.vpp" PosX="29" PosY="224" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

@@ -1,0 +1,87 @@
+/*************************************************************************************************\
+* Наименование: Интерфейс просмотра очереди исходящих сообщений                                   *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QUE_INCOME_BASE.vih
+#include QUE_View_QUE_INCOME.vih
+
+
+Interface QUE_View_QUE_INCOME 'Интерфейс просмотра очереди входящих сообщений',  cyan;
+create view
+ var
+    _crec
+  , _cParent : comp;
+  iQUE_INCOME_BASE : QUE_INCOME_BASE;
+ as select
+     iQUE_INCOME_BASE.GetNameStatusQueue(QUE_IN_BR.status) (FieldName = StatusNameQueue)
+ from
+    QUE_INCOME QUE_IN_BR
+  , QUE_INCOME_ANSWER QUE_IN_ANSWR_BR
+ where ((       root == QUE_IN_BR.nrec
+     and QUE_IN_BR.nrec == QUE_IN_ANSWR_BR.cQUE_INCOME
+ ))
+;
+function GetImageStatusQueue: string; {
+  Result:=iQUE_INCOME_BASE.GetImageStatusQueue(QUE_IN_BR.Status);
+}
+
+
+  browse brQUE_IN_BR (,,Sci1Esc);
+    show at ( ,,80,);
+   table QUE_IN_BR;
+    Fields
+    QUE_IN_BR.DateTime_in            'Дата-время ','создания записи' : [3] , Protect, nopickbutton;
+    [Img_StatusQueue]  GetImageStatusQueue() 'Очередь','статус'  : [2]  , Image;
+    QUE_IN_BR.DateTime_done          'Дата-время ','обработки'   : [3] , Protect, nopickbutton;
+    QUE_IN_BR.system_code            'Система','отправитель'     : [5] , Protect, nopickbutton;
+    StatusNameQueue                  'Очередь','статус'          : [8] , Protect, nopickbutton;
+    QUE_IN_BR.log_string             'Описание','статуса'        : [10] , Protect, nopickbutton;
+  end;
+
+  text QUE_IN_BR.mess_body 'Входящее сообщение' : Protect;
+    show at ( 81,,,20);
+
+  text QUE_IN_ANSWR_BR.answer_body 'Обработка сообщения' : Protect;
+    show at ( 81,21,,);
+
+
+
+handleevent
+cminit :{
+   if getfirst QUE_IN_BR = tsOK {
+       #__UNUSED__(0)
+   }
+}
+cmValue4: {
+  if isvalidall(tnQUE_IN_BR) {
+     var _file : string = iQUE_INCOME_BASE.GenerateNewFile + '.txt';
+     if ExportMemoToFile(QUE_IN_BR.mess_body, _file, false)
+      then putfiletoclient(_file,false)
+       else message('Ошибка экспорта мемо-поля',error)
+  }
+}
+cmValue5: {
+  if isvalidall(tnQUE_IN_ANSWR_BR) {
+     var _file : string = iQUE_INCOME_BASE.GenerateNewFile + '.txt';
+     if ExportMemoToFile(QUE_IN_ANSWR_BR.answer_body, _file, false)
+      then putfiletoclient(_file,false)
+       else message('Ошибка экспорта мемо-поля',error)
+   }
+}
+cmHotKeys: {
+  PutHotCommand(RunMenu('mnuQUE_View_QUE_IN_BROWSE'));
+}
+
+end;
+
+
+end.
+mnuQUE_View_QUE_IN_BROWSE Menu {
+  - 'Скачать файл входящего сообщения', cmValue4;
+  - 'Скачать файл обработки сообщения', cmValue5;
+}

@@ -93,6 +93,7 @@ Function Fill_Tmp_alg : boolean; forward;
 create view
 var
   m_service : TPTR;
+  _cnt : longint;
   odecl : declension ; // склонение фио
   _iStrFunc : StringFunctions; // Функции работы со строками
 //  JSONObj_ArrayOneElement : tptr;
@@ -285,6 +286,7 @@ function checkFieldsDuplicate(var _err: string) : boolean; {
 }
 
 function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp): comp; {
+//      mylog('getinsertUniqValuesByLVL');
  result := 0h;
   var _arrNumsOfValue : array[1..1] of word;
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
@@ -309,6 +311,8 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; 
           _isequal := True;
           if getlimit(_arrNumsOfValue) > 1 then {
               for (_i := 2; _i<= getlimit(_arrNumsOfValue); _i++) {
+                // вот тут проблема с производительностью.... если все записи уникальные,например , выгружаем каталог с нреками... то с каждым проходом время растет и растет
+                // и это самое узкое место... млять
                  if tForExportJSON.value[_arrNumsOfValue[_i]] <> _arrOneValue[_arrNumsOfValue[_i]] then { // сравниваем все значения в строке
                     _isequal := false;
                     break;
@@ -327,12 +331,16 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; 
        tForExportJSON.cLVL    := _cLevel;
        tForExportJSON.cParent := _cParentJSON;
       insert current tForExportJSON;
+      _cnt++;
+      if _cnt mod 1000 = 0 then mylog('insert current tForExportJSON; _cnt = ' + _cnt);
     }
   result := tForExportJSON.nrec;
 }
 procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp);
 {
  _cParentJSON := getinsertUniqValuesByLVL(_fcLevel,_arrOneValue,_cParentJSON);
+
+//    mylog('insertvaluesbylevel _cParentJSON = ' + _cParentJSON);
 
   _loop QRY_INST_FLD_LVL_LOOP where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP.cInstance
                                      and _fcLevel == QRY_INST_FLD_LVL_LOOP.cLevel (noindex)
@@ -356,6 +364,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 //      JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
 
   _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
+    //mylog('tForExportJSON.cParent = '+tForExportJSON.cParent);
     if isFound = false {
       JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
       isFound := true;
@@ -411,6 +420,7 @@ function generateJSONFromtAbstrResultValues : tptr; {
  if VisualizationActive then setvisualheader('JSON формирование структуры');
   mylog('заполняем tForExportJSON');
    _loop tAbstrResultValues {
+//     mylog('tAbstrResultValues.value[4] = ' + tAbstrResultValues.value[4]);
      var _arrOneValue : String_xMaxEl;
      var _i : word = 0;
      for(_i:=1;_i <= coMaxElemets; _i++){

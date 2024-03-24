@@ -92,10 +92,15 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="22" PosY="37" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="24" PosY="105" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vip" PosX="19" PosY="21" OpenEditor="True" Active="True"/>
-			<File Name="vip\QUE_REST.vih" PosX="12" PosY="30" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="21" PosY="39" OpenEditor="True"/>
+			<File Name="vip\QUE_REST.vip" PosX="74" PosY="22" OpenEditor="True"/>
+			<File Name="vip\QUE_REST.vih" PosX="1" PosY="17" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue.vih" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vip" PosX="2" PosY="90" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="30" PosY="87" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="1" PosY="301" OpenEditor="True"/>
+			<File Name="vip\QUE_SenderSystems.vip" PosX="77" PosY="82" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="1" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -148,6 +153,8 @@
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="678" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 2" Line="393" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 1" Line="337" NumIndex="1" MarkerType="mtNumBookmark" Comment="DecodeFileToBase64(_FilePath, _FilePathEncode);"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -156,19 +163,13 @@
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="206"/>
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
+			<BreakPoint FileName="SNG_QUE.prj" Line="28"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\HR_643\HR_643.prj" DateTimeStart="45318,8639688194" DateTimeCompile="0,000545069444342516" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QUE\SNG_QUE.prj" DateTimeStart="45374,4369725926" DateTimeCompile="0,000342222221661359" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OPENRESOURCES&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\GALSRV\C_EXTFUN.RES&quot;" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtError" MessageText="Для компиляции &quot;record as table&quot; необходимо соединение с БД" SourceFileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\COMPSRC\L\L_MCU\VIP\KATEDIZM\OEDIZM\oEdIzm.vih" SourceLine="27" SourceColumn="47">
-						<StackIncludeList>
-							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloTypes.inc" Line="19" Column="1"/>
-							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloVars.inc" Line="9" Column="1"/>
-							<StackInclude FileName="C:\Galaktika\_git\sng\HR_643\HR_643.prj" Line="4" Column="1"/>
-						</StackIncludeList>
-					</CompileMessage>
-					<CompileMessage MessageType="mtEndCompile" MessageText="27.01.2024 20:44:54"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="23.03.2024 10:29:44"/>
+					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OpenResources&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\Galaktika\ATL6\Update_10.1.2230\galsrv\C_ExtFun.res&quot;\Upd" SourceLine="-1" SourceColumn="-1"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

@@ -1,0 +1,103 @@
+#include QUE_SenderSystems.vih
+#include QUE_INCOME_BASE.vih
+
+#declare colorneed (FldCondition)
+{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
+#end
+
+#declare tableeventtable (table)
+TableEvent table #table;
+cmSetDefault: {
+  if curtable = tnSenderSystem {
+    putcommand(cmDefault);
+  }
+}
+cmInsertRecord: {
+  Insert Current #table;
+}
+cmUpdateRecord: {
+  Update Current #table;
+}
+cmDeleteRecord: {
+ if message('Удалить?',YesNo)<>cmYes  {
+   abort; exit;
+  }
+  delete Current #table;
+}
+end; //TableEvent table #table
+#end
+
+Interface QUE_SenderSystems 'Системы-отправители сообщений во входящую очередь', CYAN;
+create view
+  as select
+   SenderSystem.nrec
+from
+   QUE_SenderSystem SenderSystem
+;
+
+Window wnSenderSystem_Edit 'Редактирование экземпляра запроса' ;
+  Show at (,,,);
+  //---------------------------------------------
+    Screen ScrSenderSystem_Edit (,,Sci178Esc);
+    Show at (,,,5);
+    Table SenderSystem;
+    Fields
+     SenderSystem.code           : NoProtect, #colorneed(SenderSystem.code='');
+     SenderSystem.name           : NoProtect, #colorneed(SenderSystem.name='');
+     SenderSystem.description    : NoProtect;
+     SenderSystem.interface_name : Protect, pickbutton, #colorneed(SenderSystem.interface_name='');
+<<
+               `Код`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Наименование`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+          `Описание`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Интерфейс передачи`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+    end;
+  //---------------------------------------------
+end;
+
+browse brSenderSystem;
+ table SenderSystem;
+  Fields
+  SenderSystem.code           'Код'                : [ 3] , Protect, nopickbutton, #colorneed(SenderSystem.code='');
+  SenderSystem.name           'Наименование'       : [10] , Protect, nopickbutton, #colorneed(SenderSystem.name='');
+  SenderSystem.interface_name 'Интерфейс отправки' : [10] , Protect, nopickbutton, #colorneed(SenderSystem.interface_name='');
+  SenderSystem.description    'Описание'           : [10] , Protect, nopickbutton;
+end;
+
+#tableeventtable(SenderSystem)
+
+HandleEvent
+cmInit:{
+ if getfirst SenderSystem = tsOK {}
+ // HttpConnect_JsonObjectCreate
+}
+cmValue1 :{
+  message('cmValue1');
+}
+cmPick:{
+  case curfield of
+      #SenderSystem.interface_name :{
+        var _iQUE_BASE_INCOME : QUE_INCOME_BASE new;
+        var _name : string = _iQUE_BASE_INCOME.GetQUE_ProcessMessIncomeQueue;
+        if _name <> '' {
+          set SenderSystem.interface_name := _name;
+          updatetable;
+        }
+      }
+  end;
+}
+cmEdit: {
+  putcommand(cmdefault)
+}
+
+cmdefault:{
+  runwindowmodal(wnSenderSystem_Edit);
+  rereadrecord;
+}
+cmCheckField: {
+ updatetable;
+ rereadrecord;
+}
+end;
+end.

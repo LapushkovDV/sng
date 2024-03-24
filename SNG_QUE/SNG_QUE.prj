@@ -19,9 +19,9 @@ LicenseControlInclude=""
 #end
 
 #include SNG_QUE.ver
+#include bmp\QUE_BASE.bmc
 #include inc\SNG_QUE.inc
 
-#include bmp\QUE_BASE.bmc
 
 #make "vip\QUE_BASE.vip"
 #make "vip\QUE_View_QUE_EntriesForReview.vip"
@@ -35,5 +35,9 @@ LicenseControlInclude=""
 #make "vip\QUE_SendMessToExtSys_oilixnet.vip"
 
 #make "vip\QUE_REST.vip"
-
 #make "vip\QUE_INCOME_BASE.vip"
+#make "vip\QUE_SenderSystems.vip"
+#make "vip\QUE_View_QUE_INCOME.vip"
+
+#make "vip\QUE_INCOME_TEST.vip"
+#make "vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip"

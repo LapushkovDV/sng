@@ -40,10 +40,29 @@ coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
 coMaxTryCount = 5;
 
 
-coQUE_INCOME_ReadyToProcess = 0; // Готова к обработке
-coQUE_INCOME_Processing     = 1; // Обрабатывается
-coQUE_INCOME_Error          = 2; // Ошибка обработки
-coQUE_INCOME_Success        = 3; // Успешно обработана
+coQUE_INCOME_ReadyToProcess  = 0; // Готова к обработке
+coQUE_INCOME_Processing      = 1; // Обрабатывается
+coQUE_INCOME_Error           = 2; // Ошибка обработки
+coQUE_INCOME_Success         = 3; // Успешно обработана
+coQUE_INCOME_InvalidIdQueue  = 4; // Некорректный идентификатор очереди
+coQUE_INCOME_NotFoundQueById = 5; // Не найдена запись очереди по идентификатору
 
 end;
+
+type
+  TResultPutMessageToIncomeQueue = record
+    Code     : string;
+    Message  : string;
+    ID_QUEUE : string[36];
+  end;
+
+type
+  TResultGetStatusMessageInIncomeQueue = record
+    status      : string;
+    status_code : string;
+    Body        : widestring[2097151];
+    BodyBase64  : widestring[2097151];
+  end;
+
+
 #end

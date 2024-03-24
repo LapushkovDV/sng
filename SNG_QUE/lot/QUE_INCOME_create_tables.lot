@@ -3,7 +3,7 @@
 */
 alter dictionary;
 
-Create Table QUE_IMCOME "Входящая очередь"
+Create Table QUE_INCOME "Входящая очередь"
   With Table_CODE = 13570
   With Replace
   With TableOptions Branched
@@ -24,19 +24,19 @@ with Index
  ,QUE_IMCOME04 = system_code
 );
 
-Create Table QUE_IMCOME_ANSWER "Входящая очередь. Ответ"
+Create Table QUE_INCOME_ANSWER "Входящая очередь. Ответ"
   With Table_CODE = 13571
   With Replace
   With TableOptions Branched
 (
   Nrec        : comp       "Номер записи"
-, cQUE_OUT    : ref(QUE_IMCOME) "Ссылка запись очереди"
+, cQUE_INCOME : ref(QUE_INCOME) "Ссылка запись очереди"
 , answer_body : LVAR       "тело ответа"
 )
 with Index
 (
   QUE_IMCOMEANSWR01 = NRec (unique, surrogate, journal)
- ,QUE_IMCOMEANSWR02 = cQUE_OUT
+ ,QUE_IMCOMEANSWR02 = cQUE_INCOME
 );
 Create Table QUE_SenderSystem "Системы-отправитель сообщений очереди"
   With Table_CODE = 13572
@@ -55,4 +55,25 @@ with Index
  ,QUE_IMCOMESENDSYS02 = code (unique)
 )
 ;
-
+/*
+Create Table QUE_Locator "Локатор записей таблиц"
+  With Table_CODE = 13573
+  With Replace
+  With TableOptions Branched
+(
+  Nrec                : comp   "Номер записи"
+, wTable              : word   "Код таблицы"
+, TableNrec           : comp   "Nrec  таблице"
+, Сomposite_key       : string "Составной ключ в текущей системе"
+, ExternalSystem_ID   : string "ID объекта во внешней системе"
+, ExternalSystem_code : string "Код системы-получателя"
+)
+with Index
+(
+  QUE_Locator01 = NRec (unique, surrogate, journal)
+ ,QUE_Locator02 = wTable + TableNrec
+ ,QUE_Locator03 = ExternalSystem_ID
+ ,QUE_Locator04 = ExternalSystem_code + ExternalSystem_ID
+ ,QUE_Locator05 = wTable + Сomposite_key
+);
+*/

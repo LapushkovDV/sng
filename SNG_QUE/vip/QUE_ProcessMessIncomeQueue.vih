@@ -27,9 +27,10 @@ objinterface oQUE_ProcessMessIncomeQueue;
 
   Параметры
    _message    - ссылка на длинную строку, содержащую сообщение. входной параметр
-   _retMessage - ссылка на длинную строку-ответ. возвращаемый параметр
+   _answer     - ссылка на длинную строку-ответ. возвращаемый параметр
+   _retMessage - текстовое описание ответа
 #end
-function ProcessMessage(_message:TpTr; var _retMessage : tptr) : boolean;
+function ProcessMessage(_message:TpTr; var _answerLong : tptr; var _answer : string) : boolean;
 #doc
 Наименование интерфейса
 #end

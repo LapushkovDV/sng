@@ -22,11 +22,35 @@ TODO^ пересмотреть все эти getfirst where /// по вьюху их надо убрать - быстрее 
 */
 Interface QUE_INCOME_BASE 'QUE_INCOME базовый объект';
 
+ var _arrQUE_ProcessMessInQueue : Array [1..1] of oQUE_ProcessMessIncomeQueue;
+
+
+table struct tQueueIncome (
+   cQue_income : comp
+ , DateTime_in : datetime
+)
+with index (
+   ind0 = cQue_income
+ , ind1 = DateTime_in
+)
+;
+
 table struct tProcessMessInQueue (
    name  : string
  , descr : string
 )
 with index (
+ ind0 = name
+);
+
+Table Struct tRefProcMessInQueue
+(
+   Name : string[100]
+ , num  : word
+)
+with index
+(
+ ind01=Name
 );
 
 create view
@@ -35,20 +59,44 @@ var
  as select
  tProcessMessInQueue.name
 from
- tProcessMessInQueue
+    QUE_INCOME QUE_IN
+  , QUE_INCOME QUE_IN_INSERT
+  , QUE_INCOME_ANSWER QUE_IN_ANSWR
+
+  , QUE_INCOME QUE_IN_STATUS
+  , QUE_INCOME_ANSWER QUE_IN_STATUS_ANSWR
+
+  , QUE_SenderSystem QUE_SND_SYS
+
+  , tQueueIncome
+  , tProcessMessInQueue
+  , tRefProcMessInQueue
+where ((        root == QUE_IN.nrec
+     and QUE_IN.nrec == QUE_IN_ANSWR.cQUE_INCOME
+    ))
 
 ;
 
 Function GenerateNewFile: string; {
  result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
+function GetLogFile : string; {
+  if _logQUE_OUT = '' then _logQUE_OUT := GenerateNewFile+'.log';
+  result := _logQUE_OUT;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
 
 Function GetNameStatusQueue(_Status : word) : string; cacheable;{
   case _Status of
-    coQUE_INCOME_ReadyToProcess : result := 'Готова к обработке' // Готова к обработке
-    coQUE_INCOME_Processing     : result := 'Обрабатывается'     // Обрабатывается
-    coQUE_INCOME_Error          : result := 'Ошибка обработки'   // Ошибка обработки
-    coQUE_INCOME_Success        : result := 'Успешно обработана' // Успешно обработана
+    coQUE_INCOME_ReadyToProcess  : result := 'Готова к обработке' // Готова к обработке
+    coQUE_INCOME_Processing      : result := 'Обрабатывается'     // Обрабатывается
+    coQUE_INCOME_Error           : result := 'Ошибка обработки'   // Ошибка обработки
+    coQUE_INCOME_Success         : result := 'Успешно обработана' // Успешно обработана
+    coQUE_INCOME_InvalidIdQueue  : result := 'Некорректный идентификатор очереди'
+    coQUE_INCOME_NotFoundQueById : result := 'Не найдена запись очереди по идентификатору'
   else {
     result := '--неизвестный статус--' //
   }
@@ -79,7 +127,7 @@ Procedure fillQUE_ProcessMessIncomeQueue; {
         var _iQUE_ProcessMessIncomeQueue : oQUE_ProcessMessIncomeQueue;
         if LoadvipRef(_iQUE_ProcessMessIncomeQueue, GetImplementationName(I)) {
           insert tProcessMessInQueue set
-             tProcessMessInQueue.name  :=  replace(GetImplementationName(I), 'SNG_QUE::OQUE_PROCESSMESSINCOMEQUEUE_', '')
+             tProcessMessInQueue.name  :=  replace(GetImplementationName(I), 'SNG_QUE::QUE_PROCESSMESSINCOMEQUEUE_', '')
            , tProcessMessInQueue.descr := _iQUE_ProcessMessIncomeQueue.GetDescription;
           ;
           FreeVipInterface(_iQUE_ProcessMessIncomeQueue);
@@ -109,7 +157,7 @@ windowevent winSelectQUE_ProcessMessIncomeQueue ;
 end;
 
 
-function GetQUE_SENDMESSTOEXTSYS : string; {
+function GetQUE_ProcessMessIncomeQueue : string; {
  fillQUE_ProcessMessIncomeQueue;
  if getfirst tProcessMessInQueue <> tsOK {
    message('Нет ни одной реализации объектного интерфейса oQUE_ProcessMessIncomeQueue', error);
@@ -117,161 +165,340 @@ function GetQUE_SENDMESSTOEXTSYS : string; {
  }
  result := '';
  if runwindowmodal(winSelectQUE_ProcessMessIncomeQueue) = cmDefault {
-   result := ProcessMessInQueue.NAME ;
+   result := tProcessMessInQueue.NAME ;
  }
 }
 
+Function GetInterfaceNameBySenderSystem(_SenderSystemCode : string): string; cacheable;{
+  result := '';
+  if getfirst fastfirstrow QUE_SND_SYS where ((_SenderSystemCode == QUE_SND_SYS.code )) = tsOK {
+   result := QUE_SND_SYS.interface_name
+  }
+}
 
-Function ProcessOneMessage(_cQue_OUT : comp) : boolean; {
-#declare updatelogSetStatusQueue(StrError)
-          QUE_LOG_SNDMSG.log_string := #StrError;
-          QUE_LOG_SNDMSG.Status     := coQUE_ErrorTransToExtSystem;
-         update current QUE_LOG_SNDMSG;
-        if QUE_OUT_SNDMSG.TryCount >= coMaxTryCount {
-           QUE_OUT_SNDMSG.status := coQUE_ErrorTransToExtSystem
-          } else {
-            QUE_OUT_SNDMSG.status := coQUE_ErrButWillContinueTryToSend
-          }
-          update current QUE_OUT_SNDMSG;
+Function ProcessOneMessage(_cQue_income : comp) : boolean; {
+#declare updateQueInSetStatus(StrError)
+   QUE_IN.status        := coQUE_INCOME_Error;
+   QUE_IN.log_string    := #StrError;
+   QUE_IN.DateTime_done := _curdatetime;
+  update current QUE_IN;
 #end
  result := false;
- if getfirst fastfirstrow QUE_OUT_SNDMSG where ((_cQue_OUT == QUE_OUT_SNDMSG.nrec)) <> tsOk then exit;
- if QUE_OUT_SNDMSG.status = coQUE_SuccessTransToExtSystem {
-    result := true; // ну т.е. может надо по подчиненным пройтись
+ if getfirst fastfirstrow QUE_IN where ((_cQue_income == QUE_IN.nrec)) <> tsOk then exit;
+
+ if QUE_IN.status <> coQUE_INCOME_ReadyToProcess {
+    result := true;
+    exit;
   }
 
- if  QUE_OUT_SNDMSG.status = coQUE_ErrButWillContinueTryToSend {
-   _loop QUE_LOG_SNDMSG where ((QUE_OUT_SNDMSG.nrec == QUE_LOG_SNDMSG.cQUE_OUT)) {
-      if QUE_LOG_SNDMSG.status = coQUE_SuccessTransToExtSystem then {
-       result := true; // это актуально для корневой записи у нее такой статус. если не все вложенные передались
-       break;
-      }
-    }
-  }
-
-  if result then exit;
-
-  update current QUE_OUT_SNDMSG set
-     QUE_OUT_SNDMSG.status   := coQUE_TryToSend
-   , QUE_OUT_SNDMSG.TryCount := QUE_OUT_SNDMSG.TryCount + 1
- ;
-  insert QUE_LOG_SNDMSG set
-     QUE_LOG_SNDMSG.cQUE_OUT := _cQue_OUT
-   , QUE_LOG_SNDMSG.DateTime_try := _curdatetime
-  ;
-
-//, QUE_LOG_SNDMSG.Status            : word       "Статус попытки"
-//, QUE_LOG_SNDMSG.log_text          : LVAR       "Полное описание ошибки"
 
 
- var _retStatus  : string = '';
- var _retFileLog : string = '';
-   var iQUE_BASE : QUE_BASE;
-   var _FilePath : string = iQUE_BASE.GenerateNewFile+'.JSON';
-   if not ExportMemoToFile(QUE_OUT_SNDMSG.JSON, _FilePath, false) {
-         #updatelogSetStatusQueue('Ошибка экспорта мемо поля')
+  update current QUE_IN set QUE_IN.status   := coQUE_INCOME_Processing;
+  if getfirst QUE_IN_ANSWR <> tsOK then
+     insert QUE_IN_ANSWR set QUE_IN_ANSWR.cQUE_INCOME := QUE_IN.nrec;
+
+
+   var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+   var _FilePath : string = iQUE_INCOME_BASE.GenerateNewFile+'.txt';
+
+   if not ExportMemoToFile(QUE_IN.mess_body, _FilePath, false) {
+         #updateQueInSetStatus('Ошибка экспорта мемо поля')
          exit;
       }
 
    var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
    var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
-                                                , _FilePath // sFileName : String,
-                                                , cpUTF8 // Encoding  : LongInt
+                                                  , _FilePath // sFileName : String,
+                                                  , cpUTF8 // Encoding  : LongInt
                                                  ) ;
   // deletefile(_FilePath);
   if (_longValue = 0) {
-       #updatelogSetStatusQueue('Ошибка загрузки файла с диска после экспорта из мемо-поля')
+       #updateQueInSetStatus('Ошибка загрузки файла с диска после экспорта из мемо-поля')
        exit;
       }
 
   if (HttpConnect_GetLongStringLength(m_service, _longValue) <= 0) {
-       #updatelogSetStatusQueue('после экспорта из мемо-поля пустой файл')
+       #updateQueInSetStatus('после экспорта из мемо-поля пустой файл')
        Exit;
       }
 
-  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _longValue);
-   if JSON_Object = 0 {
-      #updatelogSetStatusQueue('не смогли преобразовать файл в JSON')
-      exit;
-    }
-
-     var _interfaceName : string = GetInterfaceNameByReciptSystem(QUE_OUT_SNDMSG.RecipientSystem);
+     var _interfaceName : string = GetInterfaceNameBySenderSystem(QUE_IN.system_code);
 
      if _interfaceName = '' {
-      #updatelogSetStatusQueue('Пустое имя интерфейса отправки сообщения или нет системы-получателя')
+      #updateQueInSetStatus('Пустое имя интерфейса обработки сообщения или система-отправитель не зарегистрирована в Галактике')
       exit;
      }
 
           var ww_num:word=0;
-          if Getfirst tRefSendMessToExtSys where (( _interfaceName == tRefSendMessToExtSys.Name )) <> tsOk {
-            Insert into tRefSendMessToExtSys set tRefSendMessToExtSys.Name:= _interfaceName;
+          if Getfirst tRefProcMessInQueue where (( _interfaceName == tRefProcMessInQueue.Name )) <> tsOk {
+            Insert into tRefProcMessInQueue set tRefProcMessInQueue.Name:= _interfaceName;
           }
           else  {
-            ww_num:=tRefSendMessToExtSys.num;
+            ww_num:=tRefProcMessInQueue.num;
            }
+
+         var _retMessagelong : tptr;
+         var _retMessage : string;
 
           do
           { if ww_num=0
-            { ww_num:=count(_arrQUE_SendMessToExtSys)+1;
-              SetLimit(_arrQUE_SendMessToExtSys,ww_num);
-              if LoadvipRef(_arrQUE_SendMessToExtSys[ww_num], 'SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName){
-               update current tRefSendMessToExtSys set tRefSendMessToExtSys.Num:=ww_num;
+            { ww_num:=count(_arrQUE_ProcessMessInQueue)+1;
+              SetLimit(_arrQUE_ProcessMessInQueue,ww_num);
+              if LoadvipRef(_arrQUE_ProcessMessInQueue[ww_num], 'SNG_QUE::QUE_PROCESSMESSINCOMEQUEUE_'+_interfaceName){
+               update current tRefProcMessInQueue set tRefProcMessInQueue.Num:=ww_num;
               }
               else {
-                #updatelogSetStatusQueue('Не удалось загрузить интерфейс SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName)
+                #updateQueInSetStatus('Не удалось загрузить интерфейс SNG_QUE::QUE_PROCESSMESSINCOMEQUEUE_'+_interfaceName)
                 exit;
               }
             }
-            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessageJSON(  JSON_Object
-                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
-                                                                   , QUE_OUT_SNDMSG.TypeEvent
-                                                                   , _retStatus
-                                                                   , _retFileLog);
+            result :=_arrQUE_ProcessMessInQueue[ww_num].ProcessMessage(_longValue
+                                                                     , _retMessagelong
+                                                                     , _retMessage);
             Break;
           } while True;
 
-       if _retFileLog <> '' {
-          ImportFileToMemo(QUE_LOG_SNDMSG.log_text, _retFileLog, false);
-          deletefile(_retFileLog);
-       }
+         //mylog('income base HttpConnect_GetLongStringLength(m_service, _retMessagelong) = ' + HttpConnect_GetLongStringLength(m_service, _retMessagelong));
+
+         if (HttpConnect_GetLongStringLength(m_service, _retMessagelong) > 0) {
+
+            var _FilePath_retMessage : string = iQUE_INCOME_BASE.GenerateNewFile+'.txt';
+             HttpConnect_SaveToFileEx(m_service, _retMessagelong, _FilePath_retMessage, cpUTF8, false);
+             //putfiletoclient(_FilePath_retMessage,false);
+
+             if ImportFileToMemo(QUE_IN_ANSWR.answer_body, _FilePath_retMessage, false) {
+               update current QUE_IN_ANSWR;
+             }
+            //deletefile(_retFileLog);
+           }
+         //putfiletoclient(GetLogFile,false);
 
      if result {
-        QUE_LOG_SNDMSG.log_string := _retStatus;
-        QUE_LOG_SNDMSG.Status     := coQUE_SuccessTransToExtSystem;
-       update current QUE_LOG_SNDMSG;
-         QUE_OUT_SNDMSG.status := coQUE_SuccessTransToExtSystem;
-         QUE_OUT_SNDMSG.DateTime_out := _curdatetime;
-       update current QUE_OUT_SNDMSG;
+         QUE_IN.log_string    := _retMessage;
+         QUE_IN.status        := coQUE_INCOME_Success;
+         QUE_IN.DateTime_done := _curdatetime;
+        update current QUE_IN ;
       }
       else {
-        #updatelogSetStatusQueue(_retStatus)
+        #updateQueInSetStatus(_retMessage)
       }
+}
+Procedure FreetRefProcMessInQueue; {
+  var _cntArr, _i:word=0;
+  _cntArr:=count(_arrQUE_ProcessMessInQueue);
+  if _cntArr=0 then exit;
+
+  for(_i:=1;_i<=_cntArr;_i := _i+1) {
+    if not NullVipRef(_arrQUE_ProcessMessInQueue[_i]) {
+    FreeVipInterface(_arrQUE_ProcessMessInQueue[_i]);
+    }
+  } //for(kk:=1;kk<count(RPD_A);kk:= kk+1)
+  SetLimit(_arrQUE_ProcessMessInQueue,0)
+} //Procedure tRefSendMessToExtSys;
+
+function widestring_to_longstring(_widestr : widestring[2097151]) : tptr; {
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var _longstring : TPtr =  HttpConnect_CreateLongString( m_service);
+  var _i : longint;
+  for (_i := 1; _i <= Length(_widestr)-1; _i += 200)
+    HttpConnect_AddValueToLongString( m_service, SubStr(_widestr, _i, 200), _longstring);
+ result := _longstring;
+}
+
+function longstring_to_widestring(_longstring : tptr) : widestring[2097151]; {
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var _widestr : widestring[2097151] = '';
+  var _i : longint;
+  for (_i := 0; _i <= HttpConnect_GetLongStringLength(m_service, _longstring); _i += 200) {
+     _widestr := _widestr + HttpConnect_GetLongStringSubString (m_service, _longstring, _i, 200);
+     }
+ result := _widestr;
+
+/*
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  var _FilePath : string = iQUE_INCOME_BASE.GenerateNewFile + '.json';
+  HttpConnect_SaveToFileEx(m_service, _longstring, _FilePath, cpUTF8, false);
+  putfiletoclient(_FilePath,false);
+*/
+
+}
+function generateAnswerJSON(_status : word) : tptr; {
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+  var JSON : tptr = HttpConnect_JsonObjectCreate(m_service);
+  HttpConnect_JsonObjectAddString(m_service, JSON, 'status', GetNameStatusQueue(_status ));
+  HttpConnect_JsonObjectAddInteger(m_service, JSON, 'status_code', _status );
+  result := HttpConnect_JSONObjectToString(m_service,JSON);
+}
+function EncodelongStringToBase64(_longstr : tptr) : tptr; {
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+   var _FilePath       : string = iQUE_INCOME_BASE.GenerateNewFile+'.txt';
+   var _FilePathEncode : string = iQUE_INCOME_BASE.GenerateNewFile + 'encodebase64.txt';
+
+  HttpConnect_SaveToFileEx( m_service , _longstr, _FilePath, cpUTF8, false);
+
+  EncodeFileToBase64(_FilePath, _FilePathEncode);
+  var _longValue64 : tptr = HttpConnect_LoadFromFile(m_service, _FilePathEncode, cpUTF8) ;
+  result := _longValue64;
+}
+
+function GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue; {
+  var _result : TResultGetStatusMessageInIncomeQueue;
+
+  var _cQUEUE_INCOME : comp = comp(ID_QUEUE);
+  if _cQUEUE_INCOME = 0h {
+    _result.status      := GetNameStatusQueue(coQUE_INCOME_InvalidIdQueue); // 'неверный формат идентификатора очереди'
+    _result.status_code := coQUE_INCOME_InvalidIdQueue;
+     var _answer : tptr = generateAnswerJSON(coQUE_INCOME_InvalidIdQueue);
+    _result.Body       := longstring_to_widestring(_answer);
+    _result.BodyBase64 := longstring_to_widestring(EncodelongStringToBase64(_answer));
+    result := _result;
+    exit;
+  }
+ if getfirst QUE_IN_STATUS where ((_cQUEUE_INCOME == QUE_IN_STATUS.nrec)) <> tsOK {
+    _result.status      := GetNameStatusQueue(coQUE_INCOME_NotFoundQueById); // 'неверный формат идентификатора очереди'
+    _result.status_code := coQUE_INCOME_NotFoundQueById;
+     var _answer : tptr = generateAnswerJSON(coQUE_INCOME_NotFoundQueById);
+    _result.Body       := longstring_to_widestring(_answer);
+    _result.BodyBase64 := longstring_to_widestring(EncodelongStringToBase64(_answer));
+    result := _result;
+    exit;
+ }
+
+
+  var _widestr : widestring[2097151] = '';
+
+ _result.status      := GetNameStatusQueue(QUE_IN_STATUS.status); // 'неверный формат идентификатора очереди'
+ _result.status_code := QUE_IN_STATUS.status;
+ _result.Body       := '';
+ _result.Bodybase64     := '';
+  result := _result;
+
+  if QUE_IN_STATUS.status = coQUE_INCOME_ReadyToProcess  // Готова к обработке
+   or QUE_IN_STATUS.status = coQUE_INCOME_Processing   {  // Обрабатывается
+     exit;
+    }
+
+ if getfirst QUE_IN_STATUS_ANSWR where ((QUE_IN_STATUS.nrec == QUE_IN_STATUS_ANSWR.cQUE_INCOME)) = tsOK {
+
+     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+     var _FilePath       : string = iQUE_INCOME_BASE.GenerateNewFile+'.txt';
+//     var _FilePathEncode : string = iQUE_INCOME_BASE.GenerateNewFile + 'encodebase64.txt';
+
+     if ExportMemoToFile(QUE_IN_STATUS_ANSWR.answer_body, _FilePath, false) {
+           var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+           var _longValue : TPtr = HttpConnect_LoadFromFile (m_service, _FilePath, cpUTF8) ;
+           _result.Body       := longstring_to_widestring(_longValue);
+           _result.Bodybase64 := longstring_to_widestring(EncodelongStringToBase64(_longValue));
+
+//           putfiletoclient(_FilePath,false);
+//           putfiletoclient(_FilePathEncode,false);
+        }
+   }
+ result := _result
+}
+
+function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _mess : widestring[2097151]; var ID_QUEUE : string[36]) : boolean; {
+  result := false;
+  ID_QUEUE := '';
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var _messlongstr : TPtr =  HttpConnect_CreateLongString( m_service);
+  var _messdecode : widestring[2097151];
+  var _log_string : string = '';
+
+  _messlongstr := widestring_to_longstring(_mess);
+
+  if bodyinbase64 {
+     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+     var _FilePath       : string = '';
+     var _FilePathDecode : string = '';
+     _FilePath       := iQUE_INCOME_BASE.GenerateNewFile + 'base64.txt';
+     _FilePathDecode := iQUE_INCOME_BASE.GenerateNewFile + 'decodebase64.txt';
+     HttpConnect_SaveToFileEx(m_service, _messlongstr, _FilePath, cpUTF8, false);
+     DecodeFileFromBase64(_FilePath, _FilePathDecode);
+     _messlongstr := HttpConnect_LoadFromFile (m_service, _FilePathDecode, cpUTF8) ;
+//     putfiletoclient(_FilePath,false);
+//     putfiletoclient(_FilePathDecode,false);
+//EncodeToBase64(_mess, _messdecode);
+
+//    DecodeFromBase64(_mess, _messdecode, cpUTF8);
+//     DecodeFromBase64(_mess, _messdecode, cpOEMCP );
+//    DecodeFromBase64(_mess, _messdecode, cpACP );
+/*     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+     var _FilePath : string = '';
+
+     _FilePath := iQUE_INCOME_BASE.GenerateNewFile + 'base64.txt';
+     logstrtofile(_FilePath, SubStr(_mess, 1, 255));
+     putfiletoclient(_FilePath,false);
+
+
+     _FilePath := iQUE_INCOME_BASE.GenerateNewFile + 'decodefrombase64_cpUTF8.txt';
+     logstrtofile(_FilePath, SubStr(_messdecode, 1, 255));
+     putfiletoclient(_FilePath,false);
+
+
+     DecodeFromBase64(_mess, _messdecode, cpOEMCP );
+     _FilePath := iQUE_INCOME_BASE.GenerateNewFile + 'decodefrombase64_cpOEMCP.txt';
+     logstrtofile(_FilePath, SubStr(_messdecode, 1, 255));
+     _log_string := _log_string +'|cpOEMCP = ' +SubStr(_messdecode, 1, 25) + '|';
+
+     putfiletoclient(_FilePath,false);
+
+     DecodeFromBase64(_mess, _messdecode, cpACP );
+     _FilePath := iQUE_INCOME_BASE.GenerateNewFile + 'decodefrombase64_cpACP.txt';
+     logstrtofile(_FilePath, SubStr(_messdecode, 1, 255));
+     _log_string := _log_string +'|cpACP = ' + SubStr(_messdecode, 1, 25)+ '|';
+     putfiletoclient(_FilePath,false);
+     message(_log_string)
+*/
+  }
+
+   var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+   var _messFile : string = iQUE_INCOME_BASE.GenerateNewFile+'.txt';
+
+  HttpConnect_SaveToFileEx( m_service , _messlongstr, _messFile, cpUTF8, false);
+
+  clearbuffer(tnQUE_IN_INSERT);
+  QUE_IN_INSERT.status      := -1;
+  QUE_IN_INSERT.system_code := _system_code;
+  QUE_IN_INSERT.DateTime_in := _curdatetime;
+  QUE_IN_INSERT.log_string  := _log_string;
+  if (insert current QUE_IN_INSERT ) <> tsOK {
+      exit
+    }
+  if not ImportFileToMemo(QUE_IN_INSERT.mess_body, _messFile, false) {
+      exit;
+   }
+  QUE_IN_INSERT.status := coQUE_INCOME_ReadyToProcess;
+  if (update current QUE_IN_INSERT) <> tsOK {
+      exit
+    }
+  ID_QUEUE := string(QUE_IN_INSERT.nrec);
+  result := true;
 }
 
 procedure ProcessQueueIncome; {
  mylog('CopyEntriesForReviewToQueue');
- delete all tEntrForReviewToQue;
+ delete all tQueueIncome;
  _try
     {
       sql
       select top 100
-         QUE_OUT.nrec as cQue_OUT
-       , QUE_OUT.DateTime_in as DateTime_in
-      from QUE_OUT
-      where   (QUE_OUT.status = :(coQUE_ReadyTransfToExtSystem)
-            or QUE_OUT.status = :(coQUE_ErrButWillContinueTryToSend)
-              )
-         and QUE_OUT.cParent = :(0h)
-      order by QUE_OUT.DateTime_in
-      into tQueueOut
+         QUE_INCOME.nrec as cQue_income
+       , QUE_INCOME.DateTime_in as DateTime_in
+      from QUE_INCOME
+      where QUE_INCOME.status = :(coQUE_INCOME_ReadyToProcess)
+      order by QUE_INCOME.DateTime_in
+      into tQueueIncome
     }
     _except
     else {
       exit;
     }
-    FreetRefSendMessToExtSys;
-    _loop tQueueOut ordered by tQueueOut.DateTime_in {
-       SendMessage(tQueueOut.cQue_OUT);
+    FreetRefProcMessInQueue;
+    _loop tQueueIncome ordered by tQueueIncome.DateTime_in {
+       ProcessOneMessage(tQueueIncome.cQue_income);
     }
 
 }

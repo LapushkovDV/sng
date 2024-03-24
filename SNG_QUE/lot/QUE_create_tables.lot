@@ -75,27 +75,6 @@ with Index
  ,QUE_LOG03 = Status
 );
 
-/*
-Create Table QUE_Locator "Локатор записей таблиц"
-  With Table_CODE = 13588
-  With Replace
-  With TableOptions Branched
-(
-  Nrec               : comp   "Номер записи"
-, wTable             : word   "Код таблицы"
-, TableNrec          : comp   "Nrec  таблице"
-, QRY_Instance_code  : string "Код экземпляра запроса"
-, ID_RecipientSystem : string "ID объекта в системе-получателе"
-, RecipientSystem    : string "Код системы-получателя"
-)
-with Index
-(
-  QUE_Locator01 = NRec (unique, surrogate, journal)
- ,QUE_Locator02 = wTable + TableNrec
- ,QUE_Locator03 = QRY_Instance_code
- ,QUE_Locator04 = RecipientSystem + ID_RecipientSystem
-);
-*/
 Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
   With Table_CODE = 13589
   With Replace

@@ -3,19 +3,6 @@
 #define __SNG_QUE_REST_VIH__
 
 #component "SNG_QUE"
-type
-  TResultPutMessageToIncomeQueue = record
-    Code     : string;
-    Message  : string;
-    ID_QUEUE : string[36];
-  end;
-
-type
-  TResultGetStatusMessageInIncomeQueue = record
-    status      : string;
-    status_code : string;
-    Body        : widestring[2097151];
-  end;
 
 
 #doc
@@ -26,15 +13,20 @@ web objInterface oQUE_REST;
 #doc
 Положить сообщение во входящую очередь без обработки
  Входные параметры (все STRING)
-  system_code - код системы-источника
-  body        - тело сообщения
+_system_code - код системы-отправителя
+     isbase64 - передаваемое тело в BASE64
+       _mess  - тело сообщения
+     ID_QUEUE - возвращаемый. ID очереди
+
+    С учетом того, что входной формат это JSON, то корректно вложить _mess (например если он тоже JSON или содержит спецсимволы)
+    в чистом виде не получится, поэтому рекомендую передавать _mess как BASE64
 
  Возвращаемый json
     Code      - код ответа (200 - успешно, 400 - Bad Request пустое тело, 401 - ошибка выполнения в Галактике)
     Message   - текстовое описание ответа
     ID_QUEUE  - ID очереди для дальнейшего опроса статуса в GetStatusMessageInIncomeQueue
 #end
-  function PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
+  function PutMessageToIncomeQueue(system_code : string; isbase64 : boolean; body : widestring[2097151]) : TResultPutMessageToIncomeQueue;
 
 #doc
 Получить статус сообщения во входящей очереди
@@ -43,11 +35,12 @@ web objInterface oQUE_REST;
 
  Возвращаемый json
   status      - наименование статуса
-  status_code - код статуса (0 - готова в обработке, 1 - обрабатывается, 2 - ошибка, 3 - успешно)
+  status_code - код статуса (0 - готова в обработке, 1 - обрабатывается, 2 - ошибка, 3 - успешно, 4 - некорректный идентификатор очереди)
   Body        - тело ответа, содержимое определяется прикладным программистом
-
+  BodyBase64  - тело ответа, содержимое определяется прикладным программистом в BASE64
 #end
-  function GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
+  function GetStatusMessageWithBody(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
+
 end;
 
 web vipInterface QUE_REST
@@ -55,9 +48,8 @@ web vipInterface QUE_REST
   licensed(Free);
 public:
   // тестовая функция
-  function oQUE_REST.PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
-  function oQUE_REST.GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
+  function oQUE_REST.PutMessageToIncomeQueue(system_code : string; isbase64 : boolean; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
+  function oQUE_REST.GetStatusMessageWithBody(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue;
 end;
 
 #end // __TestREST_VIH__
-

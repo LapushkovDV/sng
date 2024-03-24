@@ -5,6 +5,7 @@
 //------------------------------------------------------------------------------
 
 #include QUE_REST.vih
+#include QUE_INCOME_BASE.vih
 
 #component "SNG_QUE"
 
@@ -18,21 +19,37 @@ var
   BodyMess   : string;
   _getoutdir : string;
 ;
-function oQUE_REST.PutMessageToIncomeQueue(system_code : string; body : widestring[2097151]): TResultPutMessageToIncomeQueue;
-{
+function oQUE_REST.PutMessageToIncomeQueue(system_code : string; isbase64 : boolean; body : widestring[2097151]): TResultPutMessageToIncomeQueue; {
   var res: TResultPutMessageToIncomeQueue;
+  if length(body) = '' {
+    res.Code     := '400' ;
+    res.Message  := 'Пустая секция body';
+    res.ID_QUEUE := '';
+  }
+  if length(body) = '' {
+    res.Code     := '400' ;
+    res.Message  := 'Пустая секция system_code';
+    res.ID_QUEUE := '';
+  }
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  var _ID_QUEUE : string[36] = '';
+  if iQUE_INCOME_BASE.PutMessageToQueueIncome(system_code, isbase64, body, _ID_QUEUE) {
 
-    res.Code     := 0 ;
-    res.Message  := 'длина body = ' + length(body) + ' substr(body,length(body) - 5, 5) = '+substr(body,length(body) - 5, 5);
-    res.ID_QUEUE := body;
+    res.Code     := '200' ;
+    res.Message  := 'Запись успешно добавлена во входящую очередь';
+    res.ID_QUEUE := _ID_QUEUE;
+  }
+  else {
+    res.Code     := '401' ;
+    res.Message  := 'Ошибка вставки записи в таблицу QUE_INCOME';
+    res.ID_QUEUE := '';
+  }
   result := res;
 }
-function oQUE_REST.GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue; {
-  var res: TResultGetStatusMessageInIncomeQueue;
-   res.status      := '';
-   res.status_code := '';
-   res.Body        := '';
-  result := res;
+
+function oQUE_REST.GetStatusMessageWithBody(ID_QUEUE : string[36]): TResultGetStatusMessageInIncomeQueue; {
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  result := iQUE_INCOME_BASE.GetStatusMessageInIncomeQueue(ID_QUEUE);
 }
 HandleEvent
 end; // HandleEvent

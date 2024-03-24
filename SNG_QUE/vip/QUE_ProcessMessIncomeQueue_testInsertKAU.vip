@@ -1,0 +1,307 @@
+
+/*************************************************************************************************\
+* Наименование: Тестовый интерфейс обработки сообщения, генерирует польз аналитику и ее значения  *
+*               из сообщения                                                                      *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+структура JSON
+{
+    "MSG_KATKAU_SPKAU": [
+        {
+            "KAU_NAME": "Пользовательская аналитика. Тест",
+            "KAU_CODE": "10500",
+            "SP_KAU": [
+                {
+                    "CODE" : "01",
+                    "NAME" : "name 01",
+                    "NREC" : "1",
+                    "CPARENT" : "0"
+                },
+                {
+                    "CODE" : "02",
+                    "NAME" : "name 02",
+                    "NREC" : "2",
+                    "CPARENT" : "1"
+                }
+            ]
+        },
+        {
+            "KAU_NAME": "Пользовательская аналитика. Тест 1",
+            "KAU_CODE": "10501",
+            "SP_KAU": [
+                {
+                    "CODE" : "001-1",
+                    "NAME" : "name 01-125",
+                    "NREC" : "21",
+                    "CPARENT" : "0"
+                },
+                {
+                    "CODE" : "002-1",
+                    "NAME" : "name 02-458",
+                    "NREC" : "22",
+                    "CPARENT" : "0"
+                }
+            ]
+        }
+    ]
+}
+*/
+#include QUE_ProcessMessIncomeQueue.vih
+#include QUE_BASE.vih
+
+//************************************************************
+
+vipinterface QUE_ProcessMessIncomeQueue_testInsertKAU implements oQUE_ProcessMessIncomeQueue
+  Licensed(free);
+
+Interface QUE_ProcessMessIncomeQueue_testInsertKAU;
+table struct tKatKau (
+   KAUCODE : word
+ , KAUNAME : string
+)
+with index(
+ ind0 = KAUCODE
+);
+
+table struct tSpKau (
+       KAUCODE : word
+     , CODE    : string
+     , NAME    : string
+     , NREC    : comp
+     , CPARENT : comp
+     , NREC_cur    : comp
+     , CPARENT_cur : comp
+)
+with index(
+  ind0 = KAUCODE + CPARENT
+ ,ind1 = KAUCODE + nrec
+);
+
+create view
+var _logQUE_OUT : string = '';
+from
+   KatKau
+ , SpKau
+
+ , tKatKau
+ , tSpKau
+ , tSpKau tSpKau_loop
+;
+
+Function GenerateNewFile: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string; {
+  if _logQUE_OUT = '' then _logQUE_OUT := GenerateNewFile+'.log';
+  result := _logQUE_OUT;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+procedure  inserttKATKAU(_KAUCODE : word; _KAUNAME : string); {
+  if getfirst tKatKau where ((_KAUCODE == tKatKau.KAUCODE)) <> tsOK {
+    insert tKatKau set
+       tKatKau.KAUCODE := _KAUCODE
+     , tKatKau.KAUNAME := _KAUNAME
+    ;
+  }
+}
+
+procedure inserttSPKAU(_KAUCODE : word; _CODE, _NAME : string; _NREC, _CPARENT : comp); {
+  if getfirst tSpKau where ((_KAUCODE == tSpKau.KAUCODE
+                            and _NREC == tSpKau.nrec)) <> tsOK {
+    insert tSpKau set
+       tSpKau.KAUCODE := _KAUCODE
+     , tSpKau.CODE    := _CODE
+     , tSpKau.NAME    := _NAME
+     , tSpKau.NREC    := _NREC
+     , tSpKau.CPARENT := _CPARENT
+    ;
+  }
+}
+function SynchSpKauRecursive(_KAUCODE : word; _nrec_up, _cParent : comp; var _answer : string) : boolean; {
+mylog('SynchSpKauRecursive _KAUCODE=' + _KAUCODE+'   _nrec_up=' + _nrec_up + '_cParen='  + _cParent);
+   _loop tSpKau_loop where ((_KAUCODE == tSpKau_loop.KAUCODE and _cParent == tSpKau_loop.CPARENT )) {
+     mylog('tSpKau_loop');
+/* тут над о хранить все таки нреки ранее вставленные и иерархию перестраивать
+    if getfirst spkau where ((_KAUCODE == spkau.kodgrkau
+                     and   tSpKau_loop.code == spkau.code)) = tsOK {
+                     }
+*/
+    if getfirst spkau where ((_KAUCODE == spkau.kodgrkau
+                     and   tSpKau_loop.code == spkau.code)) = tsOK {
+                       if spkau.cnode <> _nrec_up {
+                         SpKau.cnode := _nrec_up;
+                         if Update current SpKau <> tsOK {
+                           _answer := 'Ошибка обновления записи в spkau';
+                           result := false;
+                           exit;
+                         }
+                       }
+                     } else {
+                       clearbuffer(tnspkau);
+                        SpKau.cnode    := _nrec_up;
+                        SpKau.name     := tSpKau_loop.NAME;
+                        SpKau.CODE     := tSpKau_loop.CODE;
+                        spkau.kodgrkau := _KAUCODE;
+                       if insert current spkau <> tsOK {
+                         _answer := 'Ошибка вставки записи в spkau';
+                         result := false;
+                         exit;
+                       }
+                     }
+       Update current tSpKau_loop set
+           tSpKau_loop.nrec_cur   := spkau.nrec
+         , tSpKau_loop.cparent_cur := _cParent
+        ;
+
+         pushpos(tntSpKau_loop);
+          if not SynchSpKauRecursive(_KAUCODE, tSpKau_loop.nrec_cur, tSpKau_loop.nrec, _answer) {
+            result := false;
+          }
+         poppos(tntSpKau_loop);
+      }
+  result := true;
+}
+
+function SynchSpKau(_KAUCODE : word; var _answer : string) : boolean ;{
+  result := false;
+  if not SynchSpKauRecursive(_KAUCODE, 0h, 0h, _answer) {
+     exit;
+    }
+  result := true;
+}
+
+function SynchKATKAU(var _answer : string) : boolean; {
+ result := false;
+ _loop tKatKau {
+   if getfirst katkau where ((tKatKau.KAUCODE == katkau.kodgroup)) <> tsOK {
+       clearbuffer(tnkatkau);
+        katkau.kodgroup := tKatKau.KAUCODE;
+        katkau.name     := tKatKau.KAUNAME;
+        katkau.sysnum   := 1;
+     if insert current katkau <> tsOK {
+       _answer := 'Ошибка вставки записи в katkau';
+       exit;
+     }
+   }
+   if katkau.name <> tKatKau.KAUNAME {
+     katkau.name := tKatKau.KAUNAME;
+     if update current katkau <> tsOK {
+       _answer := 'Ошибка обновления записи в katkau';
+       exit;
+     }
+   }
+   if not SynchSpKau(tKatKau.KAUCODE,_answer) {
+     exit;
+   }
+ }
+ result := true;
+}
+
+function ProcessMessage(_message:TpTr; var _answerLong : tptr; var _answer : string) : boolean; {
+ result := false;
+ delete all tKatKau;
+ delete all tSpKau;
+ var iQUE_BASE : QUE_BASE new;
+ var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+
+  _answerLong :=  HttpConnect_CreateLongString( m_service);
+
+
+
+
+
+
+  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _message);
+   if JSON_Object = 0 {
+      _answer := 'не смогли преобразовать сообщение в JSON';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+  var JSON_MSG_KATKAU_SPKAU_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,JSON_Object,'MSG_KATKAU_SPKAU');
+    if JSON_MSG_KATKAU_SPKAU_ARR = 0 {
+      _answer := 'Ошибка в структуре сообщения. Не найден массив MSG_KATKAU_SPKAU';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+   var JSON_KAU_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_MSG_KATKAU_SPKAU_ARR);
+    if JSON_KAU_ARRCount =  0 {
+      _answer := 'Пустой массив MSG_KATKAU_SPKAU';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+       exit;
+     }
+
+   var i_JSON_KAU_ARR : longint = 0;
+   for (i_JSON_KAU_ARR := 0; i_JSON_KAU_ARR <= JSON_KAU_ARRCount - 1; i_JSON_KAU_ARR++) {
+     MyLog('Идем по массиву JSON_MSG_KATKAU_SPKAU_ARR');
+     var _JSON_Element : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_MSG_KATKAU_SPKAU_ARR, i_JSON_KAU_ARR);
+
+      var _KAUNAME : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'KAU_NAME');
+      var _KAUCODE : word = word(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'KAU_CODE'));
+      if _KAUNAME = '' {
+        _answer := 'Массив MSG_KATKAU_SPKAU элемент "'+string(i_JSON_KAU_ARR)+'" пустое поле "KAU_NAME"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+      if _KAUCODE = 0 {
+        _answer := 'Массив MSG_KATKAU_SPKAU элемент "'+string(i_JSON_KAU_ARR)+'" нулевое или не числовое поле "_KAUCODE"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+      inserttKATKAU(_KAUCODE, _KAUNAME);
+
+      var JSON_SPKAU_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element,'SP_KAU');
+      var JSON_SPKAU_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_SPKAU_ARR);
+      MyLog('Идем по массиву JSON_SPKAU_ARRCount = ' + JSON_SPKAU_ARRCount);
+      if JSON_SPKAU_ARRCount > 0 {
+          var i_JSON_SPKAU_ARR : longint = 0;
+          for (i_JSON_SPKAU_ARR := 0; i_JSON_SPKAU_ARR  <= JSON_SPKAU_ARRCount - 1; i_JSON_SPKAU_ARR++) {
+           var _JSON_Element_SP : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_SPKAU_ARR, i_JSON_SPKAU_ARR);
+             MyLog('Идем по массиву JSON_SPKAU_ARR ');
+            var _CODE    : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'CODE');
+            var _NAME    : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'NAME');
+            var _NREC    : comp = comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'NREC'));
+            var _CPARENT : comp = comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'CPARENT'));
+            if _CODE = '' {
+              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". Код значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" пустое';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+            if _NAME = '' {
+              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". Наименование значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" пустое';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+            if _NREC = 0h {
+              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". NREC значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" нулевой';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+            MyLog('Идем по массиву JSON_SPKAU_ARR ' + _KAUCODE +'|'+ _CODE+'|'+  _NAME+'|'+  _NREC+'|'+  _CPARENT);
+            inserttSPKAU(_KAUCODE, _CODE, _NAME, _NREC, _CPARENT);
+       }
+     }
+   }
+   if SynchKATKAU(_answer) then result := true;
+   _answer := 'Сообщение успешно обработано';
+   HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+   mylog('QUE_ProcessMessIncomeQueue_testInsertKAU HttpConnect_GetLongStringLength(m_service, _answerLong) = ' + HttpConnect_GetLongStringLength(m_service, _answerLong));
+//   putfiletoclient(_logQUE_OUT,false);
+}
+
+function GetDescription : string; {
+  result := 'Test. Пример реализации обработки сообщения. Генерирует пользоват. аналитику и ее значения из сообщения'
+}
+end.
