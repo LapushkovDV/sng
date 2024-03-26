@@ -1,0 +1,35 @@
+/*************************************************************************************************\
+* Наименование:  Настройки для интеграции с dMDM                                              *
+* Контур/Модуль: Интеграция                                                                       *
+* Примечание:                                                                                     *
+\*************************************************************************************************/
+
+#include CreateTune.vih
+//------------------------------------------------------------------------------
+Handler with replace CreateTune_SNG_IntegrdMDM on extensionPoint epCreateTuneComponent (TR: ObjCreateTuneEx) [220]
+  // Внимание, приоритеты вызова обработчиков см. в CreateTune.vih
+Action
+{
+  Result := true;
+
+  TR.SetParent('TUNE');
+  TR.AddPart(ttSYSUSERTUNE,'SNG','TUNE','Настройки СНГ','');
+
+  TR.SetParent('SNG');
+//  TR.SetComponent('P_Test');
+  // ------------------------------------------------------------------------
+  // Создаём разделы настроек
+  // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \ dMDM
+  TR.AddPart(ttSYSUSERTUNE,'dMDMIntegration','SNG','dMDM интеграция','');
+//  TR.AddPartU('dMDMIntegration', 'dMDM', '');
+  // ------------------------------------------------------------------------
+  // Создаём общие настройки для переключения, логина и пароля
+
+  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_URL', 'dMDMIntegration', 'URL API', ftString, '', '100', hcNoContext);    // https://dMDMrxtst
+  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_UserName', 'dMDMIntegration', 'Пользователь', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_Passworddmdm', 'dMDMIntegration', 'Пароль', ftString, '', '100', hcNoContext);
+  TR.AddIntr('SETPASSWORD_DMDM');
+
+  TR.AddTune(    ttUserTune, 'dMDMIntegration_Test', 'dMDMIntegration', 'Тестовый режим', ftString, '', '100', hcNoContext);
+
+}

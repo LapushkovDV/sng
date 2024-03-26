@@ -36,8 +36,8 @@ create view
     _RootTableNrec  : NoProtect;
     _AddWhereString : NoProtect;
   buttons
-   cmValue1,,,;
-   cmValue2,,,;
+   cmValue1, [singleline],,,;
+   cmValue2, [singleline],,,;
    cmValue3,,,;
    cmValue5,,,;
    cmValue4,,,;

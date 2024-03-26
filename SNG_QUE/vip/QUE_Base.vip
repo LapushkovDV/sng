@@ -114,6 +114,29 @@ from
 
 
 
+function encrypt(_str:string):string;{
+  var _strres : string = '';
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i);
+     _i++;
+   }
+   result := _strres;
+}
+function decrypt(_str:string):string;{
+  var _strres : string = '' ;
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i);
+     _i++;
+   }
+   result := _strres;
+}
+
+
+
 Procedure fillQUE_SENDMESSTOEXTSYS; {
   delete all tSendMessToExtSys;
   if (LoadImplementationList('SNG_QUE::OQUE_SENDMESSTOEXTSYS', 'QUE_SENDMESSTOEXTSYS_'))

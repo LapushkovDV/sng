@@ -21,13 +21,14 @@ Interface QRY_ALG_USER_PHONE_BY_COMMUNICATIONS;
 table struct tblComm
 (
   nRec: comp,
+  LastDate: date,
   SeqNmb: integer,
   Addr: string
 )
 with index
 (
   tblCommRec = nRec,
-  tblCommSeq = SeqNmb
+  tblCommDate = LastDate + SeqNmb
 );
 
 
@@ -121,6 +122,7 @@ var
                          and   Catalogs.nRec == Communications.ComType))
   {
     insert tblComm set nRec := Communications.nRec,
+                       LastDate := Communications.Atl_lastDate,
                        SeqNmb := Communications.SeqNmb,
                        Addr := Communications.Addr;
   }
@@ -132,7 +134,7 @@ var
   }
 
   wCurrNum := 0;
-  _loop tblComm ordered by index tblCommSeq
+  _loop backward tblComm ordered by index tblCommDate
   {
     wCurrNum := wCurrNum + 1;
 

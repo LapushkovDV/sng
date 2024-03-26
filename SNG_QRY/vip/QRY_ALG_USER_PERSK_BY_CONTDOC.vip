@@ -30,14 +30,12 @@ create view
   from
     ContDoc,
     Persons,
-    KlSovm,
     Appointments,
     AppHist,
     KlKatego
   where ((
         cNrec == ContDoc.nRec
     and ContDoc.person == Persons.nRec
-    and Persons.cSovm == KlSovm.nRec
     and ContDoc.cStr == Appointments.nRec
     and Appointments.nRec == AppHist.cAppoint
     and AppHist.cSpr4 == KlKatego.nRec
@@ -53,18 +51,16 @@ Function Calc(_Parameter:string):string; {
     exit;
   }
 
-  if (getFirst fastfirstrow KlSovm = tsOk) {
-    case KlSovm.sovm of
-      2: {
-        result := '06';
-        exit;
-      }
-      4: {
-        result := '07';
-        exit;
-      } 
-    end; //case   
-  }
+  case Persons.cSovm of
+    2: {
+      result := '06';
+      exit;
+    }
+    4: {
+      result := '07';
+      exit;
+    } 
+  end; //case   
 
   if (getFirst fastfirstrow Appointments = tsOk 
 		and getFirst fastfirstrow AppHist = tsOk 

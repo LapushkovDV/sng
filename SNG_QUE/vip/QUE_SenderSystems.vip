@@ -35,7 +35,7 @@ from
    QUE_SenderSystem SenderSystem
 ;
 
-Window wnSenderSystem_Edit 'Редактирование экземпляра запроса' ;
+Window wnSenderSystem_Edit 'Редактирование системы-отправителя сообщений во входящую очередь' ;
   Show at (,,,);
   //---------------------------------------------
     Screen ScrSenderSystem_Edit (,,Sci178Esc);

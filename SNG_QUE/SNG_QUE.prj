@@ -22,6 +22,8 @@ LicenseControlInclude=""
 #include bmp\QUE_BASE.bmc
 #include inc\SNG_QUE.inc
 
+#make "vip\CreateTune_SNG_IntegrdMDM.vip"
+#make "vip\IntrTune_SNG_IntegrdMDM.vip"
 
 #make "vip\QUE_BASE.vip"
 #make "vip\QUE_View_QUE_EntriesForReview.vip"

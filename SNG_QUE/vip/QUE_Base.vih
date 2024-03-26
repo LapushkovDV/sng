@@ -127,6 +127,16 @@ function GetQUE_SENDMESSTOEXTSYS : string;
 #end
 procedure ProcessQueueOut;
 
+#doc
+Зашифровать строку
+#end
+ function encrypt(_str:string):string;
+
+#doc
+Расшифровать строку
+#end
+ function decrypt(_str:string):string;
+
 end;
 
 VipInterface QUE_BASE Implements oQUE_Base #Licensed_Free;
