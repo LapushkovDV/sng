@@ -104,6 +104,7 @@ function GetLogFile : string; {
 }
 
 Procedure MyLog(_str: string; _needlog : boolean = false); {
+  exit;
   LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
 }
 

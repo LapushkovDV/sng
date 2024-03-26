@@ -161,11 +161,11 @@
 		<CheckAtlVer>6000005000</CheckAtlVer>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_SQLRepBuilder.prj" PosX="82" PosY="34" OpenEditor="True"/>
-			<File Name="vip\SQLRunReport.vip" PosX="3" PosY="203" OpenEditor="True" Active="True"/>
-			<File Name="vip\SQLBuildReport.vip" PosX="3" PosY="861" OpenEditor="True"/>
+			<File Name="SNG_SQLRepBuilder.prj" PosX="18" PosY="61" OpenEditor="True"/>
+			<File Name="vip\SQLRunReport.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\SQLBuildReport.vip" PosX="69" PosY="200" OpenEditor="True" Active="True"/>
 			<File Name="vip\SQLFilts.vip" PosX="82" PosY="316" OpenEditor="True"/>
-			<File Name="vip\SQLSetFilts.vip" PosX="8" PosY="96" OpenEditor="True"/>
+			<File Name="vip\SQLSetFilts.vip" PosX="48" PosY="226" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="SNG_SQLRepBuilder.prj" Priority="0">

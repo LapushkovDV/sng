@@ -68,7 +68,7 @@
 					<SqlServerParameters>ncacn_ip_tcp:localhost\SQLEXPRESS[32777]</SqlServerParameters>
 					<HwKeyTransport>1</HwKeyTransport>
 					<HwKeyDirectory>localhost:55555</HwKeyDirectory>
-					<LicFileName>..\..\..\..\..\..\..\Galaktika\sup\exe\License.lic</LicFileName>
+					<LicFileName>..\..\..\..\sup\exe\License.lic</LicFileName>
 				</VipDatabase>
 			</ConfigurationList>
 		</DatabaseConfiguration>
@@ -129,8 +129,8 @@
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="FilesRef.prj" PosX="28" PosY="61" OpenEditor="True"/>
-			<File Name="..\..\..\..\..\..\..\..\Galaktika\GAL\Frm\Inc\GloTypes.inc" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="Source\FILESREF_File_hRef.Vip" PosX="36" PosY="300" OpenEditor="True" Active="True"/>
+			<File Name="..\..\..\..\GAL\Frm\Inc\GloTypes.inc" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="Source\FILESREF_File_hRef.Vip" PosX="29" PosY="347" OpenEditor="True" Active="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="FilesRef.prj" Priority="0">
