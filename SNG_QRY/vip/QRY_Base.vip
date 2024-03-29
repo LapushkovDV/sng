@@ -303,9 +303,11 @@ function replaceProhibitSymbols(_str: string) : string; {
 procedure setFieldSynonims; {
   pushpos(#QRY_INST_FLD);
   _loop QRY_INST_FLD {
-    var _prefix : string = replaceProhibitSymbols(QRY_INST_FLD_LVL_FLD.fld_json_name + '_' + QRY_INST_FLD.FieldJSON+'_');
-    if pos(_prefix,QRY_INST_FLD.FieldSynonim) = 0 {
-      set QRY_INST_FLD.FieldSynonim := _prefix + replaceProhibitSymbols(OleGenerateGUID);
+    var _prefix : string = replaceProhibitSymbols(QRY_INST_FLD.FieldJSON+'_');
+    if pos(_prefix,QRY_INST_FLD.FieldSynonim) = 0 or length(QRY_INST_FLD.FieldSynonim) > 60 {
+      var _FieldSynonim : string = _prefix + replaceProhibitSymbols(OleGenerateGUID);
+      if length(_FieldSynonim) > 60 then _FieldSynonim := replaceProhibitSymbols(OleGenerateGUID);
+      set QRY_INST_FLD.FieldSynonim := _FieldSynonim;
       update current QRY_INST_FLD;
     }
   }

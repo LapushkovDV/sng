@@ -17,8 +17,7 @@ Interface QRY_INSTANCE 'Экземпляры запросов. Просмотр/редактирование', CYAN;
 
 create view
 var  ShowpanInstWithOutTmplt : byte;
-from
-  QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_search
+from   QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_search
 condition byQRY_INST_FLD_YOUDONTHAVETOSEETHIS pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD.FieldSynonim) = 0
 
 ;

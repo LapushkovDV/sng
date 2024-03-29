@@ -26,10 +26,11 @@ Action
   // Создаём общие настройки для переключения, логина и пароля
 
   TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_URL', 'dMDMIntegration', 'URL API', ftString, '', '100', hcNoContext);    // https://dMDMrxtst
-  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_UserName', 'dMDMIntegration', 'Пользователь', ftString, '', '100', hcNoContext);
-  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_Passworddmdm', 'dMDMIntegration', 'Пароль', ftString, '', '100', hcNoContext);
-  TR.AddIntr('SETPASSWORD_DMDM');
+//  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_UserName', 'dMDMIntegration', 'Пользователь', ftString, '', '100', hcNoContext);
+//  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_Passworddmdm', 'dMDMIntegration', 'Пароль', ftString, '', '100', hcNoContext);
+//  TR.AddIntr('SETPASSWORD_DMDM');
 
+  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_Tokendmdm', 'dMDMIntegration', 'Token', ftString, '', '100', hcNoContext);
   TR.AddTune(    ttUserTune, 'dMDMIntegration_Test', 'dMDMIntegration', 'Тестовый режим', ftString, '', '100', hcNoContext);
 
 }

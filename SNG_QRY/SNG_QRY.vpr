@@ -96,10 +96,10 @@
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="37" PosY="15" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="11" PosY="13" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vih" PosX="44" PosY="6" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="4" PosY="881" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="35" PosY="51" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="22" PosY="353" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="79" PosY="306" OpenEditor="True" Active="True"/>
 			<File Name="..\SNG_QUE\vip\QUE_BASE.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="47" PosY="144" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="41" PosY="138" OpenEditor="True"/>
@@ -166,17 +166,11 @@
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\HR_643\HR_643.prj" DateTimeStart="45318,8639688194" DateTimeCompile="0,000545069444342516" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" DateTimeStart="45380,3312227431" DateTimeCompile="0,000559664345928468" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OPENRESOURCES&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\GALSRV\C_EXTFUN.RES&quot;" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtError" MessageText="Для компиляции &quot;record as table&quot; необходимо соединение с БД" SourceFileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\COMPSRC\L\L_MCU\VIP\KATEDIZM\OEDIZM\oEdIzm.vih" SourceLine="27" SourceColumn="47">
-						<StackIncludeList>
-							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloTypes.inc" Line="19" Column="1"/>
-							<StackInclude FileName="C:\GALAKTIKA\ATL6\UPDATE_10.1.2230\ERP91\INC\GloVars.inc" Line="9" Column="1"/>
-							<StackInclude FileName="C:\Galaktika\_git\sng\HR_643\HR_643.prj" Line="4" Column="1"/>
-						</StackIncludeList>
-					</CompileMessage>
-					<CompileMessage MessageType="mtEndCompile" MessageText="27.01.2024 20:44:54"/>
+					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OpenResources&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\Galaktika\ATL6\Update_10.1.2230\galsrv\C_ExtFun.res&quot;\Upd" SourceLine="-1" SourceColumn="-1"/>
+					<CompileMessage MessageType="mtError" MessageText="истема лицензирования: Ошибка проверки аппаратного ключа Используемый у Вас аварийный аппаратный ключ исчерпал ресурс входов ! Вам следует поскор" SourceLine="-1" SourceColumn="-1"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="29.03.2024 7:57:46"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

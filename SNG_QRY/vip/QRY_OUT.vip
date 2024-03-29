@@ -778,7 +778,7 @@ function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) :
   //mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
   result := _value;
   if trim(_Formula)<> '' {
-    var _error : string;
+    var _error : string = '';
 //    mylog('ApplyFormulaToValue _Formula = '+ _Formula);
     var _ReplaceByValues : string = ReplaceByValues(_Formula, _value , _strParameter);
 //    mylog('ApplyFormulaToValue _ReplaceByValues = '+ _ReplaceByValues);

@@ -92,15 +92,16 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="21" PosY="39" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="22" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QUE_REST.vip" PosX="74" PosY="22" OpenEditor="True"/>
 			<File Name="vip\QUE_REST.vih" PosX="1" PosY="17" OpenEditor="True"/>
 			<File Name="vip\QUE_ProcessMessIncomeQueue.vih" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vip" PosX="2" PosY="90" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="30" PosY="87" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="57" PosY="67" OpenEditor="True"/>
 			<File Name="vip\QUE_BASE.vip" PosX="1" PosY="301" OpenEditor="True"/>
 			<File Name="vip\QUE_SenderSystems.vip" PosX="77" PosY="82" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="49" PosY="20" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
