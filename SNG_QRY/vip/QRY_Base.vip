@@ -303,6 +303,8 @@ function replaceProhibitSymbols(_str: string) : string; {
 procedure setFieldSynonims; {
   pushpos(#QRY_INST_FLD);
   _loop QRY_INST_FLD {
+    if pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD.FieldSynonim) = 1 then continue;
+
     var _prefix : string = replaceProhibitSymbols(QRY_INST_FLD.FieldJSON+'_');
     if pos(_prefix,QRY_INST_FLD.FieldSynonim) = 0 or length(QRY_INST_FLD.FieldSynonim) > 60 {
       var _FieldSynonim : string = _prefix + replaceProhibitSymbols(OleGenerateGUID);
