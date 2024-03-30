@@ -1,5 +1,6 @@
 #include QUE_SenderSystems.vih
 #include QUE_INCOME_BASE.vih
+#include QUE_BASE.vih
 
 #declare colorneed (FldCondition)
 {Font={BackColor=if(#FldCondition,ColorNeed,0)}}
@@ -32,25 +33,28 @@ create view
   as select
    SenderSystem.nrec
 from
-   QUE_SenderSystem SenderSystem
+      QUE_SenderSystem SenderSystem
+    , QUE_Handler_tune Handler_tune
+   where ((SenderSystem.cQUE_Handler_tune == Handler_tune.nrec))
 ;
 
 Window wnSenderSystem_Edit 'Редактирование системы-отправителя сообщений во входящую очередь' ;
   Show at (,,,);
   //---------------------------------------------
     Screen ScrSenderSystem_Edit (,,Sci178Esc);
-    Show at (,,,5);
     Table SenderSystem;
     Fields
      SenderSystem.code           : NoProtect, #colorneed(SenderSystem.code='');
      SenderSystem.name           : NoProtect, #colorneed(SenderSystem.name='');
      SenderSystem.description    : NoProtect;
      SenderSystem.interface_name : Protect, pickbutton, #colorneed(SenderSystem.interface_name='');
+     Handler_tune.name           : Protect, pickbutton;
 <<
                `Код`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       `Наименование`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
           `Описание`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 `Интерфейс передачи`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Настройка интерфейса передачи`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 >>
     end;
   //---------------------------------------------
@@ -61,7 +65,7 @@ browse brSenderSystem;
   Fields
   SenderSystem.code           'Код'                : [ 3] , Protect, nopickbutton, #colorneed(SenderSystem.code='');
   SenderSystem.name           'Наименование'       : [10] , Protect, nopickbutton, #colorneed(SenderSystem.name='');
-  SenderSystem.interface_name 'Интерфейс отправки' : [10] , Protect, nopickbutton, #colorneed(SenderSystem.interface_name='');
+  SenderSystem.interface_name 'Интерфейс обработки': [10] , Protect, nopickbutton, #colorneed(SenderSystem.interface_name='');
   SenderSystem.description    'Описание'           : [10] , Protect, nopickbutton;
 end;
 
@@ -82,6 +86,14 @@ cmPick:{
         var _name : string = _iQUE_BASE_INCOME.GetQUE_ProcessMessIncomeQueue;
         if _name <> '' {
           set SenderSystem.interface_name := _name;
+          updatetable;
+        }
+      }
+      #Handler_tune.name: {
+        if SenderSystem.interface_name <> '' {
+          var _iQUE_BASE : QUE_BASE new;
+          var _crec : comp = _iQUE_BASE.GetSetQUE_Handler_tune('SNG_QUE::QUE_PROCESSMESSINCOMEQUEUE_'+SenderSystem.interface_name);
+          if _crec <> 0h then set SenderSystem.cQUE_Handler_tune := _crec;
           updatetable;
         }
       }

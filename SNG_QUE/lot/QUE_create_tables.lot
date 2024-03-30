@@ -80,10 +80,11 @@ Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
   With Replace
   With TableOptions Branched
 (
-  Nrec           : comp   "Номер записи"
-, code           : string "Код системы"
-, name           : string "Наименование системы"
-, interface_name : string "Интерфейс формирования запроса во внешнюю системы"
+  Nrec              : comp   "Номер записи"
+, code              : string "Код системы"
+, name              : string "Наименование системы"
+, interface_name    : string "Интерфейс формирования запроса во внешнюю системы"
+, cQUE_Handler_tune : ref(QUE_Handler_tune) "Настройки обработчика очереди"
 )
 with Index
 (

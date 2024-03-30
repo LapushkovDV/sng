@@ -98,6 +98,16 @@ procedure ProcessEntriesForReview;
 procedure CopyEntriesForReviewToQueue;
 
 #doc
+Положить сообщение в очередь.
+Используется если сообщение сгенерировано не средствами конструктора JSON (компонент SNG_QRY)
+
+_bodyMessage - tptr, ссылка на длинную строку с содержимым сообщения
+_codeReciptSystem - string, код системы-получателя (по ней определяется интерфейс для отсылки сообщения во внешнюю систему)
+_TypeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete, coQUE_TypeEvent_Update)
+#end
+function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string) : boolean;
+
+#doc
 Получить строковое название статуса записей на рассмотрение QUE_EntriesForReview
 #end
 Function GetNameStatusEntriesForReview(_Status : word) : string;
@@ -121,6 +131,11 @@ Function GetImageStatusQueue(_Status : word) : string;
 Выбрать интерфейс для отправки сообщений из очереди во внешние системы
 #end
 function GetQUE_SENDMESSTOEXTSYS : string;
+
+#doc
+Выбор/редактирование настройки интерфейс для отправки/приемки сообщений очереди
+#end
+function GetSetQUE_Handler_tune(__interfaceName : string) : comp;
 
 #doc
 Обработать записи очереди

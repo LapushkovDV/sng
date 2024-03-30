@@ -2,3 +2,4 @@ alter dictionary;
 drop Table QUE_INCOME;
 drop Table QUE_INCOME_ANSWER;
 drop Table QUE_SenderSystem;
+drop Table QUE_Handler_tune;

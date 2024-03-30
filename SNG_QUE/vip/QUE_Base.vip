@@ -18,8 +18,45 @@
        5|   ошибка передачи в очередь                             | не все записи из пула переданы во внешнюю систему
 */
 #include QUE_BASE.vih
+#include QUE_INCOME_BASE.vih
 #include QRY_OUT.vih
 #include QUE_SendMessToExtSys.vih
+#include QUE_ProcessMessIncomeQueue.vih
+
+#declare tableeventtable (table)
+TableEvent table #table;
+cmSetDefault: {
+  if curtable = tnHandler_tune {
+     Handler_tune.interface_name := _interfaceName;
+   }
+}
+
+cmInsertRecord: {
+  Insert Current #table;
+}
+
+cmUpdateRecord: {
+  Update Current #table;
+}
+
+cmDeleteRecord: {
+ if(getfirst SenderSystem where ((Handler_tune.nrec == SenderSystem.cQUE_Handler_tune (noindex) )) ) = tsOK {
+   message('Настройка используется в системах-отправителях',error);
+   stop; abort; exit;
+ }
+
+ if(getfirst ReciptSystem where ((Handler_tune.nrec == ReciptSystem.cQUE_Handler_tune (noindex) )) ) = tsOK {
+   message('Настройка используется в системах-получателях',error);
+   stop; abort; exit;
+ }
+
+ if message('Удалить?',YesNo)<>cmYes  {
+   abort; exit;
+  }
+  delete Current #table;
+}
+end; //TableEvent table #table
+#end
 
 table struct tmpEntriesForReview (
    cEntriesForReview : comp
@@ -82,7 +119,8 @@ function isExistStatusInPool(_cEntriesForReview: comp; _status : word) : boolean
  var _arrQUE_SendMessToExtSys : Array [1..1] of oQUE_SendMessToExtSys;
 create view
 var
-   _logQUE_OUT : string; //глобальная
+     _logQUE_OUT
+   , _interfaceName : string; //глобальная
  as select
  QUE_OUT_Copy.nrec
 from
@@ -104,12 +142,18 @@ from
  , QUE_OUT QUE_OUT_LoopStatus
  , QUE_OUT QUE_OUT_LoopRecursive
  , QUE_RecipientSystem RecipSystem
+ , QUE_Handler_tune Handler_tune
+ , QUE_SenderSystem SenderSystem
 
  , tmpEntriesForReview
  , tEntrForReviewToQue
  , tQueueOut
  , tSendMessToExtSys
  , tRefSendMessToExtSys
+
+ where ((
+        _interfaceName == Handler_tune.interface_name
+       ))
 ;
 
 
@@ -187,6 +231,89 @@ function GetQUE_SENDMESSTOEXTSYS : string; {
  result := '';
  if runwindowmodal(winSelectQUE_SENDMESSTOEXTSYS) = cmDefault {
    result := tSendMessToExtSys.NAME ;
+ }
+}
+
+window winGetSetQUE_SENDMESSTOEXTSYS 'Выбор настройки интерфейса обработки исходящих сообщений', cyan;
+ browse brwinGetSetQUE_SENDMESSTOEXTSYS (,,Sci1478Esc) ;
+  table Handler_tune;
+  Fields
+   Handler_tune.interface_name 'Интерфейс'     : [5] , Protect, nopickbutton;
+   Handler_tune.NAME           'Наименование'  : [10] , Protect, nopickbutton;
+ end;
+end;
+#tableeventtable(Handler_tune)
+windowevent winGetSetQUE_SENDMESSTOEXTSYS ;
+ cmedit: {
+   if not isvalidall(tnHandler_tune) {
+     insert current Handler_tune;
+   }
+
+   if isvalidall(tnHandler_tune) {
+       var _iQUE_SendMessToExtSys : oQUE_SendMessToExtSys;
+       if LoadvipRef(_iQUE_SendMessToExtSys, Handler_tune.interface_name) {
+          _iQUE_SendMessToExtSys.Setup(Handler_tune.nrec);
+        }
+        else {
+         message('Не удалось загрузить интерфейс ' + Handler_tune.interface_name);
+        }
+    }
+    rereadrecord;
+ }
+ cmdefault: {
+   closewindowex(winGetSetQUE_SENDMESSTOEXTSYS, cmDefault)
+ }
+end;
+
+window winGetSetQUE_ProcessMessIncomeQueue 'Выбор настройки интерфейса обработки входящих сообщений', cyan;
+ browse brwinGetSetQUE_SProcessMessIncomeQueue (,,Sci1478Esc) ;
+  table Handler_tune;
+  Fields
+   Handler_tune.interface_name 'Интерфейс'     : [5] , Protect, nopickbutton;
+   Handler_tune.NAME           'Наименование'  : [10] , Protect, nopickbutton;
+ end;
+end;
+windowevent winGetSetQUE_ProcessMessIncomeQueue ;
+ cmedit: {
+   if not isvalidall(tnHandler_tune) {
+     insert current Handler_tune;
+   }
+   if isvalidall(tnHandler_tune) {
+      var _iQUE_ProcessMessIncomeQueue : oQUE_ProcessMessIncomeQueue new;
+       if LoadvipRef(_iQUE_ProcessMessIncomeQueue, Handler_tune.interface_name) {
+          _iQUE_ProcessMessIncomeQueue.Setup(Handler_tune.nrec);
+        }
+        else {
+         message('Не удалось загрузить интерфейс ' + Handler_tune.interface_name);
+        }
+    }
+    rereadrecord;
+ }
+ cmdefault: {
+   closewindowex(winGetSetQUE_ProcessMessIncomeQueue, cmDefault)
+ }
+end;
+
+#tableeventtable(Handler_tune)
+
+function GetSetQUE_Handler_tune(__interfaceName : string) : comp; {
+  result := 0h;
+  if trim(__interfaceName ) = '' then  {
+    message('Указано пустое имя интерфейса',error);
+    exit;
+  }
+
+ set _interfaceName  := __interfaceName;
+
+ if pos('SNG_QUE::QUE_SENDMESSTOEXTSYS_',_interfaceName) = 1 {
+     if runwindowmodal(winGetSetQUE_SENDMESSTOEXTSYS) = cmDefault {
+       result := Handler_tune.nrec;
+     }
+ }
+ if pos('SNG_QUE::QUE_PROCESSMESSINCOMEQUEUE_',_interfaceName) = 1 {
+     if runwindowmodal(winGetSetQUE_ProcessMessIncomeQueue) = cmDefault {
+       result := Handler_tune.nrec;
+     }
  }
 }
 
@@ -496,6 +623,52 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp; _codeReci
    }
 }
 
+function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string) : boolean; {
+/*
+_TypeEvent
+coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
+coQUE_TypeEvent_Delete = 'DELETE'; // Событие обновление
+coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
+*/
+   result := false;
+   clearbuffer(tnQUE_OUT_Copy);
+    QUE_OUT_Copy.Status             := coQUE_AwaitRelatRecordToInsQue;
+    QUE_OUT_Copy.TypeEvent          := _TypeEvent;
+    QUE_OUT_Copy.TryCount           := 0;
+    QUE_OUT_Copy.cParent            := 0h;
+    QUE_OUT_Copy.QRY_Instance_code  := 'DIRECT INSERT';
+    QUE_OUT_Copy.DateTime_in        := _curDateTime;
+    QUE_OUT_Copy.RecipientSystem    := _codeReciptSystem; // string     "Код системы получателя";
+    QUE_OUT_Copy.cQUE_EntriesReview := 0h;
+
+   if insert current QUE_OUT_Copy <> tsOK {
+    exit;
+   }
+
+   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var _bodyMessageFile : string = GenerateNewFile + '.bodymsg';
+
+   HttpConnect_SaveToFileEx(m_service, _bodyMessage, _bodyMessageFile, cpUTF8, false);
+
+   if not importfiletomemo(QUE_OUT_Copy.JSON, _bodyMessageFile, false) {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+
+   QUE_OUT_Copy.Status := coQUE_ReadyTransfToExtSystem;
+
+   if update current QUE_OUT_Copy <> tsOK {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+
+   deletefile(_bodyMessageFile);
+   HttpConnect_Free(m_service);
+   result := true;
+}
+
 procedure RecursiveCopyToQueue_from_EntriesForReviewRecords(_cEntriesForReview : comp; _codeReciptSystem : string); {
    _loop QUE_EntrCopyToQueue where ((_cEntriesForReview == QUE_EntrCopyToQueue.cParent))  {
 
@@ -562,6 +735,12 @@ Function GetInterfaceNameByReciptSystem(_RecipientSystemCode : string): string; 
   }
 }
 
+Function GetTuneByReciptSystem(_RecipientSystemCode : string): comp; cacheable;{
+  result := 0h;
+  if getfirst fastfirstrow RecipSystem where ((_RecipientSystemCode == RecipSystem.code )) = tsOK {
+   result := RecipSystem.cQUE_Handler_tune
+  }
+}
 Function SendOneMessage(_cQue_OUT : comp) : boolean; {
 #declare updatelogSetStatusQueue(StrError)
           QUE_LOG_SNDMSG.log_string := #StrError;
@@ -629,13 +808,15 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
        Exit;
       }
 
+/* передавать будем не JSON а ссылку на длинную строку, т.к. не только JSON может быть в очереди
   var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _longValue);
    if JSON_Object = 0 {
       #updatelogSetStatusQueue('не смогли преобразовать файл в JSON')
       exit;
     }
-
+*/
      var _interfaceName : string = GetInterfaceNameByReciptSystem(QUE_OUT_SNDMSG.RecipientSystem);
+     var _cTuneReciptSystem : comp = GetTuneByReciptSystem(QUE_OUT_SNDMSG.RecipientSystem);
 
      if _interfaceName = '' {
       #updatelogSetStatusQueue('Пустое имя интерфейса отправки сообщения или нет системы-получателя')
@@ -662,13 +843,15 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
                 exit;
               }
             }
-            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessageJSON(  JSON_Object
-                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
-                                                                   , QUE_OUT_SNDMSG.TypeEvent
-                                                                   , _retStatus
-                                                                   , _retFileLog);
+            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  _longValue // JSON_Object
+                                                                  , QUE_OUT_SNDMSG.QRY_Instance_code
+                                                                  , QUE_OUT_SNDMSG.TypeEvent
+                                                                  , _cTuneReciptSystem
+                                                                  , _retStatus
+                                                                  , _retFileLog);
             Break;
           } while True;
+
 
        if _retFileLog <> '' {
           ImportFileToMemo(QUE_LOG_SNDMSG.log_text, _retFileLog, false);
@@ -686,6 +869,7 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
       else {
         #updatelogSetStatusQueue(_retStatus)
       }
+  HttpConnect_Free(m_service);
 }
 Procedure FreetRefSendMessToExtSys;
 {

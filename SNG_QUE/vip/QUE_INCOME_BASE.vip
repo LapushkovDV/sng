@@ -175,6 +175,12 @@ Function GetInterfaceNameBySenderSystem(_SenderSystemCode : string): string; cac
    result := QUE_SND_SYS.interface_name
   }
 }
+Function GetTuneBySenderSystem(_SenderSystemCode : string): comp; cacheable;{
+  result := 0h;
+  if getfirst fastfirstrow QUE_SND_SYS where ((_SenderSystemCode == QUE_SND_SYS.code )) = tsOK {
+   result := QUE_SND_SYS.cQUE_Handler_tune
+  }
+}
 
 Function ProcessOneMessage(_cQue_income : comp) : boolean; {
 #declare updateQueInSetStatus(StrError)
@@ -223,6 +229,8 @@ Function ProcessOneMessage(_cQue_income : comp) : boolean; {
       }
 
      var _interfaceName : string = GetInterfaceNameBySenderSystem(QUE_IN.system_code);
+     var _cQUE_Handler_tune : comp = GetTuneBySenderSystem(QUE_IN.system_code);
+
 
      if _interfaceName = '' {
       #updateQueInSetStatus('Пустое имя интерфейса обработки сообщения или система-отправитель не зарегистрирована в Галактике')
@@ -253,6 +261,7 @@ Function ProcessOneMessage(_cQue_income : comp) : boolean; {
               }
             }
             result :=_arrQUE_ProcessMessInQueue[ww_num].ProcessMessage(_longValue
+                                                                     , _cQUE_Handler_tune
                                                                      , _retMessagelong
                                                                      , _retMessage);
             Break;

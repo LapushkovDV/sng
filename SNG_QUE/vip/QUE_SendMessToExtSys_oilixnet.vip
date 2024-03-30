@@ -19,10 +19,29 @@ vipinterface QUE_SendMessToExtSys_oilixnet implements oQUE_SendMessToExtSys
 
 Interface QUE_SendMessToExtSys_oilixnet;
 
-function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean; {
+create view
+var _cQUE_Handler_tune : comp;
+from
+  QUE_Handler_tune Handler_tune
+where ((
+       _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+
+function SendMessage(_bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; _cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
  result := false;
  var iQUE_BASE : QUE_BASE new;
  var httpCon: TPtr = HttpConnect_CreateEx('https://oilix.net:52045', '', '', True);
+
+
+ var _JSON : tptr = HttpConnect_JSONObjectByLongString(httpCon, _bodyMessage);
+
+ if _JSON = 0 {
+    _retStatus := 'не смогли преобразовать сообщение в JSON';
+    HttpConnect_Free(httpCon);
+    exit;
+   }
+
 
  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
  HttpConnect_ResponseLogEnable(httpCon);
@@ -62,6 +81,7 @@ function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; 
        HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
        _retStatus  := HttpConnect_LastErrorText(httpCon);
        _retFileLog := _logHttpConnect;
+       HttpConnect_Free(httpCon);
        Exit;
       }
 
@@ -76,9 +96,19 @@ function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; 
    if _sRESMESSAGE = 'OK' {
      result := true;
    }
+  HttpConnect_Free(httpCon);
 }
 
 function GetDescription : string; {
   result := 'Test send to external bus. Пример реализации отправки сообщения в https://oilix.net:52045/'
 }
+
+procedure Setup(__cQUE_Handler_tune : comp); {
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune = tsOK {
+    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
+  }
+  message('Настроек не предусмотрено',error);
+}
+
 end.

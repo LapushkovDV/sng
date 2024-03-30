@@ -38,6 +38,33 @@ with Index
   QUE_IMCOMEANSWR01 = NRec (unique, surrogate, journal)
  ,QUE_IMCOMEANSWR02 = cQUE_INCOME
 );
+
+Create Table QUE_Handler_tune "Настройки обработчика очереди"
+  With Table_CODE = 13574
+  With Replace
+  With TableOptions Branched
+(
+  Nrec              : comp   "Номер записи"
+, interface_name    : string "Интерфейс обработки сообщения от системы"
+, name              : string "Наименование настройки"
+, cQUE_Handler_tune : comp   "ссылка на запись-родитель"
+, valuestring       : array[1..10] of string "значения-string"
+, valuedouble       : array[1..10] of double "значения-double"
+, valuecomp         : array[1..10] of comp   "значения-comp"
+, valueword         : array[1..10] of word   "значения-word"
+, valuetime         : array[1..10] of time   "значения-time"
+, valuedate         : array[1..10] of date   "значения-date"
+, valuememo         : lVar   "значение-мемо"
+)
+with Index
+(
+  QUE_Handler_tune01 = NRec (unique, surrogate, journal)
+ ,QUE_Handler_tune02 = interface_name
+ ,QUE_Handler_tune03 = cQUE_Handler_tune
+)
+;
+
+
 Create Table QUE_SenderSystem "Системы-отправитель сообщений очереди"
   With Table_CODE = 13572
   With Replace
@@ -48,6 +75,7 @@ Create Table QUE_SenderSystem "Системы-отправитель сообщений очереди"
 , name           : string "Наименование системы"
 , description    : string "описание системы"
 , interface_name : string "Интерфейс обработки сообщения от системы"
+, cQUE_Handler_tune    : ref(QUE_Handler_tune) "Настройки обработчика очереди"
 )
 with Index
 (
@@ -55,6 +83,7 @@ with Index
  ,QUE_IMCOMESENDSYS02 = code (unique)
 )
 ;
+
 /*
 Create Table QUE_Locator "Локатор записей таблиц"
   With Table_CODE = 13573

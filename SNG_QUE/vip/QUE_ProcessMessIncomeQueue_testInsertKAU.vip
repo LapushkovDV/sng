@@ -85,13 +85,19 @@ with index(
 
 create view
 var _logQUE_OUT : string = '';
+    _cQUE_Handler_tune : comp;
 from
    KatKau
  , SpKau
+ , QUE_Handler_tune Handler_tune
 
  , tKatKau
  , tSpKau
  , tSpKau tSpKau_loop
+
+where ((
+        _cQUE_Handler_tune == Handler_tune.nrec
+      ))
 ;
 
 Function GenerateNewFile: string; {
@@ -209,7 +215,7 @@ function SynchKATKAU(var _answer : string) : boolean; {
  result := true;
 }
 
-function ProcessMessage(_message:TpTr; var _answerLong : tptr; var _answer : string) : boolean; {
+function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLong : tptr; var _answer : string) : boolean; {
  result := false;
  delete all tKatKau;
  delete all tSpKau;
@@ -305,4 +311,12 @@ function ProcessMessage(_message:TpTr; var _answerLong : tptr; var _answer : str
 function GetDescription : string; {
   result := 'Test. Пример реализации обработки сообщения. Генерирует пользоват. аналитику и ее значения из сообщения'
 }
+procedure Setup(__cQUE_Handler_tune : comp);{
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune = tsOK {
+    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
+  }
+  message('Настроек не предусмотрено',error);
+}
+
 end.

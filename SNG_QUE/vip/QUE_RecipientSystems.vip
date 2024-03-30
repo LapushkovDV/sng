@@ -54,13 +54,15 @@ from
    QUE_RecipientSystem ReciptSystem
  , QUE_QRY_RECIPT QRY_RECIPT
  , QRY_INSTANCE QRY_INST
- where ((                 root == ReciptSystem.nrec
-         and ReciptSystem.nrec == QRY_RECIPT.cQUE_RecipientSystem
-  and QRY_RECIPT.cQRY_Instance == QRY_INST.nrec
+ , QUE_Handler_tune Handler_tune
+ where ((                       root == ReciptSystem.nrec
+               and ReciptSystem.nrec == QRY_RECIPT.cQUE_RecipientSystem
+        and QRY_RECIPT.cQRY_Instance == QRY_INST.nrec
+  and ReciptSystem.cQUE_Handler_tune == Handler_tune.nrec
        ))
 ;
 
-Window wnReciptSystem_Edit 'Редактирование экземпляра запроса' ;
+Window wnReciptSystem_Edit 'Системы-получатели сообщений очереди';
   Show at (,,,);
   //---------------------------------------------
     Screen ScrReciptSystem_Edit (,,Sci178Esc);
@@ -70,12 +72,14 @@ Window wnReciptSystem_Edit 'Редактирование экземпляра запроса' ;
      ReciptSystem.code           : NoProtect, #colorneed(ReciptSystem.code='');
      ReciptSystem.name           : NoProtect, #colorneed(ReciptSystem.name='');
      ReciptSystem.interface_name : Protect, pickbutton, #colorneed(ReciptSystem.interface_name='');
+     Handler_tune.name           : Protect, pickbutton;
     buttons
      cmValue1,[singleLine],,;
 <<
                `Код`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       `Наименование`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 `Интерфейс передачи`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   <.Передать метаданные.>
+`Интерфейс передачи настройка`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 >>
     end;
   //---------------------------------------------
@@ -134,6 +138,14 @@ cmPick:{
         var _name : string = _iQUE_BASE.GetQUE_SENDMESSTOEXTSYS;
         if _name <> '' {
           set ReciptSystem.interface_name := _name;
+          updatetable;
+        }
+      }
+      #Handler_tune.name: {
+        if ReciptSystem.interface_name <> '' {
+          var _iQUE_BASE : QUE_BASE new;
+          var _crec : comp = _iQUE_BASE.GetSetQUE_Handler_tune('SNG_QUE::QUE_SENDMESSTOEXTSYS_'+ReciptSystem.interface_name);
+          if _crec <> 0h then set ReciptSystem.cQUE_Handler_tune := _crec;
           updatetable;
         }
       }

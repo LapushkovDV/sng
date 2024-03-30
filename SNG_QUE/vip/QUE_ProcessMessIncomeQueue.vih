@@ -30,7 +30,17 @@ objinterface oQUE_ProcessMessIncomeQueue;
    _answer     - ссылка на длинную строку-ответ. возвращаемый параметр
    _retMessage - текстовое описание ответа
 #end
-function ProcessMessage(_message:TpTr; var _answerLong : tptr; var _answer : string) : boolean;
+function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLong : tptr; var _answer : string) : boolean;
+
+#doc
+Настройки интерфейса отправки сообщения во внешнюю систему
+Интерфейс один, а настроек может быть много.
+Настройка выбирается в интерфейсе регистрации систем получателей
+
+__cQUE_Handler_tune - ссылка на QUE_Handler_tune
+#end
+procedure Setup(__cQUE_Handler_tune : comp);
+
 #doc
 Наименование интерфейса
 #end

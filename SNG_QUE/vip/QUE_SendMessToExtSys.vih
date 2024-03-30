@@ -25,13 +25,23 @@ objinterface oQUE_SendMessToExtSys;
     FALSE - неудачно
 
   Параметры
-  _JSON - указатель на JSON объект для передачи
+  _bodyMessage  - указатель длинную строку, в которой содержится тело сообщения
   _InstanceCode - код экземпляра запроса
   _typeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete или coQUE_TypeEvent_Update)
   _retStatus - возвращаемый, текстовое описание статуса (в случае ошибки краткое описание ошибки)
   _retFileLog - возвращаемый, путь на файл лога обработки/ошибки
 #end
-function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean;
+//function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean;
+function SendMessage(_bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; _cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean;
+
+#doc
+Настройки интерфейса отправки сообщения во внешнюю систему
+Интерфейс один, а настроек может быть много.
+Настройка выбирается в интерфейсе регистрации систем получателей
+__cQUE_Handler_tune - ссылка на QUE_Handler_tune
+#end
+procedure Setup(__cQUE_Handler_tune : comp);
+
 #doc
 Наименование интерфейса
 #end
