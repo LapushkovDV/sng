@@ -13,6 +13,8 @@
 #include odecl.vih
 #include QRY_ALG_USER.vih
 #include StrFunc.vih
+#include AdrFunc.vih
+
 //#include SpecialPropetiesForG.vih
 //#include CatFunc.vih
 //************************************************************
@@ -101,6 +103,7 @@ var
 //  JSONObj_ArrayOneElement : tptr;
 //  JSONObj_Array : tptr;
   JSONObj : TPtr;
+  iAddressFunc : AddressFunc;
 as select
   tCheckFields_1.FieldNam
 from
@@ -499,8 +502,10 @@ function generateJSONFromtAbstrResultValues : tptr; {
   mylog('end GenerateJSONfromtForExportJSON');
    result := JSONObj;
 }
-Procedure Fill_Tmp_alg_One(_Npp:word; _Key:string; _Prim:string='');
-{  Insert into Tmp_Alg set
+Procedure Fill_Tmp_alg_One(_Key:string; _Prim:string='');
+{
+  var _Npp : word = recordsintable(tnTmp_Alg) + 1;
+  Insert into Tmp_Alg set
       Tmp_Alg.Npp :=_Npp
     , Tmp_Alg.Key :=_Key
     , Tmp_Alg.Prim:=_Prim
@@ -518,7 +523,7 @@ procedure Add_UserInterfaces;
       for (I := 0; I < GetImplementationCount; I := I + 1) {
         var _QRY_ALG_USER : IQRY_ALG_USER;
         if LoadvipRef(_QRY_ALG_USER, GetImplementationName(I)) {
-          Fill_Tmp_alg_One(recordsintable(tnTmp_Alg)+1,'%USER_INTERFACE('+replace(GetImplementationName(I), 'SNG_QRY::QRY_ALG_USER_', '')+',''%VALUE%'')%',_QRY_ALG_USER.GetDescription);
+          Fill_Tmp_alg_One('%USER_INTERFACE('+replace(GetImplementationName(I), 'SNG_QRY::QRY_ALG_USER_', '')+',''%VALUE%'')%',_QRY_ALG_USER.GetDescription);
           FreeVipInterface(_QRY_ALG_USER);
         }
         NextVisual;
@@ -542,21 +547,46 @@ Function Fill_Tmp_alg : boolean;
   if (getfirst Tmp_Alg)=tsok
      Exit;
 //   Fill_Tmp_alg_One(00,'USERNAME','Имя текущего пользователя');
-   Fill_Tmp_alg_One(01,'%DECLENSION(%VALUE%,NCASE)%','Склонение ФИО ,%VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
-   Fill_Tmp_alg_One(02,'%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр. %VALUE% = CATALOGS.NREC ');
-   Fill_Tmp_alg_One(03,'%DIVSTR(%VALUE%)%','Из указанной строки выделяется первое слово, в том числе и с дефисами. %VALUE% = ФИО');
-   Fill_Tmp_alg_One(04,'%GET_LASTNAME(%VALUE%)%','Извлечение фамилии из заданной строки ФИО. %VALUE% = ФИО');
-   Fill_Tmp_alg_One(05,'%GET_FIRSTNAME(%VALUE%)%','Извлечение имени из заданной строки ФИО. %VALUE% = ФИО');
-   Fill_Tmp_alg_One(06,'%GETPATRONYMIC(%VALUE%)%','Извлечение отчества из заданной строки ФИО. %VALUE% = ФИО');
-   Fill_Tmp_alg_One(07,'%GETFIOIN(%VALUE%)%','ФИО в формате "Фамилия И.О.". %VALUE% = ФИО');
-   Fill_Tmp_alg_One(08,'%GETFIO_ZAR(%VALUE%)%','ФИО в формате, заданном настройкой "Настройки Галактики \ Управление персоналом \ Расчеты с персоналом \ Отчеты \ Вывод ФИО". %VALUE% = ФИО');
-   Fill_Tmp_alg_One(09,'%GETRUB(%VALUE%,okrug1)%','Выделяет рубли из суммы = %VALUE%, okrug1 - количество знаков после запятой');
-   Fill_Tmp_alg_One(10,'%GETKOP(%VALUE%, okrug1)%','Выделяет копейки из суммы = %VALUE% и округляет с указанной точностью');
-   Fill_Tmp_alg_One(11,'%GETSUMRATE(%VALUE%,okrug1)%','Округляет сумму=%VALUE% с указанной точностью и преобразует в строку');
-   Fill_Tmp_alg_One(12,'%GETFIODIR%','ФИО из настройки "Право подписи приказов по персоналу" или из настройки "Руководитель"');
-   Fill_Tmp_alg_One(13,'%EXTERNALPARAMETER%','Возвращает входной внешний параметр ()');
-
-
+   Fill_Tmp_alg_One('%DECLENSION(%VALUE%,NCASE)%','Склонение ФИО ,%VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
+   Fill_Tmp_alg_One('%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр. %VALUE% = CATALOGS.NREC ');
+   Fill_Tmp_alg_One('%DIVSTR(%VALUE%)%','Из указанной строки выделяется первое слово, в том числе и с дефисами. %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GET_LASTNAME(%VALUE%)%','Извлечение фамилии из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GET_FIRSTNAME(%VALUE%)%','Извлечение имени из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GETPATRONYMIC(%VALUE%)%','Извлечение отчества из заданной строки ФИО. %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GETFIOIN(%VALUE%)%','ФИО в формате "Фамилия И.О.". %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GETFIO_ZAR(%VALUE%)%','ФИО в формате, заданном настройкой "Настройки Галактики \ Управление персоналом \ Расчеты с персоналом \ Отчеты \ Вывод ФИО". %VALUE% = ФИО');
+   Fill_Tmp_alg_One('%GETRUB(%VALUE%,okrug1)%','Выделяет рубли из суммы = %VALUE%, okrug1 - количество знаков после запятой');
+   Fill_Tmp_alg_One('%GETKOP(%VALUE%, okrug1)%','Выделяет копейки из суммы = %VALUE% и округляет с указанной точностью');
+   Fill_Tmp_alg_One('%GETSUMRATE(%VALUE%,okrug1)%','Округляет сумму=%VALUE% с указанной точностью и преобразует в строку');
+   Fill_Tmp_alg_One('%GETFIODIR%','ФИО из настройки "Право подписи приказов по персоналу" или из настройки "Руководитель"');
+   Fill_Tmp_alg_One('%EXTERNALPARAMETER%','Возвращает входной внешний параметр ()');
+   Fill_Tmp_alg_One('%GetStreetStr(%VALUE%)%','Выделяет улицу из строки GetStreetStr(str : string) : string;');
+   Fill_Tmp_alg_One('%GetHouseStr(%VALUE%)%','Выделяет дом из строки GetHouseStr(str : string) : string;');
+   Fill_Tmp_alg_One('%GetCorpStr(%VALUE%)%','Выделяет корпус из строки GetCorpStr(str : string) : string;)');
+   Fill_Tmp_alg_One('%GetFlatStr(%VALUE%)%','Выделяет квартиру из строки GetFlatStr(str : string) : string;');
+   Fill_Tmp_alg_One('%GetStreetName(%VALUE%)%','Возвращает название улицы GetStreetName(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetHouse(%VALUE%)%','Возвращает номер дома GetHouse(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetCorpus(%VALUE%)%','Возвращает номер корпуса GetCorpus(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetFlat(%VALUE%)%','Возвращает номер квартиры GetFlat(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetATDName(%VALUE%)%','Возвращает название текущего элемента АТД по NRec адреса GetATDName(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetFullTerrName(%VALUE%)%','Формирование полного названия адм.-терр. деления GetFullTerrName(NRecTerrName : comp) : string;');
+   Fill_Tmp_alg_One('%GetCountryName(%VALUE%)%','Функция возвращает название страны с адресом NRecAddressN GetCountryName(NRecAddressN : comp) : string;');
+   Fill_Tmp_alg_One('%GetCountryCode(%VALUE%)%','Функция возвращает код страны с адресом NRecAddressN GetCountryCode(NRecAddressN : comp) : string;');
+   Fill_Tmp_alg_One('%GetCountryNameATD(%VALUE%)%','Функция возвращает название страны  для элемента ATD с NRecATD GetCountryNameATD(NRecATD : comp) : string;');
+   Fill_Tmp_alg_One('%GetCountryCodeATD(%VALUE%)%','Функция возвращает код страны для элемента ATD с NRecATD GetCountryCodeATD(NRecATD : comp) : string;');
+   Fill_Tmp_alg_One('%GetFullAddress(%VALUE%)%','Формирование полного адреса GetFullAddress(NRecAddressN : comp) : string;');
+   Fill_Tmp_alg_One('%GetFullAddressInd(%VALUE%)%','Формирование полного адреса с индексом GetFullAddressInd(NRecAddressN : comp) : string;');
+   Fill_Tmp_alg_One('%GetAddressInd(%VALUE%)%','Возвращает индекс адреса GetAddressInd(NRecAddressN : comp) : string;');
+   Fill_Tmp_alg_One('%GetDateBeg(%VALUE%)%','Возвращает дату начала действия этого адреса GetDateBeg(NRecAddressN : comp) : Date;');
+   Fill_Tmp_alg_One('%GetDateEnd(%VALUE%)%','Возвращает дату окончания действия этого адреса GetDateEnd(NRecAddressN : comp) : Date;');
+   Fill_Tmp_alg_One('%GetAddressRegistr(%VALUE%)%','Возвращает адрес временной регистрации GetAddressRegistr(NRecPersons : comp) : comp;');
+   Fill_Tmp_alg_One('%GetStreet(%VALUE%)%','Возвращает строку: улица, дом, квартира GetStreet(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetNRecSity(%VALUE%)%','Возвращает NRec населенного пункта по адресу GetNRecSity(NRecAddress : comp) : comp;');
+   Fill_Tmp_alg_One('%GetNameRegion(%VALUE%)%','Возвращает название региона GetNameRegion(NRecATD : comp) : string;');
+   Fill_Tmp_alg_One('%GetCodeRegion(%VALUE%)%','Возвращает код региона GetCodeRegion(NRecATD : comp) : string;');
+   Fill_Tmp_alg_One('%GetNamePlace_City(%VALUE%)%','Возвращает название населенного пункта или города GetNamePlace_City(NRecATD : comp) : string;');
+   Fill_Tmp_alg_One('%GetPostZipGni(%VALUE%)%','Возвращает почтовый индекс из базы ГНИ для адреса NRecAddress GetPostZipGni(NRecAddress : comp) : string;');
+   Fill_Tmp_alg_One('%GetStreetNRec(%VALUE%)%','Возвращает NRec АТД по NRec адреса GetStreetNRec(NRecAddress : comp) : comp;');
    Add_UserInterfaces;
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
 
@@ -619,11 +649,11 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 {
   Fill_Tmp_alg;
 //  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
-  Formula := replace(UPCASE(Formula),UPCASE('%value%'),_value);
+  Formula := replace(Formula,'%VALUE%',_value);
 
 
-  result:=UpCase(Formula);
-//  mylog('ReplaceByValues Formula = ' + Formula);
+  Result := Formula;
+  mylog('ReplaceByValues Formula = ' + Formula);
 //   mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
   _Loop Tmp_Alg ordered by Index Tmp_Alg02
   {
@@ -639,13 +669,13 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 //if timelog_Status>2 then timelog('_Key='+_Key+'; _SubKey='+_SubKey);
       do {
         var ii_first,_Len:word;
-        ii_first:=pos(_Key,Result);
+        ii_first:=pos(_Key,upcase(Result));
         var _Parameter:string='';
         _Len:=0;
         if ii_first=0 break;
         //длина подстроки всегда короче на 2 символа
         if _SubKey<>''
-        { _Len:=Pos(_SubKey,Substr(Result,ii_first+Length(_Key),255))-1;
+        { _Len:=Pos(_SubKey,Substr(upcase(Result),ii_first+Length(_Key),255))-1;
           _Parameter:=Substr(Result,ii_first+Length(_Key),_Len);
         }
         else _len:=0;
@@ -654,7 +684,8 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 
         var _Res:string;//результат
         _Res:='';
-        case _Key of
+        mylog('_Key = ' + _Key)
+        case upcase(_Key) of
         //01, %EM_FieldDocbyPers(wtype,Filedname,param)% -  wtype = word,
         // Filedname = string, param - string. Получает значение поля ведомости по типу док-та
         //и наименованию поля: в текущем месяце находится док-нт типа,
@@ -731,6 +762,88 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
          '%EXTERNALPARAMETER%':{
            _res := ''''+_strParameter+'''';
          }
+         upcase('%GetStreetStr('):{ //Выделяет улицу из строки GetStreetStr(str : string) : string;');
+           _res := ''''+iAddressFunc.GetStreetStr(_Parameter)+''''
+         }
+         upcase('%GetHouseStr('):{ //Выделяет дом из строки GetHouseStr(str : string) : string;');
+           _res := ''''+iAddressFunc.GetHouseStr(_Parameter)+''''
+         }
+         upcase('%GetCorpStr('):{ //Выделяет корпус из строки GetCorpStr(str : string) : string;)');
+           _res := ''''+iAddressFunc.GetCorpStr(_Parameter)+''''
+         }
+         upcase('%GetFlatStr('):{ //Выделяет квартиру из строки GetFlatStr(str : string) : string;');
+           _res := ''''+iAddressFunc.GetFlatStr(_Parameter)+''''
+         }
+         upcase('%GetStreetName('):{ //Возвращает название улицы GetStreetName(NRecAddress : comp) : string;');
+           _res := ''''+iAddressFunc.GetStreetName(comp(_Parameter))+''''
+         }
+         upcase('%GetHouse('):{ //Возвращает номер дома GetHouse(NRecAddress : comp) : string;');
+           _res := '''' + iAddressFunc.GetHouse(comp(_Parameter))+''''
+         }
+         upcase('%GetCorpus('):{ //Возвращает номер корпуса GetCorpus(NRecAddress : comp) : string;');
+           _res := '''' + iAddressFunc.GetCorpus(comp(_Parameter))+''''
+         }
+         upcase('%GetFlat('):{ //Возвращает номер квартиры GetFlat(NRecAddress : comp) : string;');
+           _res := '''' +iAddressFunc.GetFlat(comp(_Parameter))+''''
+         }
+         upcase('%GetATDName('):{ //Возвращает название текущего элемента АТД по NRec адреса GetATDName(NRecAddress : comp) : string;');
+           _res := ''''+iAddressFunc.GetATDName(comp(_Parameter))+''''
+         }
+         upcase('%GetFullTerrName('):{ //Формирование полного названия адм.-терр. деления GetFullTerrName(NRecTerrName : comp) : string;');
+           _res := ''''+iAddressFunc.GetFullTerrName(comp(_Parameter))+''''
+         }
+         upcase('%GetCountryName('):{ //Функция возвращает название страны с адресом NRecAddressN GetCountryName(NRecAddressN : comp) : string;');
+           _res := ''''+iAddressFunc.GetCountryName(comp(_Parameter))+''''
+         }
+         upcase('%GetCountryCode('):{ //Функция возвращает код страны с адресом NRecAddressN GetCountryCode(NRecAddressN : comp) : string;');
+           _res := ''''+iAddressFunc.GetCountryCode(comp(_Parameter))+''''
+         }
+         upcase('%GetCountryNameATD('):{ //Функция возвращает название страны  для элемента ATD с NRecATD GetCountryNameATD(NRecATD : comp) : string;');
+           _res := ''''+iAddressFunc.GetCountryNameATD(comp(_Parameter))+''''
+         }
+         upcase('%GetCountryCodeATD('):{ //Функция возвращает код страны для элемента ATD с NRecATD GetCountryCodeATD(NRecATD : comp) : string;');
+           _res := ''''+iAddressFunc.GetCountryCodeATD(comp(_Parameter))+''''
+         }
+         upcase('%GetFullAddress('):{ //Формирование полного адреса GetFullAddress(NRecAddressN : comp) : string;');
+           _res := ''''+iAddressFunc.GetFullAddress(comp(_Parameter))+''''
+         }
+         upcase('%GetFullAddressInd('):{ //Формирование полного адреса с индексом GetFullAddressInd(NRecAddressN : comp) : string;');
+           _res := ''''+ iAddressFunc.GetFullAddressInd(comp(_Parameter))+''''
+         }
+         upcase('%GetAddressInd('):{ //Возвращает индекс адреса GetAddressInd(NRecAddressN : comp) : string;');
+           _res := '''' +iAddressFunc.GetAddressInd(comp(_Parameter)) + ''''
+         }
+         upcase('%GetDateBeg('):{ //Возвращает дату начала действия этого адреса GetDateBeg(NRecAddressN : comp) : Date;');
+           _res := '''' + iAddressFunc.GetDateBeg(comp(_Parameter)) + ''''
+         }
+         upcase('%GetDateEnd('):{ //Возвращает дату окончания действия этого адреса GetDateEnd(NRecAddressN : comp) : Date;');
+           _res := '''' + iAddressFunc.GetDateEnd(comp(_Parameter)) + ''''
+         }
+         upcase('%GetAddressRegistr('):{ //Возвращает адрес временной регистрации GetAddressRegistr(NRecPersons : comp) : comp;');
+           _res := '''' + iAddressFunc.GetAddressRegistr(comp(_Parameter)) + ''''
+         }
+         upcase('%GetStreet('):{ //Возвращает строку: улица, дом, квартира GetStreet(NRecAddress : comp) : string;');
+           _res := '''' + iAddressFunc.GetStreet(comp(_Parameter))  + ''''
+         }
+         upcase('%GetNRecSity('):{ //Возвращает NRec населенного пункта по адресу GetNRecSity(NRecAddress : comp) : comp;');
+           _res := '''' + iAddressFunc.GetNRecSity(comp(_Parameter)) + ''''
+         }
+         upcase('%GetNameRegion('):{ //Возвращает название региона GetNameRegion(NRecATD : comp) : string;');
+           _res := '''' + iAddressFunc.GetNameRegion(comp(_Parameter))  + ''''
+         }
+         upcase('%GetCodeRegion('):{ //Возвращает код региона GetCodeRegion(NRecATD : comp) : string;');
+           _res := '''' + iAddressFunc.GetCodeRegion(comp(_Parameter)) + ''''
+         }
+         upcase('%GetNamePlace_City('):{ //Возвращает название населенного пункта или города GetNamePlace_City(NRecATD : comp) : string;');
+           _res := '''' + iAddressFunc.GetNamePlace_City(comp(_Parameter))+ ''''
+         }
+         upcase('%GetPostZipGni('):{ //Возвращает почтовый индекс из базы ГНИ для адреса NRecAddress GetPostZipGni(NRecAddress : comp) : string;');
+           _res := '''' + iAddressFunc.GetPostZipGni(comp(_Parameter)) + ''''
+         }
+         upcase('%GetStreetNRec('):{ //Возвращает NRec АТД по NRec адреса GetStreetNRec(NRecAddress : comp) : comp;');
+           _res := '''' + iAddressFunc.GetStreetNRec(comp(_Parameter))  + ''''
+         }
+
         '%USER_INTERFACE(':
         {
           var _par2:string;
@@ -767,7 +880,8 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
         //Timelog('Result='+Result);
         //подстрахуемся, если что то пойдет не так
         _stop++;
-        if _stop>0 break;
+        //mylog('result = '+result)
+        if _stop>10 break;
         //Break;
       } while True;
   } //_Loop Tmp_Alg ordered by Imdex Tmp_Alg02

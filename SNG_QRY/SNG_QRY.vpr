@@ -99,7 +99,7 @@
 			<File Name="vip\QRY_OUT.vip" PosX="69" PosY="204" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="35" PosY="51" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="93" PosY="306" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="13" PosY="358" OpenEditor="True" Active="True"/>
 			<File Name="..\SNG_QUE\vip\QUE_BASE.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="47" PosY="144" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="41" PosY="138" OpenEditor="True"/>

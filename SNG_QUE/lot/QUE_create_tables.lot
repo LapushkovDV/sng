@@ -84,7 +84,7 @@ Create Table QUE_RecipientSystem "Системы-получатели сообщений очереди"
 , code              : string "Код системы"
 , name              : string "Наименование системы"
 , interface_name    : string "Интерфейс формирования запроса во внешнюю системы"
-, cQUE_Handler_tune : ref(QUE_Handler_tune) "Настройки обработчика очереди"
+, cQUE_Handler_tune : comp   "Настройки обработчика очереди"
 )
 with Index
 (

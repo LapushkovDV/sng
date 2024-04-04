@@ -35,6 +35,6 @@ add
 alter Table QUE_SenderSystem
 add
 (
- cQUE_Handler_tune    : ref(QUE_Handler_tune) "Настройки обработчика очереди"
+ cQUE_Handler_tune    : comp "Настройки обработчика очереди"
 )
 ;
