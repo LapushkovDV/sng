@@ -797,7 +797,7 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
                                                 , _FilePath // sFileName : String,
                                                 , cpUTF8 // Encoding  : LongInt
                                                  ) ;
-  // deletefile(_FilePath);
+  deletefile(_FilePath);
   if (_longValue = 0) {
        #updatelogSetStatusQueue('Ошибка загрузки файла с диска после экспорта из мемо-поля')
        exit;

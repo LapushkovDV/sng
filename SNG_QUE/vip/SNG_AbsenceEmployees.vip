@@ -84,7 +84,7 @@ procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _
 
   var iQUE_BASE : QUE_BASE;
 
-  var _codeReciptSystem : string = 'test';
+  var _codeReciptSystem : string = 'SHINA_ABSENCE';
   iQUE_BASE.InsertMessageDirectToQueue(_longstr, _codeReciptSystem, _TypeEvent);
 }
 

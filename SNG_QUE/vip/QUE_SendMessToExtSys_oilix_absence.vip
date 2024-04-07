@@ -18,7 +18,7 @@ vipinterface QUE_SendMessToExtSys_oilix_absence implements oQUE_SendMessToExtSys
   Licensed(free);
 
 
-Interface QUE_SendMessToExtSys_oilixnet;
+Interface QUE_SendMessToExtSys_oilix_absence;
 
 create view
 var _cQUE_Handler_tune : comp;
@@ -30,8 +30,13 @@ where ((
 ;
 
 function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
+
  result := false;
+ var iQUE_BASE : QUE_BASE new;
+
  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+
+
  if getfirst Handler_tune <> tsOK {
     _retFileLog := '';
     _retStatus  := 'Не найдена настройка QUE_Handler_tune.nrec=' + string(__cQUE_Handler_tune);
@@ -49,12 +54,18 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
     exit;
  }
 
- var iQUE_BASE : QUE_BASE new;
  var URL : string = Handler_tune.VALUESTRING[1];
  var httpCon: TPtr = HttpConnect_CreateEx(Handler_tune.VALUESTRING[1], '', '', True);
  var JSONObj_Array : tptr = HttpConnect_JsonArrayCreate(httpCon);
  var _JSON : tptr;
  var _JSON_from_message : tptr;
+
+  if Handler_tune.VALUEWORD[1] = 1 {
+     var _jsonFile : string = iQUE_BASE.GenerateNewFile +'_bodyMessage.json' ;
+     HttpConnect_SaveToFileEx(httpCon, _bodyMessage, _jsonFile, cpUTF8, false);
+   }
+
+
 
     case _typeEvent of
      coQUE_TypeEvent_Insert
@@ -73,6 +84,11 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
          HttpConnect_JsonObjectAddString(httpCon, _JSON, 'stamp', datetostr(cur_date,'YYYY-MM-DD')+'T'+timetostr(cur_time,'HH:MM:SS'));
          HttpConnect_JsonObjectAddObject(httpCon, _JSON, 'entity', _JSON_from_message);
          HttpConnect_JsonArrayAddObject(httpCon, JSONObj_Array, _JSON);
+         if Handler_tune.VALUEWORD[1] = 1 {
+           var _jsonFile : string = iQUE_BASE.GenerateNewFile +'__JSON_bodymess.json' ;
+           var _JSON_str : tptr = HttpConnect_JSONObjectToJSON(httpCon, _JSON);
+           HttpConnect_SaveToFileEx(httpCon, _JSON_str, _jsonFile, cpUTF8, false);
+         }
      }
      coQUE_TypeEvent_Delete : {
        HttpConnect_JsonArrayAddString(httpCon, JSONObj_Array, 'net.oilix.udsm.db.DeleteEntity');
@@ -87,9 +103,9 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
 
 
   if Handler_tune.VALUEWORD[1] = 1 {
-   var _jsonFile : string = iQUE_BASE.GenerateNewFile;
-   HttpConnect_JSONObjectToJSON(httpCon, JSONObj_Array);
-   HttpConnect_SaveToFileEx(httpCon, JSONObj_Array, _jsonFile, cpUTF8, false);
+   var _jsonFile : string = iQUE_BASE.GenerateNewFile+'.json';
+   var _JSON_str : tptr = HttpConnect_JSONObjectToJSON(httpCon, JSONObj_Array);
+   HttpConnect_SaveToFileEx(httpCon, _JSON_str, _jsonFile, cpUTF8, false);
    _retStatus  := 'ТЕСТ. Сформированный файл в ответе';
    _retFileLog := _jsonFile;
    result := true;
@@ -193,12 +209,15 @@ Window winOilixAbsenceTune 'Настройки интерфейса передачи отсутствия в oilix';
 
     Table Handler_tune;
     Fields
+     Handler_tune.NAME           : NoProtect, {Font={BackColor=if(trim(Handler_tune.name) = '',ColorNeed,0)}};
      Handler_tune.VALUESTRING[1] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[1]) = '',ColorNeed,0)}};
      Handler_tune.VALUESTRING[2] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[2]) = '',ColorNeed,0)}};
      Handler_tune.VALUEWORD[1]   : NoProtect;
     buttons
      cmValue1,[singleLine],,;
 <<
+`Наименование настройки`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
       `URL`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например http://192.168.240.30:52045)
 `END-POINT`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например /ipc/request)
 
@@ -206,6 +225,12 @@ Window winOilixAbsenceTune 'Настройки интерфейса передачи отсутствия в oilix';
                              <.Сохранить и закрыть.>
 >>
     end;
+end;
+windowevent winOilixAbsenceTune;
+cmValue1 : {
+  update current Handler_tune;
+  closewindow(winOilixAbsenceTune);
+}
 end;
 
 procedure Setup(__cQUE_Handler_tune : comp); {
@@ -216,12 +241,8 @@ procedure Setup(__cQUE_Handler_tune : comp); {
 }
 
 handleevent
-cmValue1 : {
-  updatetable;
-  closewindow(winOilixAbsenceTune);
-}
 cmCheckField : {
-  updatetable;
+  update current Handler_tune;
 }
 end;
 end.
