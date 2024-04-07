@@ -1,0 +1,267 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+JSON insert update
+[
+ "net.oilix.udsm.db.UpdateEntity",
+ {
+ "requestId" : "27aadd841dc54e1f909b1fc6d6424eaa",
+ "stamp" : "2024-03-01T13:24:19",
+ "entity":
+ [
+ "net.oilix.udsm.galaktika.Absence",
+ {
+ "id":"GAL_1235",
+ "tn": "33",
+ "from": "2024-03-01",
+ "till": "2024-03-05",
+ "reason": 8
+ }
+ ]
+ }
+]
+
+JSON delete
+[
+ "net.oilix.udsm.db.DeleteEntity",
+ {
+ "requestId" : "BF7262...D4",
+ "stamp" : "2024-03-01T13:24:19",
+ "entityType" : "net.oilix.udsm.galaktika.Absence",
+ "entityId" : "GLO_1234"
+ }
+]
+*/
+#include SNG_AbsenceEmployees.vih
+#include QUE_BASE.vih
+
+//************************************************************
+Interface SNG_AbsenceEmployees;
+
+create view
+var _crec : comp;
+from
+    UOWRKTABEL
+  , lstab
+  , LSCHET
+  , KlVidPos
+  , klotpusk
+;
+procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _obozn : string; _dBeg : date; _dEnd : date); {
+
+ var m_service     : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', True);
+// var JSONObj       : tptr = HttpConnect_JsonObjectCreate(m_service);
+ var JSONObj_Array : tptr = HttpConnect_JsonArrayCreate(m_service);
+ var JSONObj_ArrayOneElement : tptr = HttpConnect_JsonObjectCreate(m_service);
+ var _longstr : tptr = HttpConnect_CreateLongString(m_service);
+
+  case _typeEvent of
+     coQUE_TypeEvent_Insert
+   , coQUE_TypeEvent_Update : {
+              HttpConnect_JsonArrayAddString(m_service, JSONObj_Array, 'net.oilix.udsm.galaktika.Absence');
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'id', _ID_event);
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'tn', string(_TN));
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'from', datetostr(_dBeg,'YYYY-MM-DD'));
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'till', datetostr(_dEnd,'YYYY-MM-DD'));
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'reason', _obozn);
+              HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
+              //HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'entity', JSONObj_Array);
+             //_longstr := HttpConnect_JSONObjectToString(m_service, JSONObj);
+             _longstr := HttpConnect_JSONObjectToJSON(m_service, JSONObj_Array);
+           }
+     coQUE_TypeEvent_Delete : {
+       HttpConnect_AddValueToLongString (m_service,_ID_event,_longstr)
+     }
+  end;
+
+  var iQUE_BASE : QUE_BASE;
+
+  var _codeReciptSystem : string = 'test';
+  iQUE_BASE.InsertMessageDirectToQueue(_longstr, _codeReciptSystem, _TypeEvent);
+}
+
+procedure Variance_GenJSON_ToQueue(_tVariance : RecVariance; _typeEvent : string); {
+  var _ID_event : string  = string(coVariance)+string(_tVariance.nrec);
+  var _TN       : longint = 0;
+  var _obozn    : string  = '';
+  var _dBeg     : date    = to_date(0,0,0);
+  var _dEnd     : date    = to_date(0,0,0);
+
+  case _typeEvent of
+     coQUE_TypeEvent_Insert
+   , coQUE_TypeEvent_Update : {
+      if _tVariance.BEGINNING = 0 or _tVariance.ENDING = 0 or _tVariance.CUO = 0h then exit;
+        if getfirst fastfirstrow UOWRKTABEL where ((_tVariance.CUO == UOWRKTABEL.nrec)) <> tsOK then exit;
+        if getfirst fastfirstrow lstab where ((_tVariance.CLSTAB == lstab.nrec)) <> tsOK then exit;
+        if getfirst fastfirstrow LSCHET where ((_tVariance.CLSCHET == LSCHET.nrec)) <> tsOK then exit;
+        _TN       := LSCHET.TABN;
+        _obozn    := UOWRKTABEL.NUM;
+        _dBeg     := to_date(_tVariance.BEGINNING, lstab.MESN, lstab.YEARN);
+        _dEnd     := to_date(_tVariance.ENDING, lstab.MESN, lstab.YEARN);
+    }
+  end;
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+}
+
+procedure FactOtpusk_GenJSON_ToQueue(_tFactOtpusk : RecFactOtpusk; _typeEvent : string); {
+  var _ID_event : string  = string(coFactOtpusk)+string(_tFactOtpusk.nrec);
+  var _TN       : longint = 0;
+  var _obozn    : string  = '';
+  var _dBeg     : date    = to_date(0,0,0);
+  var _dEnd     : date    = to_date(0,0,0);
+
+  case _typeEvent of
+     coQUE_TypeEvent_Insert
+   , coQUE_TypeEvent_Update : {
+       if _tFactOtpusk.FACTYEARBEG = to_date(0,0,0) or _tFactOtpusk.FACTYEAREND = to_date(0,0,0) then exit;
+       if getfirst fastfirstrow LSCHET where ((_tFactOtpusk.CLSCH == LSCHET.nrec)) <> tsOK then exit;
+       if getfirst fastfirstrow klotpusk where ((_tFactOtpusk.VACTYPE == klotpusk.KOTPUS)) <> tsOK then exit;
+
+        _dBeg  := _tFactOtpusk.FACTYEARBEG;
+        _dEnd  := _tFactOtpusk.FACTYEAREND;
+        _TN    := LSCHET.TABN;
+        _obozn := klotpusk.DAYS;
+   }
+   end;
+
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+}
+
+procedure Blisnet_GenJSON_ToQueue(_tBlisnet : RecBlisnet; _typeEvent : string); {
+
+  var _ID_event : string  = string(coBlisnet)+string(_tBlisnet.nrec);
+  var _TN       : longint = 0;
+  var _obozn    : string  = '';
+  var _dBeg     : date    = to_date(0,0,0);
+  var _dEnd     : date    = to_date(0,0,0);
+
+
+    case _typeEvent of
+     coQUE_TypeEvent_Insert
+   , coQUE_TypeEvent_Update : {
+       if _tBlisnet.DATAN = to_date(0,0,0) or _tBlisnet.DATOK = to_date(0,0,0) then exit;
+
+      _TN       := _tBlisnet.TABN;
+      _dBeg     := _tBlisnet.DATAN;
+      _dEnd     := _tBlisnet.DATOK;
+      if getfirst fastfirstrow KlVidPos where ((_tBlisnet.VIDPOS == KLVIDPOS.VIDPOS)) <> tsOK then exit;
+       _obozn := KLVIDPOS.DAYS;
+      if getfirst fastfirstrow UOWRKTABEL where ((KlVidPos.NOTATIONVP == UOWRKTABEL.nRec)) = tsOK {
+       _obozn    := UOWRKTABEL.NUM;
+      }
+    }
+    end;
+
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+}
+end.
+
+//triggers(variance)
+handler Absence_variance_tgrInsert on trigger variance After insert [99]
+Action
+{
+ var buf : record as table variance;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.variance_GenJSON_ToQueue(buf,coQUE_TypeEvent_Insert);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_variance_tgrUpdate on trigger variance After update [99]
+Action
+{
+ var buf : record as table variance;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.variance_GenJSON_ToQueue(buf, coQUE_TypeEvent_Update);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_variance_tgrDelete on trigger variance After delete [99]
+Action
+{
+ var buf : record as table variance;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.variance_GenJSON_ToQueue(buf,coQUE_TypeEvent_Delete);
+ Result := true;
+}
+Rollback{}
+
+//triggers(FactOtpusk)
+handler Absence_FactOtpusk_tgrInsert on trigger FactOtpusk After insert [99]
+Action
+{
+ var buf : record as table FactOtpusk;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.FactOtpusk_GenJSON_ToQueue(buf,coQUE_TypeEvent_Insert);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_FactOtpusk_tgrUpdate on trigger FactOtpusk After update [99]
+Action
+{
+ var buf : record as table FactOtpusk;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.FactOtpusk_GenJSON_ToQueue(buf, coQUE_TypeEvent_Update);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_FactOtpusk_tgrDelete on trigger FactOtpusk After delete [99]
+Action
+{
+ var buf : record as table FactOtpusk;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.FactOtpusk_GenJSON_ToQueue(buf,coQUE_TypeEvent_Delete);
+ Result := true;
+}
+Rollback{}
+
+//triggers(Blisnet)
+handler Absence_Blisnet_tgrInsert on trigger Blisnet After insert [99]
+Action
+{
+ var buf : record as table Blisnet;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.Blisnet_GenJSON_ToQueue(buf,coQUE_TypeEvent_Insert);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_Blisnet_tgrUpdate on trigger Blisnet After update [99]
+Action
+{
+ var buf : record as table Blisnet;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.Blisnet_GenJSON_ToQueue(buf, coQUE_TypeEvent_Update);
+ Result := true;
+}
+Rollback{}
+
+handler Absence_Blisnet_tgrDelete on trigger Blisnet After delete [99]
+Action
+{
+ var buf : record as table Blisnet;
+ GetTableBuffer(buf);
+ var iSNG_AbsenceEmployees : SNG_AbsenceEmployees;
+ iSNG_AbsenceEmployees.Blisnet_GenJSON_ToQueue(buf,coQUE_TypeEvent_Delete);
+ Result := true;
+}
+Rollback{}

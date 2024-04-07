@@ -43,3 +43,6 @@ LicenseControlInclude=""
 
 #make "vip\QUE_INCOME_TEST.vip"
 #make "vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip"
+
+#make "vip\SNG_AbsenceEmployees.vip"
+#make "vip\QUE_SendMessToExtSys_oilix_absence.vip"

@@ -1,0 +1,227 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QUE_SendMessToExtSys.vih
+#include QUE_BASE.vih
+
+//************************************************************
+
+vipinterface QUE_SendMessToExtSys_oilix_absence implements oQUE_SendMessToExtSys
+  Licensed(free);
+
+
+Interface QUE_SendMessToExtSys_oilixnet;
+
+create view
+var _cQUE_Handler_tune : comp;
+from
+  QUE_Handler_tune Handler_tune
+where ((
+       _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+
+function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
+ result := false;
+ set _cQUE_Handler_tune := __cQUE_Handler_tune;
+ if getfirst Handler_tune <> tsOK {
+    _retFileLog := '';
+    _retStatus  := 'Не найдена настройка QUE_Handler_tune.nrec=' + string(__cQUE_Handler_tune);
+    exit;
+ }
+ if trim(Handler_tune.VALUESTRING[1]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан URL';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[2]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан END-POINT';
+    exit;
+ }
+
+ var iQUE_BASE : QUE_BASE new;
+ var URL : string = Handler_tune.VALUESTRING[1];
+ var httpCon: TPtr = HttpConnect_CreateEx(Handler_tune.VALUESTRING[1], '', '', True);
+ var JSONObj_Array : tptr = HttpConnect_JsonArrayCreate(httpCon);
+ var _JSON : tptr;
+ var _JSON_from_message : tptr;
+
+    case _typeEvent of
+     coQUE_TypeEvent_Insert
+   , coQUE_TypeEvent_Update : {
+
+        _JSON_from_message := HttpConnect_JSONObjectByLongString(httpCon, _bodyMessage);
+         if _JSON_from_message = 0 {
+            _retStatus := 'не смогли преобразовать сообщение в JSON';
+            HttpConnect_Free(httpCon);
+            exit;
+           }
+
+         HttpConnect_JsonArrayAddString(httpCon, JSONObj_Array, 'net.oilix.udsm.db.UpdateEntity');
+         _JSON := HttpConnect_JsonObjectCreate(httpCon);
+         HttpConnect_JsonObjectAddString(httpCon, _JSON, 'requestId', string(_cQueue));
+         HttpConnect_JsonObjectAddString(httpCon, _JSON, 'stamp', datetostr(cur_date,'YYYY-MM-DD')+'T'+timetostr(cur_time,'HH:MM:SS'));
+         HttpConnect_JsonObjectAddObject(httpCon, _JSON, 'entity', _JSON_from_message);
+         HttpConnect_JsonArrayAddObject(httpCon, JSONObj_Array, _JSON);
+     }
+     coQUE_TypeEvent_Delete : {
+       HttpConnect_JsonArrayAddString(httpCon, JSONObj_Array, 'net.oilix.udsm.db.DeleteEntity');
+       _JSON := HttpConnect_JsonObjectCreate(httpCon);
+       HttpConnect_JsonObjectAddString(httpCon, _JSON, 'requestId', string(_cQueue));
+       HttpConnect_JsonObjectAddString(httpCon, _JSON, 'stamp', datetostr(cur_date,'YYYY-MM-DD')+'T'+timetostr(cur_time,'HH:MM:SS'));
+       HttpConnect_JsonObjectAddLongString(httpCon, _JSON, 'entity', _bodyMessage);
+       HttpConnect_JsonArrayAddObject(httpCon, JSONObj_Array, _JSON);
+     }
+   end;
+
+
+
+  if Handler_tune.VALUEWORD[1] = 1 {
+   var _jsonFile : string = iQUE_BASE.GenerateNewFile;
+   HttpConnect_JSONObjectToJSON(httpCon, JSONObj_Array);
+   HttpConnect_SaveToFileEx(httpCon, JSONObj_Array, _jsonFile, cpUTF8, false);
+   _retStatus  := 'ТЕСТ. Сформированный файл в ответе';
+   _retFileLog := _jsonFile;
+   result := true;
+   HttpConnect_Free(httpCon);
+   exit;
+  }
+
+
+
+ HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+ HttpConnect_ResponseLogEnable(httpCon);
+
+ var lHeader: TPtr;
+  lHeader := HttpConnect_CreateLongString(httpCon);
+  HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+/*
+  HttpConnect_AddValueToLongString(httpCon, 'Host: directumrxtst' + chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Username: '+ API_Username+ chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Password: '+ API_Password+ chr(13), lHeader);
+  HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+*/
+
+ // https://oilix.net:52045/ipc/data/check?type=test&action=save
+
+
+ var lbody : TPtr = HttpConnect_JSONObjectToString(httpCon, JSONObj_Array);
+
+ var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+ HttpConnect_AddValueToLongString(httpCon, Handler_tune.VALUESTRING[2], lAddUrl);
+
+ var  isHTTPS : boolean = True;
+ if pos('HTTPS',Handler_tune.VALUESTRING[1]) = 0 then isHTTPS := False;
+ var lToken : longint = 0 ;
+
+// var lResponse : TPtr = HttpConnect_EDISendRequestEx(httpCon, lAddUrl, lToken, lbody, 'GET', isHTTPS, 'Content-Type: application/json',0);
+ var lResponse : tptr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lbody, false);
+
+/* var _file : string = iQUE_BASE.GenerateNewFile;
+ HttpConnect_SaveToFile(httpCon, lResponse, _file+'lResponse.txt', 65001); // cpUTF8 = 65001
+*/
+
+     if (HttpConnect_LastError(httpCon) <> 0)
+      {
+       var _logHttpConnect : string = iQUE_BASE.GenerateNewFile;
+       _logHttpConnect := _logHttpConnect + '_logHttpConnect.log';
+       HttpConnect_ResponseLogToFile(httpCon, _logHttpConnect);
+       _retStatus  := HttpConnect_LastErrorText(httpCon);
+       _retFileLog := _logHttpConnect;
+       HttpConnect_Free(httpCon);
+       Exit;
+      }
+
+  var jObjectResponseArray : TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+
+  //["net.oilix.udsm.common.Reply",{"code":"0","message":"OK"}]
+   var lCount : longint = HttpConnect_JsonCount(httpCon, jObjectResponseArray);
+    if lCount =  0 {
+       _retStatus  := 'в ответе ожидался массив JSON ARRAY';
+       var _lResponseFile : string = iQUE_BASE.GenerateNewFile;
+       HttpConnect_SaveToFileEx(httpCon, lResponse, _lResponseFile, cpUTF8, false);
+       _retStatus  := 'ТЕСТ. Сформированный файл в ответе';
+       _retFileLog := _lResponseFile;
+       exit;
+     }
+
+  var filelResponse : string = iQUE_BASE.GenerateNewFile + 'filelResponse.log';
+  HttpConnect_ResponseLogToFile(httpCon, filelResponse);
+
+  var i_JSONARRAY : longint = 0;
+  for (i_JSONARRAY := 0; i_JSONARRAY <= lCount - 1; i_JSONARRAY++)
+   {
+    var _JSON_Element : TPtr = HttpConnect_JSONObjectByIndexOfArray(httpCon, jObjectResponseArray, i_JSONARRAY);
+    if _JSON_Element <> 0 {
+      var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(httpCon, _JSON_Element, 'message');
+      if _sRESMESSAGE = 'OK' {
+         _retFileLog := filelResponse;
+         _retStatus := _sRESMESSAGE;
+
+        result := true;
+        HttpConnect_Free(httpCon);
+        exit;
+      }
+    }
+   }
+
+  _retFileLog := filelResponse;
+  _retStatus := 'ожидали структуру ["net.oilix.udsm.common.Reply",{"code":"0","message":"OK"}]';
+  HttpConnect_Free(httpCon);
+}
+
+function GetDescription : string; {
+  result := 'Передача отсутствий в шину'
+}
+
+
+Window winOilixAbsenceTune 'Настройки интерфейса передачи отсутствия в oilix';
+  Show at (,,,);
+  //---------------------------------------------
+    Screen ScrOilixAbsenceTune(,,Sci1Esc);
+
+    Table Handler_tune;
+    Fields
+     Handler_tune.VALUESTRING[1] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[1]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[2] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[2]) = '',ColorNeed,0)}};
+     Handler_tune.VALUEWORD[1]   : NoProtect;
+    buttons
+     cmValue1,[singleLine],,;
+<<
+      `URL`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например http://192.168.240.30:52045)
+`END-POINT`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например /ipc/request)
+
+ [.] тестовый режим : сообщение не будет отослано, а запишется в качестве ответа в очередь`
+                             <.Сохранить и закрыть.>
+>>
+    end;
+end;
+
+procedure Setup(__cQUE_Handler_tune : comp); {
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune <> tsOK then exit;
+  runwindowmodal(winOilixAbsenceTune)
+
+}
+
+handleevent
+cmValue1 : {
+  updatetable;
+  closewindow(winOilixAbsenceTune);
+}
+cmCheckField : {
+  updatetable;
+}
+end;
+end.

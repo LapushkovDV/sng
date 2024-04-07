@@ -843,7 +843,8 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
                 exit;
               }
             }
-            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  _longValue // JSON_Object
+            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  QUE_OUT_SNDMSG.nrec
+                                                                  , _longValue // JSON_Object
                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
                                                                   , QUE_OUT_SNDMSG.TypeEvent
                                                                   , _cTuneReciptSystem

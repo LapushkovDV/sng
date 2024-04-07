@@ -25,6 +25,7 @@ objinterface oQUE_SendMessToExtSys;
     FALSE - неудачно
 
   Параметры
+  _cQueue       - nrec QUE_OUT
   _bodyMessage  - указатель длинную строку, в которой содержится тело сообщения
   _InstanceCode - код экземпляра запроса
   _typeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete или coQUE_TypeEvent_Update)
@@ -32,7 +33,7 @@ objinterface oQUE_SendMessToExtSys;
   _retFileLog - возвращаемый, путь на файл лога обработки/ошибки
 #end
 //function SendMessageJSON(_JSON:TpTr; _InstanceCode: string; _typeEvent: string; var _retStatus, _retFileLog : string) : boolean;
-function SendMessage(_bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; _cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean;
+function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean;
 
 #doc
 Настройки интерфейса отправки сообщения во внешнюю систему

@@ -28,8 +28,9 @@ where ((
       ))
 ;
 
-function SendMessage(_bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; _cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
+function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
  result := false;
+ set _cQUE_Handler_tune := __cQUE_Handler_tune;
  var iQUE_BASE : QUE_BASE new;
  var httpCon: TPtr = HttpConnect_CreateEx('https://oilix.net:52045', '', '', True);
 

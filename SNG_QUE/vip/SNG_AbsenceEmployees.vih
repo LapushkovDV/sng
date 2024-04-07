@@ -1,0 +1,41 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#ifnDef _SNG_ABSENCEEMPLOYEES_INCLUDED_
+#define _SNG_ABSENCEEMPLOYEES_INCLUDED_
+type RecVariance   = record as table Variance;
+type RecFactOtpusk = record as table FactOtpusk;
+type RecBlisnet    = record as table Blisnet;
+
+#component "SNG_QUE"
+
+ObjInterface oSNG_AbsenceEmployees;
+public:
+
+#doc
+Сгенерировать и положить в очередь отсутствие по отклонениям в табеле (таблица Variance)
+#end
+procedure Variance_GenJSON_ToQueue(_tVariance : RecVariance; _typeEvent : string);
+
+#doc
+Сгенерировать и положить в очередь отсутствие по отпускам (таблица FaktOtpusk)
+#end
+procedure FactOtpusk_GenJSON_ToQueue(_tFactOtpusk : RecFactOtpusk; _typeEvent : string);
+
+#doc
+Сгенерировать и положить в очередь отсутствие по больничным (таблица Blisnet)
+#end
+procedure Blisnet_GenJSON_ToQueue(_tBlisnet : RecBlisnet; _typeEvent : string);
+
+end;
+
+VipInterface SNG_AbsenceEmployees Implements oSNG_AbsenceEmployees #Licensed_Free;
+
+#end
