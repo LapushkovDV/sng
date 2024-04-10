@@ -19,6 +19,14 @@ Action
 //  TR.SetComponent('P_Test');
   // ------------------------------------------------------------------------
   // Создаём разделы настроек
+  TR.AddPart(ttSYSUSERTUNE,'OilixBusIntegration','SNG','Oilix shina интеграция','');
+  TR.AddTune(     ttUserTune, 'OilixBusIntegrationAbsence_enable', 'OilixBusIntegration', 'Передача отсутствий включена', ftboolean, '0', '', hcNoContext);    // https://dMDMrxtst
+//  TR.AddPartU('dMDMIntegration', 'dMDM', '');
+  // ------------------------------------------------------------------------
+  // Создаём общие настройки для переключения, логина и пароля
+
+  TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_URL', 'dMDMIntegration', 'URL API', ftString, '', '100', hcNoContext);    // https://dMDMrxtst
+
   // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \ dMDM
   TR.AddPart(ttSYSUSERTUNE,'dMDMIntegration','SNG','dMDM интеграция','');
 //  TR.AddPartU('dMDMIntegration', 'dMDM', '');

@@ -50,12 +50,15 @@ create view
 var _crec : comp;
 from
     UOWRKTABEL
+  , UOWRKTABEL UOWRKTABEL_1
   , lstab
   , LSCHET
   , KlVidPos
   , klotpusk
 ;
-procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _obozn : string; _dBeg : date; _dEnd : date); {
+procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _obozn : string; _obozn_id : string; _dBeg : date; _dEnd : date); {
+
+if bogettune('OilixBusIntegrationAbsence_enable') = false then exit;
 
  var m_service     : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', True);
 // var JSONObj       : tptr = HttpConnect_JsonObjectCreate(m_service);
@@ -72,6 +75,7 @@ procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _
               HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'from', datetostr(_dBeg,'YYYY-MM-DD'));
               HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'till', datetostr(_dEnd,'YYYY-MM-DD'));
               HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'reason', _obozn);
+              HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, 'reason_id', _obozn_id);
               HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
               //HttpConnect_JsonObjectAddObject(m_service, JSONObj, 'entity', JSONObj_Array);
              //_longstr := HttpConnect_JSONObjectToString(m_service, JSONObj);
@@ -88,10 +92,18 @@ procedure generateJSON_for_OILIX(_typeEvent, _ID_event : string; _TN: longint; _
   iQUE_BASE.InsertMessageDirectToQueue(_longstr, _codeReciptSystem, _TypeEvent);
 }
 
+function get_UOWRKTABEL_nrec_by_obozn(_obozn : string) : string; {
+  result := _obozn;
+  if getfirst UOWRKTABEL_1 where ((_obozn == UOWRKTABEL_1.num)) = tsOK {
+    result := string(UOWRKTABEL_1.nrec);
+  }
+}
+
 procedure Variance_GenJSON_ToQueue(_tVariance : RecVariance; _typeEvent : string); {
   var _ID_event : string  = string(coVariance)+string(_tVariance.nrec);
   var _TN       : longint = 0;
   var _obozn    : string  = '';
+  var _obozn_id : string  = '';
   var _dBeg     : date    = to_date(0,0,0);
   var _dEnd     : date    = to_date(0,0,0);
 
@@ -104,17 +116,19 @@ procedure Variance_GenJSON_ToQueue(_tVariance : RecVariance; _typeEvent : string
         if getfirst fastfirstrow LSCHET where ((_tVariance.CLSCHET == LSCHET.nrec)) <> tsOK then exit;
         _TN       := LSCHET.TABN;
         _obozn    := UOWRKTABEL.NUM;
+        _obozn_id := string(UOWRKTABEL.nrec);
         _dBeg     := to_date(_tVariance.BEGINNING, lstab.MESN, lstab.YEARN);
         _dEnd     := to_date(_tVariance.ENDING, lstab.MESN, lstab.YEARN);
     }
   end;
-  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _obozn_id, _dBeg, _dEnd);
 }
 
 procedure FactOtpusk_GenJSON_ToQueue(_tFactOtpusk : RecFactOtpusk; _typeEvent : string); {
   var _ID_event : string  = string(coFactOtpusk)+string(_tFactOtpusk.nrec);
   var _TN       : longint = 0;
   var _obozn    : string  = '';
+  var _obozn_id : string  = '';
   var _dBeg     : date    = to_date(0,0,0);
   var _dEnd     : date    = to_date(0,0,0);
 
@@ -125,14 +139,15 @@ procedure FactOtpusk_GenJSON_ToQueue(_tFactOtpusk : RecFactOtpusk; _typeEvent : 
        if getfirst fastfirstrow LSCHET where ((_tFactOtpusk.CLSCH == LSCHET.nrec)) <> tsOK then exit;
        if getfirst fastfirstrow klotpusk where ((_tFactOtpusk.VACTYPE == klotpusk.KOTPUS)) <> tsOK then exit;
 
-        _dBeg  := _tFactOtpusk.FACTYEARBEG;
-        _dEnd  := _tFactOtpusk.FACTYEAREND;
-        _TN    := LSCHET.TABN;
-        _obozn := klotpusk.DAYS;
+        _dBeg     := _tFactOtpusk.FACTYEARBEG;
+        _dEnd     := _tFactOtpusk.FACTYEAREND;
+        _TN       := LSCHET.TABN;
+        _obozn    := klotpusk.DAYS;
+        _obozn_id := get_UOWRKTABEL_nrec_by_obozn(_obozn);
    }
    end;
 
-  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _obozn_id, _dBeg, _dEnd);
 }
 
 procedure Blisnet_GenJSON_ToQueue(_tBlisnet : RecBlisnet; _typeEvent : string); {
@@ -140,6 +155,7 @@ procedure Blisnet_GenJSON_ToQueue(_tBlisnet : RecBlisnet; _typeEvent : string); 
   var _ID_event : string  = string(coBlisnet)+string(_tBlisnet.nrec);
   var _TN       : longint = 0;
   var _obozn    : string  = '';
+  var _obozn_id : string  = '';
   var _dBeg     : date    = to_date(0,0,0);
   var _dEnd     : date    = to_date(0,0,0);
 
@@ -156,11 +172,14 @@ procedure Blisnet_GenJSON_ToQueue(_tBlisnet : RecBlisnet; _typeEvent : string); 
        _obozn := KLVIDPOS.DAYS;
       if getfirst fastfirstrow UOWRKTABEL where ((KlVidPos.NOTATIONVP == UOWRKTABEL.nRec)) = tsOK {
        _obozn    := UOWRKTABEL.NUM;
+       _obozn_id := string(UOWRKTABEL.nrec);
+      } else {
+         _obozn_id := get_UOWRKTABEL_nrec_by_obozn(_obozn);
       }
     }
     end;
 
-  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _dBeg, _dEnd);
+  generateJSON_for_OILIX(_typeEvent, _ID_event, _TN, _obozn, _obozn_id, _dBeg, _dEnd);
 }
 end.
 
