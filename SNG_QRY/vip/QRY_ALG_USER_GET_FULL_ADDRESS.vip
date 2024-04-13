@@ -1,0 +1,90 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_GET_FULL_ADDRESS implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_GET_FULL_ADDRESS;
+
+function getAddress(_nRec: comp): string; forward;
+
+create view
+  var
+    cNrec: comp;
+  as select 
+    AddressN.nRec
+  from
+    AddressN,
+    Sterr,
+    Sterr Parent
+  where ((
+        cNrec == AddressN.nRec
+    and Sterr.cParent == Parent.nRec 
+  ))
+;
+
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = AddressN.nRec
+#end
+Function calc(_Parameter:string):string; {
+  
+  cNrec := comp(_Parameter);
+
+  result := '';
+
+  if (getFirst fastFirstRow AddressN <> tsOk) {
+    exit;
+  }
+  
+  result := getAddress(AddressN.cSterr);
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  Result:='Возвращает полный адрес текстом, разделитель компонентов ";"';
+}
+
+function getAddress(_nRec: comp): string; {
+
+  var sName: string;
+
+  if (getFirst fastfirstrow Sterr where ((_nRec == nRec)) <> tsOk) {
+    result := 'N/A';
+    exit;
+  }
+
+  if (getFirst fastfirstrow Parent <> tsOk) {
+    result := 'N/A';
+    exit;
+  }
+
+  if (Parent.sysCode = 2300) {
+    result := Sterr.sName;
+    exit;
+  } else {
+    sName := Sterr.sName;
+    result := getAddress(Parent.nRec);
+  //  if inStr(result, sCode) = 1 and length(result) <> length(sCode) {
+  //    result := result+';'+substr(sCode, length(result) + 1, length(sCode));
+  //  } else { 
+    result := result+';'+sName;
+  //  }
+  }
+}
+
+end.

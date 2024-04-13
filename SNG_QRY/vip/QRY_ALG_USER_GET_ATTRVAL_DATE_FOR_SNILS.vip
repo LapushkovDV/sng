@@ -1,0 +1,65 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_ALG_USER.vih
+#include QRY_Base.vih
+//************************************************************
+
+vipinterface QRY_ALG_USER_GET_ATTRVAL_DATE_FOR_SNILS implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_GET_ATTRVAL_DATE_FOR_SNILS;
+
+create view
+  var
+  cNrec : comp;
+  oExtAttr : iExtAttr;
+  as select
+    Persons.borndate
+  from
+    Persons
+  , Passports
+  where (( cNrec == Persons.nrec ))
+;
+
+Function calc(_Parameter:string):string; {
+  var _nrec: Comp;
+
+  _nrec := comp(_Parameter);
+
+  if getfirst Passports where (( _nrec == passports.nrec )) = tsOk
+  {
+     cNrec:= passports.person;
+    // message(to_char(cNrec,0,0));
+  }
+
+  if((oExtAttr.dGetAttrID(coPassports, _nRec, 000100000000024Dh)) <> date(0,0,0))
+  {
+    result := string(oExtAttr.dGetAttrID(coPassports, _nRec, 000100000000024Dh));
+  }
+  else
+  {
+  //  message('Persons.borndate=' + Persons.borndate + 'Persons.borndate string = ' + string(Persons.borndate));
+    result := string(Persons.borndate);
+  //  message('result = ' +  result);
+  }
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string;
+{
+  Result:='Получить дату из Attrval.VDATE для документов СНИЛС если значения нет то Persons.Borndate';
+}
+
+
+end.

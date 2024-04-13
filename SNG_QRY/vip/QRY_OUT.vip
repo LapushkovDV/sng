@@ -814,10 +814,10 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
            _res := '''' +iAddressFunc.GetAddressInd(comp(_Parameter)) + ''''
          }
          upcase('%GetDateBeg('):{ //Возвращает дату начала действия этого адреса GetDateBeg(NRecAddressN : comp) : Date;');
-           _res := '''' + iAddressFunc.GetDateBeg(comp(_Parameter)) + ''''
+           _res := '''' + DateToStr(iAddressFunc.GetDateBeg(comp(_Parameter)), 'DD.MM.YYYY') + ''''
          }
          upcase('%GetDateEnd('):{ //Возвращает дату окончания действия этого адреса GetDateEnd(NRecAddressN : comp) : Date;');
-           _res := '''' + iAddressFunc.GetDateEnd(comp(_Parameter)) + ''''
+           _res := '''' + DateToStr(iAddressFunc.GetDateEnd(comp(_Parameter)), 'DD.MM.YYYY') + ''''
          }
          upcase('%GetAddressRegistr('):{ //Возвращает адрес временной регистрации GetAddressRegistr(NRecPersons : comp) : comp;');
            _res := '''' + iAddressFunc.GetAddressRegistr(comp(_Parameter)) + ''''
