@@ -84,14 +84,16 @@ function getsumAlg1(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
                                         and 0 <<= PrNaryad_loop.TABN))
        {
           _npp++;
+          var _KTY : double = doGetAttr(coPRNARYAD, PrNaryad_loop.NREC, 'КТУ премия');
+          //var _KTY : double = PrNaryad_loop.KTY;
           mylog('-----------------');
           mylog('_npp = ' + string(_npp));
           mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
           mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
           mylog('PrNaryad_loop.SUMMA = '+string(PrNaryad_loop.SUMMA));
-          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+          mylog('_KTY = '+string(_KTY));
 
-          var _KTY : double = PrNaryad_loop.KTY;
+
           var _summaSdel : double = PrNaryad_loop.SUMMA;
           var _summaDopl : double = 0;
          _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
@@ -110,12 +112,12 @@ function getsumAlg1(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
               _summaDopl :=_summaDopl + nachisl.summa;
             }
           }
-          var _sumPremBeforeKoef : double = (PrNaryad_loop.SUMMA+_summaDopl)*PrNaryad_loop.KTY;
+          var _sumPremBeforeKoef : double = (PrNaryad_loop.SUMMA+_summaDopl)*_KTY;
           _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
           if prnaryad_cur.nrec = PrNaryad_loop.nrec
              then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
           mylog(' _summaDopl = ' + string(_summaDopl));
-          mylog(' (PrNaryad_loop.SUMMA+_summaDopl)*PrNaryad_loop.KTY = '+ string(_sumPremBeforeKoef));
+          mylog(' (PrNaryad_loop.SUMMA+_summaDopl)*_KTY = '+ string(_sumPremBeforeKoef));
       }
       if _sumPremBeforeKoefTotal <> 0
          then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
@@ -212,12 +214,14 @@ function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
           mylog('_npp = ' + string(_npp));
           mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
           mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
-          mylog('PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY = '+string(PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY));
+          var _KTY : double = doGetAttr(coPRNARYAD, PrNaryad_loop.NREC, 'КТУ премия');
+          //var _KTY : double = PrNaryad_loop.KTY;
+          mylog('PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*_KTY = '+string(PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*_KTY));
 
-          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+          mylog('_KTY = '+string(_KTY));
 
-          var _KTY : double = PrNaryad_loop.KTY;
-          var _summaSdel : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY;
+
+          var _summaSdel : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*_KTY;
           var _summaDopl : double = 0;
          _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
           {
@@ -236,12 +240,12 @@ function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
               _summaDopl :=_summaDopl + nachisl.summa;
             }
           }
-          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY*_koeffRN+_summaDopl;
+          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*_KTY*_koeffRN+_summaDopl;
           _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
           if prnaryad_cur.nrec = PrNaryad_loop.nrec
              then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
           mylog(' _summaDopl = ' + string(_summaDopl));
-          mylog(' PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*PrNaryad_loop.KTY*_koeffRN+_summaDopl= '+ string(_sumPremBeforeKoef));
+          mylog(' PrNaryad_loop.CHASF*PrNaryad_loop.TARIF*_KTY*_koeffRN+_summaDopl= '+ string(_sumPremBeforeKoef));
       }
       if _sumPremBeforeKoefTotal <> 0
          then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
@@ -291,21 +295,23 @@ function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double; {
           }
           mylog('_koeffRN = ' + _koeffRN)
           _npp++;
+          //var _KTY : double = PrNaryad_loop.KTY;
+          var _KTY : double = doGetAttr(coPRNARYAD, PrNaryad_loop.NREC, 'КТУ премия');
           mylog('-----------------');
           mylog('_npp = ' + string(_npp));
           mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
           mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
-          mylog('PrNaryad_loop.KTY  = '+string(PrNaryad_loop.KTY));
+          mylog('_KTY  = '+string(_KTY));
           mylog('PrNaryad_loop.CHASF = '+string(PrNaryad_loop.CHASF));
-          mylog('PrNaryad_loop.CHASF*PrNaryad_loop.KTY = '+string(PrNaryad_loop.CHASF*PrNaryad_loop.KTY));
-          var _KTY : double = PrNaryad_loop.KTY;
-          var _summaSdel : double = PrNaryad_loop.CHASF*PrNaryad_loop.KTY;
+          mylog('PrNaryad_loop.CHASF*_KTY = '+string(PrNaryad_loop.CHASF*_KTY));
 
-          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*PrNaryad_loop.KTY*_koeffRN;
+          var _summaSdel : double = PrNaryad_loop.CHASF*_KTY;
+
+          var _sumPremBeforeKoef : double = PrNaryad_loop.CHASF*_KTY*_koeffRN;
           _sumPremBeforeKoefTotal := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
           if prnaryad_cur.nrec = PrNaryad_loop.nrec
              then _sumPremBeforeKoefCur := _sumPremBeforeKoef;
-          mylog(' PrNaryad_loop.CHASF*PrNaryad_loop.KTY*_koeffRN= '+ string(_sumPremBeforeKoef));
+          mylog(' PrNaryad_loop.CHASF*_KTY*_koeffRN= '+ string(_sumPremBeforeKoef));
       }
       if _sumPremBeforeKoefTotal <> 0
          then _koeff := _sumPremForRaspred/_sumPremBeforeKoefTotal;
@@ -315,8 +321,72 @@ function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double; {
       result := _koeff*_sumPremBeforeKoefCur;
    if _isLogging then PutFileToClient(GetLogFile,false);
   }
+
 function getsumAlg7(_cPrNaryad : comp; _fisLogging : boolean) : double; {
-   result := 0;
+  set _isLogging := _fisLogging;
+  result := 0;
+    if getfirst prnaryad_cur where ((_cPrNaryad == prnaryad_cur.nrec)) <> tsOK then exit;
+
+    if getfirst sys_nar where ((prnaryad_cur.mnrec == sys_nar.nrec)) <> tsOk then exit;
+
+    var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
+    mylog('RUN algorithm1');
+    mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
+    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
+    mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
+    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+
+    var _sumPremBeforeKoefCur       : double = 0;
+    var _sumPremBeforeKoefTotal     : double = 0;
+    var _sumPremBeforeKoefTotal_KTY : double = 0;
+    var _koeff : double = 0;
+    var _npp : word = 0;
+      _loop PrNaryad_loop where ((sys_nar.nrec == PrNaryad_loop.mnrec
+                                        and 0 <<= PrNaryad_loop.TABN))
+       {
+          _npp++;
+          var _KTY : double = doGetAttr(coPRNARYAD, PrNaryad_loop.NREC, 'КТУ премия');
+          //var _KTY : double = PrNaryad_loop.KTY;
+          mylog('-----------------');
+          mylog('_npp = ' + string(_npp));
+          mylog('PrNaryad_loop.nrec  = ' + string(PrNaryad_loop.nrec,0,0));
+          mylog('PrNaryad_loop.tabn = ' + string(PrNaryad_loop.tabn,0,0));
+          mylog('PrNaryad_loop.SUMMA = '+string(PrNaryad_loop.SUMMA));
+          mylog('_KTY = '+string(_KTY));
+
+
+          var _summaSdel : double = PrNaryad_loop.SUMMA;
+          var _summaDopl : double = 0;
+         _loop klvidopl where KLVIDOPL.VHVO[36-5]='+'
+          {
+            _loop nachisl where ((PrNaryad_loop.clsch==nachisl.clsch))
+                              and klvidopl.vidopl=nachisl.vidopls
+                              and PrNaryad_loop.datan <= nachisl.datan
+                              and PrNaryad_loop.datok >= nachisl.datok
+            {
+//              mylog(' klvidopl.vidopl = ' + klvidopl.vidopl);
+              mylog('klvidopl.vidoplp = ' + klvidopl.vidoplp);
+              mylog('   nachisl.summa = ' + string(nachisl.summa));
+              _summaDopl :=_summaDopl + nachisl.summa;
+            }
+          }
+          var _sumPremBeforeKoef : double = (PrNaryad_loop.SUMMA+_summaDopl);
+          _sumPremBeforeKoefTotal     := _sumPremBeforeKoefTotal + _sumPremBeforeKoef;
+          _sumPremBeforeKoefTotal_KTY := _sumPremBeforeKoefTotal_KTY + _sumPremBeforeKoef*_KTY;
+          if prnaryad_cur.nrec = PrNaryad_loop.nrec
+             then _sumPremBeforeKoefCur := _sumPremBeforeKoef*_KTY;
+          mylog(' _summaDopl = ' + string(_summaDopl));
+          mylog(' (PrNaryad_loop.SUMMA+_summaDopl)*_KTY = '+ string(_sumPremBeforeKoef));
+      }
+      if _sumPremBeforeKoefTotal <> 0
+         then _koeff := _sumPremBeforeKoefTotal/_sumPremBeforeKoefTotal_KTY;
+
+      mylog(' _koeff = ' + string(_koeff));
+      mylog(' _sumPremBeforeKoefTotal = '+ string(_sumPremBeforeKoefTotal));
+      mylog(' _sumPremBeforeKoefTotal_KTY = '+ string(_sumPremBeforeKoefTotal_KTY));
+      result := _koeff*_sumPremBeforeKoefCur*0.01*prnaryad_cur.PROC;
+   if _isLogging then PutFileToClient(GetLogFile,false);
   }
 
 end.

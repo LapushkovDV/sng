@@ -2,7 +2,6 @@
 
 #include galnet.inc end;
 #include glovars.inc
-#INCLUDE galaktika.vil
 
 
 #define CompTitle
@@ -21,3 +20,5 @@ LicenseControlInclude=""
 
 #make "source\SNG_GLX_932_zp_alg_1_7.vip"
 #make "source\SNG_GLX_932_zp_alg.vip"
+#make "source\ALTER_JobSheetParams.vip"
+#make "source\ALTER_PrNaryad1.vip"

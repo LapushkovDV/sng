@@ -1,0 +1,65 @@
+
+/*************************************************************************************************\
+* Возвращает количество использованных дней по nRec PutVacation (Catalogs)                        *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#include QRY_Base.vih
+#include QRY_ALG_USER.vih
+
+//************************************************************
+
+vipinterface QRY_ALG_USER_GET_ALL_LIMIT_VACATION implements IQRY_ALG_USER
+  Licensed(free);
+
+Interface QRY_ALG_USER_GET_ALL_LIMIT_VACATION;
+#doc
+  Запустить расчет с параметрами
+  _Parameter  = ContDoc.nrec
+#end
+
+
+create view
+  var
+  cNrec : comp;
+  as select
+    PutVacCon.nRec
+  from
+    PutVacCon
+  where ((   coContDoc == PutVacCon.wTable and
+                 cNrec == PutVacCon.cTable ))
+;
+
+function calc(_Parameter:string):string; {
+  result := 'Null';
+
+  cNrec := comp(_Parameter);
+
+  if (getFirst fastFirstRow PutVacCon where(( coContDoc == PutVacCon.wTable and
+                                                  cNrec == PutVacCon.cTable ))  <> tsOk) {
+    exit;
+  }
+
+  var DayLim : String = '';
+  _loop PutVacCon where((   coContDoc == PutVacCon.wTable and
+                                cNrec == PutVacCon.cTable ))
+    {
+      DayLim := DayLim + PutVacCon.wDayCount + ';' ;
+
+    }
+   result := DayLim;
+}
+
+#doc
+  Описание роли интерфейса
+#end
+function GetDescription : string; { 
+  result:='Возвращает по каждой выбранной записи число лимитов разделенных ; ';
+}
+
+end.
