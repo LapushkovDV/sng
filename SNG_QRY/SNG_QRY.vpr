@@ -92,11 +92,11 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="2" PosY="23" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="31" PosY="50" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="37" PosY="15" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vih" PosX="44" PosY="6" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="43" PosY="672" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="22" PosY="844" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="35" PosY="51" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_Base.vip" PosX="80" PosY="349" OpenEditor="True"/>
@@ -104,6 +104,7 @@
 			<File Name="vip\QRY_INSTANCE.pan" PosX="47" PosY="144" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="41" PosY="138" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\AdrFunc.vih" PosX="105" PosY="760" OpenEditor="True"/>
+			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="68" PosY="36" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -155,8 +156,8 @@
 			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="135" NumIndex="1" MarkerType="mtNumBookmark" Comment="procedure insert_notable_fields;{"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
-			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="395" NumIndex="2" MarkerType="mtNumBookmark"/>
-			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="648" NumIndex="1" MarkerType="mtNumBookmark" Comment="function ReplaceByValues(Formula:string; _value: string; _strParameter: string = ''):string; cacheable;"/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="850" NumIndex="1" MarkerType="mtNumBookmark" Comment="Функция склоняет наименование записи справочника (Catalogs) с попутной проверкой на наличие"/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="552" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

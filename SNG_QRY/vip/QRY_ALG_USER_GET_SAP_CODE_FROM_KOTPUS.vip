@@ -14,52 +14,69 @@
 
 //************************************************************
 
-vipinterface QRY_ALG_USER_GET_ALL_LIMIT_VACATION implements IQRY_ALG_USER
+vipinterface QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS implements IQRY_ALG_USER
   Licensed(free);
 
-Interface QRY_ALG_USER_GET_ALL_LIMIT_VACATION;
+Interface QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS;
 #doc
   Запустить расчет с параметрами
   _Parameter  = ContDoc.nrec
 #end
 
-
-create view
-  var
-  cNrec : comp;
-  as select
-    PutVacCon.nRec
-  from
-    PutVacCon
-  where ((   coContDoc == PutVacCon.wTable and
-                 cNrec == PutVacCon.cTable ))
-;
-
 function calc(_Parameter:string):string; {
-  result := 'Null';
-
-  cNrec := comp(_Parameter);
-
-  if (getFirst fastFirstRow PutVacCon where(( coContDoc == PutVacCon.wTable and
-                                                  cNrec == PutVacCon.cTable ))  <> tsOk) {
-    exit;
-  }
-
-  var DayLim : String = '';
-  _loop PutVacCon where((   coContDoc == PutVacCon.wTable and
-                                cNrec == PutVacCon.cTable ))
-    {
-      DayLim := DayLim + PutVacCon.wDayCount + ';' ;
-
-    }
-   result := DayLim;
+  var _wParameter : word = word(_Parameter);
+  case _wParameter of
+   10   : result := '0102'
+   11   : result := '0171'
+   12   : result := '0172'
+   13   : result := '0173'
+   14   : result := '0170'
+   22   : result := '0103'
+   104  : result := '0104'
+   105  : result := '0105'
+   106  : result := '0106'
+   23   : result := '0107'
+   108  : result := '0108'
+   109  : result := '0109'
+   111  : result := '0111'
+   112  : result := '0112'
+   21   : result := '0113'
+   114  : result := '0114'
+   1    : result := '0115'
+   24   : result := '0124'
+   127  : result := '0127'
+   129  : result := '0129'
+   130  : result := '0130'
+   152  : result := '0152'
+   174  : result := '0174'
+   176  : result := '0176'
+   221  : result := '0221'
+   222  : result := '0222'
+   500  : result := '0500'
+   163  : result := '0163'
+   178  : result := '0178'
+   179  : result := '0179'
+   501  : result := '0501'
+   1004 : result := '1004'
+   1008 : result := '1008'
+   1009 : result := '1009'
+   1010 : result := '1010'
+   9500 : result := '9500'
+   9501 : result := '9501'
+   9502 : result := '9502'
+   26   : result := '9505'
+   9506 : result := '9506'
+   9507 : result := '9507'
+  else
+    result := _Parameter;
+  end;
 }
 
 #doc
   Описание роли интерфейса
 #end
 function GetDescription : string; { 
-  result:='Возвращает по каждой выбранной записи число лимитов разделенных ; ';
+  result:='Возвращает код отсутствия SAP по коду отпуска Галактики (KlOtpusk.Kotpus)';
 }
 
 end.

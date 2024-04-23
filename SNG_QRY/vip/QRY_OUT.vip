@@ -14,6 +14,7 @@
 #include QRY_ALG_USER.vih
 #include StrFunc.vih
 #include AdrFunc.vih
+#include SpecialPropetiesForG.vih
 
 //#include SpecialPropetiesForG.vih
 //#include CatFunc.vih
@@ -548,6 +549,7 @@ Function Fill_Tmp_alg : boolean;
      Exit;
 //   Fill_Tmp_alg_One(00,'USERNAME','Имя текущего пользователя');
    Fill_Tmp_alg_One('%DECLENSION(%VALUE%,NCASE)%','Склонение ФИО ,%VALUE%=persons.nrec, NCASE - номер падежа (2-6)');
+   Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','Склонение наименование записи справочника (Catalogs). параметр2: проверять наличие ВА спадежлм, параметр3: номер склонения');
    Fill_Tmp_alg_One('%UP_CATALOGS_UNDER_CODE(%VALUE%,''0000'')%','Подняться вверх по CATALOGS пока вышестоящая запись не будет иметь код = второй параметр. %VALUE% = CATALOGS.NREC ');
    Fill_Tmp_alg_One('%DIVSTR(%VALUE%)%','Из указанной строки выделяется первое слово, в том числе и с дефисами. %VALUE% = ФИО');
    Fill_Tmp_alg_One('%GET_LASTNAME(%VALUE%)%','Извлечение фамилии из заданной строки ФИО. %VALUE% = ФИО');
@@ -684,7 +686,7 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 
         var _Res:string;//результат
         _Res:='';
-        mylog('_Key = ' + _Key)
+        //mylog('_Key = ' + _Key);
         case upcase(_Key) of
         //01, %EM_FieldDocbyPers(wtype,Filedname,param)% -  wtype = word,
         // Filedname = string, param - string. Получает значение поля ведомости по типу док-та
@@ -843,7 +845,22 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
          upcase('%GetStreetNRec('):{ //Возвращает NRec АТД по NRec адреса GetStreetNRec(NRecAddress : comp) : comp;');
            _res := '''' + iAddressFunc.GetStreetNRec(comp(_Parameter))  + ''''
          }
+         upcase('%GetRollCatalogsByPadeg('): {
+/*
+          Функция склоняет наименование записи справочника (Catalogs) с попутной проверкой на наличие
+          внешних атрибутов с соответствующими падежами, чтобы выводить в нужном.
+          cCat - nRec подразделения
+          WorkAddInfo - проверять внешние атрибуты по склонению
+          Pp - падеж. Нумерация с 1. Т.е. 1- ничего не делаем - именительный падеж, а вот остальные
+          будем искать по принципу наименования атрибута, где должно фигурировать часть падежа
+*/
+          var _cCatalogs : comp = comp(ParseWord(_Parameter,1,','));
+          var _WorkAddInfo : boolean = boolean(ParseWord(_Parameter,2,','));
+          var _NCase   : word = word(ParseWord(_Parameter,3,','));
+          var  _iSPFG : SpecialPropetiesForG;
+          _res := ''''+ _iSPFG.GetRollCatalogsByPadeg(_cCatalogs,_WorkAddInfo,_NCase)+'''';
 
+         }
         '%USER_INTERFACE(':
         {
           var _par2:string;

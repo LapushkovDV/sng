@@ -1,0 +1,37 @@
+#component "Z_MP"
+
+alter interface JobSheetParameters;
+
+overload
+  function CorrectInput: boolean;
+end;
+
+ExtendFormats ParametersScreen;
+
+create view
+ var _premKTU : double;
+;
+
+function CorrectInput: boolean; {
+  result := inherited::CorrectInput;
+  if result {
+    doSetAttr(coSys_nar, prms.mNrec, 'Š’“ ¯à¥¬¨ï', _premKTU);
+  }
+}
+
+screen ParametersScreen;
+ fields
+   _premKTU :[4.2], noprotect;
+  <<
+                         `Š’“ ¯à¥¬`.@@@@
+  >>
+end;
+handleevent
+cminit: {
+  inherited::handleevent(cmInit);
+  set _premKTU := doGetAttr(coSys_nar, prms.mNrec, 'Š’“ ¯à¥¬¨ï')
+  if _premKTU = 0 then _premKTU := 1
+  rereadrecord;
+}
+end;
+end.

@@ -71,10 +71,10 @@ function getsumAlg1(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
     mylog('RUN algorithm1');
     mylog('_OnlyOneVidOplp = ' + string(_OnlyOneVidOplp));
     mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
-    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('    Lschet.TABN = '+string(Lschet.TABN));
     mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
     mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    mylog('_sumPremForRaspred = '+string(_sumPremForRaspred));
 
     var _sumPremBeforeKoefCur : double = 0;
     var _sumPremBeforeKoefTotal : double = 0;
@@ -142,10 +142,10 @@ function getsumAlg3(_cPrNaryad : comp; _fisLogging : boolean) : double; {
     var _sumPremForRaspred : double = sys_nar.SUMMAPREM;
     mylog('RUN algorithm2');
     mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
-    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('    Lschet.TABN = '+string(Lschet.TABN));
     mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
     mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    mylog('_sumPremForRaspred = '+string(_sumPremForRaspred));
 
           mylog('prnaryad_cur.nrec  = ' + string(prnaryad_cur.nrec,0,0));
           mylog('prnaryad_cur.SUMMA = '+string(prnaryad_cur.SUMMA));
@@ -185,10 +185,10 @@ function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
     mylog('RUN algorithm4');
     mylog('_OnlyOneVidOplp = ' + string(_OnlyOneVidOplp));
     mylog('    Lschet.STRTABN = ' + Lschet.STRTABN);
-    mylog('    Lschet.TABN = '+Lschet.TABN);
+    mylog('    Lschet.TABN = '+string(Lschet.TABN));
     mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
     mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    mylog('_sumPremForRaspred = '+string(_sumPremForRaspred));
 
     var _sumPremBeforeKoefCur : double = 0;
     var _sumPremBeforeKoefTotal : double = 0;
@@ -208,7 +208,7 @@ function getsumAlg4(_cPrNaryad : comp; _fisLogging : boolean; _OnlyOneVidOplp: l
                }
              }
           }
-          mylog('_koeffRN = ' + _koeffRN)
+          mylog('_koeffRN = ' + string(_koeffRN));
           _npp++;
           mylog('-----------------');
           mylog('_npp = ' + string(_npp));
@@ -273,7 +273,7 @@ function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double; {
     mylog('    Lschet.TABN = '+Lschet.TABN);
     mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
     mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    mylog('_sumPremForRaspred = '+string(_sumPremForRaspred));
 
     var _sumPremBeforeKoefCur : double = 0;
     var _sumPremBeforeKoefTotal : double = 0;
@@ -293,7 +293,7 @@ function getsumAlg6(_cPrNaryad : comp; _fisLogging : boolean) : double; {
                }
              }
           }
-          mylog('_koeffRN = ' + _koeffRN)
+          mylog('_koeffRN = ' + string(_koeffRN));
           _npp++;
           //var _KTY : double = PrNaryad_loop.KTY;
           var _KTY : double = doGetAttr(coPRNARYAD, PrNaryad_loop.NREC, 'КТУ премия');
@@ -335,7 +335,7 @@ function getsumAlg7(_cPrNaryad : comp; _fisLogging : boolean) : double; {
     mylog('    Lschet.TABN = '+Lschet.TABN);
     mylog('sys_nar.nrec = ' + string(sys_nar.nrec,0,0));
     mylog('_cPrNaryad = ' + string(_cPrNaryad,0,0));
-    mylog('_sumPremForRaspred = '+_sumPremForRaspred);
+    mylog('_sumPremForRaspred = '+string(_sumPremForRaspred));
 
     var _sumPremBeforeKoefCur       : double = 0;
     var _sumPremBeforeKoefTotal     : double = 0;

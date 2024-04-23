@@ -1,0 +1,4 @@
+#version SNG_Z_MP 1.0.0.1 '#CompTitle'
+  required
+    Z_MP >= 10.1.215.1,
+#include GloRequired.ver

@@ -1,0 +1,294 @@
+#component "Z_MP"
+alter interface PrNaryad1;
+
+#Doc
+ Добавить колонку
+ Add_Column (cfsGetCurrentContainerSelf,'BRWPERSONS','KARTANM'  ,10,'Карта'       ,12)
+#end
+/*
+function Add_Column(Container:tptr
+       ; ww_browse :string
+       ; ww_fieldname : string
+       ; ww_width: integer
+       ; ww_title:string
+       ; ww_index:integer=30
+       ; isTree :boolean=false
+       ) : longint;
+{   var ww_int:integer;
+    var ww_field:longint;
+    var i     :integer;
+    //----------------- сначала нужно все сдвинуть
+    var Res              : integer;
+    var ObjList : array [1] of string;
+    var _sSubContName :string;
+    var sFieldName    : string;
+
+    _sSubContName := Upcase(Trim(ww_browse));
+
+    //Res := cfsSetCurrentContainer(cfsGetCurrentContainerSelf);
+    Res := cfsSetCurrentContainer(Container);
+    SetLimit(ObjList, 0);
+    // загрузить список объектов, вставленных в данный контейнер
+    if cfsEnumObjects(_sSubContName, ObjList, false) = cfOk
+    { //for(i := 1; i <= Count(ObjList); Inc(i))
+      for(i :=  Count(ObjList);i>=1; i--)
+      {  ww_int:=0;
+         cfsGetProp(ObjList[i], cfpIndex, ww_int);
+         cfsGetProp(ObjList[i], cfpName    , sFieldName);
+
+         if ww_int>=ww_index
+         { ww_int++;
+           cfsSetProp(ObjList[i], cfpIndex, ww_int);
+         }
+      } //for(i := 1; i <= Count(ObjList); Inc(i))
+    }
+    else
+    {
+    }
+    //------------- добавляем колонку
+//message('1')
+    ww_field:=0;
+    var _sTypeFld:string= if(isTree ,'Tree','' )+'Column';
+    var _TypeFld: longint = if(isTree ,cfcTreeColumn, cfcColumn)
+//    cfsCreateObject ( _sTypeFld,    ww_browse ,ww_fieldname,FALSE,ww_field)
+
+
+    case cfsCreateObject ( _TypeFld,    ww_browse ,ww_fieldname,FALSE,ww_field) of
+     cfErrObjectTypeNotExist : message('cfErrObjectTypeNotExist')
+     cfErrContainerObjectNotExist: message('cfErrContainerObjectNotExist')
+     cfErrCantCreateObject: message('cfErrCantCreateObject')
+     cfErrCreateObjectError: message('cfErrCreateObjectError')
+     cfErrObjectAlreadyExist: message('cfErrObjectAlreadyExist')
+     cfErrBadFieldType: message('cfErrBadFieldType')
+     cfOk: message('cfOk')
+    end;
+
+    //ww_int:=15;
+
+    cfsSetProp(ww_field,'Visible',False);//ww_fieldname
+    ww_int:=ww_index;
+    cfsSetProp(ww_field,'Index',ww_int);
+    cfsSetProp(ww_field,'Protect',True);
+    ww_int:=10;
+    ww_int:=ww_width;
+    cfsSetProp(ww_field,'DefaultWidth',ww_int);
+    cfsSetProp(ww_field,'StatusCtx',    'sci1Esc');
+    cfsSetProp(ww_field,'Visible',True);
+    cfsSetProp(ww_field,cfcQuickChoice,True);
+    cfsSetProp(ww_field,cfpTitle,    ww_title);
+    result := ww_field;
+} //Procedure Add_Column(Container:Longint
+
+
+function Move_Column(Container   : tptr;
+                    ww_browse    : string;
+                    ww_fieldname : string;
+                    ww_index     : integer=30
+                   ) : longint;
+{   var ww_int   : integer = 0;
+    var ww_field : longint = 0;
+    var i        : integer = 0;
+    //----------------- сначала нужно все сдвинуть
+    var Res              : integer;
+    var ObjList : array [1] of string;
+    var _sSubContName :string;
+    var sFieldName    : string;
+
+    _sSubContName := Upcase(Trim(ww_browse));
+
+    Res := cfsSetCurrentContainer(Container);
+    SetLimit(ObjList, 0);
+
+    // загрузить список объектов, вставленных в данный контейнер
+    if cfsEnumObjects(_sSubContName, ObjList, false) = cfOk
+    { //for(i := 1; i <= Count(ObjList); Inc(i))
+      for(i :=  Count(ObjList);i>=1; i--)
+      {  ww_int:=0;
+         cfsGetProp(ObjList[i], cfpIndex, ww_int);
+         cfsGetProp(ObjList[i], cfpField    , sFieldName);
+         if upcase(sFieldName) = upcase(ww_fieldname) {
+           ww_field := ww_int
+         }
+         if ww_int>=ww_index {
+           ww_int++;
+           cfsSetProp(ObjList[i], cfpIndex, ww_int);
+         }
+      } //for(i := 1; i <= Count(ObjList); Inc(i))
+    }
+    // сдвигаем
+    if ww_field <> 0 then cfsSetProp(ww_field, cfpIndex ,ww_index);
+    result := ww_field;
+} //Procedure Add_Column(Container:Longint
+*/
+
+#declare KatpodrName
+  KATPODR.NAME 'Подразделение ОЗ'
+    ('Подразделение отнесение затрат'): [24], Protect;
+#end
+#declare CommonFields
+  WorkerBrigadeStr
+    'Бригада'
+    ('Номер и наименование бригады',, sci1378prnaryad):
+    [24], protect;
+
+  SchetDeb 'Счет'
+    ('Счет'): [19], protect;
+
+  SubSchdeb 'Субсчет'
+    ('Субсчет'): [20], protect;
+
+  NamKAUD 'Аналитика'
+    ('Аналитика'): [40],protect, PickButton;
+
+  NameExtrKau 'Доп. аналитика'
+    ('Дополнительная аналитика'): [40],protect, PickButton;
+
+  HOZOPER.NAME1 'ТХО'
+    ('Типовая хозяйственная операция'): [20],protect;
+
+  PRNARYAD.PARAM 'Параметр'
+    ('Параметр типовой хозяйственной операции'): [10], noprotect;
+
+  PaymentKindStr 'Вид оплаты'
+    ('Наименование вида оплаты', hcprnaryad): [30], quickchoice;
+
+  PremiumPaymentKindStr 'Вид премии'
+    ('Наименование вида премии', hcprnaryad): [30], quickchoice;
+#end
+
+#declare KategAppointment
+  KLKATEGO.NAIKAT 'Категория'
+    ('Категория работника', hcKatego, sci1378prnaryad): [15], Protect;
+  CATALOGS.NAME 'Должность'
+      ('Должность работника', hcStaffAppPost, sci1378prnaryad): [15], Protect;
+#end
+create view
+as select
+//    'sss' (fieldname = premKTUsp1)
+//   , doGetAttr(coSys_nar, comp(1111), 'КТУ премия') (fieldname = premKTUsp11)
+    doGetAttr(coPRNARYAD, PRNARYAD.NREC, 'КТУ премия') (fieldname = premKTUsp)
+;
+/*
+ExtendFormats rrr1_Lsh;
+2024/04/12 не канает так... колонка добавляется последней, ее конечно можно подвинуть Move_Column, но потом RUNTIMEERROR  выходит при обновлении ее через фейс, потому OVERLOAD
+Через месяц можно попробовать, может в новой сборке все норм будет
+
+browse rrr1_Lsh;
+ fields
+  premKTUsp 'КТУ','прем' ('КТУ для премии',,sci178prnaryad): [5,3], NoProtect;
+end;
+*/
+
+overload
+ procedure Distribute;
+end;
+
+OverloadFormats rrr1_Lsh;
+browse rrr1_Lsh (,hcprnarbr,sci1378prnaryad);
+//бригадные c лицевой стороной
+show at (,8,,23);
+table PRNARYAD;
+recMarker = pMarkerPrNaryad {PRNARYAD.NREC};
+fields
+  {font = {bold = ((CurRecordGroup != 0) and (PRNARYAD.CLSCH = CurRecordGroup))}};
+
+  PRNARYAD.TABN  'Таб.', 'номер'
+    ('Табельный номер'): [10], protect;
+
+  PRNARYAD.STRTABN 'Таб.', 'номер'
+    ('Табельный номер'): [10], protect;
+
+  WorkerName 'Работник'
+    ('Работник'): [15], protect;
+
+  PRNARYAD.TARIF 'Тариф', '(оклад)'
+    ('Тариф или оклад',,): [10,3];
+
+  PRNARYAD.KTY 'КТУ'
+    ('КТУ',,sci178prnaryad): [5,3];
+
+  premKTUsp 'КТУ','прем' ('КТУ для премии',,sci178prnaryad): [5,3], NoProtect;
+
+  PRNARYAD.KOLDN 'Дни,', 'факт'
+    ('Количество фактически отработанных дней',,sci178prnaryad): [4,1];
+
+  ActualTimeStr 'Часы,', 'факт'
+    ('Количество фактически отработанных часов',,sci178prnaryad): [8], right;
+
+  PRNARYAD.SUMMA 'Оплата', 'по наряду'
+    ('Сумма заработка по наряду',,sci178prnaryad): [10,2];
+
+  PRNARYAD.KODWORK 'Работа'
+    ('Код работы'): [8];
+
+  PRNARYAD.NOPER 'Операция'
+    ('Номер операции'): [8];
+
+  PRNARYAD.KOLVO 'Кол-во'
+    ('Количество изделий',,sci178prnaryad): [8,3];
+
+  PRNARYAD.RASCEN 'Расценка'
+    ('Норма оплаты',,sci178prnaryad): [8,3];
+
+  PRNARYAD.PROC '%', 'прем.'
+    ('Процент премии по наряду',,sci178prnaryad): [7,1];
+
+ PRNARYAD.SUMMAPR '%', 'пониж.'
+    ('Процент понижения премии',,sci178prnaryad): [5.2];
+
+  PRNARYAD.SUMMPREM 'Премия'
+    ('Сумма премии по наряду',,sci178prnaryad): [10,2];
+
+  PRNARYAD.DATAN 'Начало'
+    ('Дата начала работ по наряду'): [11];
+
+  PRNARYAD.DATOK 'Окончание'
+    ('Дата окончания работ по наряду'): [11];
+
+  PRNARYAD.KOLDNGR 'Дни,', 'план'
+    ('Количество дней по плановому графику',,sci178prnaryad): [5,2];
+
+  PlannedTimeStr   'Часы,', 'план'
+    ('Количество часов по плановому графику',,sci178prnaryad): [8], right;
+
+  NaSisOpl 'Система', 'оплаты'
+    ('Система оплаты'): [14], protect;
+
+  #KatpodrName
+  #CommonFields
+  #KategAppointment
+end;               //browse
+
+
+procedure Distribute; {
+  inherited::Distribute;
+  doSetAttr(coPRNARYAD, PRNARYAD.nrec, 'КТУ премия', doGetAttr(coSys_nar, PRNARYAD.mNrec, 'КТУ премия'));
+  rereadrecord;
+}
+handleevent
+cmExprFieldChanged: {
+    case CurField of
+     #premKTUsp: {
+       doSetAttr(coPRNARYAD, PRNARYAD.nrec, 'КТУ премия', ExprFieldValue);
+       updatetable;
+       rereadrecord;
+       exit;
+     }
+    end;
+   inherited::handleevent(cmExprFieldChanged);
+}
+/*
+cmvalue68:{
+   var _filed : longint = Move_Column(cfsGetCurrentContainerSelf,'rrr1_Lsh','premKTUsp',6); // сдвигаем добавленную колонку
+//  var _filed : longint = Add_Column(cfsGetCurrentContainerSelf,'rrr1_Lsh','premKTUsp'  ,7,'КТУ'+''#10''+''#13''+'прем',6, false);
+//  cfsSetProp(_filed,'Protect',False);
+//  cfsSetProp(_filed,'Points',3);
+//  cfsSetProp(_filed,'DefaultPickButton',false);
+}
+*/
+cmInit: {
+  inherited::handleevent(cmInit);
+  putcommand(cmvalue68);
+}
+end;
+end.

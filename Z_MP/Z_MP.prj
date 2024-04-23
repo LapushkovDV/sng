@@ -1,0 +1,15 @@
+
+
+#statusline "statgal"
+#include GalNet.inc end;
+#include GloVars.inc
+
+
+#component "SNG_Z_MP"
+#define CompTitle Dorabotka Z_MP
+#doc
+  #CompTitle
+#end
+#include Z_MP.ver
+
+#make "vip\*.vip"
