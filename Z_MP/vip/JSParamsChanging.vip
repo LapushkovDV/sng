@@ -1,0 +1,75 @@
+#component "Z_MP"
+alter interface JSParamsChanging
+  create view
+    var
+     _ispremKTY : word = 0;
+     _premKTY : double = 0;
+
+  ;
+
+ExtendFormats ParametersScreen;
+  screen ParametersScreen;
+
+    fields
+      _ispremKTY
+        ('указать премию дл КТУ: '): noprotect;
+      _premKTY : [4.2], noprotect;
+<<
+
+
+
+                               [.] КТУ для премии`.@@@@@@@@@@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>
+  end; // screen ScreenName
+handleevent
+cminit: {
+   _ispremKTY := 0;
+   _premKTY   := 0;
+   CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','Skip', true);
+   CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','NoStatic', true);
+  inherited::handleevent(cminit);
+}
+cmok :{
+  doSetAttr(coSys_nar, prms.mNrec, 'КТУ премия', _premKTY);
+  inherited::handleevent(cmok);
+}
+cmCheckField: {
+  case curfield of
+   #_ispremKTY: {
+            if _ispremKTY = 1 {
+                CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','Skip', false);
+                CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','NoStatic', false);
+             }
+            else {
+                CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','Skip', true);
+                CFSSetProp('i_PARAMETERSSCREEN_PREMKTY','NoStatic', true);
+             }
+      }
+   end;
+
+   inherited::handleevent(cmCheckField);
+}
+end;
+end.
