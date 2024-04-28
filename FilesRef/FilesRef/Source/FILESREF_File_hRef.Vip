@@ -8,8 +8,9 @@
 //#include GetKau.Vih
 #include FILESREF_File_hRef.Vih
 //#include Protector.vih
-
-Interface FILESREF_File_hRefi 'Файлы к документу' (,,sci1Esc), EscClose;
+#component "C_FILESREF"
+//#component "M_MnPlan"
+Interface FILESREF_File_hRef 'Файлы к документу' (,,sci1Esc), EscClose;
 
 var
   sWinTitle : string; // Заголовок окна снаружи
@@ -21,7 +22,7 @@ var
   cRecDoc   : comp;  // ссылка на Nrec таблицы
   wArch     : word;  // просмотр архивных файлов
   IsInEditMode : boolean;
-  timelog_status : word = 1;
+  timelog_status : word = 0;
  _logname : string = '';
 as select
   File_hRef.Nrec
@@ -60,22 +61,22 @@ where ((
 ))
 ;
 
-Parameters
-  wTableMain
-, cRecDoc
-, sWinTitle
-;
+procedure EnableTimeLog; {
+  set timelog_status := 1
+}
 
+Function GenerateNewFile: string; {
+ result := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0))+ 'filehref_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
 
 function getlogname: string; {
-  if _logname = '' then
-  {
-    _logname := AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0)) + 'timelog_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log';
+  if _logname = '' then {
+    _logname := GenerateNewFile+'.log';
   }
   result := _logname;
 }
 procedure timelog(_str: string); {
-  logstrtofile(getlogname,DateToStr(cur_date,'YYYYMMDD')+'-'+timetostr(cur_time,'HHMMSS') + '|' + _str);
+  if timelog_status > 0 then logstrtofile(getlogname,DateToStr(cur_date,'YYYYMMDD')+'-'+timetostr(cur_time,'HHMMSS') + '|' + _str);
 }
 
 Function GetIName : string;
@@ -131,11 +132,11 @@ Function GetNameFromURL(__URL : string) :string;
 {
   result := Substr(__URL,PosR('/',__URL)+1,200);
   result := Substr(result,1, PosR('.',result)-1);
-  result := Substr(result,38,210); // отрезаем guid временной ссылки
+  //result := Substr(result,38,210); // отрезаем guid временной ссылки
 }
 
 Function GetIHotKey : string;
-{ Result := 'FILESREF::HotI_FILESREF_File_hRefi';
+{ Result := 'FILESREF::HotI_FILESREF_File_hRef';
 }
 
 //------------------------------------------------------------------------------
@@ -161,7 +162,7 @@ Function Add_File_THRU_API_ERPPNATIVE(_sfile : string;
   /*
   в этой функции пробует использовать родные метиоды ЕРП по работе с HTTP запросами и JSON
   */
-if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->start');
+  timelog('Add_File_THRU_API_ERPPNATIVE->start');
 
   _GUID := '';
 
@@ -177,17 +178,17 @@ if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->start');
 
  var _logHttpConnect : string = _sfileout + '_logHttpConnect.log' ;
   var _HttpAPI  : string = sgettune('FILESREF.HREF_PATHAPI');
-if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILESREF.HREF_PATHAPI)'+ sgettune('FILESREF.HREF_PATHAPI'));
+ timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILESREF.HREF_PATHAPI)'+ sgettune('FILESREF.HREF_PATHAPI'));
 
   var _sfilebase64 : string = getoutdir+ OleGenerateGUID+'_'+_Name+ '_base64.'+_Ext; // CreateTmpFileName;
 
-   if timelog_status > 0 then timelog('_sfile = '+ _sfile);
+    timelog('_sfile = '+ _sfile);
    EncodeFileToBase64(_sfile, _sfilebase64);
 
 
 
 
-   FFile.OpenFile(_sfilebase64, stOpen)
+   FFile.OpenFile(_sfilebase64, stOpen);
       FFile.Seek(0);
      var strTmp : string = '';
           timelog('read file: ' + _sfilebase64);
@@ -199,94 +200,99 @@ if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILES
      FFile.write(chr(10));
      FFile.Close;
 
-   if timelog_status > 0 then timelog('2 _sfile = '+ _sfilebase64);
+    timelog('2 _sfile = '+ _sfilebase64);
 
   var m_service : TPtr ;
    m_service := HttpConnect_CreateEx(_HttpAPI, '', '', true);
 
-   if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->m_service'+ string(m_service));
-   if timelog_status > 0 then HttpConnect_ResponseLogEnable(m_service);
-   if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->HttpConnect_ResponseLogEnable(_HttpAPI) OK');
+    timelog('Add_File_THRU_API_ERPPNATIVE->m_service'+ string(m_service));
+    HttpConnect_ResponseLogEnable(m_service);
+    timelog('Add_File_THRU_API_ERPPNATIVE->HttpConnect_ResponseLogEnable(_HttpAPI) OK');
 
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
         timelog('  HttpConnect_CreateEx = ' + HttpConnect_LastErrorText(m_service));
         HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
-       }
+     }
     HttpConnect_Free(m_service);
     Exit;
   }
 
   var JObj   : TPtr = HttpConnect_JsonObjectCreate(m_service);
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectCreate(m_service);');
+   timelog('  after  HttpConnect_JsonObjectCreate(m_service);');
 
   var _NameUTF8 : string = _Name;
 
-  if timelog_status > 0 then timelog(' Add_File_THRU_API_ERPPNATIVE  _NameUTF8 = ' + _NameUTF8);
+   timelog(' Add_File_THRU_API_ERPPNATIVE  _NameUTF8 = ' + _NameUTF8);
 
   _NameUTF8 := Oem2Ansi(_Name);
-  _NameUTF8 := _Name;
+//  _NameUTF8 := _Name;
   HttpConnect_JsonObjectAddString(m_service, JObj, 'filename', _NameUTF8);
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, FileName, _Name');
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, FileName, _Name');
   HttpConnect_JsonObjectAddString(m_service, JObj, 'description', '');
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, description, _Name');
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, description, _Name');
 
   HttpConnect_JsonObjectAddString(m_service, JObj, 'extention', _EXT);
 
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name. _NameUTF8 = ' + _NameUTF8);
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name  _EXT = ' + _EXT);
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name. _NameUTF8 = ' + _NameUTF8);
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name  _EXT = ' + _EXT);
 
 
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name');
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _EXT, _Name');
   var _data : TPtr = HttpConnect_LoadFromFile(m_service,  _sfilebase64,  cpUTF8);
 
 
-  if timelog_status > 0 then timelog('  after  HttpConnect_LoadFromFile(m_service,  _sfilebase64,  cpUTF8);');
+   timelog('  after  HttpConnect_LoadFromFile(m_service,  _sfilebase64,  cpUTF8);');
 
   if LongInt(_data) = 0 then exit; // файл пустой, добавить никак
 
   HttpConnect_JsonObjectAddLongString(m_service, JObj, 'data', _data);
-  if timelog_status > 0 then timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _data, _Name');
+   timelog('  after  HttpConnect_JsonObjectAddString(m_service, JObj, _data, _Name');
   var tmpFile : string  = CreateTmpFileName;
 
   var JSON    : TPtr    = HttpConnect_JSONObjectToString(m_service, JObj);
 
   HttpConnect_SaveToFileEx(m_service, JSON, tmpFile, cpUTF8, false);
-  HttpConnect_SaveToFileEx(m_service, JSON, _sfileout +'_JsonINwebrequest.txt', cpUTF8, false);
 
-  if timelog_status > 0 then timelog('  after  HttpConnect_SaveToFileEx(m_service, JSON, tmpFile, cpUTF8, false);');
+
+  if timelog_status > 0 then {
+      HttpConnect_SaveToFileEx(m_service, JSON, _sfileout +'_JsonINwebrequest.txt', cpUTF8, false);
+      putfiletoclient(_sfileout +'_JsonINwebrequest.txt',false)
+    }
+
+  timelog('  after  HttpConnect_SaveToFileEx(m_service, JSON, tmpFile, cpUTF8, false);');
 
   var fhandle : longint = 0;
   File_OpenFile(tmpFile,stOpenRead, fhandle);
   var _cpSrc : longint = File_GetCodePage(fhandle);
   File_Close(fhandle);
 
-  if timelog_status > 0 then timelog('  _cpSrc = '+_cpSrc);
+   timelog('  _cpSrc = '+_cpSrc);
 
   var tmpFileUTF8 : string = CreateTmpFileName;
   tmpFileUTF8 := tmpFile;
 
-  if timelog_status > 0 then timelog('  tmpFileUTF8 = '+tmpFileUTF8+' tmpFile='+tmpFile);
+   timelog('  tmpFileUTF8 = '+tmpFileUTF8+' tmpFile='+tmpFile);
 
   var isHTTPS : boolean = false;
   var lToken  : longint = 0 ; // техподдержка сказала 0 поставить HttpConnect_CreateLongString(m_service);
   var sHeader : string = 'Content-Type: application/json'; // техподдержка сказала '' передать 'Content-Type: application/json; charset=utf-8';
   var lAddUrl : TPtr = HttpConnect_CreateLongString(m_service);
 
-  if timelog_status > 0 then timelog('  HttpConnect_AddValueToLongString(m_service');
+   timelog('  HttpConnect_AddValueToLongString(m_service');
    HttpConnect_AddValueToLongString(m_service, '/fileservice/api/v1.0/loadfile', lAddUrl);
-  if timelog_status > 0 then timelog('  AFTER HttpConnect_AddValueToLongString(m_service');
+   timelog('  AFTER HttpConnect_AddValueToLongString(m_service');
 
-  if timelog_status > 0 then timelog('  HttpConnect_EDISendRequestEx');
+   timelog('  HttpConnect_EDISendRequestEx');
   var lResponse : TPtr = HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFileUTF8, 'POST', isHTTPS, sHeader,0);
-  if timelog_status > 0 then timelog('  AFTER HttpConnect_EDISendRequestEx');
+   timelog('  AFTER HttpConnect_EDISendRequestEx');
 
  var _HttpConnect_LastErrorText : string = '';
  if (HttpConnect_LastError(m_service) <> 0)
   {
     _HttpConnect_LastErrorText := HttpConnect_LastErrorText(m_service);
-    if timelog_status > 0 then
+
      {
        _HttpConnect_LastErrorText;
        timelog('error');
@@ -297,12 +303,18 @@ if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILES
        timelog('   isHTTPS    = ' + String(isHTTPS));
        timelog('   sHeader    = ' + sHeader   );
 
-      HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
+      var _File : string = GenerateNewFile+'_ResponseLogToFile.log';
+      HttpConnect_ResponseLogToFile(m_service, _File);
+      putfiletoclient(_File, false);
+      _File := GenerateNewFile+'_lResponse.log';
+      HttpConnect_SaveToFileEx(m_service, lResponse, _File, cpUTF8, false);
+      putfiletoclient(_File, false);
+
      }
     // Exit;
   }
 
-  if timelog_status > 0 then  {
+    {
      timelog('  after  HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFile, POST, true, sHeader, 0) ' + longint(lResponse));
      timelog('  after  HttpConnect_GetLongStringLength(m_service, lResponse) = ' + HttpConnect_GetLongStringLength(m_service, lResponse));
      timelog('  HttpConnect_GetLongStringSubString (m_service, lResponse,1,255) ' + HttpConnect_GetLongStringSubString (m_service, lResponse,0,150));
@@ -314,7 +326,7 @@ if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILES
   var jObjectResponse : TPtr;
   jObjectResponse := HttpConnect_JSONObjectByLongString(m_service, lResponse);
 
-  if timelog_status > 0 then {
+   {
     timelog('HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
     timelog('  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
    }
@@ -323,7 +335,7 @@ if timelog_status > 0 then timelog('Add_File_THRU_API_ERPPNATIVE->sgettune(FILES
    var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'message');
    var _sRESSTATUS  : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'status');
 
- if timelog_status > 0 then {
+  {
      timelog('  _sRESGUID ' + _sRESGUID);
      timelog('  _sRESMESSAGE ' + _sRESMESSAGE);
      timelog('  _sRESSTATUS ' + _sRESSTATUS);
@@ -365,27 +377,27 @@ Function GetURL_FROM_API_ERPPNATIVE(_GUID  : string;
   /*
   в этой функции пробует использовать родные метиоды ЕРП по работе с HTTP запросами и JSON
   */
-if timelog_status > 0 then timelog('');
-if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE->start');
-if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE _GUID = '+_GUID);
+ timelog('');
+ timelog('GetURL_FROM_API_ERPPNATIVE->start');
+ timelog('GetURL_FROM_API_ERPPNATIVE _GUID = '+_GUID);
 
 
  var _logHttpConnect : string = getoutdir+ 'MR_FILEHREF_logHttpConnect_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'.log' ;
 // _logHttpConnect := addbackslash(_logHttpConnect);
   var _HttpAPI  : string = sgettune('FILESREF.HREF_PATHAPI');
-if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE->sgettune(FILESREF.HREF_PATHAPI)'+ sgettune('FILESREF.HREF_PATHAPI'));
+ timelog('GetURL_FROM_API_ERPPNATIVE->sgettune(FILESREF.HREF_PATHAPI)'+ sgettune('FILESREF.HREF_PATHAPI'));
 //  var _HttpAPI  : string = 'http://sndbox-erpdb:8080'
 
   var m_service : TPtr;
    m_service := HttpConnect_CreateEx(_HttpAPI, '', '', true);
 
-   if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE->m_service'+longint(m_service));
-   if timelog_status > 0 then HttpConnect_ResponseLogEnable(m_service);
-   if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE->HttpConnect_ResponseLogEnable(_HttpAPI) OK');
+    timelog('GetURL_FROM_API_ERPPNATIVE->m_service'+longint(m_service));
+    HttpConnect_ResponseLogEnable(m_service);
+    timelog('GetURL_FROM_API_ERPPNATIVE->HttpConnect_ResponseLogEnable(_HttpAPI) OK');
 
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
         timelog('  HttpConnect_CreateEx = ' + HttpConnect_LastErrorText(m_service));
         HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
        }
@@ -400,16 +412,16 @@ if timelog_status > 0 then timelog('GetURL_FROM_API_ERPPNATIVE->sgettune(FILESRE
   var sHeader : string = 'Content-Type: application/json'; // техподдержка сказала '' передать 'Content-Type: application/json; charset=utf-8';
   var lAddUrl : TPtr = HttpConnect_CreateLongString(m_service);
 
-  if timelog_status > 0 then timelog('  HttpConnect_AddValueToLongString(m_service');
+   timelog('  HttpConnect_AddValueToLongString(m_service');
    HttpConnect_AddValueToLongString(m_service, '/fileservice/api/v1.0/getfile/'+_GUID, lAddUrl);
-  if timelog_status > 0 then timelog('  AFTER HttpConnect_AddValueToLongString(m_service');
-  if timelog_status > 0 then timelog('  /fileservice/api/v1.0/getfile/_GUID = ' + '/fileservice/api/v1.0/getfile/'+_GUID);
+   timelog('  AFTER HttpConnect_AddValueToLongString(m_service');
+   timelog('  /fileservice/api/v1.0/getfile/_GUID = ' + '/fileservice/api/v1.0/getfile/'+_GUID);
 
 //   HttpConnect_AddValueToLongString(m_service, '/loadfile', lAddUrl);
 
-  if timelog_status > 0 then timelog('  HttpConnect_EDISendRequestEx');
+   timelog('  HttpConnect_EDISendRequestEx');
   var lResponse : TPtr = HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFileUTF8, 'GET', isHTTPS, sHeader,0);
-  if timelog_status > 0 then timelog('  AFTER HttpConnect_EDISendRequestEx');
+   timelog('  AFTER HttpConnect_EDISendRequestEx');
 //  var lResponse : longint = HttpConnect_EDISendRequest(m_service, '', lToken, tmpFile, 'POST');
 
 var _HttpConnect_LastErrorText : string = '';
@@ -417,7 +429,7 @@ var _HttpConnect_LastErrorText : string = '';
   {
 
   _HttpConnect_LastErrorText := HttpConnect_LastErrorText(m_service);
-    if timelog_status > 0 then
+
      {
 
        timelog(' ERROR');
@@ -431,7 +443,13 @@ var _HttpConnect_LastErrorText : string = '';
        timelog('   isHTTPS    = ' + String(isHTTPS));
        timelog('   sHeader    = ' + sHeader   );
 
-      HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
+      var _File : string = GenerateNewFile+'_ResponseLogToFile.log';
+      HttpConnect_ResponseLogToFile(m_service, _File);
+      putfiletoclient(_File, false);
+      _File := GenerateNewFile+'_lResponse.log';
+       HttpConnect_SaveToFileEx(m_service, lResponse, _File, cpUTF8, false);
+      putfiletoclient(_File, false);
+
      }
     Exit;
   }
@@ -444,18 +462,18 @@ var _HttpConnect_LastErrorText : string = '';
   var jObjectResponse : TPtr;
   jObjectResponse := HttpConnect_JSONObjectByLongString(m_service, lResponse);
 
-  if timelog_status > 0 then timelog('HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
-  if timelog_status > 0 then timelog('  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
+   timelog('HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
+   timelog('  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
 
    var _res_urlFile    : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'url');
- if timelog_status > 0 then timelog('  _res_urlFile ' + _res_urlFile);
+  timelog('  _res_urlFile ' + _res_urlFile);
    var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'message');
- if timelog_status > 0 then timelog('  _sRESMESSAGE ' + _sRESMESSAGE);
+  timelog('  _sRESMESSAGE ' + _sRESMESSAGE);
    var _sRESSTATUS  : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'status');
- if timelog_status > 0 then timelog('  _sRESSTATUS ' + _sRESSTATUS);
+  timelog('  _sRESSTATUS ' + _sRESSTATUS);
 
 
- if timelog_status > 0 then HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
+  HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
 
   HttpConnect_JSONObjectDestroy(m_service, jObjectResponse);
   HttpConnect_DestroyLongString(m_service,lAddUrl);
@@ -470,10 +488,9 @@ var _HttpConnect_LastErrorText : string = '';
 
   _urlFile := _res_urlFile;
 
- if timelog_status > 0 then {
-    timelog('GetURL_FROM_API_ERPPNATIVE->END')
-   }
-   else {
+   timelog('GetURL_FROM_API_ERPPNATIVE->END');
+
+   if timelog_status = 0 {
      deletefile(_logHttpConnect);
      deletefile(_sfileout +'_JsonINwebrequest.txt');
      deletefile(_sfileout+'lResponse.txt');
@@ -485,12 +502,14 @@ var _HttpConnect_LastErrorText : string = '';
 
 function GetURL_FROM_API( _GUID : string; var _urlFile : string): boolean;
 {
+//  message('GetURL_FROM_API');
   result := false;
   _urlFile := '';
+    timelog(' function GetURL_FROM_API( _GUID = ' + _GUID);
 
    result := GetURL_FROM_API_ERPPNATIVE(_GUID  , _urlFile );
 
-   if timelog_status > 0 then timelog(' after GetURL_FROM_API_ERPPNATIVE  _urlFile = ' + _urlFile);
+    timelog(' after GetURL_FROM_API_ERPPNATIVE  _urlFile = ' + _urlFile);
   _urlFile := _urlFile;
  result := true;
 }
@@ -508,7 +527,7 @@ result := False;
 
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
       timelog('DeleteFileFromAPI -> HttpConnect_ResponseLogEnable -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
       HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
      }
@@ -521,25 +540,30 @@ result := False;
   var sHeader : string = 'Content-Type: application/json'; // техподдержка сказала '' передать 'Content-Type: application/json; charset=utf-8';
   var lAddUrl : TPtr = HttpConnect_CreateLongString(m_service);
 
-  if timelog_status > 0 then timelog(' DeleteFileFromAPI HttpConnect_AddValueToLongString(m_service');
+   timelog(' DeleteFileFromAPI HttpConnect_AddValueToLongString(m_service');
    HttpConnect_AddValueToLongString(m_service, '/fileservice/api/v1.0/deletefile/'+_GUID, lAddUrl);
-  if timelog_status > 0 then timelog(' DeleteFileFromAPI AFTER HttpConnect_AddValueToLongString(m_service');
-  if timelog_status > 0 then timelog('  /fileservice/api/v1.0/deletefile/_GUID = ' + '/fileservice/api/v1.0/deletefile//'+_GUID);
+   timelog(' DeleteFileFromAPI AFTER HttpConnect_AddValueToLongString(m_service');
+   timelog('  /fileservice/api/v1.0/deletefile/_GUID = ' +_GUID);
 
 
-  if timelog_status > 0 then timelog('DeleteFileFromAPI  HttpConnect_EDISendRequestEx');
-  var lResponse : TPtr = HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFileUTF8, 'DELETE', isHTTPS, sHeader,0);
-  if timelog_status > 0 then timelog('DeleteFileFromAPI  AFTER HttpConnect_EDISendRequestEx');
+   timelog('DeleteFileFromAPI  HttpConnect_EDISendRequestEx');
+  var lResponse : TPtr = HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFileUTF8, 'GET', isHTTPS, sHeader,0);
+   timelog('DeleteFileFromAPI  AFTER HttpConnect_EDISendRequestEx');
 
   var _HttpConnect_LastErrorText : string= '';
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
       _HttpConnect_LastErrorText := HttpConnect_LastErrorText(m_service);
       timelog('DeleteFileFromAPI -> HttpConnect_EDISendRequestEx -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
       message('DeleteFileFromAPI -> HttpConnect_EDISendRequestEx -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
 //      message('DeleteFileFromAPI -> result = ' + string(result));
-      HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
+      var _File : string = GenerateNewFile+'_ResponseLogToFile.log';
+      HttpConnect_ResponseLogToFile(m_service, _File);
+      putfiletoclient(_File, false);
+      _File := GenerateNewFile+'_lResponse.log';
+       HttpConnect_SaveToFileEx(m_service, lResponse, _File, cpUTF8, false);
+       putfiletoclient(_File, false);
      }
     Exit;
   }
@@ -548,16 +572,16 @@ result := False;
   var jObjectResponse : TPtr;
   jObjectResponse := HttpConnect_JSONObjectByLongString(m_service, lResponse);
 
-  if timelog_status > 0 then timelog('DeleteFileFromAPI HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
-  if timelog_status > 0 then timelog('DeleteFileFromAPI  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
+   timelog('DeleteFileFromAPI HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
+   timelog('DeleteFileFromAPI  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
 
    var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'message');
- if timelog_status > 0 then timelog('  _sRESMESSAGE ' + _sRESMESSAGE);
+  timelog('  _sRESMESSAGE ' + _sRESMESSAGE);
    var _sRESSTATUS  : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'status');
- if timelog_status > 0 then timelog('  _sRESSTATUS ' + _sRESSTATUS);
+  timelog('  _sRESSTATUS ' + _sRESSTATUS);
 
 
- if timelog_status > 0 then HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
+  HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
 
   HttpConnect_JSONObjectDestroy(m_service, jObjectResponse);
   HttpConnect_DestroyLongString(m_service,lAddUrl);
@@ -568,7 +592,10 @@ result := False;
       Message('Ошибка удаления файла файла/ _GUID=' + _GUID +
        ''#13''+_sRESMESSAGE +
        ''#13''+_HttpConnect_LastErrorText, error);
-     exit;
+       var _File : string = GenerateNewFile+'_lResponse.log';
+       HttpConnect_SaveToFileEx(m_service, lResponse, _File, cpUTF8, false);
+       putfiletoclient(_File, false);
+      exit;
     }
   result := True;
 }
@@ -580,23 +607,33 @@ var _fileDest : string = GetNameFromURL(_URL);
 
 if _fileName <> '' then _fileDest := _fileName;
 
- _fileDest := _fileDest+'.'+ GetExtFromURL(_URL);
+// _fileDest := _fileDest+'.'+ GetExtFromURL(_URL);
 
+  var _name : string= FILE_HREF.NAME;
+//  ConvertOemToUtf8(FILE_HREF.NAME, _name);
+//_name := replace(Oem2Ansi(FILE_HREF.NAME),' ','_');
+//  ConvertUtf8ToOem(FILE_HREF.NAME, _name);
+//  message('_fileDest='+_name +
+//   ''#13''+ 'FILE_HREF.NAME ='+ FILE_HREF.NAME);
+
+ _fileDest := _fileDest +'_'+_name +'.' + GetExtFromURL(_URL); //+'_'+replace(Oem2Ansi(FILE_HREF.NAME),' ','_');
+// _fileDest := _fileDest +'_'+replace(Oem2Ansi(FILE_HREF.NAME),' ','_')+'.' + GetExtFromURL(_URL); //;
+// _fileDest := _fileDest +'.' + GetExtFromURL(_URL); //+'_'+replace(Oem2Ansi(FILE_HREF.NAME),' ','_');
 
   VerifyPathName(_Dir, true); // создаем путь, если нет его
 
-  if timelog_status > 0 then timelog('GetFileOnDiskByURL -> _URL = '+_URL);
-  if timelog_status > 0 then timelog('GetFileOnDiskByURL -> _Dir = '+_Dir);
+   timelog('GetFileOnDiskByURL -> _URL = '+_URL);
+   timelog('GetFileOnDiskByURL -> _Dir = '+_Dir);
   _fileDest := _Dir + _fileDest;
 
-  if timelog_status > 0 then timelog('GetFileOnDiskByURL -> _fileDest = '+_fileDest);
+   timelog('GetFileOnDiskByURL -> _fileDest = '+_fileDest);
   var _HttpAPI  : string = sgettune('FILESREF.HREF_PATHAPI');
   var m_service : TPtr ;
    m_service := HttpConnect_CreateEx(_HttpAPI, '', '', true);
    HttpConnect_ResponseLogEnable(m_service);
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
       timelog('GetFileOnDiskByURL -> HttpConnect_ResponseLogEnable -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
       HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
      }
@@ -613,21 +650,25 @@ if _fileName <> '' then _fileDest := _fileName;
                                                             );
  if (HttpConnect_LastError(m_service) <> 0)
   {
-    if timelog_status > 0 then {
+     {
       timelog('GetFileOnDiskByURL -> HttpConnect_DownloadFileFromURLEx -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
-      message('GetFileOnDiskByURL -> HttpConnect_DownloadFileFromURLEx -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service))
+      message('GetFileOnDiskByURL -> HttpConnect_DownloadFileFromURLEx -> HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
       HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
      }
     Exit;
   }
 
-  if timelog_status > 0 then timelog('GetFileOnDiskByURL -> _fileNameZip='+_fileNameZip);
+   timelog('GetFileOnDiskByURL -> _fileNameZip='+_fileNameZip);
 
-  if CopyFile(_fileNameZip , _fileDest) {
+//  if CopyFile(_fileNameZip , _fileDest)
+
+  if CopyMoveFile(_fileNameZip , _fileDest, true, ecmfServerFrom + ecmfClientTo ) {
      result := _fileDest;
+   } else {
+     message('ошибка копирования файла на клиента');
    }
 
-  if timelog_status > 0 then {
+   if timelog_status > 0 {
         timelog('GetFileOnDiskByURL->result='+result);
         HttpConnect_ResponseLogToFile (m_service, _logHttpConnect);
      }
@@ -642,13 +683,13 @@ Function GetFileOnDiskByGuid( _GUID : string; _Dir : string; _fileName : string 
 {
   _Dir := addbackslash(_Dir);
 
-  if timelog_status > 0 then  timelog('GetFileOnDiskByGuid: _GUID = '+_GUID+'| _Dir = '+_Dir+' | _fileName = '+_fileName);
+    timelog('GetFileOnDiskByGuid: _GUID = '+_GUID+'| _Dir = '+_Dir+' | _fileName = '+_fileName);
 
   result := '';
   var _URL : string ='';
   if not GetURL_FROM_API( _GUID , _URL) then exit;
 
-  if timelog_status > 0 then timelog('GetFileOnDiskByGuid: after GetURL_FROM_API _URL = ' + _URL);
+   timelog('GetFileOnDiskByGuid: after GetURL_FROM_API _URL = ' + _URL);
 
 //Функция скачивания с указанного адреса aURL файла в директорию aDirectory с именем в формат 'yyyymmdd_hhmmss.zip'. Результат - Имя скаченого файла
  result :=GetFileOnDiskByURL( _URL, _Dir, _fileName);
@@ -665,14 +706,14 @@ Function Add_File(
   wTableMain    := _wTable;
   cRecDoc:=_cRec;
 
-  if timelog_status > 0 then {
+   {
      timelog('File_hRef->Add_File _wTable  ='+ _wTable);
      timelog('File_hRef->Add_File _cRec    ='+ _cRec   );
      timelog('File_hRef->Add_File _sfile   ='+ _sfile  );
     }
   if not FileExist(_SFile) then
   {
-    if timelog_status > 0 then timelog('File_hRef->Add_File не нашли файл');
+     timelog('File_hRef->Add_File не нашли файл');
     Exit;
   }
   var _Name, _Ext, _GUID : String = '';
@@ -696,9 +737,9 @@ Function Add_File(
   Result:=( insert current File_hRef=tsok);
 
   if not Result {
-   if timelog_status > 0 then timelog('MR_File_hRef->ошибка вставки в MR_File_hRef');
+    timelog('MR_File_hRef->ошибка вставки в MR_File_hRef');
   }
-  if timelog_status > 0 then timelog('MR_File_hRef->Add_File Finish');
+   timelog('MR_File_hRef->Add_File Finish');
 } //Function Add_File(
 
 
@@ -800,13 +841,14 @@ cmOK:
   var sFile_New :string = '';
   sFile_New:=GetFileName('*.*','Выберите файл для добавления');
 //        message(sFile_New)
-  if timelog_status > 0 then timelog('cmOK sFile_New = ' + sFile_New)
+   timelog('cmOK sFile_New = ' + sFile_New);
   if sFile_New<>'' {
    if (IsJSONClient ) {
         GetFileFromClient(sFile_New,false);
         sFile_New := ConvertClientPathToSrv(sFile_New);
-          if timelog_status > 0 then timelog('cmOK ConvertClientPathToSrv sFile_New = ' + sFile_New)
+           timelog('cmOK ConvertClientPathToSrv sFile_New = ' + sFile_New)
       }
+
     Add_File(wTableMain, cRecDoc,sFile_New);
     ReReadRecord(#File_hRef);
     if getlast File_hRef =tsok {}
@@ -818,17 +860,28 @@ cmCheckField:
 }
 //--------------------
 cmDefault:
-{ var aDosCode, aErrorCode: integer;
+{
+//  message('cmDefault');
+  var aDosCode, aErrorCode: integer;
 
   var _URL_FILE : string = '';
    if not GetURL_FROM_API(File_hRef.GUIDAPI, _URL_FILE)
     {
-      if timelog_status > 0 then timelog('File_hRef.GUIDAPI = '+File_hRef.GUIDAPI+' GetURL_FROM_API(File_hRef.GUIDAPI, _URL_FILE) _URL_FILE = '+_URL_FILE);
+       timelog('ERROR File_hRef.GUIDAPI = '+File_hRef.GUIDAPI+' GetURL_FROM_API(File_hRef.GUIDAPI, _URL_FILE) _URL_FILE = '+_URL_FILE);
       stop; abort; exit;
     }
+   {
+    timelog('OK File_hRef.GUIDAPI = '+File_hRef.GUIDAPI+' GetURL_FROM_API(File_hRef.GUIDAPI, _URL_FILE) _URL_FILE = '+_URL_FILE);
+    timelog('before convert _URL_FILE='+_URL_FILE);
+    ConvertUtf8ToOem(_URL_FILE,_URL_FILE);
+    timelog('after  convert _URL_FILE='+_URL_FILE);
+   }
+
   var _filename : string = GetFileOnDiskByURL( _URL_FILE, getoutdir);
+
   if (IsJSONClient ) {
-       PutFileToClient(_filename,false);
+     if timelog_status > 0 then PutFileToClient(getlogname,false);
+     PutFileToClient(_filename,false);
    }
    else{
      aDosCode:= ExecProgram('', _filename, 'Просмотр файла', pfKeepWindow+pfDontWait, aErrorCode);
@@ -864,9 +917,7 @@ Function InitParam(
   set cRecDoc    := _cRec      ;   // выбранная запись
   set sWinTitle  := _sWinTitle;
 
-    if timelog_Status>0
     timelog('MR_File_hRef->InitParam'
-//     +',wIntMode='  +string(wIntMode)
      +',wTableMain='+string(_wTable)
      +',cRecDoc='   +string(_cRec)
     );
@@ -930,6 +981,7 @@ cmDeleteRecord :
         if DeleteFileFromAPI(File_hRef.GUIDAPI) {
             delete current File_hRef;
         }
+        if File_hRef.GUIDAPI = '' then delete current File_hRef;
      }
      else {
         File_hRef.isArch:=2;
@@ -944,31 +996,9 @@ end; //TableEvent table MR_File_hRef
 //****************************************
 // События интерфейса
 //****************************************
-HandleEvent
-//--------------------
-cmInit:
-{
-  if timelog_status > 0 then timelog('MR_File_hRef->cmInit');
-  InitParam(
-      wTableMain
-    , cRecDoc
-    );
-
-   commands[1]:=cmInsert;
-   commands[2]:=cmInsertRecord; 
-   commands[3]:=cmDeleteRecord; 
-   commands[4]:=cmUpDateRecord; 
-   commands[5]:=cmDelete; 
-   commands[6]:=cmPick;
-
-  SetCtxStatus(false,0);
-  ShowWindowFile;
-  CloseInterface(cmDone);
-}
-end;//HandleEvent
 end.
 
-HotI_FILESREF_File_hRefi Menu
+HotI_FILESREF_File_hRef Menu
 {
   - 'отобразить/скрыть архивные',cmValue1,''                         ,hcNoContext,'',,sci1Esc;
 }

@@ -107,7 +107,7 @@
 			<Marker FileName="SOURCE\FilesRef\MR_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="494" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="Source\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="1003" NumIndex="1" MarkerType="mtNumBookmark" Comment="if timelog_status &gt; 0 then timelog('MR_File_hRef-&gt;Add_File не нашли файл');"/>
 			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="411" NumIndex="2" MarkerType="mtNumBookmark" Comment="timelog('   lToken     = ' + lToken    );"/>
-			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="790" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
+			<Marker FileName="Source\FILESREF_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="792" NumIndex="1" MarkerType="mtNumBookmark" Comment="message(sFile_New)"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -117,20 +117,21 @@
 			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="227"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Users\Дмитрий\YandexDisk\Work\Галактика\Сургут\FilesRef\FilesRef.prj" DateTimeStart="45191,5827021643" DateTimeCompile="8,71875017764978E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\FilesRef\FilesRef\FilesRef.prj" DateTimeStart="45409,4529004745" DateTimeCompile="5,09143574163318E-5" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="истема лицензирования: Ошибка проверки аппаратного ключа Сервер аппаратного ключа не может обратиться к аппаратному ключу ! Дальнейшая работа нев" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtError" MessageText="истема лицензирования: Ошибка проверки аппаратного ключа Сервер аппаратного ключа не может обратиться к аппаратному ключу ! Дальнейшая работа нев" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtError" MessageText="истема лицензирования: Ошибка проверки аппаратного ключа Сервер аппаратного ключа не может обратиться к аппаратному ключу ! Дальнейшая работа нев" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="22.09.2023 13:59:13"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Не найден файл контроля лицензий &quot;C:\Temp\Viper\ddd!.vpp&quot; ! Без него не будет проверяться дата окончания абонентского обслуживания!" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="43" SourceColumn="1"/>
+					<CompileMessage MessageType="mtError" MessageText="Нет такой функции, поля или метода : ISJSONCLIENT" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="838" SourceColumn="20"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="27.04.2024 10:52:15"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="FilesRef.prj" PosX="28" PosY="61" OpenEditor="True"/>
+			<File Name="FilesRef.prj" PosX="1" PosY="50" OpenEditor="True" Active="True"/>
 			<File Name="..\..\..\..\GAL\Frm\Inc\GloTypes.inc" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="Source\FILESREF_File_hRef.Vip" PosX="29" PosY="347" OpenEditor="True" Active="True"/>
+			<File Name="Source\FILESREF_File_hRef.Vip" PosX="22" PosY="11" OpenEditor="True"/>
+			<File Name="Source\Algoritm_File_hRef.vip" PosX="60" PosY="18" OpenEditor="True"/>
+			<File Name="Source\FILESREF_File_hRef.Vih" PosX="22" PosY="13" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="FilesRef.prj" Priority="0">

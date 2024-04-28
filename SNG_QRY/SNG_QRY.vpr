@@ -94,17 +94,17 @@
 		<FileList>
 			<File Name="SNG_QRY.prj" PosX="31" PosY="50" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="37" PosY="15" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.vip" PosX="19" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vih" PosX="44" PosY="6" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="22" PosY="844" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="85" PosY="1059" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="35" PosY="51" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_Base.vip" PosX="80" PosY="349" OpenEditor="True"/>
 			<File Name="..\SNG_QUE\vip\QUE_BASE.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.pan" PosX="47" PosY="144" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.pan" PosX="118" PosY="163" OpenEditor="True" Active="True"/>
 			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="41" PosY="138" OpenEditor="True"/>
 			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\AdrFunc.vih" PosX="105" PosY="760" OpenEditor="True"/>
-			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="68" PosY="36" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="33" PosY="9" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

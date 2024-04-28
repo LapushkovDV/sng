@@ -180,7 +180,8 @@ def get_file(file_uuid):
 
     file_name = file_record[0]
     file_ext = file_record[1]
-    tmp_file_name = str(uuid.uuid4())+'_'+file_name+'.'+file_ext
+    # tmp_file_name = str(uuid.uuid4())+'_'+file_name+'.'+file_ext
+    tmp_file_name = str(uuid.uuid4()) + '.' + file_ext
     file_path_dst = dirpathtmp+tmp_file_name
     try:
         shutil.copyfile(file_path_src, file_path_dst)

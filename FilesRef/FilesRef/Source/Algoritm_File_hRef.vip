@@ -86,7 +86,6 @@ Function InitInter(Var pt: TRecAcc): Boolean;
 
 Function getwtablebyTypeCpNrec(_typeCpNrec : word) : word;
 {
-  message('getwtablebyTypeCpNrec _typeCpNrec = ' + _typeCpNrec);
   result := _typeCpNrec;
   case _typeCpNrec of
     1101 // До снабжение
@@ -187,7 +186,29 @@ Function RunInter(wflag: Word; Var pt: TRecAcc): Boolean;
    }
   _TypeCpNrec := pt.TypeCpNrec;
   _cpNrec     := pt.cpNrec;
-   var pFILESREF_File_hRef : FILESREF_File_hRefi;
+
+
+
+   var pFILESREF_File_hRef : FILESREF_File_hRef;
+    if (NullVipRef(pFILESREF_File_hRef))
+    _try {
+        if (not LoadVipRef(pFILESREF_File_hRef, 'C_FILESREF::FILESREF_File_hRef')) {
+         message('Не удалось загрузить C_FILESREF::FILESREF_File_hRef',error);
+        }
+     }
+/*    _except
+      on ExPathNotFound: Message('1. Нормально (Исключение ExPathNotFound)',0);
+      on ExFile        : Message('НЕ ДОЛЖНО БЫТЬ (Исключение ExFile) 1',0);
+*/
+    _except else{}
+//      on ExObjIfcBadVar : message('переменная не является ссылкой на VIP-интерфейс.');
+//      on ExObjIfcNoLoad : message('невозможно загрузить интерфейс.');
+//      on ExObjIfcNoImpl : message('VIP-интерфейс не реализует нужный OBJ-интерфейс.');
+
+    _finally {};
+
+
+//      pFILESREF_File_hRef.EnableTimeLog;
 
       pFILESREF_File_hRef.InitParam(
         getwtablebyTypeCpNrec(_TypeCpNrec) //_wTable    : word; указать код таблицы документа системы
