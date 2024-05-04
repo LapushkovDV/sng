@@ -66,11 +66,12 @@ Create Table QRY_Instance_FLD_LVL "Уровень вложенности поля запроса"
   With Replace
   With TableOptions Branched
 (
-  NRec          : comp   "Номер записи"
-, cInstance     : ref(QRY_Instance) "Ссылка на экземпляр запроса"
-, cLevel        : comp "Ссылка на вышестоящий"
-, fld_json_name : string "Наименование"
-, Description   : string "Описание"
+  NRec           : comp   "Номер записи"
+, cInstance      : ref(QRY_Instance) "Ссылка на экземпляр запроса"
+, cLevel         : comp "Ссылка на вышестоящий"
+, fld_json_name  : string "Наименование"
+, Description    : string "Описание"
+, NotAlwaysArray : boolean "Не всегда создавать массив"
 )
 with Index
 (

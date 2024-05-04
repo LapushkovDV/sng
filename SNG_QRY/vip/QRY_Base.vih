@@ -18,13 +18,14 @@ public:
 #end
 
 #doc
-Записать в лог строку.
-получить путь на лог-файл можно GetLogFile
+Записать в длинную строку лог.
+Получить путь на лог-файл можно GetLogFile
 #end
-Procedure MyLog(_str: string; _needlog : boolean = false);
+Procedure MyLog(_str: string);
 
 #doc
-Получить путь на текущий файл логов
+Выгружает на диск длинную строку с логом и очищает строку.
+Возвращается путь на выгруженный файл
 #end
 function GetLogFile : string;
 
@@ -68,6 +69,17 @@ _fcQRY_INST - ссылка на экземпляр запроса
 _fcurINST_FLD_LVL - nrec текущей записи уровня вложенности (для того что бы не выбрать саму себя)
 #end
 function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp;
+
+#doc
+Отключить логирование
+#end
+procedure disableLog;
+
+#doc
+Включить логирование
+#end
+procedure enableLog;
+
 
 end;
 

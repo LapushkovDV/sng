@@ -338,7 +338,7 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; 
        tForExportJSON.cParent := _cParentJSON;
       insert current tForExportJSON;
       _cnt++;
-      if _cnt mod 1000 = 0 then mylog('insert current tForExportJSON; _cnt = ' + _cnt);
+      //if _cnt mod 1000 = 0 then mylog('insert current tForExportJSON; _cnt = ' + _cnt);
     }
   result := tForExportJSON.nrec;
 }
@@ -424,10 +424,10 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 
   _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
     //mylog('tForExportJSON.cParent = '+tForExportJSON.cParent);
-    if isFound = false {
-      JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
-      isFound := true;
-     }
+     if isFound = false {
+        JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
+        isFound := true;
+      }
 
    if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
    JSONObj_ArrayOneElement := HttpConnect_JsonObjectCreate(m_service);
@@ -464,14 +464,25 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
           }
     }
 
-    HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
+      HttpConnect_JsonArrayAddObject(m_service, JSONObj_Array, JSONObj_ArrayOneElement);
+
     if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
     if getfirst QRY_INST_FLD_LVL_LOOP_2 where ((_cLVL == QRY_INST_FLD_LVL_LOOP_2.nrec)) <> tsOK then exit;
     _fld_json_name := QRY_INST_FLD_LVL_LOOP_2.fld_json_name;
     // mylog('_fld_json_name = ' + _fld_json_name)
    }
-
- result := JSONObj_Array;
+/*
+        mylog('QRY_INST_FLD_LVL_LOOP_2.fld_json_name = '+QRY_INST_FLD_LVL_LOOP_2.fld_json_name+
+        + ', QRY_INST_FLD_LVL_LOOP_2.NotAlwaysArray = ' + string(QRY_INST_FLD_LVL_LOOP_2.NotAlwaysArray)+
+        + ', HttpConnect_JsonCount(m_service, JSONObj_Array) ='+ string(HttpConnect_JsonCount(m_service, JSONObj_Array))
+             );
+*/
+    if QRY_INST_FLD_LVL_LOOP_2.NotAlwaysArray = True and HttpConnect_JsonCount(m_service, JSONObj_Array) = 1 { // стоит признак, что может быть не массив и в массиве 1 элемент
+        result := JSONObj_ArrayOneElement;
+      }
+      else {
+         result := JSONObj_Array;
+      }
 }
 
 
@@ -494,7 +505,8 @@ function generateJSONFromtAbstrResultValues : tptr; {
    var _fld_json_name : string = '';
    var JSONObj_Array : tptr;
    JSONObj := HttpConnect_JsonObjectCreate(m_service);
-       _loop QRY_INST_FLD_LVL_LOOP_1 where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP_1.cInstance)) {
+       _loop QRY_INST_FLD_LVL_LOOP_1 where ((_cQRY_INST == QRY_INST_FLD_LVL_LOOP_1.cInstance
+                                                 and 0h == QRY_INST_FLD_LVL_LOOP_1.cLevel(noindex) )) {
               JSONObj_Array := GenerateJSONfromtForExportJSON(0h, QRY_INST_FLD_LVL_LOOP_1.nrec, _fld_json_name);
               if _fld_json_name <> '' then {
               HttpConnect_JsonObjectAddObject(m_service, JSONObj, _fld_json_name, JSONObj_Array);
@@ -650,13 +662,13 @@ Procedure Free_QRY_ALG_USER;
 function ReplaceByValues(Formula:string; _value: string; _strParameter: string = ''):string; cacheable;
 {
   Fill_Tmp_alg;
-//  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
+  mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
   Formula := replace(Formula,'%VALUE%',_value);
 
 
   Result := Formula;
   mylog('ReplaceByValues Formula = ' + Formula);
-//   mylog('function ReplaceByValues  replace(Formula) ='+ Formula);
+  mylog('ReplaceByValues  replace(Formula) ='+ Formula);
   _Loop Tmp_Alg ordered by Index Tmp_Alg02
   {
      //нужно вычислять
@@ -669,6 +681,7 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
         _SubKey:=')%'
       }
 //if timelog_Status>2 then timelog('_Key='+_Key+'; _SubKey='+_SubKey);
+      mylog('ReplaceByValues _Key='+_Key+'; _SubKey='+_SubKey);
       do {
         var ii_first,_Len:word;
         ii_first:=pos(_Key,upcase(Result));
@@ -858,7 +871,59 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
           var _WorkAddInfo : boolean = boolean(ParseWord(_Parameter,2,','));
           var _NCase   : word = word(ParseWord(_Parameter,3,','));
           var  _iSPFG : SpecialPropetiesForG;
-          _res := ''''+ _iSPFG.GetRollCatalogsByPadeg(_cCatalogs,_WorkAddInfo,_NCase)+'''';
+          _res := _iSPFG.GetRollCatalogsByPadeg(_cCatalogs,_WorkAddInfo,_NCase); // в принципе норм функция работает, оставляем ее
+/*          mylog('GetRollCatalogsByPadeg _cCatalogs  =' +string(_cCatalogs));
+          mylog('GetRollCatalogsByPadeg _WorkAddInfo=' +string(_WorkAddInfo));
+          mylog('GetRollCatalogsByPadeg _NCase      =' +_NCase);
+
+          if GetFirst FastFirstRow cat_search where ((_cCatalogs == cat_search.NRec)) = tsOk {
+            Case _NCase of
+             1 : _res := cat_search.name
+             2 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Родительный падеж')
+             3 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Дательный падеж')
+             4 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Винительный падеж')
+             5 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Творительный падеж')
+             6 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Предложный падеж')
+            end;
+
+           mylog('GetRollCatalogsByPadeg sgetattr =' +_res);
+
+          if _res = '' {
+                   if instr('-',cat_search.name) <> 0 { //для дефисов склоняем оба слова
+                      var _Name_for_Decl : string;
+                      var _i : byte = 0;
+                       do {
+                         _i++;
+                         _Name_for_Decl:= extractdelimitedword(cat_search.name,_i,' '); // перебираем слова и ищем -
+                          if _Name_for_Decl = '' then break;
+
+                          mylog('GetRollCatalogsByPadeg "-" _Name_for_Decl ="' +_Name_for_Decl+'"');
+
+                          if instr('-',_Name_for_Decl) <> 0 then {
+                            _Name_for_Decl := extractdelimitedword(_Name_for_Decl,1,'-')+'-'+extractdelimitedword(_Name_for_Decl,2,'-');
+                          }
+                         _res := _res + ' '+_Name_for_Decl;
+                       } while true
+                     _res := trim(_res);
+                   }
+                   else {
+                     var _Name_for_Decl: string = extractdelimitedword(cat_search.name,1,' '); //склоняем только первое слово
+                    _res := trim(Odecl.NameDeclension(_Name_for_Decl, 1, _NCase));
+                     mylog('GetRollCatalogsByPadeg "" _Name_for_Decl1 ="' +_Name_for_Decl+'"');
+                      var _i : byte = 1;
+                       do {
+                         _i++;
+                         _Name_for_Decl:= extractdelimitedword(cat_search.name,_i,' '); // перебираем слова и ищем -
+                          if _Name_for_Decl = '' then break;
+                          mylog('GetRollCatalogsByPadeg "" _Name_for_Decl ="' +_Name_for_Decl+'"');
+                         _res := _res + ' '+_Name_for_Decl;
+                       } while true
+                     _res := trim(_res);
+                   }
+                 }
+          }
+*/
+          _res := ''''+ _res+'''';
 
          }
         '%USER_INTERFACE(':
@@ -888,9 +953,9 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
             Break;
           } while True;
         }
-
+        //else break;
         end;
-//        mylog('_Res='+_Res);
+
         Result:=Substr(Result,1,ii_first-1)
                +_Res
                +Substr(Result,ii_first+Length(_Key)+if(_len=0,0,_Len+2),255);
@@ -902,7 +967,7 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
         //Break;
       } while True;
   } //_Loop Tmp_Alg ordered by Imdex Tmp_Alg02
-  //mylog('ReplaceByValues = ' +Result);
+  mylog('ReplaceByValues Result = ' +Result);
 } //function ReplaceByValues(Formula:string):string;
 
 function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) : string; cacheable; {
@@ -1005,6 +1070,7 @@ function replaceMacro(_FieldName : string): string; {
 }
 function ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var _iRes : iResultSet; var _err : string): boolean;{
  result := false;
+ ClearFuncCache; // при каждом запросе будем очищать
  if getfirst QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
    _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
    mylog(_err);

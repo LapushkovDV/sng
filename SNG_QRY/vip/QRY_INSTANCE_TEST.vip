@@ -58,6 +58,9 @@ handleevent // фейса
   var iQRY_OUT : QRY_OUT new;
   var _err : string = '';
   var FNservice, _JSON : tptr;
+
+  iQRY_OUT.enableLog;
+
   if not iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE,_RootTableNrec, FNservice, _JSON, _err, _strParameter) {
    message('Ошибка построения запроса',error);
 
@@ -75,6 +78,9 @@ handleevent // фейса
   var iQRY_OUT : QRY_OUT new;
   var _err : string = '';
   var FNservice, _JSON : tptr;
+
+  iQRY_OUT.enableLog;
+
   if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE,_addWhereString, FNservice, _JSON, _err, _strParameter){
 
    message('Ошибка построения запроса',error);

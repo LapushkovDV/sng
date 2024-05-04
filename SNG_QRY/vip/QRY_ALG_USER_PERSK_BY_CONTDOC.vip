@@ -29,13 +29,13 @@ create view
     ContDoc.nRec
   from
     ContDoc,
-    Persons,
+    // Persons,
     Appointments,
     AppHist,
     KlKatego
   where ((
         cNrec == ContDoc.nRec
-    and ContDoc.person == Persons.nRec
+    // and ContDoc.person == Persons.nRec
     and ContDoc.cStr == Appointments.nRec
     and Appointments.nRec == AppHist.cAppoint
     and AppHist.cSpr4 == KlKatego.nRec
@@ -46,12 +46,12 @@ Function Calc(_Parameter:string):string; {
   
   cNrec := comp(_Parameter);
 
-  if (getFirst fastfirstrow ContDoc <> tsOk or getFirst fastfirstrow Persons <> tsOk) {
+  if (getFirst fastfirstrow ContDoc <> tsOk) {
     result := 'N/A';
     exit;
   }
 
-  case Persons.cSovm of
+  case ContDoc.cNew2 of
     2: {
       result := '06';
       exit;
@@ -62,9 +62,7 @@ Function Calc(_Parameter:string):string; {
     } 
   end; //case   
 
-  if (getFirst fastfirstrow Appointments = tsOk 
-		and getFirst fastfirstrow AppHist = tsOk 
-		and getFirst fastfirstrow KlKatego = tsOk) {
+  if (isValid(#Appointments) and isValid(#AppHist) and isValid(#KlKatego)) {
     result := lPadCh(trim(KlKatego.kod),'0',2);
   } else {
     result := 'N/A';

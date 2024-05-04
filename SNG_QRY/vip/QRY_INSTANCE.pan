@@ -55,8 +55,9 @@ browse brEditQRY_INST_FLD_LVL;
  table QRY_INST_FLD_LVL;
   Fields
 //   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], NoProtect, NoPickButton;
-   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'          : [8], NoProtect, NoPickButton;
-   QRY_INST_FLD_LVL.Description   'Описание',''            : [12], NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL.NotAlwaysArray   'Может быть','одиночной секцией' : [4], checkBox,NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL.fld_json_name    'Секция','JSON'          : [8], NoProtect, NoPickButton;
+   QRY_INST_FLD_LVL.Description      'Описание',''            : [12], NoProtect, NoPickButton;
    QRY_INST_FLD_LVL_UP.fld_json_name 'Секция','Родитель'   : [8], Protect, PickButton;
    QRY_INST_FLD_LVL_UP.Description   'Описание','Родитель' : [12], Protect, PickButton;
 end;
@@ -223,6 +224,8 @@ cmValue2:{
   if getfirst QRY_INST_TMPLT <> tsOK {
    message('Не указан шаблон',error);
   }
+
+  iQRY_OUT.enableLog;
 
   if not iQRY_OUT.TestQueryInstance(QRY_INST.code, _err) {
    message('Ошибка построения запроса',error);

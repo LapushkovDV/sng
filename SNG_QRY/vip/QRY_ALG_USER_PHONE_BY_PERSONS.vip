@@ -113,8 +113,8 @@ var
 
   delete all tblComm;
 
-  _loop Communications where ((Persons.nRec  == Communications.Person
-                         and   Catalogs.nRec == Communications.ComType))
+  _loop nocache Communications where ((Persons.nRec  == Communications.Person
+                                 and   Catalogs.nRec == Communications.ComType))
   {
     insert tblComm set nRec := Communications.nRec,
                        LastDate := Communications.Atl_lastDate,

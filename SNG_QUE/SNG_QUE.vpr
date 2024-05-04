@@ -101,7 +101,7 @@
 			<File Name="vip\QUE_BASE.vip" PosX="1" PosY="301" OpenEditor="True"/>
 			<File Name="vip\QUE_SenderSystems.vip" PosX="77" PosY="82" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="49" PosY="20" OpenEditor="True" Active="True"/>
+			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="41" PosY="10" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

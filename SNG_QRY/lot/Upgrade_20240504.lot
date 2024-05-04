@@ -1,0 +1,8 @@
+#include Fld_decl.inc
+
+//GLX-1784
+Alter table QRY_Instance_FLD_LVL
+add
+(
+  NotAlwaysArray : boolean "Не всегда создавать массив"
+);

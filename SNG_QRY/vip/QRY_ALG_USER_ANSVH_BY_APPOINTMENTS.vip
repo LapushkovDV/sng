@@ -30,14 +30,16 @@ create view
   from
     Appointments,
     AppHist,
-    Catalogs,
-    ContDoc
+    ContDoc,
+    Persons,
+    Catalogs
   where ((
         cNrec == Appointments.nRec
     and Appointments.nRec == ContDoc.cStr
     and Appointments.nRec == AppHist.cAppoint
     and ContDoc.typeOper == AppHist.codOper
-    and AppHist.cRez2 == Catalogs.nRec
+    and ContDoc.person == Persons.nRec
+    and Persons.jobNature == Catalogs.nRec 
   ))
 ;
 
@@ -48,9 +50,8 @@ function calc(_Parameter:string): string; {
   result := '';
 
   if (getFirst fastFirstRow Appointments <> tsOk 
-      or getFirst fastFirstRow ContDoc <> tsOk
-      or getFirst fastFirstRow AppHist <> tsOk 
-      or getFirst fastFirstRow Catalogs <> tsOk) {
+      or not isValid(#ContDoc) or not isValid(#AppHist)
+      or not isValid(#Persons) or not isValid(#Catalogs) ) {
     exit;
   }
 

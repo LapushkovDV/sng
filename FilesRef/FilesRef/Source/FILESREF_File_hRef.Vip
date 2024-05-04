@@ -662,10 +662,13 @@ if _fileName <> '' then _fileDest := _fileName;
 
 //  if CopyFile(_fileNameZip , _fileDest)
 
-  if CopyMoveFile(_fileNameZip , _fileDest, true, ecmfServerFrom + ecmfClientTo ) {
+  if CopyMoveFile(_fileNameZip, _fileDest, true, ecmfServerFrom + ecmfClientTo ) {
      result := _fileDest;
    } else {
-     message('ошибка копирования файла на клиента');
+     message('Ошибка копирования файла на клиента'+
+     ''#13'' + _fileNameZip +
+     ''#13'' + '-> '+_fileDest ,error);
+     timelog('ошибка копирования файла на клиента: _fileNameZip'+_fileNameZip+' -> _fileDest='+_fileDest);
    }
 
    if timelog_status > 0 {

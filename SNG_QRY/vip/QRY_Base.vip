@@ -46,6 +46,10 @@ with index
 
 create view
 var
+      _needlog : boolean;
+     _LongStringLog : tptr;
+     _serviceLog    : TPTR;
+
      _logQRY_OUT : string; //глобальная
      _cQRY_TMPLT
    , _cQRY_INST
@@ -323,15 +327,27 @@ Function GenerateNewFile: string;
 
 function GetLogFile : string;
 {
-  if _logQRY_OUT = '' then _logQRY_OUT := GenerateNewFile+'.log';
+  _logQRY_OUT := GenerateNewFile+'.log';
+  HttpConnect_SaveToFileEx(_serviceLog, _LongStringLog, _logQRY_OUT, cpUTF8, false);
   result := _logQRY_OUT;
 }
-
-Procedure MyLog(_str: string; _needlog : boolean = false);
+procedure disableLog; {
+  HttpConnect_DestroyLongString(_serviceLog, _LongStringLog);
+  HttpConnect_Free(_serviceLog);
+  set _needlog := false;
+}
+procedure enableLog; {
+   disableLog;
+  _serviceLog    := HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  _LongStringLog := HttpConnect_CreateLongString(_serviceLog);
+  set _needlog := true;
+}
+Procedure MyLog(_str: string);
 {
-//  if isvalidall(tnQRY_TMPLT)
-//  if not (QRY_TMPLT.isLogging or _needlog) then exit;// debud
-  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+  if not _needlog then exit;
+  _str := DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': '+_str + ''#13'';
+  HttpConnect_AddValueToLongString(_serviceLog, _str, _LongStringLog);
+//  LogStrToFile(GetLogFile, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
 }
 
 function getNameDataType(_type : byte) : string; cacheable;
