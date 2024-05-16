@@ -29,8 +29,8 @@ end;
 handleevent
 cminit: {
   inherited::handleevent(cmInit);
-  set _premKTU := doGetAttr(coSys_nar, prms.mNrec, 'КТУ премия')
-  if _premKTU = 0 then _premKTU := 1
+  set _premKTU := doGetAttr(coSys_nar, prms.mNrec, 'КТУ премия');
+  if _premKTU = 0 then _premKTU := 1;
   rereadrecord;
 }
 end;

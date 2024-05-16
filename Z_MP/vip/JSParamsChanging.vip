@@ -4,7 +4,8 @@ alter interface JSParamsChanging
     var
      _ispremKTY : word = 0;
      _premKTY : double = 0;
-
+   from
+   PRNARYAD PRNARYAD_loop
   ;
 
 ExtendFormats ParametersScreen;
@@ -53,6 +54,9 @@ cminit: {
 }
 cmok :{
   doSetAttr(coSys_nar, prms.mNrec, 'КТУ премия', _premKTY);
+   _loop PRNARYAD_loop where ((prms.mNrec == PRNARYAD_loop.mnrec)) {
+     doSetAttr(coPRNARYAD, PRNARYAD_loop.nrec, 'КТУ премия', _premKTY);
+   }
   inherited::handleevent(cmok);
 }
 cmCheckField: {

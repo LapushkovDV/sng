@@ -1,0 +1,393 @@
+#include SNG_Edit.vih
+
+//************************************************************
+const
+end;
+Interface QRY_BASE 'QRY базовый объект';
+table struct tProhibitSymbols
+(
+ value : string
+)
+with index
+(
+ ind0 = value
+)
+;
+
+
+table struct tFields
+(
+   NAME       : string
+ , TITLE      : string
+ , NAMETBL    : string
+ , tableCode  : word
+ , DATATYPE   : string
+)
+with index
+(
+   ind0 = NAME
+)
+;
+
+create view
+var
+      _needlog : boolean;
+     _LongStringLog : tptr;
+     _serviceLog    : TPTR;
+
+     _logQRY_OUT : string; //глобальная
+     _cQRY_TMPLT
+   , _cQRY_INST
+   , _curINST_FLD_LVL : comp;
+ as select
+    QRY_TMPLT.nrec
+from
+    QRY_Template   QRY_TMPLT
+  , QRY_TemplateSP QRY_TMPLTSP
+  , QRY_Template   QRY_TMPLT_BR
+
+  , QRY_INSTANCE QRY_INST
+  , QRY_Instance_FLD QRY_INST_FLD
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_UP
+  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_FLD
+
+  , QRY_Template   QRY_INST_TMPLT
+  , QRY_TemplateSP QRY_INST_TMPLTSP
+
+
+//  , KatDoc KatDocWin
+  , x$files TblTMPLT
+  , x$files TblTMPLT_RB
+  , x$files TblINST
+  , x$files TblTMPLTSP
+  , x$files TblINST_TMPLTSP
+  , x$files
+  , x$files x$files_br
+  , x$fields
+
+  , tFields
+  , tProhibitSymbols
+ where ((                  root == QRY_TMPLT.nrec
+        and QRY_TMPLT.TABLECODE == TblTMPLT.XF$CODE
+
+    and QRY_TMPLT_BR.TABLECODE  == TblTMPLT_RB.XF$CODE
+
+             and QRY_TMPLT.nrec == QRY_TMPLTSP.cTmplt
+                         and 0 <<= QRY_TMPLTSP.npp
+     and  QRY_TMPLTSP.TABLECODE == TblTMPLTSP.XF$CODE
+
+     // связка для экземпляра запроса
+         and QRY_INST.nrec == QRY_INST_FLD.cInstance
+         and QRY_INST.nrec == QRY_INST_FLD_LVL.cInstance
+         and QRY_INST_FLD_LVL.cLevel == QRY_INST_FLD_LVL_UP.nrec
+          and QRY_INST_FLD.cLevel == QRY_INST_FLD_LVL_FLD.nrec
+              and QRY_INST.cTmplt == QRY_INST_TMPLT.nrec
+     and QRY_INST_TMPLT.TABLECODE == TblINST.XF$CODE
+          and QRY_INST_TMPLT.nrec == QRY_INST_TMPLTSP.cTmplt
+                           and 0 <<= QRY_INST_TMPLTSP.npp
+   and QRY_INST_TMPLTSP.TABLECODE == TblINST_TMPLTSP.XF$CODE
+       ))
+bounds byQRY_TMPLTNrec _cQRY_TMPLT == QRY_TMPLT.nrec
+
+bounds byQRY_INSTNrec _cQRY_INST == QRY_INST.nrec
+
+condition by_curINST_FLD_LVL QRY_INST_FLD_LVL.nrec <> _curINST_FLD_LVL
+
+;
+
+File MemoFile;
+procedure insert_notable_field(_NAME, _Title : string); {
+        Insert tFields set
+            tFields.NAME       := _NAME
+          , tFields.TITLE      := _Title
+          , tFields.NAMETBL    := 'NO TABLE'
+          , tFields.tableCode  := word(-1)
+          , tFields.DATATYPE   := ''
+        ;
+}
+procedure filltFieldsByTableCode(_tableCode : word; _SynonimName : string);
+{
+  if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK
+  _loop x$fields where (( _tableCode == x$fields.XE$FILECODE))
+    {
+        Insert tFields set
+            tFields.NAME       := x$fields.XE$NAME
+          , tFields.TITLE      := x$fields.XE$TITLE
+          , tFields.NAMETBL    := if (_SynonimName = '', x$files.XF$NAME, _SynonimName)
+          , tFields.tableCode  := _tableCode
+          , tFields.DATATYPE   := getNameDataType(x$fields.XE$DATATYPE)
+        ;
+    }
+}
+
+procedure insert_notable_fields;{
+    insert_notable_field(''''''          , 'EMPTY FIELD');
+    insert_notable_field('''%USERNAME%''', '%USERNAME% - макроподстановка в запрос текущего пользователя');
+}
+Procedure filltFields; {
+  delete all tFields;
+  if getfirst QRY_INST_TMPLT = tsOK {
+    filltFieldsByTableCode(TblINST.XF$CODE, '');
+    _loop QRY_INST_TMPLTSP {
+       filltFieldsByTableCode(TblINST_TMPLTSP.XF$CODE, QRY_INST_TMPLTSP.SynonimName);
+    }
+   insert_notable_fields;
+  }
+}
+
+window winSelectQRY_TEMPLATE 'Выбор шаблона запроса', cyan;
+browse brSelectQRY_TEMPLATE;
+ table QRY_TMPLT_BR;
+  Fields
+  QRY_TMPLT_BR.code     'Код' : [3] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT_BR.CODE)='');
+  QRY_TMPLT_BR.NAME     'Наименование' : [10] , Protect, nopickbutton, #colorneed(TRIM(QRY_TMPLT_BR.name)='');
+  TblTMPLT_RB.XF$NAME   'Корневая','таблица' : [10] , Protect, nopickbutton, #colorneed(QRY_TMPLT_BR.TABLECODE =0);
+end;
+end;
+windowevent winSelectQRY_TEMPLATE ;
+ cmdefault: {
+   closewindowex(winSelectQRY_TEMPLATE, cmDefault)
+ }
+end;
+function GetTemplate : comp; {
+ result := 0;
+ if runwindowmodal(winSelectQRY_TEMPLATE) = cmDefault {
+   result := QRY_TMPLT_BR.nrec;
+ }
+}
+
+window winSelectQRY_INST 'Выбор экземпляра запроса', cyan;
+browse brSelectQRY_INST;
+ table QRY_INST;
+  Fields
+  QRY_INST.code        'Код'          : [3] , Protect, nopickbutton, #colorneed(QRY_INST.CODE='');
+  QRY_INST.NAME        'Наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST.name='');
+  QRY_INST.Description 'Описание'     : [10] , Protect, nopickbutton;
+  QRY_INST_TMPLT.code  'Шаблон','код'          : [3]  , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.CODE='');
+  QRY_INST_TMPLT.NAME  'Шаблон','наименование' : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.name='');
+  TblINST.XF$NAME      'Корневая','таблица'    : [10] , Protect, nopickbutton, #colorneed(QRY_INST_TMPLT.TABLECODE =0);
+end;
+end;
+windowevent winSelectQRY_INST ;
+ cmdefault: {
+   closewindowex(winSelectQRY_INST, cmDefault)
+ }
+end;
+function GetQRY_INST : comp; {
+ result := 0;
+ if runwindowmodal(winSelectQRY_INST) = cmDefault {
+   result := QRY_INST.nrec;
+ }
+}
+
+
+window winSelQRY_INST_FLD_LVL 'Выбор уровня вложенности JSON', cyan;
+browse brselQRY_INST_FLD_LVL;
+ table QRY_INST_FLD_LVL;
+  Fields
+//   QRY_INST_FLD_LVL.level         'Уровень','вложенности' : [3], Protect, NoPickButton;
+   QRY_INST_FLD_LVL.fld_json_name 'Секция','JSON'         : [8], Protect, NoPickButton;
+   QRY_INST_FLD_LVL.Description   'Описание',''           : [12], Protect, NoPickButton;
+   QRY_INST_FLD_LVL_UP.fld_json_name 'Секция','Родитель'   : [8], Protect, NoPickButton;
+   QRY_INST_FLD_LVL_UP.Description   'Описание','Родитель' : [12], Protect, NoPickButton;
+end;
+end;
+windowevent winSelQRY_INST_FLD_LVL ;
+ cmdefault: {
+   closewindowex(winSelQRY_INST_FLD_LVL, cmDefault)
+ }
+end;
+function select_INST_FLD_LVL(_fcQRY_INST : comp; _fcurINST_FLD_LVL : comp)  : comp; {
+
+if BoundActive(tbbyQRY_TMPLTNrec) {
+  #__UNUSED__(0)
+}
+
+if BoundActive(tbbyQRY_INSTNrec) {
+       popbounds(tbbyQRY_INSTNrec);
+   }
+   set _cQRY_INST := _fcQRY_INST;
+   set _curINST_FLD_LVL := _fcurINST_FLD_LVL;
+    pushbounds(tbbyQRY_INSTNrec);
+
+    if (ConditionActive(tcby_curINST_FLD_LVL)) then PopCondition(tcby_curINST_FLD_LVL);
+    PushConditionForLeave(tcby_curINST_FLD_LVL, tnQRY_INST_FLD_LVL);
+
+   result := 0;
+   if runwindowmodal(winSelQRY_INST_FLD_LVL) = cmDefault {
+     result := QRY_INST_FLD_LVL.nrec;
+   }
+}
+
+window winSelectSysTable 'Выбор системной таблицы', cyan;
+browse brSelectSysTable ;
+ table x$files_br;
+  Fields
+   x$files_br.XF$CODE  'Код'      :[5] , Protect, NoPickButton;
+   x$files_br.XF$NAME  'Имя'      :[10], Protect, NoPickButton;
+   x$files_br.XF$TITLE 'Описание' :[15], Protect, NoPickButton;
+end;
+end;
+windowevent winSelectSysTable ;
+ cmdefault: {
+   closewindowex(winSelectSysTable, cmDefault)
+ }
+end;
+
+function GetTable : word; {
+ result := 0;
+ if runwindowmodal(winSelectSysTable) = cmDefault {
+   result := x$files_br.XF$CODE;
+ }
+}
+
+procedure FillTableProhibitSymbolsForQuery; {
+ if recordsintable(tntProhibitSymbols) = 0 then delete all tProhibitSymbols;
+ insert tProhibitSymbols set value := '''';
+ insert tProhibitSymbols set value :=  ' ';
+ insert tProhibitSymbols set value :=  '/';
+ insert tProhibitSymbols set value :=  '+';
+ insert tProhibitSymbols set value :=  '`';
+ insert tProhibitSymbols set value :=  '~';
+ insert tProhibitSymbols set value :=  '-';
+ insert tProhibitSymbols set value :=  '[';
+ insert tProhibitSymbols set value :=  ']';
+ insert tProhibitSymbols set value :=  '{';
+ insert tProhibitSymbols set value :=  '}';
+ insert tProhibitSymbols set value :=  '(';
+ insert tProhibitSymbols set value :=  ')';
+ insert tProhibitSymbols set value :=  '!';
+ insert tProhibitSymbols set value :=  '@';
+ insert tProhibitSymbols set value :=  '#';
+ insert tProhibitSymbols set value :=  '$';
+ insert tProhibitSymbols set value :=  '%';
+ insert tProhibitSymbols set value :=  '^';
+ insert tProhibitSymbols set value :=  '&';
+ insert tProhibitSymbols set value :=  '*';
+}
+
+
+Function IsStrHaveProhibitSymbols(_str : string; var _prohstr : string): boolean; {
+  FillTableProhibitSymbolsForQuery;
+   _prohstr := '';
+   _loop tProhibitSymbols {
+     if pos(tProhibitSymbols.value,_str) <> 0 then {
+       _prohstr := tProhibitSymbols.value;
+       result := true;
+       exit;
+     }
+   }
+ result := false;
+}
+
+function replaceProhibitSymbols(_str: string) : string; {
+  FillTableProhibitSymbolsForQuery;
+   _loop tProhibitSymbols {
+      _str :=  replace(_str, tProhibitSymbols.value, '');
+     }
+ result := _str;
+}
+
+procedure setFieldSynonims; {
+  pushpos(#QRY_INST_FLD);
+  _loop QRY_INST_FLD {
+    if pos(coYOUDONTHAVETOSEETHIS,QRY_INST_FLD.FieldSynonim) = 1 then continue;
+
+    var _prefix : string = replaceProhibitSymbols(QRY_INST_FLD.FieldJSON+'_');
+    if pos(_prefix,QRY_INST_FLD.FieldSynonim) = 0 or length(QRY_INST_FLD.FieldSynonim) > 60 {
+      var _FieldSynonim : string = _prefix + replaceProhibitSymbols(OleGenerateGUID);
+      if length(_FieldSynonim) > 60 then _FieldSynonim := replaceProhibitSymbols(OleGenerateGUID);
+      set QRY_INST_FLD.FieldSynonim := _FieldSynonim;
+      update current QRY_INST_FLD;
+    }
+  }
+  poppos(#QRY_INST_FLD);
+}
+
+Function GenerateNewFile: string;
+{
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string;
+{
+  _logQRY_OUT := GenerateNewFile+'.log';
+  HttpConnect_SaveToFileEx(_serviceLog, _LongStringLog, _logQRY_OUT, cpUTF8, false);
+  result := _logQRY_OUT;
+}
+procedure disableLog; {
+  HttpConnect_DestroyLongString(_serviceLog, _LongStringLog);
+  HttpConnect_Free(_serviceLog);
+  set _needlog := false;
+}
+procedure enableLog; {
+   disableLog;
+  _serviceLog    := HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  _LongStringLog := HttpConnect_CreateLongString(_serviceLog);
+  set _needlog := true;
+}
+Procedure MyLog(_str: string);
+{
+  if not _needlog then exit;
+  _str := DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': '+_str + ''#13'';
+  HttpConnect_AddValueToLongString(_serviceLog, _str, _LongStringLog);
+//  LogStrToFile(GetLogFile, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+function getNameDataType(_type : byte) : string; cacheable;
+{
+  case _type of
+        1 : result := 'boolean'
+        3 : result := 'byte'
+        4 : result := 'word'
+        5 : result := 'integer'
+        6 : result := 'longint'
+        7 : result := 'date'
+        8 : result := 'time'
+       11 : result := 'double'
+       12 : result := 'string'
+       14 : result := 'LVAR (memo)'
+       17 : result := 'comp'
+       27 : result := 'decimal(31,15)'
+   else result := string(_type)
+  end;
+}
+
+Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
+{
+   sqlAddStr(query_handle, add_query_str);
+   MyLog('sql: ' + add_query_str);
+} //Function MysqlAddStr(var query_handle: longInt; add_query_str: string): longInt;
+
+
+function GetTableNameByCode(_tableCode : word) : string; {
+  result := '';
+   if getfirst x$files where (( _tableCode == x$files.XF$CODE)) = tsOK {
+       result := x$files.XF$NAME;
+   }
+}
+
+
+// function is_query_result_array_by_level
+
+Function isExistSpecTMPLT : boolean;
+{
+  result := false;
+  if ( getfirst QRY_TMPLTSP = tsOK
+    and getfirst TblTMPLTSP = tsOK
+   ) then {
+     result := true;
+   }
+}
+
+Function isExistSpecINST : boolean;
+{
+  result := false;
+  if ( getfirst QRY_INST_FLD = tsOK
+   ) then {
+     result := true;
+   }
+}
+
+end.
