@@ -1,0 +1,130 @@
+
+#include SNG_IntegrDirectum_out_base.Vih
+#include SNG_Provider.vih
+
+Interface SNG_HTTP_Provider_SAP;
+
+   var sMessage: string;
+
+function sendJson(_json: TPtr): boolean; 
+{
+  var _iPass: SNG_IntegrDirectum_out_base;
+
+  result := false;
+
+  var _isDebug  : boolean = true; //тестовый режим
+  var _sfileout : string  = AddSlashToPath(GetStringParameter('Files','OutputFilesDirectory',0)) + //раскоментировать для веб!!!
+                         'LOG_DoRequest_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS')+'_';
+
+  var lResponse : TPtr;
+  var httpCon   : TPtr = longint(0);
+  var lHeader   : TPtr = longint(0);
+
+  var API_Host     : string = sgettune('SAPIntegration_URL');
+  var Api_url      : string = 'https://'+API_Host+'/RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so';
+  var API_Method   : string = 'RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so';
+  var API_Username : string = sgettune('SAPIntegration_UserName');         // 'po_galaktika';
+  var API_Password : string = _iPass.decrypt(sgettune('SAPIntegration_Password'));    //
+  var API_Basic: string;
+
+  httpCon := HttpConnect_CreateEx(Api_url, API_Username, API_Password, True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+  HttpConnect_ResponseLogEnable(httpCon);
+
+ /*  message('Перед выгрузкой JSON, _isDebug='+ string(_isDebug));
+ if _isDebug   //тестовый. сохраним входящий JSON для проверки
+  {
+      var JSONSJSON : TPtr = HttpConnect_JSONObjectToJSON(httpCon, _json);
+      var _sfileoutJSON : string = _sfileout + '_JSON_'+OleGenerateGUID+'.txt';
+     // HttpConnect_SaveToFileEx(httpCon, _json, _sfileoutJSON, cpUTF8, false);
+     //сохраним файл из веб папки сервера к пользователю
+     PutFileToClient(_sfileoutJSON,false);
+  // Message(_sfileoutJSON);   EXIT; //!!!!!!!!!  просто для проверки того, как сформирован JSON без отправки
+  }   */
+
+  _try
+  {
+    //формируем заголовок
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json'       + chr(13), lHeader);
+    var API_Basic: string;
+    encodeToBase64(API_Username+':'+API_Password, API_Basic)
+    HttpConnect_AddValueToLongString(httpCon, 'Authorization: Basic '+ API_Basic + chr(13), lHeader);
+//---------------------------------------------------------------------------------------------------
+    //формируем адрес
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, API_Method, lAddUrl);
+
+    _try
+    {
+       //формируем тело запроса
+      var lRequest: TPtr = _json;
+
+      if _isDebug  //тестовый. сохраним сформированный запрос для проверки
+      {
+         var _sfileoutJSON : string = _sfileout + '_JSON2_'+OleGenerateGUID+'.txt';
+         HttpConnect_SaveToFileEx(httpCon, lRequest, _sfileoutJSON, cpUTF8, false);
+         PutFileToClient(_sfileoutJSON,false);
+      }
+
+      _try
+      {
+         //отправляем запрос
+         lResponse := HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+         if _isDebug //тестовый. сохраним сформированный ответ для проверки
+         {
+            var filelResponse : string = _sfileout + '_Response.txt'
+            HttpConnect_ResponseLogToFile(httpCon, filelResponse);
+            if (HttpConnect_LastError(httpCon) <> 0) {
+               logstrtofile(filelResponse, HttpConnect_LastErrorText(httpCon));
+            }
+            PutFileToClient(filelResponse,false);
+         }
+         if (HttpConnect_LastError(httpCon) <> 0) {
+            result := false;
+            sMessage := HttpConnect_LastErrorText(httpCon);
+         // LogMessage('При выполнении запроса возникла ошибка. Лог ошибок в файле: ' + filelResponse);
+         } else {
+         // LogMessage('Запрос выполнен. ответ в файле: ' + filelResponse );
+
+            //обработка ответа lResponse
+            var JSONResponse : TPtr   = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+            //пример обработки полей ответа
+            sMessage := HttpConnect_JsonObjectValueByName(httpCon,JSONResponse,'EV_ERROR_TEXT');
+            if (upcase(HttpConnect_JsonObjectValueByName(httpCon,JSONResponse,'EV_STATUS'))) = 'E' {
+               message('Ошибка обработки документа: ' + if(sMessage <> '', sMessage, 'Неизвестная ошибка'));
+               result := false;
+            } else {
+               result := true;
+            }
+         }
+
+      }
+      _finally
+      {
+         HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+         HttpConnect_DestroyLongString(httpCon, lHeader);
+         HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+         HttpConnect_DestroyLongString(httpCon, lResponse);
+         HttpConnect_Free(httpCon);
+  }
+
+}
+
+function getErrorMessage(): string; {
+   message('Error message = '+sMessage);
+   result := sMessage;
+}
+
+end.

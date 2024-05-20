@@ -1,0 +1,87 @@
+
+#include SNG_IntegrSAP_epRPD_CheckAfter.vih
+
+VipInterface SNG_IntegrSAP_RPD_Tester licensed(free);
+
+Interface SNG_IntegrSAP_RPD_Tester 'Интерфейс тестирования формирования JSON у приказов';
+show at (1,1,85,7)
+
+var oEpRpd_CheckAfter: SNG_IntegrSAP_epRPD_CheckAfter new;
+
+create view
+var
+  cDocRec: comp;
+as select
+  Titledoc.nrec
+from
+  Titledoc,
+  PartDoc,
+  ContDoc,
+  TypePr
+where ((
+  cDocRec == TitleDoc.nRec and
+  TitleDoc.nRec == PartDoc.cDoc and
+  PartDoc.nRec == ContDoc.cPart and
+  ContDoc.TypeOper == TypePr.CodOper
+))
+;
+
+screen scrTest;
+table
+  TitleDoc;
+Fields
+  cDocRec('nRec приказа'): [20], NoProtect;
+  TitleDoc.DocNmb('Номер'): [20], Protect;
+  ContDoc.TypeOper: [4], Protect;
+  TypePr.Noper: [60], Protect;
+  TitleDoc.DocText('Текст'): [100], Protect;
+  [sDocStatus]
+    if(IsValidAll(#TitleDoc), if(TitleDoc.wStatus = 1, 'Утвержден', 'Не утвержден'), ''): [12], Protect;
+Buttons
+  cmRefresh, [singleline];
+  cmGenJson, default;
+<<
+  `nRec приказа` .@@@@@@@@@@@@@@@@@@@@ <. Обновить .>
+  `№ приказа`    .@@@@@@@@@@@@@@@@@@@@
+  `Тип РПД`      .@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Текст`        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Статус`       .@@@@@@@@@@@@
+  <. Сгенерировать JSON .>
+>>
+end;
+
+handleEvent
+
+  cmInit:
+  {
+    ClearFieldOption(#TitleDoc.DocNmb, ofSelectable);
+    ClearFieldOption(#ContDoc.TypeOper, ofSelectable);
+    ClearFieldOption(#TypePr.Noper, ofSelectable);
+    ClearFieldOption(#TitleDoc.DocText, ofSelectable);
+    ClearFieldOption(#sDocStatus, ofSelectable);
+  }
+
+
+  cmRefresh:
+  {
+    RescanPanel(#TitleDoc);
+  }
+
+  cmGenJson:
+  {
+    if not IsValidAll(#TitleDoc)
+    {
+      Message('Введите корректный Nrec приказа из таблицы TitleDoc');
+    }
+
+    /*if TitleDoc.wStatus <> 1
+    {
+      Message('Приказ ещё не утвержден!');
+    }*/
+
+    oEpRpd_CheckAfter.generateJson(TitleDoc.nRec);
+  }
+
+end;
+
+end.

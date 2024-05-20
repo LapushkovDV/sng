@@ -92,23 +92,8 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="15" PosY="29" OpenEditor="True"/>
-			<File Name="vip\QRY_TEMPLATES.vip" PosX="37" PosY="15" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.vip" PosX="15" PosY="25" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.vih" PosX="44" PosY="6" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vip" PosX="24" PosY="114" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="24" PosY="168" OpenEditor="True" Active="True"/>
-			<File Name="vip\QRY_OUT.vih" PosX="35" PosY="51" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE_TEST.vip" PosX="34" PosY="96" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="72" PosY="331" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.pan" PosX="33" PosY="236" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="41" PosY="138" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\AdrFunc.vih" PosX="105" PosY="760" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\SpecialPropetiesForG.vih" PosX="1" PosY="106" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Update_10.1.2230\ERP91\CompSrc\Z\Z_Staff\vip\odecl.vih" PosX="24" PosY="28" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vih" PosX="22" PosY="23" OpenEditor="True"/>
-			<File Name="vip\QRY_ALG_USER_TEST.vip" PosX="30" PosY="28" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Source\ATCONST.INC" PosX="33" PosY="4455" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="43" PosY="48" OpenEditor="True"/>
+			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="55" PosY="50" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -173,11 +158,11 @@
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" DateTimeStart="45380,3312227431" DateTimeCompile="0,000559664345928468" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" DateTimeStart="45432,733711412" DateTimeCompile="0,000246921292273328" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OpenResources&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\Galaktika\ATL6\Update_10.1.2230\galsrv\C_ExtFun.res&quot;\Upd" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtError" MessageText="истема лицензирования: Ошибка проверки аппаратного ключа Используемый у Вас аварийный аппаратный ключ исчерпал ресурс входов ! Вам следует поскор" SourceLine="-1" SourceColumn="-1"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="29.03.2024 7:57:46"/>
+					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OpenResources&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\Galaktika\ATL6\Update_10.1.2230\galsrv\C_ExtFun.res&quot;_QRY" SourceLine="-1" SourceColumn="-1"/>
+					<CompileMessage MessageType="mtError" MessageText="Ошибка при открытии include файла GALNET.INC" SourceFileName="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" SourceLine="7" SourceColumn="20"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="20.05.2024 17:36:54"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

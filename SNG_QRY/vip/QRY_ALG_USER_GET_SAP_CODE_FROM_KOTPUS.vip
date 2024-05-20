@@ -18,58 +18,64 @@ vipinterface QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS implements IQRY_ALG_USER
   Licensed(free);
 
 Interface QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS;
+var _log : string = '';
 #doc
   Запустить расчет с параметрами
   _Parameter  = ContDoc.nrec
 #end
-
 function calc(_Parameter:string):string; {
-  var _wParameter : word = word(_Parameter);
-  case _wParameter of
-   10   : result := '0102'
-   11   : result := '0171'
-   12   : result := '0172'
-   13   : result := '0173'
-   14   : result := '0170'
-   22   : result := '0103'
-   104  : result := '0104'
-   105  : result := '0105'
-   106  : result := '0106'
-   23   : result := '0107'
-   108  : result := '0108'
-   109  : result := '0109'
-   111  : result := '0111'
-   112  : result := '0112'
-   21   : result := '0113'
-   114  : result := '0114'
-   1    : result := '0115'
-   24   : result := '0124'
-   127  : result := '0127'
-   129  : result := '0129'
-   130  : result := '0130'
-   152  : result := '0152'
-   174  : result := '0174'
-   176  : result := '0176'
-   221  : result := '0221'
-   222  : result := '0222'
-   500  : result := '0500'
-   163  : result := '0163'
-   178  : result := '0178'
-   179  : result := '0179'
-   501  : result := '0501'
-   1004 : result := '1004'
-   1008 : result := '1008'
-   1009 : result := '1009'
-   1010 : result := '1010'
-   9500 : result := '9500'
-   9501 : result := '9501'
-   9502 : result := '9502'
-   26   : result := '9505'
-   9506 : result := '9506'
-   9507 : result := '9507'
-  else
-    result := _Parameter;
+var _res : string = '';
+
+  case _Parameter of
+   '10'   : _res := '0102'
+   '11'   : _res := '0171'
+   '12'   : _res := '0172'
+   '13'   : _res := '0173'
+   '14'   : _res := '0170'
+   '22'   : _res := '0103'
+   '104'  : _res := '0104'
+   '105'  : _res := '0105'
+   '106'  : _res := '0106'
+   '23'   : _res := '0107'
+   '108'  : _res := '0108'
+   '109'  : _res := '0109'
+   '111'  : _res := '0111'
+   '112'  : _res := '0112'
+   '21'   : _res := '0113'
+   '114'  : _res := '0114'
+   '1'    : _res := '0115'
+   '24'   : _res := '0124'
+   '127'  : _res := '0127'
+   '129'  : _res := '0129'
+   '130'  : _res := '0130'
+   '152'  : _res := '0152'
+   '174'  : _res := '0174'
+   '176'  : _res := '0176'
+   '221'  : _res := '0221'
+   '222'  : _res := '0222'
+   '500'  : _res := '0500'
+   '163'  : _res := '0163'
+   '178'  : _res := '0178'
+   '179'  : _res := '0179'
+   '501'  : _res := '0501'
+   '1004' : _res := '1004'
+   '1008' : _res := '1008'
+   '1009' : _res := '1009'
+   '1010' : _res := '1010'
+   '9500' : _res := '9500'
+   '9501' : _res := '9501'
+   '9502' : _res := '9502'
+   '26'   : _res := '9505'
+   '9506' : _res := '9506'
+   '9507' : _res := '9507'
+  else {
+    message('0_o else');
+      _res := _Parameter;
+    }
   end;
+
+  message('_Parameter = "'+_Parameter+'" _res = "'+_res+'"');
+  result := _res;
 }
 
 #doc

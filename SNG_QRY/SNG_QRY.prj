@@ -13,15 +13,15 @@
 #doc
   #CompTitle
 #end
-#include SNG_QRY.ver
-
 #params
 [vip]
 LicenseControlInclude=""
 #end
+#include SNG_QRY.ver
 const
  coYOUDONTHAVETOSEETHIS = 'YOUDONTHAVETOSEETHIS';
 end;
+
 #make "vip\QRY_BASE.vip"
 #make "vip\QRY_TEMPLATES.vip"
 #make "vip\QRY_INSTANCE.vip"
@@ -32,19 +32,18 @@ end;
 #make "vip\QRY_ALG_USER_PLANS_BY_CONTDOC.vip"
 #make "vip\QRY_ALG_USER_ANSVH_BY_APPOINTMENTS.vip"
 #make "vip\QRY_ALG_USER_ADDRESS_FROM_ADDRESSN.vip"
-#make "vip\QRY_ALG_USER_TEST.vip"
-#make "vip\QRY_ALG_USER_WERKS_BY_ORGEH.vip"
-#make "vip\QRY_ALG_USER_PERSK_BY_CONTDOC.vip"
-#make "vip\QRY_ALG_USER_PLANS_BY_CONTDOC.vip"
-#make "vip\QRY_ALG_USER_ANSVH_BY_APPOINTMENTS.vip"
-#make "vip\QRY_ALG_USER_ADDRESS_FROM_ADDRESSN.vip"
 #make "vip\QRY_ALG_USER_BTRTL_BY_CATALOGS.vip"
 #make "vip\QRY_ALG_USER_FACT_VACATION_BY_PUTVACATION.vip"
 #make "vip\QRY_ALG_USER_LGART_BY_APPHIST.vip"
 #make "vip\QRY_ALG_USER_GET_PROBATION_BY_CONTDOC.vip"
 #make "vip\QRY_ALG_USER_TAXRATE_BY_APPHIST.vip"
+#make "vip\QRY_ALG_USER_TEST.vip"
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_VACATION.vip"
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_PA2006"
-#make "vip\QRY_ALG_USER_VALUE_BY_STERR.vip"
+#make "vip\QRY_ALG_USER_VALUES_BY_STERR.vip"
 #make "vip\QRY_ALG_USER_PHONE_BY_COMMUNICATIONS.vip"
+#make "vip\QRY_ALG_USER_GET_FULL_ADDRESS.vip"
+#make "vip\QRY_ALG_USER_GET_ATTRVAL_DATE_FOR_SNILS.vip"
+#make "vip\QRY_ALG_USER_PHONE_BY_PERSONS.vip"
 #make "vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip"
+#make "vip\QRY_ALG_USER_POS_EXIST_BY_SERVLEN_PERIOD.vip"

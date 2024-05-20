@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <Viper Version="5005020000">
 	<ProjectManager>
-		<ProjectName>SNG_SQLRepBuilder</ProjectName>
+		<ProjectName>Z_MP</ProjectName>
 		<ProjectVarList>
 			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\ATL6\Update_10.1.2230\galsrv\"/>
 			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
@@ -161,14 +161,13 @@
 		<CheckAtlVer>6000005000</CheckAtlVer>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="SNG_SQLRepBuilder.prj" PosX="18" PosY="61" OpenEditor="True"/>
-			<File Name="vip\SQLRunReport.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\SQLBuildReport.vip" PosX="69" PosY="200" OpenEditor="True" Active="True"/>
-			<File Name="vip\SQLFilts.vip" PosX="82" PosY="316" OpenEditor="True"/>
-			<File Name="vip\SQLSetFilts.vip" PosX="48" PosY="226" OpenEditor="True"/>
+			<File Name="Z_MP.prj" PosX="48" PosY="5" OpenEditor="True"/>
+			<File Name="vip\JobSheetParams.vip" PosX="29" PosY="8" OpenEditor="True" Active="True"/>
+			<File Name="vip\JSParamsChanging.vip" PosX="42" PosY="6" OpenEditor="True"/>
+			<File Name="vip\PrNaryad1.vip" PosX="88" PosY="265" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
-			<ProjectCompileFile FileName="SNG_SQLRepBuilder.prj" Priority="0">
+			<ProjectCompileFile FileName="Z_MP.prj" Priority="0">
 				<CoreVip>
 					<VipParameters>
 						<StrictVip>True</StrictVip>

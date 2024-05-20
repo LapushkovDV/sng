@@ -1,0 +1,3 @@
+#version SNG_IntegrSAP 1.0.0.35 '#CompTitle'
+
+#include GloRequired.ver

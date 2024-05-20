@@ -1,0 +1,36 @@
+/*************************************************************************************************\
+* Наименование:  Настройки для интеграции с Directum                                              *
+* Контур/Модуль: Интеграция                                                                       *
+* Примечание:                                                                                     *
+\*************************************************************************************************/
+
+#include CreateTune.vih
+//------------------------------------------------------------------------------
+Handler with replace CreateTune_SNG_IntegrSAP on extensionPoint epCreateTuneComponent (TR: ObjCreateTuneEx) [220]
+  // Внимание, приоритеты вызова обработчиков см. в CreateTune.vih
+Action
+{
+  Result := true;
+
+  TR.SetParent('TUNE');
+  TR.AddPart(ttSYSUSERTUNE,'SNG','TUNE','Настройки СНГ','');
+
+  TR.SetParent('SNG');
+//  TR.SetComponent('P_Test');
+  // ------------------------------------------------------------------------
+  // Создаём разделы настроек
+  // Настройки Галактики \ Общие настройки системы \ Интеграция со смежными системами \
+  TR.AddPart(ttSYSUSERTUNE,'SAPIntegration','SNG','SAP интеграция','');
+//  TR.AddPartU('DirectumIntegration', 'Directum', '');
+  // ------------------------------------------------------------------------
+  // Создаём общие настройки для переключения, логина и пароля
+
+  TR.AddTune(     ttSYSTUNE, 'SAPIntegration_URL', 'SAPIntegration', 'URL API', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'SAPIntegration_UserName', 'SAPIntegration', 'Пользователь', ftString, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'SAPIntegration_Password', 'SAPIntegration', 'Пароль', ftString, '', '100', hcNoContext);
+  TR.AddIntr('SETPASSWORD_DIRECTUM');
+
+
+  // ------------------------------------------------------------------------
+
+}

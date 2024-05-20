@@ -1,0 +1,20 @@
+#ifnDef _SNG_INTEGRSAP_EPRPDSHR_CHECKAFTER_INCLUDED_
+#define _SNG_INTEGRSAP_EPRPDSHR_CHECKAFTER_INCLUDED_
+
+#component "SNG_IntegrSAP"
+
+ObjInterface oSNG_IntegrSAP_epRPDSHR_CheckAfter;
+public:
+#doc
+#end
+
+#doc
+Получить путь на текущий файл логов
+#end
+Function generateJsonSHR(NrecTitleDoc : comp): boolean;
+
+end;
+
+VipInterface SNG_IntegrSAP_epRPDSHR_CheckAfter Implements oSNG_IntegrSAP_epRPDSHR_CheckAfter licensed(free);
+
+#end

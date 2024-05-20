@@ -1,0 +1,141 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание: Интерфейс ручного запуска методов работы с очередью                                 *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+#include QRY_OUT.vih
+#include DeclarePointsOrders.VIH
+#include SNG_Provider.vih
+#include SNG_IntegrSAP_epRPDSHR_CheckAfter.vih
+
+
+Interface SNG_IntegrSAP_epRPDSHR_CheckAfter 'Интерфейс заполнения записей в очередь на рассмотрении по РПД по ШР';
+create view
+as select
+StrTitle.nrec
+from
+StrTitle
+, STRPART
+where
+  ((
+     StrTitle.nrec == STRPART.CDOC
+  and  STRPART.NREC == STRCONT.CPART
+  and  STRCONT.CHIST == HISTORYSTR.NREC
+
+  ))
+;
+
+//Function SendJsonToSAP( bodyJSON: TPtr ) : boolean; forward;
+function createJsonAndSend(_nRec: comp; _fQRY_INST_CODE: string): boolean; forward;
+
+
+function generateJsonSHR(NrecTitleDoc: comp):boolean ; {
+
+   result:=false;
+
+  if getfirst StrTitle where ((NrecTitleDoc == StrTitle.nrec)) <> tsOK then exit;
+
+
+  if StrTitle.WSTATUS <> 1 then exit;   //тут пишем все проверки приказа, например, статус приказа должен быть таким то
+  //может какой то определенный статус надо, например "согласовано в директуме"
+
+
+ // если проверки ок, то генерируем JSON
+  var iQRY_OUT1 : QRY_OUT new;
+  Var _fQRY_INST_CODE : string = 'Сюда вставляем код экземпляра запроса по которому генерируем JSON';
+ // var __log2 : string = iQRY_OUT1.GenerateNewfile+'.txt';
+ // logstrtofile(__log2, DatetoSTR(cur_date, 'YYYYMMDD') + ' ' + timetostr(cur_time, 'HHMMSS') + ' Начало');
+  //PutFileToClient(__log2,false);
+
+  if getfirst strpart  where (( StrTitle.nrec  == strpart.cdoc)) = tsOk
+
+    case strpart.wcodoper of
+     1: _fQRY_INST_CODE := 'SHR_RPD_1_Instance';
+     2: _fQRY_INST_CODE := 'SHR_RPD_2_Instance';
+     3: _fQRY_INST_CODE := 'SHR_RPD_3_Instance';
+    20: _fQRY_INST_CODE := 'SHR_RPD_20_Instance';
+    21: _fQRY_INST_CODE := 'SHR_RPD_21_Instance';
+    23: _fQRY_INST_CODE := 'SHR_HRP1005';
+    else
+    {
+      result := true;
+      exit;
+    }
+    end;
+
+   result := createJsonAndSend(StrTitle.nrec, _fQRY_INST_CODE);
+
+//Дополнительные JSON
+   case strpart.wcodoper of
+    20: {
+      result := result and createJsonAndSend(StrTitle.nrec, 'SHR_HRP1005');
+
+      if historystr.wpaymodel = 30
+        result := result and createJsonAndSend(StrTitle.nrec, 'HRP1015');
+    	}
+    23: {
+      if historystr.wpaymodel = 30
+        result := result and createJsonAndSend(StrTitle.nrec, 'HRP1015');
+      }
+    end; //case
+
+}
+
+function createJsonAndSend(_nRec: comp; _fQRY_INST_CODE: string): boolean; {
+
+  var iQRY_OUT : QRY_OUT new;
+  var _err : string = '';
+  var FNservice, _JSON : tptr;
+  var iSAP_Provider: oSNG_HTTP_Provider(SNG_HTTP_Provider_SAP);
+
+  var __log1 : string = iQRY_OUT.GenerateNewfile+'.txt';
+  //logstrtofile(__log1, DatetoSTR(cur_date, 'YYYYMMDD') + ' ' + timetostr(cur_time, 'HHMMSS') +  _fQRY_INST_CODE + ' StrTitle.nrec =  ' + StrTitle.nrec);
+ // PutFileToClient(__log1,false);
+
+  if iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE
+                                                              , _nRec
+                                                              , FNservice
+                                                              , _JSON
+                                                              , _err)
+   {
+       if (_err <> '')
+       {
+          message(_err);
+          result := case(strpart.wcodoper; 1: false; true);
+          exit;
+       }
+
+
+    if ( not iSAP_Provider.sendJson(_JSON))
+    {
+      result := case(strpart.wcodoper; 1: false; true);
+    }
+
+    var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
+    //  HttpConnect_SaveToFileEx(FNservice, _JSON, _jsonFile, cpUTF8, false);
+    PutFileToClient(_jsonFile,false);
+   }
+
+  var __log : string = iQRY_OUT.GetLogFile;
+  PutFileToClient(__log,false);
+
+ // logstrtofile(__log1, DatetoSTR(cur_date, 'YYYYMMDD') + ' ' + timetostr(cur_time, 'HHMMSS') +  ' В конце функции ');
+ // PutFileToClient(__log1,false);
+}
+
+;
+end.
+
+handler with replace SNG_Fill_QUE_EntriesForReview_RPDSHR_CHECK_AFTER on ExtensionPoint epConfirmOrderSHR (NrecTitleDoc: Comp)
+
+action {
+  var iSNG_IntegrSAP_epRPDSHR_CheckAfter: oSNG_IntegrSAP_epRPDSHR_CheckAfter(SNG_IntegrSAP_epRPDSHR_CheckAfter);
+  iSNG_IntegrSAP_epRPDSHR_CheckAfter.generateJsonSHR(NrecTitleDoc);   // тут в очередь будем ставить
+  result := true; //вне зависимости от того, что произошло, всегда продолжаем работу
+
+
+}

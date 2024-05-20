@@ -1,0 +1,16 @@
+//------------------------------------------------------------------------------
+// Проектный файл сборки компонента SNG_IntegrSAP
+//------------------------------------------------------------------------------
+
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+ 
+#component "SNG_IntegrSAP"
+#define CompTitle SNG_IntegrSAP
+#doc
+  #CompTitle
+#end
+
+#make "vip\*.vip"

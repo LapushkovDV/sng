@@ -1,0 +1,26 @@
+#ifnDef _SNG_PROVIDER_INCLUDED_
+#define _SNG_PROVIDER_INCLUDED_
+
+#component "SNG_IntegrSAP"
+
+ObjInterface oSNG_HTTP_Provider;
+
+public:
+#doc
+#end
+
+#doc
+Отправить JSON объект в SAP
+#end
+function sendJson(_json: TPtr): boolean;
+
+#doc
+Получить текст сообщения об ошибке
+#end
+function getErrorMessage(): string;
+
+end;
+
+VipInterface SNG_HTTP_Provider_SAP Implements oSNG_HTTP_Provider licensed(free);
+
+#end
