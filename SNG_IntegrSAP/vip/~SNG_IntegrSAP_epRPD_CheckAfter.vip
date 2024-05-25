@@ -134,7 +134,7 @@ function generateJson(NrecTitleDoc: comp): boolean; {
                        and createJsonAndSend(Titledoc.nrec, 'PA0416_FIRE');
     }
     41: {
-        if getfirst ContDoc = tsOK
+        if (getfirst ContDoc = tsOK
          if getfirst vacations where ((contdoc.objnrec == vacations.nrec)) = tsOK
           if getfirst klotpusk where ((vacations.vactype == klotpusk.nrec)) = tsOK {
              case klotpusk.kotpus of
@@ -159,14 +159,14 @@ function generateJson(NrecTitleDoc: comp): boolean; {
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302')
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2001')
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0298');
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0082');
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0082');
                 }
                 41 :{
                   result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302')
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0416')
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PTQUODED')
                                    and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0298');
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2006');
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2006');
                 }
              end;
        }

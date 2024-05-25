@@ -92,16 +92,16 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="22" PosY="25" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vip" PosX="74" PosY="22" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="19" PosY="28" OpenEditor="True"/>
+			<File Name="vip\QUE_REST.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QUE_REST.vih" PosX="1" PosY="17" OpenEditor="True"/>
 			<File Name="vip\QUE_ProcessMessIncomeQueue.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vip" PosX="2" PosY="90" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vip" PosX="31" PosY="278" OpenEditor="True"/>
 			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="57" PosY="67" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="1" PosY="301" OpenEditor="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="2" PosY="398" OpenEditor="True" Active="True"/>
 			<File Name="vip\QUE_SenderSystems.vip" PosX="77" PosY="82" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="41" PosY="10" OpenEditor="True" Active="True"/>
+			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="1" PosY="1" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -165,6 +165,7 @@
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 			<BreakPoint FileName="SNG_QUE.prj" Line="28"/>
+			<BreakPoint FileName="vip\QUE_BASE.vip" Line="326"/>
 		</BreakPointList>
 		<CompileMessengerList>
 			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QUE\SNG_QUE.prj" DateTimeStart="45374,4369725926" DateTimeCompile="0,000342222221661359" StateHistory="False">

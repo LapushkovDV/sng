@@ -109,6 +109,7 @@ windowevent wnQRY_TMPLT_Edit;
 cmValue1:{
   var iQRY_OUT : QRY_OUT new;
   var _err : string = '';
+  iQRY_OUT.enableLog;
   if not iQRY_OUT.TestQueryTemplate(QRY_TMPLT.nrec, _err) {
 //    message(iQRY_OUT.GetLogFile);
   var __log : string = iQRY_OUT.GetLogFile;
@@ -120,6 +121,7 @@ cmValue1:{
   else {
    message('Запрос корректный');
   }
+  iQRY_OUT.disableLog;
 }
 end;
 

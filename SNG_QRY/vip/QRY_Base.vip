@@ -54,6 +54,7 @@ var
      _cQRY_TMPLT
    , _cQRY_INST
    , _curINST_FLD_LVL : comp;
+   _LogFile_debug : string = '';
  as select
     QRY_TMPLT.nrec
 from
@@ -323,6 +324,7 @@ procedure setFieldSynonims; {
 Function GenerateNewFile: string;
 {
  result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+ result := replace(result,'\\','\');
 }
 
 function GetLogFile : string;
@@ -342,12 +344,20 @@ procedure enableLog; {
   _LongStringLog := HttpConnect_CreateLongString(_serviceLog);
   set _needlog := true;
 }
+
+function GetLogFile_debug: string; {
+ if _LogFile_debug = '' then _LogFile_debug := GenerateNewFile + '_debug.log';
+ result := _LogFile_debug;
+}
+
 Procedure MyLog(_str: string);
 {
+  // !!!!!!!!!!!!!!!закомментировать в проде строку ниже"!!!!!!!!!!!! иначе будет тормозить
+//  LogStrToFile(GetLogFile_debug, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+
   if not _needlog then exit;
   _str := DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': '+_str + ''#13'';
   HttpConnect_AddValueToLongString(_serviceLog, _str, _LongStringLog);
-//  LogStrToFile(GetLogFile, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
 }
 
 function getNameDataType(_type : byte) : string; cacheable;

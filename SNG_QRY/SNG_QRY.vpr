@@ -92,8 +92,15 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="43" PosY="48" OpenEditor="True"/>
-			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="55" PosY="50" OpenEditor="True" Active="True"/>
+			<File Name="SNG_QRY.prj" PosX="26" PosY="27" OpenEditor="True"/>
+			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="26" PosY="42" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.vip" PosX="17" PosY="24" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="16" PosY="356" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.pan" PosX="80" PosY="51" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vih" PosX="1" PosY="96" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="31" PosY="702" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_INSTANCE.vip" PosX="4" PosY="25" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.pan" PosX="31" PosY="238" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -145,9 +152,9 @@
 			<Marker FileName="source\QRY\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="135" NumIndex="1" MarkerType="mtNumBookmark" Comment="procedure insert_notable_fields;{"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
-			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="863" NumIndex="1" MarkerType="mtNumBookmark" Comment="Функция склоняет наименование записи справочника (Catalogs) с попутной проверкой на наличие"/>
-			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="564" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
-			<Marker FileName="vip\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="343" NumIndex="1" MarkerType="mtNumBookmark" Comment="set _needlog := true;"/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="591" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="1007" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="350" NumIndex="1" MarkerType="mtNumBookmark" Comment="if GetLogFile_debug"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -158,11 +165,10 @@
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" DateTimeStart="45432,733711412" DateTimeCompile="0,000246921292273328" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" DateTimeStart="45437,446470162" DateTimeCompile="2,28935168706812E-5" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtError" MessageText="ет секции с именем БД : { Internal }MNAME=&quot;OpenResources&quot; FLAGS=&quot;0&quot; COUNT=&quot;13&quot; 1=&quot;C:\Galaktika\ATL6\Update_10.1.2230\galsrv\C_ExtFun.res&quot;_QRY" SourceLine="-1" SourceColumn="-1"/>
 					<CompileMessage MessageType="mtError" MessageText="Ошибка при открытии include файла GALNET.INC" SourceFileName="C:\Galaktika\_git\sng\SNG_QRY\SNG_QRY.prj" SourceLine="7" SourceColumn="20"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="20.05.2024 17:36:54"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="25.05.2024 10:42:57"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>

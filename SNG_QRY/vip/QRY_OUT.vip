@@ -23,7 +23,7 @@ const
   coMaxElemets = 256;
 end;
 
-type String_xMaxEl  = Array [1..coMaxElemets] of string ;
+type String_xMaxEl  = Array [1..coMaxElemets] of widestring[2000] ;
 
 var _arrQRY_USER_ALG : Array [1..1] of IQRY_ALG_USER;
 
@@ -115,6 +115,8 @@ from
  , Tmp_Alg
  , tAbstrResultValues
  , QRY_Instance QRY_Instance_1
+ , QRY_Instance QRY_Instance_Memo
+ , QRY_Template QRY_Template_Memo
  , QRY_Instance_FLD QRY_INST_FLD_CHECK_LVL
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP
  , QRY_Instance_FLD_LVL QRY_INST_FLD_LVL_LOOP_1
@@ -343,7 +345,7 @@ function getinsertUniqValuesByLVL(_cLevel : comp; _arrOneValue : String_xMaxEl; 
   result := tForExportJSON.nrec;
 }
 function getinsertUniqValuesByLVL_new(_cLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp): comp; {
-//      mylog('getinsertUniqValuesByLVL');
+//      mylog('getinsertUniqValuesByLVL_new');
  result := 0h;
   var _arrNumsOfValue : array[1..1] of word;
     _loop QRY_INST_FLD_LOOP where(( _cQRY_INST == QRY_INST_FLD_LOOP.cInstance
@@ -363,14 +365,16 @@ function getinsertUniqValuesByLVL_new(_cLevel : comp; _arrOneValue : String_xMax
     var _i : word = 0;
        _loop tForExportJSON where ((     _cLevel == tForExportJSON.cLVL
                                 and _cParentJSON == tForExportJSON.cParent
-            and _arrOneValue[_arrNumsOfValue[1]] == tForExportJSON.firstElement))  // встаем на позицию по первому значению, а потом сравним в строке остальные
+            and substr(_arrOneValue[_arrNumsOfValue[1]],1,256) == tForExportJSON.firstElement))  //widestring явно не на всю длинну может в индекс пойти встаем на позицию по первому значению, а потом сравним в строке остальные
          {
+//           mylog('_loop tForExportJSON where ((     _cLevel == tForExportJSON.cLVL');
           _isequal := True;
           if getlimit(_arrNumsOfValue) > 1 then {
               for (_i := 2; _i<= getlimit(_arrNumsOfValue); _i++) {
                 // вот тут проблема с производительностью.... если все записи уникальные,например , выгружаем каталог с нреками... то с каждым проходом время растет и растет
                 // и это самое узкое место... млять
                  if tForExportJSON.value[_arrNumsOfValue[_i]] <> _arrOneValue[_arrNumsOfValue[_i]] then { // сравниваем все значения в строке
+//                     mylog('_isequal := false;');
                     _isequal := false;
                     break;
                  }
@@ -384,15 +388,19 @@ function getinsertUniqValuesByLVL_new(_cLevel : comp; _arrOneValue : String_xMax
       clearbuffer(#tForExportJSON);
       for (_i := 1; _i<= getlimit(_arrNumsOfValue); _i++) {
          tForExportJSON.value[_arrNumsOfValue[_i]] := _arrOneValue[_arrNumsOfValue[_i]];
+//         mylog('tForExportJSON.value[_arrNumsOfValue[_i]] = ' + substr(tForExportJSON.value[_arrNumsOfValue[_i]],1,256));
         }
        tForExportJSON.cLVL         := _cLevel;
        tForExportJSON.cParent      := _cParentJSON;
-       tForExportJSON.firstElement := _arrOneValue[_arrNumsOfValue[1]];
+       tForExportJSON.firstElement := substr(_arrOneValue[_arrNumsOfValue[1]],1,256);
       insert current tForExportJSON;
       _cnt++;
       if _cnt mod 1000 = 0 then mylog('insert current tForExportJSON; _cnt = ' + _cnt);
+//     mylog('tForExportJSON.cParent = ' + string(tForExportJSON.cParent,0,0));
+//     mylog('tForExportJSON.nrec = ' + string(tForExportJSON.nrec,0,0));
     }
   result := tForExportJSON.nrec;
+//  mylog('result = ' + string(result,0,0))
 }
 
 procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_xMaxEl; _cParentJSON : comp);
@@ -410,8 +418,18 @@ procedure insertvaluesbylevel(_fcLevel : comp; _arrOneValue : String_xMaxEl; _cP
   }
 }
 
+function widestring_to_longstring(_widestr : widestring[2000]) : tptr; {
+  //var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  var _longstring : TPtr =  HttpConnect_CreateLongString( m_service);
+  var _i : longint;
+  for (_i := 1; _i <= Length(_widestr)-1; _i += 200)
+    HttpConnect_AddValueToLongString( m_service, SubStr(_widestr, _i, 200), _longstring);
+ result := _longstring;
+}
+
 function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_json_name : string) : tptr;
 {
+// MyLog('GenerateJSONfromtForExportJSON _cParentJSON = ' + string(_cParentJSON,0,0) + '| _fld_json_name = ' + _fld_json_name);
 //  JSONObj := HttpConnect_JsonObjectCreate(m_service);
   var JSONObj_Array : tptr;
   var JSONObj_ArrayOneElement : tptr;
@@ -423,7 +441,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
 //      JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
 
   _loop tForExportJSON where ((_cParentJSON  == tForExportJSON.CPARENT and _cLVL == tForExportJSON.cLVL)) {
-    //mylog('tForExportJSON.cParent = '+tForExportJSON.cParent);
+  //  mylog('tForExportJSON.cParent = '+tForExportJSON.cParent);
      if isFound = false {
         JSONObj_Array := HttpConnect_JsonArrayCreate(m_service);
         isFound := true;
@@ -444,7 +462,21 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
         for (_i := 1; _i<= getlimit(arrAbstrResultFldNames); _i++) {
           if arrAbstrResultFldNames[_i] = QRY_INST_FLD_LOOP.FieldSynonim
            then {
-             HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldJSON, tForExportJSON.value[_i]);
+                var _longstring : TPtr =  HttpConnect_CreateLongString( m_service);
+                if length(tForExportJSON.value[_i]) > 256 then {
+                HttpConnect_AddValueToLongString( m_service, '', _longstring);
+                var _ii : longint = 0;
+                for (_ii := 1; _ii <= Length(tForExportJSON.value[_i])-1; _ii += 200) {
+                  //MyLog('SubStr(tForExportJSON.value[_i], '+string(_ii)+', 200) =' + SubStr(tForExportJSON.value[_i], _ii, 200));
+                  HttpConnect_AddValueToLongString( m_service, SubStr(tForExportJSON.value[_i], _ii, 200), _longstring);
+                 }
+
+               //HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldJSON, substr(tForExportJSON.value[_i],1,256));
+                  HttpConnect_JsonObjectAddLongString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldJSON,_longstring);
+              }
+              else {
+                HttpConnect_JsonObjectAddString(m_service, JSONObj_ArrayOneElement, QRY_INST_FLD_LOOP.FieldJSON, substr(tForExportJSON.value[_i],1,256))
+              }
              if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
            }
         }
@@ -469,7 +501,7 @@ function GenerateJSONfromtForExportJSON(_cParentJSON, _cLVL : comp; var _fld_jso
     if (HttpConnect_LastError(m_service) <> 0) then mylog('HttpConnect_LastErrorText = ' + HttpConnect_LastErrorText(m_service));
     if getfirst QRY_INST_FLD_LVL_LOOP_2 where ((_cLVL == QRY_INST_FLD_LVL_LOOP_2.nrec)) <> tsOK then exit;
     _fld_json_name := QRY_INST_FLD_LVL_LOOP_2.fld_json_name;
-    // mylog('_fld_json_name = ' + _fld_json_name)
+//     mylog('_fld_json_name = ' + _fld_json_name)
    }
 /*
         mylog('QRY_INST_FLD_LVL_LOOP_2.fld_json_name = '+QRY_INST_FLD_LVL_LOOP_2.fld_json_name+
@@ -500,7 +532,7 @@ function generateJSONFromtAbstrResultValues : tptr; {
     }
 
   mylog('recordsintable(tntForExportJSON) = ' + string(recordsintable(tntForExportJSON)));
- //   putTableToDBF(#tForExportJSON, GenerateNewFile+'_tForExportJSON.dbf', ptfFullTable);
+ // putTableToDBF(#tForExportJSON, GenerateNewFile+'_tForExportJSON.dbf', ptfFullTable);
   mylog('start GenerateJSONfromtForExportJSON');
    var _fld_json_name : string = '';
    var JSONObj_Array : tptr;
@@ -601,6 +633,8 @@ Function Fill_Tmp_alg : boolean;
    Fill_Tmp_alg_One('%GetNamePlace_City(%VALUE%)%','Возвращает название населенного пункта или города GetNamePlace_City(NRecATD : comp) : string;');
    Fill_Tmp_alg_One('%GetPostZipGni(%VALUE%)%','Возвращает почтовый индекс из базы ГНИ для адреса NRecAddress GetPostZipGni(NRecAddress : comp) : string;');
    Fill_Tmp_alg_One('%GetStreetNRec(%VALUE%)%','Возвращает NRec АТД по NRec адреса GetStreetNRec(NRecAddress : comp) : comp;');
+   Fill_Tmp_alg_One('%GetMemoFrom_QRY_TEMPLATE(%VALUE%)%','Возвращает текст (до 2000 символов) секции WHERE шаблона запроса, в качестве входного параметра QRY_TEMPLATE.NREC');
+   Fill_Tmp_alg_One('%GetMemoFrom_QRY_INSTANCE(%VALUE%)%','Возвращает текст (до 2000 символов) секции WHERE экземпляра запроса, в качестве входного параметра QRY_INSTANCE.NREC');
    Add_UserInterfaces;
 } //Function Fill_Tmp_alg(_wType_Alg:word):boolean;
 
@@ -659,7 +693,48 @@ Procedure Free_QRY_ALG_USER;
 } //Procedure Free_QRY_ALG_USER;
 
 
-function ReplaceByValues(Formula:string; _value: string; _strParameter: string = ''):string; cacheable;
+
+function EncodelongStringToBase64(_longstr : tptr) : tptr; {
+
+   var _FilePath       : string = GenerateNewFile+'.txt';
+   var _FilePathEncode : string = GenerateNewFile + 'encodebase64.txt';
+
+  HttpConnect_SaveToFileEx( m_service , _longstr, _FilePath, cpUTF8, false);
+
+  EncodeFileToBase64(_FilePath, _FilePathEncode);
+  var _longValue64 : tptr = HttpConnect_LoadFromFile(m_service, _FilePathEncode, cpUTF8) ;
+  result := _longValue64;
+  deletefile(_FilePath);
+  deletefile(_FilePathEncode);
+}
+
+function longstring_to_widestring2000(_longstring : tptr) : widestring[2000]; {
+//  mylog('longstring_to_widestring2000');
+  var _widestr : widestring[2000] = '';
+  var _i : longint;
+  for (_i := 0; _i <= HttpConnect_GetLongStringLength(m_service, _longstring); _i += 200) {
+     _widestr := _widestr + HttpConnect_GetLongStringSubString (m_service, _longstring, _i, 200);
+//     mylog('longstring_to_widestring2000 _i = '+string(_i));
+     }
+ result := _widestr;
+}
+
+function FillWideStringFromFile2000(_FilePath : string): widestring[2000];{
+  result := '';
+//  mylog('FillWideStringFromFile2000 ');
+ var _longValueMemo : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+                                                     , _FilePath // sFileName : String,
+                                                     , cpUTF8 // Encoding  : LongInt
+                                                      ) ;
+  deletefile(_FilePath);
+//  mylog('FillWideStringFromFile2000 _longValueMemo  = ' + string(_longValueMemo));
+  if (_longValueMemo != 0)
+   if (HttpConnect_GetLongStringLength(m_service, _longValueMemo) > 0) {
+     var _longValueMemoBase64 : tptr = EncodelongStringToBase64(_longValueMemo);
+    result := longstring_to_widestring2000(_longValueMemoBase64);
+   }
+}
+function ReplaceByValues(Formula:string; _value: string; _strParameter: string = ''):widestring[2000]; cacheable; // 2000 - максимальное для таблиц в памяти
 {
   Fill_Tmp_alg;
   mylog('function ReplaceByValues Formula = '+ Formula + ' _value = ' +_value );
@@ -667,8 +742,8 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 
 
   Result := Formula;
-  mylog('ReplaceByValues Formula = ' + Formula);
-  mylog('ReplaceByValues  replace(Formula) ='+ Formula);
+  //mylog('ReplaceByValues Formula = ' + Formula);
+//  mylog('ReplaceByValues  replace(Formula) ='+ Formula);
   _Loop Tmp_Alg ordered by Index Tmp_Alg02
   {
      //нужно вычислять
@@ -681,7 +756,7 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
         _SubKey:=')%'
       }
 //if timelog_Status>2 then timelog('_Key='+_Key+'; _SubKey='+_SubKey);
-      mylog('ReplaceByValues _Key='+_Key+'; _SubKey='+_SubKey);
+      //mylog('ReplaceByValues _Key='+_Key+'; _SubKey='+_SubKey);
       do {
         var ii_first,_Len:word;
         ii_first:=pos(_Key,upcase(Result));
@@ -697,7 +772,7 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
 
 //        mylog('_Len='+string(_Len)+'; _Parameter='+_Parameter+'; _Key='+_Key+'; Formula='+ Formula);
 
-        var _Res:string;//результат
+        var _Res:widestring[2000];//результат
         _Res:='';
         //mylog('_Key = ' + _Key);
         case upcase(_Key) of
@@ -926,8 +1001,27 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
           _res := ''''+ _res+'''';
 
          }
-        '%USER_INTERFACE(':
-        {
+         upcase('%GetMemoFrom_QRY_TEMPLATE('): { // Возвращает текст (до 2000 символов) секции WHERE шаблона запроса, в качестве входного параметра QRY_TEMPLATE.NREC');
+          var _crec : comp = comp(_Parameter);
+          if getfirst QRY_Template_Memo where ((_crec == QRY_Template_Memo.nrec)) = tsOK then {
+             var _FilePath : string = GenerateNewFile+'_QRY_Template_Memo.txt';
+             if ExportMemoToFile(QRY_Template_Memo.WhereTerms, _FilePath, false) {
+              _res := FillWideStringFromFile2000(_FilePath);
+             }
+          }
+          _res := ''''+ _res+''''
+         }
+         upcase('%GetMemoFrom_QRY_INSTANCE('): { //Возвращает текст (до 2000 символов) секции WHERE экземпляра запроса, в качестве входного параметра QRY_INSTANCE.NREC');
+          var _crec : comp = comp(_Parameter);
+          if getfirst QRY_Instance_Memo where ((_crec == QRY_Instance_Memo.nrec)) = tsOK then {
+             var _FilePath : string = GenerateNewFile+'_QRY_Template_Memo.txt';
+             if ExportMemoToFile(QRY_Instance_Memo.AddWhereTerms, _FilePath, false) {
+              _res := FillWideStringFromFile2000(_FilePath);
+             }
+          }
+          _res := ''''+ _res+''''
+         }
+        '%USER_INTERFACE(': {
           var _par2:string;
           _par2:=ParseWord(_Parameter,2,',');
           _Parameter:=ParseWord(_Parameter,1,',');
@@ -970,17 +1064,19 @@ function ReplaceByValues(Formula:string; _value: string; _strParameter: string =
   mylog('ReplaceByValues Result = ' +Result);
 } //function ReplaceByValues(Formula:string):string;
 
-function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) : string; cacheable; {
+function ApplyFormulaToValue(_value, _Formula: string; _strParameter : string) : widestring[2000]; cacheable; {
   //mylog('function ApplyFormulaToValue _value ='+_value+' _Formula = ' + _Formula);
   result := _value;
   if trim(_Formula)<> '' {
     var _error : string = '';
 //    mylog('ApplyFormulaToValue _Formula = '+ _Formula);
-    var _ReplaceByValues : string = ReplaceByValues(_Formula, _value , _strParameter);
+    var _ReplaceByValues : widestring[2000] = ReplaceByValues(_Formula, _value , _strParameter);
 //    mylog('ApplyFormulaToValue _ReplaceByValues = '+ _ReplaceByValues);
     if _ReplaceByValues <> ''
        then {
-             result := LotExpressionFunc(_ReplaceByValues, _error)
+            if length(_ReplaceByValues) <=256 // в случае если получили мемо-поле большое, то не надо LotExpressionFunc
+              then result := LotExpressionFunc(_ReplaceByValues, _error)
+              else result := _ReplaceByValues;
             }
        else result := '';
     if trim(_error) <> '' then {

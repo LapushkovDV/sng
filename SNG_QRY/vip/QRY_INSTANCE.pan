@@ -235,6 +235,7 @@ cmValue2:{
   }
   var __log : string = iQRY_OUT.GetLogFile;
   PutFileToClient(__log,false);
+  if visualizationactive then stopvisual;
 }
 
 end;
