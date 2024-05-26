@@ -331,6 +331,7 @@ function longstring_to_widestring(_longstring : tptr) : widestring[2097151]; {
 */
 
 }
+
 function generateAnswerJSON(_status : word) : tptr; {
   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
 
@@ -407,6 +408,19 @@ function GetStatusMessageInIncomeQueue(ID_QUEUE : string[36]): TResultGetStatusM
    }
  result := _result
 }
+function convertLongstringFromBase64(_longStrBase64 : tptr): tptr; {
+  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+     var _FilePath       : string = '';
+     var _FilePathDecode : string = '';
+     _FilePath       := iQUE_INCOME_BASE.GenerateNewFile + 'base64.txt';
+     _FilePathDecode := iQUE_INCOME_BASE.GenerateNewFile + 'decodebase64.txt';
+     HttpConnect_SaveToFileEx(m_service, _longStrBase64, _FilePath, cpUTF8, false);
+     DecodeFileFromBase64(_FilePath, _FilePathDecode);
+  result := HttpConnect_LoadFromFile (m_service, _FilePathDecode, cpUTF8) ;
+  deletefile(_FilePath);
+  deletefile(_FilePathDecode);
+}
 
 function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _mess : widestring[2097151]; var ID_QUEUE : string[36]) : boolean; {
   result := false;
@@ -419,14 +433,7 @@ function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _m
   _messlongstr := widestring_to_longstring(_mess);
 
   if bodyinbase64 {
-     var iQUE_INCOME_BASE : QUE_INCOME_BASE;
-     var _FilePath       : string = '';
-     var _FilePathDecode : string = '';
-     _FilePath       := iQUE_INCOME_BASE.GenerateNewFile + 'base64.txt';
-     _FilePathDecode := iQUE_INCOME_BASE.GenerateNewFile + 'decodebase64.txt';
-     HttpConnect_SaveToFileEx(m_service, _messlongstr, _FilePath, cpUTF8, false);
-     DecodeFileFromBase64(_FilePath, _FilePathDecode);
-     _messlongstr := HttpConnect_LoadFromFile (m_service, _FilePathDecode, cpUTF8) ;
+     _messlongstr := convertLongstringFromBase64(_messlongstr);
 //     putfiletoclient(_FilePath,false);
 //     putfiletoclient(_FilePathDecode,false);
 //EncodeToBase64(_mess, _messdecode);

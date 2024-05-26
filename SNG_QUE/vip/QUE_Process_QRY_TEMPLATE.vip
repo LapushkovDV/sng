@@ -1,0 +1,367 @@
+
+/*************************************************************************************************\
+* Наименование: Тестовый интерфейс обработки сообщения, генерирует польз аналитику и ее значения  *
+*               из сообщения                                                                      *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+структура JSON
+{
+  "QRY_TEMPLATE" :
+  [
+    {
+      "CODE" : "JSON_QRY_TEMPLATE",
+      "DESCRIPTION" : "w",
+      "NAME" : "Экспорт шаблонов запросов",
+      "QRY_TEMPLATESP" :
+      [
+        {
+          "DESCRIPTION" : "45",
+          "JOINTERMS" : "QRY_TEMPLATESP.cTmplt = QRY_TEMPLATE.nrec",
+          "JOIN_TYPE" : "join",
+          "NPP" : "0",
+          "SYNONIMNAME" : "",
+          "TABLECODE" : "13581"
+        },
+        {
+          "DESCRIPTION" : "45",
+          "JOINTERMS" : "basetable.XF$CODE = QRY_TEMPLATE.TABLECODE ",
+          "JOIN_TYPE" : "join",
+          "NPP" : "1",
+          "SYNONIMNAME" : "BaseTable",
+          "TABLECODE" : "1"
+        }
+      ],
+      "tablecode" : "13580",
+      "TABLE_NAME" : "QRY_TEMPLATE",
+      "WHERETERMS" : "MSA9IDE="
+    },
+    {
+      "CODE" : "JSON_QRY_INSTANCE",
+      "DESCRIPTION" : "d",
+      "NAME" : "JSON_QRY_INSTANCE",
+      "QRY_TEMPLATESP" :
+      [
+        {
+          "DESCRIPTION" : "45",
+          "JOINTERMS" : "QRY_INSTANCE_FLD_LVL.cInstance = QRY_INSTANCE.nrec",
+          "JOIN_TYPE" : "join",
+          "NPP" : "0",
+          "SYNONIMNAME" : "",
+          "TABLECODE" : "13583"
+        },
+        {
+          "DESCRIPTION" : "45",
+          "JOINTERMS" : "QRY_INSTANCE_FLD.cInstance = QRY_INSTANCE.nrec",
+          "JOIN_TYPE" : "join",
+          "NPP" : "1",
+          "SYNONIMNAME" : "",
+          "TABLECODE" : "13584"
+        },
+        {
+          "DESCRIPTION" : "45",
+          "JOINTERMS" : "QRY_TEMPLATE.nrec = QRY_INSTANCE.cTmplt",
+          "JOIN_TYPE" : "join",
+          "NPP" : "2",
+          "SYNONIMNAME" : "",
+          "TABLECODE" : "13580"
+        }
+      ],
+      "tablecode" : "13582",
+      "TABLE_NAME" : "QRY_INSTANCE",
+      "WHERETERMS" : "MSA9MQ=="
+    }
+*/
+#include QUE_ProcessMessIncomeMessageGalaktika.vih
+#include QUE_BASE.vih
+#include QUE_INCOME_BASE.vih
+
+//************************************************************
+
+vipinterface QUE_Process_QRY_TEMPLATE implements oQUE_ProcessMessIncomeMessageGalaktika
+  Licensed(free);
+
+Interface QUE_Process_QRY_TEMPLATE;
+table struct tQRY_Template (
+    Nrec         : comp
+  , CODE         : string
+  , DESCRIPTION  : string
+  , NAME1        : string
+  , tablecode1   : word
+  , WHERETERMS   : widestring[2000]
+)
+with index(
+   ind0 = nrec (unique, surrogate)
+);
+
+table struct tQRY_TemplateSP (
+    ctQRY_Template : comp
+  , DESCRIPTION    : string
+  , JOINTERMS      : string
+  , JOIN_TYPE      : string
+  , NPP            : word
+  , SYNONIMNAME    : string
+  , tablecode1    : word
+)
+with index(
+  ind0 = ctQRY_Template
+);
+
+create view
+var _logQUE_OUT : string = '';
+    _cQUE_Handler_tune : comp;
+    iQUE_INCOME_BASE : QUE_INCOME_BASE;
+from
+   QRY_Template
+ , QRY_TemplateSP
+ , QUE_Handler_tune Handler_tune
+
+ , tQRY_Template
+ , tQRY_TemplateSP
+
+where ((
+        _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+
+Function GenerateNewFile: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string; {
+  if _logQUE_OUT = '' then _logQUE_OUT := GenerateNewFile+'.log';
+  result := _logQUE_OUT;
+}
+
+function FillWideStringFromFile2000(_FilePath : string): widestring[2000];{
+  result := '';
+ var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+ var _longValueMemo : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+                                                     , _FilePath // sFileName : String,
+                                                     , cpUTF8 // Encoding  : LongInt
+                                                      ) ;
+  deletefile(_FilePath);
+//  mylog('FillWideStringFromFile2000 _longValueMemo  = ' + string(_longValueMemo));
+  if (_longValueMemo != 0)
+   if (HttpConnect_GetLongStringLength(m_service, _longValueMemo) > 0) {
+    result := iQUE_INCOME_BASE.longstring_to_widestring(_longValueMemo);
+   }
+}
+function SynchQRY_Template(var _answer : string) : boolean; {
+  result := false;
+   if getfirst tQRY_Template <> tsOK {
+     _answer := 'Нет записей в tQRY_Template';
+     exit;
+   }
+ var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+  _loop tQRY_Template {
+    var _needinsert_QRY_Template : boolean = true;
+    if getfirst QRY_Template where ((tQRY_Template.CODE == QRY_Template.code)) = tsOK {
+       var _WideStr2000 : widestring[2000] = '';
+       var _FilePath : string = GenerateNewFile+'_QUE_INCOME_Template_Memo.txt';
+       if ExportMemoToFile(QRY_Template.WhereTerms, _FilePath, false) {
+        _WideStr2000 := FillWideStringFromFile2000(_FilePath);
+       }
+
+     if           QRY_Template.NAME <> tQRY_Template.NAME1
+        or  QRY_Template.tablecode <> tQRY_Template.tablecode1
+        or _WideStr2000 <> tQRY_Template.WHERETERMS {
+         update current QRY_Template set
+           QRY_Template.code := QRY_Template.code +' QUE_INCOME ' + DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS')
+        } else {
+          _needinsert_QRY_Template := false
+        }
+    }
+    if _needinsert_QRY_Template {
+       insert QRY_Template set
+            QRY_Template.CODE        := tQRY_Template.CODE
+          , QRY_Template.DESCRIPTION := tQRY_Template.DESCRIPTION
+          , QRY_Template.NAME       := tQRY_Template.NAME1
+          , QRY_Template.tablecode := tQRY_Template.tablecode1
+        ;
+
+        var _longstring : tptr = iQUE_INCOME_BASE.widestring_to_longstring(tQRY_Template.WHERETERMS);
+        var _longWhereFile : string = GenerateNewFile+'_memo_where.txt';
+        HttpConnect_SaveToFileEx(m_service, _longstring, _longWhereFile, cpUTF8, false);
+        if ImportFileToMemo(QRY_Template.WHERETERMS, _longWhereFile, false) {
+          update current QRY_Template;
+        }
+        deletefile(_longWhereFile);
+    }
+
+    _loop tQRY_TemplateSP where ((tQRY_Template.nrec == tQRY_TemplateSP.ctQRY_Template)) {
+      if getfirst QRY_TemplateSP where ((QRY_Template.nrec == QRY_TemplateSP.ctmplt
+                      and tQRY_TemplateSP.NPP == QRY_TemplateSP.NPP)) = tsOK {
+               if   QRY_TemplateSP.DESCRIPTION <> tQRY_TemplateSP.DESCRIPTION
+                 or QRY_TemplateSP.JOINTERMS   <> tQRY_TemplateSP.JOINTERMS
+                 or QRY_TemplateSP.JOIN_TYPE   <> tQRY_TemplateSP.JOIN_TYPE
+                 or QRY_TemplateSP.NPP         <> tQRY_TemplateSP.NPP
+                 or QRY_TemplateSP.SYNONIMNAME <> tQRY_TemplateSP.SYNONIMNAME
+                 or QRY_TemplateSP.tablecode   <> tQRY_TemplateSP.tablecode1 {
+                     QRY_TemplateSP.ctmplt      := QRY_Template.nrec;
+                     QRY_TemplateSP.DESCRIPTION := tQRY_TemplateSP.DESCRIPTION;
+                     QRY_TemplateSP.JOINTERMS   := tQRY_TemplateSP.JOINTERMS;
+                     QRY_TemplateSP.JOIN_TYPE   := tQRY_TemplateSP.JOIN_TYPE;
+                     QRY_TemplateSP.NPP         := tQRY_TemplateSP.NPP;
+                     QRY_TemplateSP.SYNONIMNAME := tQRY_TemplateSP.SYNONIMNAME;
+                     QRY_TemplateSP.tablecode   := tQRY_TemplateSP.tablecode1;
+                  update current QRY_TemplateSP;
+                }
+         } else {
+           insert QRY_TemplateSP set
+              QRY_TemplateSP.ctmplt      := QRY_Template.nrec
+            , QRY_TemplateSP.DESCRIPTION := tQRY_TemplateSP.DESCRIPTION
+            , QRY_TemplateSP.JOINTERMS   := tQRY_TemplateSP.JOINTERMS
+            , QRY_TemplateSP.JOIN_TYPE   := tQRY_TemplateSP.JOIN_TYPE
+            , QRY_TemplateSP.NPP         := tQRY_TemplateSP.NPP
+            , QRY_TemplateSP.SYNONIMNAME := tQRY_TemplateSP.SYNONIMNAME
+            , QRY_TemplateSP.tablecode   := tQRY_TemplateSP.tablecode1
+           ;
+         }
+    }
+  }
+
+}
+
+function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLong : tptr; var _answer : string) : boolean; {
+ result := false;
+ delete all tQRY_Template;
+ delete all tQRY_TemplateSP;
+ var iQUE_BASE : QUE_BASE new;
+ var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+
+  _answerLong :=  HttpConnect_CreateLongString( m_service);
+
+
+  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _message);
+   if JSON_Object = 0 {
+      _answer := 'не смогли преобразовать сообщение в JSON';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+  var JSON_MSG_QRY_TEMPLATE_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,JSON_Object,'QRY_TEMPLATE');
+    if JSON_MSG_QRY_TEMPLATE_ARR = 0 {
+      _answer := 'Ошибка в структуре сообщения. Не найден массив QRY_TEMPLATE';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+   var JSON_QRY_TEMPLATE_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_MSG_QRY_TEMPLATE_ARR);
+    if JSON_QRY_TEMPLATE_ARRCount =  0 {
+      _answer := 'Пустой массив QRY_TEMPLATE';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+       exit;
+     }
+
+   var i_JSON_QRY_TEMPLATE_ARR : longint = 0;
+   for (i_JSON_QRY_TEMPLATE_ARR := 0; i_JSON_QRY_TEMPLATE_ARR <= JSON_QRY_TEMPLATE_ARRCount - 1; i_JSON_QRY_TEMPLATE_ARR++) {
+//     MyLog('Идем по массиву QRY_TEMPLATE');
+     var _JSON_Element : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_MSG_QRY_TEMPLATE_ARR, i_JSON_QRY_TEMPLATE_ARR);
+
+          clearbuffer(tntQRY_Template);
+           tQRY_Template.CODE        := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'CODE');
+           tQRY_Template.DESCRIPTION := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'DESCRIPTION');
+           tQRY_Template.NAME1       := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'NAME');
+           tQRY_Template.tablecode1 := word(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'tablecode'));
+           tQRY_Template.WHERETERMS  := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'WHERETERMS');
+           if tQRY_Template.WHERETERMS <> ''
+            then tQRY_Template.WHERETERMS := iQUE_INCOME_BASE.longstring_to_widestring(iQUE_INCOME_BASE.convertLongstringFromBase64(iQUE_INCOME_BASE.widestring_to_longstring(tQRY_Template.WHERETERMS)));
+         insert current tQRY_Template;
+
+      if tQRY_Template.NAME1 = '' {
+        _answer := 'Элемент массива QRY_TEMPLATE "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "NAME"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+
+      if tQRY_Template.CODE = '' {
+        _answer := 'Элемент массива QRY_TEMPLATE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "CODE"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+
+      if tQRY_Template.WHERETERMS = '' {
+        _answer := 'Элемент массива QRY_TEMPLATE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "WHERETERMS"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+
+      if tQRY_Template.tablecode1 = '' {
+        _answer := 'Элемент массива QRY_TEMPLATE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое или не число поле "tablecode"';
+        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+        exit;
+      }
+
+      var JSON_QRY_TEMPLATESP_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element,'QRY_TEMPLATESP');
+      var JSON_QRY_TEMPLATESP_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_QRY_TEMPLATESP_ARR);
+//      MyLog('Идем по массиву QRY_TEMPLATESP = ' + JSON_QRY_TEMPLATESP_ARRCount);
+      if JSON_QRY_TEMPLATESP_ARRCount > 0 {
+          var i_JSON_QRY_TEMPLATESP_ARR : longint = 0;
+          for (i_JSON_QRY_TEMPLATESP_ARR := 0; i_JSON_QRY_TEMPLATESP_ARR  <= JSON_QRY_TEMPLATESP_ARRCount - 1; i_JSON_QRY_TEMPLATESP_ARR++) {
+           var _JSON_Element_SP : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_QRY_TEMPLATESP_ARR, i_JSON_QRY_TEMPLATESP_ARR);
+//             MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ');
+
+             clearbuffer(tntQRY_TEMPLATESP);
+              tQRY_TEMPLATESP.ctQRY_Template := tQRY_Template.nrec;
+              tQRY_TEMPLATESP.DESCRIPTION    := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'DESCRIPTION');
+              tQRY_TEMPLATESP.JOINTERMS      := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'JOINTERMS');
+              tQRY_TEMPLATESP.JOIN_TYPE      := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'JOIN_TYPE');
+              tQRY_TEMPLATESP.NPP            := word(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'NPP'));
+              tQRY_TEMPLATESP.SYNONIMNAME    := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'SYNONIMNAME');
+              tQRY_TEMPLATESP.tablecode1    := word(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'TABLECODE'));
+            insert current tQRY_TEMPLATESP;
+
+             if tQRY_TEMPLATESP.JOINTERMS = '' {
+              _answer := 'Шаблон "'+tQRY_Template.CODE+'". Элемент массива QRY_TEMPLATESP № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" пустое поле "JOINTERMS"';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+
+             if tQRY_TEMPLATESP.JOIN_TYPE = '' {
+              _answer := 'Шаблон "'+tQRY_Template.CODE+'". Элемент массива QRY_TEMPLATESP № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" пустое поле "JOIN_TYPE"';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+
+             if tQRY_TEMPLATESP.NPP       = 0  {
+              _answer := 'Шаблон "'+tQRY_Template.CODE+'". Элемент массива QRY_TEMPLATESP № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" пустое или не число поле "NPP"';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+
+             if tQRY_TEMPLATESP.tablecode1 = 0  {
+              _answer := 'Шаблон "'+tQRY_Template.CODE+'". Элемент массива QRY_TEMPLATESP № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" пустое или не число поле "TABLECODE"';
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+
+          //  MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ' + _KAUCODE +'|'+ _CODE+'|'+  _NAME+'|'+  _NREC+'|'+  _CPARENT);
+       }
+     }
+   }
+   if SynchQRY_Template(_answer) then result := true;
+   _answer := 'Сообщение успешно обработано';
+   HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+//   mylog('QUE_ProcessMessIncomeQueue_QRY_TEMPLATE HttpConnect_GetLongStringLength(m_service, _answerLong) = ' + HttpConnect_GetLongStringLength(m_service, _answerLong));
+//   putfiletoclient(_logQUE_OUT,false);
+}
+
+function GetDescription : string; {
+  result := 'Создание шаблона запросов'
+}
+procedure Setup(__cQUE_Handler_tune : comp);{
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune = tsOK {
+    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
+  }
+  message('Настроек не предусмотрено',error);
+}
+
+end.

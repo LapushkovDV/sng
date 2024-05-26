@@ -36,13 +36,20 @@ LicenseControlInclude=""
 
 #make "vip\QUE_SendMessToExtSys_oilixnet.vip"
 
+
 #make "vip\QUE_REST.vip"
 #make "vip\QUE_INCOME_BASE.vip"
 #make "vip\QUE_SenderSystems.vip"
 #make "vip\QUE_View_QUE_INCOME.vip"
 
 #make "vip\QUE_INCOME_TEST.vip"
+#make "vip\QUE_ProcessMessIncomeQueue_Galaktika.vip"
 #make "vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip"
+
+#make "vip\QUE_Process_QRY_TEMPLATE.vip"
+#make "vip\QUE_Process_QRY_INSTANCE.vip"
 
 #make "vip\SNG_AbsenceEmployees.vip"
 #make "vip\QUE_SendMessToExtSys_oilix_absence.vip"
+
+#make "vip\QUE_SendMessToExtSys_galaktika.vip"

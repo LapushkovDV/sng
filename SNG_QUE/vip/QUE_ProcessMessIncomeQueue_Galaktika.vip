@@ -1,0 +1,191 @@
+
+/*************************************************************************************************\
+* Наименование: Тестовый интерфейс обработки сообщения, генерирует польз аналитику и ее значения  *
+*               из сообщения                                                                      *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+структура JSON
+{
+    "MSG_KATKAU_SPKAU": [
+        {
+            "KAU_NAME": "Пользовательская аналитика. Тест",
+            "KAU_CODE": "10500",
+            "SP_KAU": [
+                {
+                    "CODE" : "01",
+                    "NAME" : "name 01",
+                    "NREC" : "1",
+                    "CPARENT" : "0"
+                },
+                {
+                    "CODE" : "02",
+                    "NAME" : "name 02",
+                    "NREC" : "2",
+                    "CPARENT" : "1"
+                }
+            ]
+        },
+        {
+            "KAU_NAME": "Пользовательская аналитика. Тест 1",
+            "KAU_CODE": "10501",
+            "SP_KAU": [
+                {
+                    "CODE" : "001-1",
+                    "NAME" : "name 01-125",
+                    "NREC" : "21",
+                    "CPARENT" : "0"
+                },
+                {
+                    "CODE" : "002-1",
+                    "NAME" : "name 02-458",
+                    "NREC" : "22",
+                    "CPARENT" : "0"
+                }
+            ]
+        }
+    ]
+}
+*/
+#include QUE_ProcessMessIncomeQueue.vih
+#include QUE_ProcessMessIncomeMessageGalaktika.vih
+#include QUE_BASE.vih
+
+//************************************************************
+
+vipinterface QUE_ProcessMessIncomeQueue_Galaktika implements oQUE_ProcessMessIncomeQueue
+  Licensed(free);
+
+Interface QUE_ProcessMessIncomeQueue_Galaktika;
+create view
+var _logQUE_OUT : string = '';
+    _cQUE_Handler_tune : comp;
+from
+  QUE_Handler_tune Handler_tune
+where ((
+        _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+
+Function GenerateNewFile: string; {
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+
+function GetLogFile : string; {
+  if _logQUE_OUT = '' then _logQUE_OUT := GenerateNewFile+'.log';
+  result := _logQUE_OUT;
+}
+
+Procedure MyLog(_str: string; _needlog : boolean = false); {
+  exit;
+  LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
+}
+
+
+function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLong : tptr; var _answer : string) : boolean; {
+ result := false;
+ delete all tKatKau;
+ delete all tSpKau;
+ var iQUE_BASE : QUE_BASE new;
+ var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+
+
+  _answerLong :=  HttpConnect_CreateLongString( m_service);
+
+  var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _message);
+   if JSON_Object = 0 {
+      _answer := 'не смогли преобразовать сообщение в JSON';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+
+  var JSON_MESSAGE : TPTr = HttpConnect_JSONObjectByName(m_service,JSON_Object,'MESSAGE');
+    if JSON_MESSAGE = 0 {
+      _answer := 'Ошибка в структуре сообщения. Не найден объект MESSAGE';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+  var JSON_MSG_BODY_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,JSON_Object,'BODY');
+    if JSON_MSG_BODY_ARR = 0 {
+      _answer := 'Ошибка в структуре сообщения. Не найден массив BODY';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+      exit;
+    }
+
+   var JSON_BODY_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_MSG_BODY_ARR);
+    if JSON_BODY_ARRCount =  0 {
+      _answer := 'Пустой массив BODY';
+      HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+       exit;
+     }
+
+   var _name : string = HttpConnect_JsonObjectValueByName( m_service, JSON_MESSAGE, 'NAME');
+   if _name = '' {
+       _answer := 'Пустой или отсутствует элемент NAME';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+       exit;
+     }
+
+
+    var JSON_MSG_BODY_ARR_lStr : tptr = HttpConnect_JSONObjectToJSON(m_service, JSON_MSG_BODY_ARR)
+
+    case _name of
+     'JSON_QRY_TEMPLATE' : {
+       var _iProcessMessIncomeMessageGalaktika : oQUE_ProcessMessIncomeMessageGalaktika;
+        if LoadvipRef(_iProcessMessIncomeMessageGalaktika,'SNG_QUE::QUE_Process_QRY_TEMPLATE') {
+             if not _iProcessMessIncomeMessageGalaktika.ProcessMessage(JSON_MSG_BODY_ARR_lStr, _cQUE_Handler_tune, _answerLong, _answer) {
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+
+         _answer := 'Интерфейс "SNG_QUE::QUE_Process_QRY_TEMPLATE" отсутствует в системе';
+          HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+          exit;
+        }
+     }
+     'JSON_QRY_INSTANCE' : {
+       var _iProcessMessIncomeMessageGalaktika : oQUE_ProcessMessIncomeMessageGalaktika;
+        if LoadvipRef(_iProcessMessIncomeMessageGalaktika,'SNG_QUE::QUE_Process_QRY_INSTANCE') {
+             if not _iProcessMessIncomeMessageGalaktika.ProcessMessage(JSON_MSG_BODY_ARR_lStr, _cQUE_Handler_tune, _answerLong, _answer) {
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+         _answer := 'Интерфейс "SNG_QUE::QUE_Process_QRY_INSTANCE" отсутствует в системе';
+          HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+          exit;
+        }
+
+     }
+     else {
+      _answer := 'Обработчик сообщения для "'+_name+'" отсутствует в системе';
+       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+       exit;
+     }
+    end;
+
+   result := true;
+   _answer := 'Сообщение успешно обработано';
+   HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+
+//   putfiletoclient(_logQUE_OUT,false);
+}
+
+function GetDescription : string; {
+  result := 'Обработка сообщений из Галактики'
+}
+procedure Setup(__cQUE_Handler_tune : comp);{
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune = tsOK {
+    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
+  }
+  message('Настроек не предусмотрено',error);
+}
+
+end.

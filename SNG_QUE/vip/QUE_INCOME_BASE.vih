@@ -77,6 +77,10 @@ function widestring_to_longstring(_widestr : widestring[2097151]) : tptr;
 #end
 function longstring_to_widestring(_longstring : tptr) : widestring[2097151];
 
+#doc
+Конвертировать содержимое длинной строки из base64, возвращается декодированная длинная строка
+#end
+function convertLongstringFromBase64(_longStrBase64 : tptr): tptr;
 
 end;
 

@@ -92,16 +92,13 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="19" PosY="28" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vih" PosX="1" PosY="17" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vip" PosX="31" PosY="278" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="57" PosY="67" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="2" PosY="398" OpenEditor="True" Active="True"/>
-			<File Name="vip\QUE_SenderSystems.vip" PosX="77" PosY="82" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\CreateTune_SNG_IntegrdMDM.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="19" PosY="40" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="33" PosY="191" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_QRY_TEMPLATE.vip" PosX="71" PosY="152" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_REST.vip" PosX="32" PosY="36" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="70" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vip" PosX="1" PosY="1" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -154,8 +151,9 @@
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="678" NumIndex="1" MarkerType="mtNumBookmark"/>
-			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 2" Line="393" NumIndex="2" MarkerType="mtNumBookmark"/>
-			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 1" Line="337" NumIndex="1" MarkerType="mtNumBookmark" Comment="DecodeFileToBase64(_FilePath, _FilePathEncode);"/>
+			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 2" Line="394" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 1" Line="338" NumIndex="1" MarkerType="mtNumBookmark" Comment="DecodeFileToBase64(_FilePath, _FilePathEncode);"/>
+			<Marker FileName="vip\QUE_ProcessMessIncomeQueue_QRY_TEMPLATE.vip" Caption="Нумерованная закладка 1" Line="285" NumIndex="1" MarkerType="mtNumBookmark" Comment="tQRY_TEMPLATESP.DESCRIPTION :="/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

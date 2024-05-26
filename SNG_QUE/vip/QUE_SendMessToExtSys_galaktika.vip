@@ -1,0 +1,435 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+вот такой JSON отсылаем в Галактику
+ "action":"atmcall"
+  , "jsonrpc":"2.0"
+  , "id":3
+  , "class": "SNG_QUE::QUE_REST"
+  , "method": "oQUE_REST_PutMessageToIncomeQueue"
+  , "params":{"body": "тут наш JSON перекодированный в base64"
+            , "isbase64":true
+            , "system_code":"KATKAUSPKAU"
+            }
+
+
+*/
+#include QUE_SendMessToExtSys.vih
+#include QUE_BASE.vih
+#include QUE_INCOME_BASE.vih
+//************************************************************
+
+vipinterface QUE_SendMessToExtSys_galaktika implements oQUE_SendMessToExtSys
+  Licensed(free);
+
+Interface QUE_SendMessToExtSys_galaktika;
+
+create view
+var _cQUE_Handler_tune : comp;
+    iQUE_BASE : QUE_BASE;
+    iQUE_INCOME_BASE : QUE_INCOME_BASE;
+    logenable : boolean = true;
+from
+  QUE_Handler_tune Handler_tune
+where ((
+       _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+function encrypt(_str:string):string;{
+  var _strres : string = '';
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i + Handler_tune.VALUEWORD[2]);
+     _i++;
+   }
+   result := _strres;
+}
+
+function decrypt(_str:string):string;{
+  var _strres : string = '' ;
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i - Handler_tune.VALUEWORD[2]);
+     _i++;
+   }
+   result := _strres;
+}
+
+function AuthenficateGetToken(address: string; _usr, _pswd: string; var _logfile : string; _CanRelogin : boolean = true): tptr;
+{
+
+  var httpCon: TPtr = 0;
+  var lHeader: TPtr = 0;
+
+  httpCon := HttpConnect_CreateEx(address, '', '', True);
+  result := HttpConnect_CreateLongString(httpCon);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+
+  HttpConnect_ResponseLogEnable(httpCon);
+
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, '/api/login', lAddUrl);
+
+      var lRequest: TPtr = HttpConnect_CreateLongString(httpCon);
+      var _strValue : string = '{"username":"' + _usr + '","password":"' + _pswd +'"'+ if(_CanRelogin,'',',"relogin":true') + '}';
+      HttpConnect_AddValueToLongString(httpCon, _strValue, lRequest);
+      //message('_strValue ='+_strValue);
+        var lResponse: TPtr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+        var jsonResponse: TPtr = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+        var lToken: TPtr = 0;
+
+          lToken := HttpConnect_JsonObjectLongValueByName(httpCon, jsonResponse, 'authToken');
+
+          if logenable {
+            var _lTokenFile : string = iQUE_BASE.GenerateNewFile +'_lToken00.log' ;
+            HttpConnect_SaveToFileEx(httpCon, lToken, _lTokenFile, cpUTF8, false);
+           }
+          if ( (jsonResponse > 0) and (lToken > 0) )
+          {
+            result := lToken;
+          } else {
+            if _CanRelogin = true
+             result := AuthenficateGetToken(address, _usr, _pswd, _logfile, false);
+          }
+    var _file : string = iQUE_BASE.GenerateNewFile +'_logLogin.log';
+    _logfile := _file;
+    HttpConnect_ResponseLogToFile(httpCon, _file);
+    putfiletoclient(_file, false);
+    // HttpConnect_Free(httpCon);
+
+
+}
+
+function DoRequest(address: string; token: tptr; _JSONBODYlongstring : tptr; var _logfile: string; var _response : tptr) : boolean;
+{
+  result := false;
+   var _lTokenFile0 : string = iQUE_BASE.GenerateNewFile +'_lToken0.log' ;
+     if logenable {
+        logstrtofile(_lTokenFile0,'DoRequest token = ' + string(token));
+      }
+  var httpCon: TPtr = 0;
+  var lHeader: TPtr = 0;
+
+  httpCon := HttpConnect_CreateEx(address, '', '', True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+
+  HttpConnect_ResponseLogEnable(httpCon);
+
+     if logenable {
+        HttpConnect_SaveToFileEx(httpCon, token, _lTokenFile0, cpUTF8, false);
+      }
+
+
+  _try
+  {
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json' + chr(13), lHeader);
+
+    var lToken: TPtr = HttpConnect_CreateLongString(httpCon);
+
+    HttpConnect_AddValueToLongString(httpCon, 'Authorization: Bearer ', lToken);
+    HttpConnect_AddLongValueToLongString(httpCon, token, lToken);
+
+    HttpConnect_SolidStringInLongString(httpCon, lToken);
+
+    HttpConnect_AddLongValueToLongString(httpCon, lToken, lHeader);
+
+    if logenable {
+        var _lTokenFile : string = iQUE_BASE.GenerateNewFile +'_lToken.log' ;
+        HttpConnect_SaveToFileEx(httpCon, lToken, _lTokenFile, cpUTF8, false);
+      }
+
+    if logenable {
+        var _lHeaderFile : string = iQUE_BASE.GenerateNewFile +'_lHeader.log' ;
+        HttpConnect_SaveToFileEx(httpCon, lHeader, _lHeaderFile, cpUTF8, false);
+      }
+
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, '/api', lAddUrl);
+
+    _try
+    {
+      _try
+      {
+        var lResponse: TPtr = HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, _JSONBODYlongstring, false);
+        _response := HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+        result := true;
+      }
+      _finally {
+        //HttpConnect_DestroyLongString(httpCon, lResponse);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lToken);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+    var _file : string = iQUE_BASE.GenerateNewFile +'_logDorequest.log';
+    HttpConnect_ResponseLogToFile(httpCon, _file);
+    _logfile := _file;
+    putfiletoclient(_file, false);
+    //HttpConnect_Free(httpCon);
+  }
+}
+
+function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
+
+ result := false;
+ var iQUE_BASE : QUE_BASE new;
+
+ set _cQUE_Handler_tune := __cQUE_Handler_tune;
+
+ if getfirst Handler_tune <> tsOK {
+    _retFileLog := '';
+    _retStatus  := 'Не найдена настройка QUE_Handler_tune.nrec=' + string(__cQUE_Handler_tune);
+    exit;
+ }
+ if trim(Handler_tune.VALUESTRING[1]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан URL';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[2]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан логин';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[3]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан пароль';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[4]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан класс';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[5]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан метод';
+    exit;
+ }
+
+ if trim(Handler_tune.VALUESTRING[6]) = '' {
+    _retFileLog := '';
+    _retStatus  := 'В настройке не указан код системы';
+    exit;
+ }
+
+
+ var _URL     : string = Handler_tune.VALUESTRING[1];
+ var _port    : string = string(Handler_tune.VALUEWORD[3]);
+ _port := if(_port <> '0',':'+_port,'');
+ var _login   : string = Handler_tune.VALUESTRING[2];
+ var _pswrd   : string = decrypt(Handler_tune.VALUESTRING[3]);
+ var _class   : string = Handler_tune.VALUESTRING[4];
+ var _method  : string = Handler_tune.VALUESTRING[5];
+ var _syscode : string = Handler_tune.VALUESTRING[6];
+
+ var httpCon: TPtr = HttpConnect_CreateEx(_URL, '', '', True);
+
+ var _JSON_from_message : tptr;
+  _JSON_from_message := HttpConnect_JSONObjectByLongString(httpCon, _bodyMessage);
+   if _JSON_from_message = 0 {
+      _retStatus := 'не смогли преобразовать сообщение в JSON';
+      HttpConnect_Free(httpCon);
+      exit;
+     }
+
+  var _messageFile : string = iQUE_BASE.GenerateNewFile +'_messageFile.json' ;
+  HttpConnect_SaveToFileEx(httpCon, _bodyMessage, _messageFile, cpUTF8, false);
+  var _messageFileBase64 : string = iQUE_BASE.GenerateNewFile +'_messageFilebase64.json' ;
+  EncodeFileToBase64(_messageFile, _messageFileBase64);
+  var _longValue64 : tptr = HttpConnect_LoadFromFile(httpCon, _messageFileBase64, cpUTF8) ;
+  deletefile(_messageFile);
+  deletefile(_messageFileBase64);
+
+
+  var _messlongstr : tptr = iQUE_INCOME_BASE.convertLongstringFromBase64(_longValue64 );
+   var _convertLongstringFromBase64File : string = iQUE_BASE.GenerateNewFile +'_convertLongstringFromBase64.log' ;
+    HttpConnect_SaveToFileEx(httpCon, _messlongstr, _convertLongstringFromBase64File, cpUTF8, false);
+    putfiletoclient(_convertLongstringFromBase64File,false);
+
+
+
+  var _JSON : tptr = HttpConnect_JsonObjectCreate(httpCon);
+  HttpConnect_JsonObjectAddString(httpCon, _JSON, 'action', 'atmcall');
+  HttpConnect_JsonObjectAddString(httpCon, _JSON, 'jsonrpc', '2.0');
+  HttpConnect_JsonObjectAddInteger(httpCon, _JSON, 'id', 3);
+  HttpConnect_JsonObjectAddString(httpCon, _JSON, 'class', _class);
+  HttpConnect_JsonObjectAddString(httpCon, _JSON, 'method', _method);
+
+  var _JSONparams : tptr = HttpConnect_JsonObjectCreate(httpCon);
+
+    HttpConnect_JsonObjectAddBoolean(httpCon, _JSONparams, 'isbase64', True);
+    HttpConnect_JsonObjectAddString(httpCon , _JSONparams, 'system_code', _syscode);
+    HttpConnect_JsonObjectAddLongString(httpCon , _JSONparams, 'body', _longValue64);
+
+  HttpConnect_JsonObjectAddObject(httpCon , _JSON, 'params', _JSONparams);
+
+  var _JSONBODYlongstring : tptr = HttpConnect_JSONObjectToJSON(httpCon, _JSON);
+
+/*
+   if Handler_tune.VALUEWORD[1] = 1 {
+     var _jsonFile : string = iQUE_BASE.GenerateNewFile +'__JSON_bodymess.json' ;
+     var _JSON_str : tptr = HttpConnect_JSONObjectToJSON(httpCon, _JSON);
+     HttpConnect_SaveToFileEx(httpCon, _JSON_str, _jsonFile, cpUTF8, false);
+     putfiletoclient(_jsonFile);
+   }
+*/
+
+/*    case _typeEvent of
+   coQUE_TypeEvent_Insert
+   coQUE_TypeEvent_Update
+   coQUE_TypeEvent_Delete
+*/
+     if Handler_tune.VALUEWORD[1] = 1 {
+       var _jsonFile : string = iQUE_BASE.GenerateNewFile +'__JSON_bodymess.json' ;
+       var _JSON_str : tptr = HttpConnect_JSONObjectToJSON(httpCon, _JSON);
+       HttpConnect_SaveToFileEx(httpCon, _JSON_str, _jsonFile, cpUTF8, false);
+       _retStatus  := 'ТЕСТ. Сформированный файл в ответе';
+       _retFileLog := _jsonFile;
+       result := true;
+       HttpConnect_Free(httpCon);
+       exit;
+     }
+
+ var _token : tptr = AuthenficateGetToken(_URL+_port, _login, _pswrd, _retFileLog);
+// message('after AuthenficateGetToken _token = ' + string(_token));
+
+ if HttpConnect_GetLongStringLength(httpCon,_token) = 0 then  {
+     _retStatus := 'Ошибка авторизации';
+      exit;
+   }
+// message('after HttpConnect_GetLongStringLength');
+ var _lresponse : tptr;
+
+ if not DoRequest(_URL+_port, _token, _JSONBODYlongstring,_retStatus,_lresponse){
+     _retStatus := 'Ошибка выполнения POST-запроса';
+      exit;
+ }
+
+
+  var _lResultJSON    : tptr = HttpConnect_JSONObjectByName (httpCon, _lresponse, 'result');
+  var _ResultlongStr : tptr = HttpConnect_JSONObjectToJSON(httpCon, _lResultJSON);
+
+ if HttpConnect_GetLongStringLength(httpCon,_ResultlongStr) = 0 then  {
+    var _lresponseLongStr : tptr = HttpConnect_JSONObjectToJSON(httpCon, _lresponse);
+    var _lresponseFile : string = iQUE_BASE.GenerateNewFile +'__lresponse.json' ;
+    HttpConnect_SaveToFileEx(httpCon, _lresponseLongStr, _lresponseFile, cpUTF8, false);
+   _retStatus := '';
+   _retFileLog := _lresponseFile;
+    exit;
+  }
+
+  var _ResultFile : string = iQUE_BASE.GenerateNewFile +'_messageResult.json' ;
+  HttpConnect_SaveToFileEx(httpCon, _ResultlongStr, _ResultFile, cpUTF8, false);
+
+  _retStatus := '';
+  _retFileLog := _ResultFile;
+  result := true;
+
+  HttpConnect_Free(httpCon);
+}
+
+function GetDescription : string; {
+  result := 'Интеграция с Галактикой посредством JSON'
+}
+
+
+Window winGalaktikaTune 'Настройки интерфейса передачи JSON-сообщений в Галактику';
+  Show at (,,,);
+  //---------------------------------------------
+    Screen ScrOilixAbsenceTune(,,Sci1Esc);
+
+    Table Handler_tune;
+    Fields
+     Handler_tune.NAME           : NoProtect, {Font={BackColor=if(trim(Handler_tune.name) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[1] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[1]) = '',ColorNeed,0)}};
+     Handler_tune.VALUEWORD[3]   : NoProtect;
+     Handler_tune.VALUESTRING[2] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[2]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[3] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[3]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[4] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[4]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[5] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[5]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[6] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[6]) = '',ColorNeed,0)}};
+
+     Handler_tune.VALUEWORD[1]   : NoProtect;
+    buttons
+     cmValue1,[singleLine],,;
+<<
+`Наименование настройки`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `URL`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например http://192.168.240.30:52045, API и API/LOGIN добавляются в коде)
+  `Порт`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Логин`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Пароль`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (после изменения будет зашифрован)
+ `Класс`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (класс для обработки входящих сообщений в целевой Галактике, например SNG_QUE::QUE_REST)
+ `Метод`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (метод класса, например oQUE_REST_PutMessageToIncomeQueue)
+   `Код`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (передаваемый код системы)
+
+ [.] тестовый режим : сообщение не будет отослано, а запишется в качестве ответа в исходящую очередь`
+Сформированное сообщение будет перекодировано в base64 и отправлено в качестве значения секции body внутри param
+Исходный JSON должен иметь следующую структуру, по секции NAME внутри MESSAGE будет определяться обработчик в целевой системе:
+"MESSAGE" :
+    {
+      "NAME" : "QRY_TEMPLATE",
+      "BODY" :
+       [
+         тут вся передаваемая структура
+       ]
+    }
+                           <.Сохранить и закрыть.>
+>>
+    end;
+end;
+windowevent winGalaktikaTune;
+cmValue1 : {
+  update current Handler_tune;
+  closewindow(winGalaktikaTune);
+}
+end;
+
+procedure Setup(__cQUE_Handler_tune : comp); {
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune <> tsOK then exit;
+  runwindowmodal(winGalaktikaTune)
+
+}
+
+handleevent
+cmCheckField : {
+  case curfield of
+    #Handler_tune.VALUESTRING[3]: {
+       set Handler_tune.VALUEWORD[2] := word(timetostr(cur_time,'SS'));
+       update current Handler_tune;
+       Handler_tune.VALUESTRING[3] := encrypt(Handler_tune.VALUESTRING[3]);
+    }
+  end;
+  update current Handler_tune;
+  rereadrecord;
+}
+end;
+end.
