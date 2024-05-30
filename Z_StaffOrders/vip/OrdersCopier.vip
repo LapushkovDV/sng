@@ -1,0 +1,203 @@
+#component "Z_StaffOrders"
+
+#include OrdersFiltr.vih // фильтр реестра приказов
+
+alter interface OrdersCopier;
+overload
+Procedure CheckTypeOfRpd(wKind: word; dRabDate: date);
+end;
+
+Procedure Copy_101(wKind: word); forward;
+Procedure Copy_30(wKind: word); forward;
+
+var
+  FO: OrdersFiltr; //фильтр реестра приказов
+
+const
+  FutureDate = date(01,01,3000);
+end;
+
+create view OrdersCopier
+  as select
+    ContDocNmb.nRec
+  from
+    ContDoc ContDocNmb,
+    TitleDoc,
+    Appointments AppPers,
+    SpAllStaff SpAllStaff_Main,
+    SpAllStaff SpAllStaff_Exp,
+    SpAllStaff SpAllStaff_Main_New,
+    SpAllStaff SpAllStaff_Exp_New,
+    sng_fortune,
+    sng_fortune extFortuneNew
+  where (( PartDoc.cDoc == TitleDoc.nRec
+));
+
+Procedure CheckTypeOfRpd(wKind: word; dRabDate: date);
+  {
+  //inherited::CheckTypeOfRpd(wKind, dRabDate);
+  case ContDocRab.TypeOper of
+    101: Copy_101(wKind); // "Оформление доп. соглашений"
+    30:  Copy_30(wKind);
+    else inherited::CheckTypeOfRpd(wKind, dRabDate);
+  end;
+  }
+
+//******************************************************************************
+// Копирование данных по рпд-101 ("Оформление доп. соглашений")
+//******************************************************************************
+Procedure Copy_101(wKind: word);
+  var
+    cPsn, cAgreement: comp;
+    wNum, wNumFt: word;
+  {
+  var WWCFt: WorkWithContract new;
+
+  cPsn := Persons.nRec;
+  clearBuffer(tnContDocNew);
+
+  if getfirst PartDoc where ((ContDocRab.cPart == PartDoc.nRec)) = tsOk
+    {
+    set ContDocNew.cPart := PartDoc.nRec;
+    set ContDocNew.TypeOper := PartDoc.TypeOper;
+    }
+  ContDocNew.ObjType := 1;    // to table Persons
+  ContDocNew.NumPart := 1;
+  ContDocNew.SeqNmb := 1;
+  ContDocNew.NumPart := PartDoc.NRazd;
+  ContDocNew.SBottom := ContDocRab.SBottom;
+  ContDocNew.nRec := GetNextnRec(tnContDocRab, 0);
+
+  if (GetLast ContDocNmb where (( PartDoc.nRec == ContDocNmb.cPart    and
+                                  PartDoc.TypeOper == ContDocNmb.TypeOper and
+                                  1 == ContDocNmb.SeqNmb)) = tsOk)
+    ContDocNew.wRec := ContDocNmb.wRec + 1
+  else
+    ContDocNew.wRec := 1;
+
+  ContDocNew.Person := cPsn;
+
+  if not FO.FoundMarkerPodr(Persons.Department)
+    {
+    set ContDocNew.Person := 0;
+    Message('Установленный фильтр не позволяет выбирать данное подразделение.', Information);
+    }
+  else
+    {
+    set ContDocNew.cDopRef := Persons.Department;
+
+    if day(Persons.DisDate) = 0
+      set ContDocNew.cStr := Persons.AppointCur
+    else
+      set ContDocNew.cStr := Persons.AppointLast;
+    }
+
+  insert current ContDocNew;
+
+  if not NOAA.NeedFormAddAgreementPers(ContDocNew.TypeOper)
+    exit;
+
+  var cContrOld, cContrCur: comp;
+  cContrOld := NOAA.GetContractByAgreement(NOAA.GetFirstAgreementByLink(coContDoc, ContDocNew.nRec));
+  cContrCur := WWC.GetContractOnDate(ContDocNew.Person, TitleDoc.DocDate, ContDocNew.cStr);
+  if cContrCur = comp(0)
+    {
+    wNum   := WWC.InitByApp(ContDocNew.cStr, TitleDoc.DocDate);
+    wNumFt := WWC.InitByApp(ContDocNew.cStr, FutureDate);
+    if (wNum < wNumFt) then
+      {
+      Message('Обнаружены договоры будущих периодов! Выберите нужный договор.', Information + okButton);
+      cContrCur := WWCFt.PickPsnContract(Persons.NRec, WWC.GetContractNrecByNum(wNum));
+      }
+    else
+      if getFirst AppPers where ((ContDocNew.cStr == nRec)) = tsOk then
+        cContrCur := AppPers.ResComp[1];
+    }
+  
+  if cContrCur = comp(0)
+    {
+    Message('Договор не найден.');
+    exit;
+    }
+
+  //если поменялся контракт (или не было, но появился)
+  if cContrOld <> cContrCur
+    {
+    NOAA.DeleteAgreementLinks(coContDoc, ContDocNew.nRec);
+    NOAA.CreateAgreement(cContrCur, TitleDoc.DocDate, coContDoc, ContDocNew.nRec);
+    }
+
+  cAgreement := NOAA.GetFirstAgreementByLink(coContDoc, ContDocNew.nRec);
+  if cAgreement = comp(0) or getFirst SpAllStaff_Main_New where ((cAgreement == SpAllStaff_Main_New.nRec)) <> tsOk
+    exit;
+  if getFirst SpAllStaff_Exp_New where ((cgAllStaffExp == SpAllStaff_Exp_New.wNoCon and cAgreement == SpAllStaff_Exp_New.cBaseT)) <> tsOk
+    {
+    ClearBuffer(tnSpAllStaff_Exp_New);
+    SpAllStaff_Exp_New.wNoCon := cgAllStaffExp;
+    SpAllStaff_Exp_New.cBaseT := SpAllStaff_Main_New.nRec;
+    if insert current SpAllStaff_Exp_New <> tsOk
+      exit;
+    }
+  if getfirst SpAllStaff_Main where ((NOAA.GetFirstAgreementByLink(coContDoc, ContDocRab.nRec) == SpAllStaff_Main.nRec)) <> tsOk
+    exit;
+  SpAllStaff_Main_New.ResDate[2] := SpAllStaff_Main.ResDate[2];
+  SpAllStaff_Main_New.ResDate[3] := SpAllStaff_Main.ResDate[3];
+  update current SpAllStaff_Main_New;
+
+  if getFirst SpAllStaff_Exp where ((cgAllStaffExp == SpAllStaff_Exp.wNoCon and SpAllStaff_Main.nRec == SpAllStaff_Exp.cBaseT)) <> tsOk
+    exit;
+  SpAllStaff_Exp_New.ResComp[1] := SpAllStaff_Exp.ResComp[1];
+  SpAllStaff_Exp_New.ResComp[2] := SpAllStaff_Exp.ResComp[2];
+  SpAllStaff_Exp_New.ResComp[3] := SpAllStaff_Exp.ResComp[3];
+  SpAllStaff_Exp_New.ResComp[4] := SpAllStaff_Exp.ResComp[4];
+  SpAllStaff_Exp_New.ResComp[5] := SpAllStaff_Exp.ResComp[5];
+  SpAllStaff_Exp_New.ResComp[6] := SpAllStaff_Exp.ResComp[6];
+  SpAllStaff_Exp_New.ResComp[7] := SpAllStaff_Exp.ResComp[7];
+
+  SpAllStaff_Exp_New.ResWord[1] := SpAllStaff_Exp.ResWord[1];
+
+  SpAllStaff_Exp_New.ResString[1] := SpAllStaff_Exp.ResString[1];
+  SpAllStaff_Exp_New.ResString[2] := SpAllStaff_Exp.ResString[2];
+  SpAllStaff_Exp_New.ResString[3] := SpAllStaff_Exp.ResString[3];
+  SpAllStaff_Exp_New.ResString[4] := SpAllStaff_Exp.ResString[4];
+  SpAllStaff_Exp_New.ResString[5] := SpAllStaff_Exp.ResString[5];
+  update current SpAllStaff_Exp_New;
+  }
+//******************************************************************************
+// Копирование данных по рпд-30 ("Награждение/поощрение, премирование")
+//******************************************************************************
+Procedure Copy_30(wKind: word);
+{
+  var cC: comp;
+  var LocalDate: date;
+  if GetFirst FastFirstRow Fortune // теперь содержимое приказа
+      where (( ContDocRab.nRec == Fortune.cFCont )) = tsOk
+    LocalDate := Fortune.Dat1
+  else
+    LocalDate := date(0, 0, 0);
+  // создание стандартного контдока
+  cC := CreateNewContDoc(wKind, date(0, 0, 0));
+  // а теперь все выплаты, которые мы копировали
+  if cC <> 0
+    _loop Fortune // теперь содержимое приказа
+      where (( ContDocRab.nRec == Fortune.cFCont ))
+    {
+      ClearBuffer(tnFortuneNew);
+      FortuneNew.Buffer := Fortune.Buffer;
+      FortuneNew.Nrec := GetNextNrec(#FortuneNew, 0);
+      FortuneNew.cFCont := cC;
+      FortuneNew.SNote := '';
+      if Insert Current FortuneNew = tsOk
+      {
+        if getfirst fastfirstrow sng_fortune where ((Fortune.nrec == sng_fortune.cfortune)) = tsOk
+        {
+          ClearBuffer(#extFortuneNew);
+          extFortuneNew.Buffer := sng_fortune.Buffer;
+          extFortuneNew.cfortune := FortuneNew.nrec;
+          Insert current extFortuneNew;
+        }
+      };
+    } //if GetFirst FastFirstRow Raise
+} //Copy_30;
+
+end.

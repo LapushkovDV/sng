@@ -1,0 +1,14 @@
+#component "Z_StaffOrders"
+
+alter interface Staj_CloseAndReopen;
+
+overload
+  procedure IStaj_CloseAndReopen.OpenStaj(cPrs: comp; dOpen: date);
+end;
+
+procedure IStaj_CloseAndReopen.OpenStaj(cPrs: comp; dOpen: date);
+{
+  // этот стаж не нужен
+}
+
+end.

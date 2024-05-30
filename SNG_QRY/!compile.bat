@@ -10,9 +10,9 @@ del *.fnc
 del *.log
 del Atlantis*.res
 
-@set exedir=C:\Galaktika\ATL6\Update_10.1.2230\support
+@set exedir=C:\Galaktika\ATL6\Update_11400\support\exe
 
-@%exedir%\vip.EXE SNG_QRY.prj /r:HR_643.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
+@%exedir%\vip.exe SNG_QRY.prj /r:SNG_QRY.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
 
 rem /c:support_res.cfg
 @echo Компиляция завершена

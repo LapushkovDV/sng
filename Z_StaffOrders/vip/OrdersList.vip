@@ -1,0 +1,595 @@
+// #include SNG_DopFunctions_RX.vih
+
+#component "Z_StaffOrders"
+
+alter interface OrdersList;
+//{  HR-373
+
+overload
+  procedure InsideReScan(Sender: comp);
+  function FiltrCond(cTDoc, AtlLastUser, Attr1, Attr2: comp; dDoc: date; sDocNmb: string[20]; sDocText: string[100]): boolean;
+end;
+
+var oExtAttr: iExtAttr; //HR-1101 BOD
+    extAttrID_VU: comp; //HR-1101 BOD
+
+function GetStatusTD: string; forward;
+function GetStatusDS: string; forward;
+
+create view
+as select
+   (GetStatusTD) (FieldName = fStatusTD),
+   (GetStatusDS) (FieldName = fStatusDS)
+from
+  ExternalASM ExtASM,
+  SpallStaff SpallStaffASM,
+  KLOtpusk,
+  ContDoc test_tContDoc
+where
+((
+      101 == ExtASM.asm_type
+  and 32211 == ExtASM.wtable
+  and TitleDoc.nRec == ExtASM.numbers[11]
+  and ExtASM.cRec == SpallStaffASM.nRec
+  and tContDoc.cNew7 == test_tContDoc.NRec
+));
+
+Create view cvTestPodr0
+Var
+  cTitleDoc: comp;
+as select
+  ContDoc.cDopRef
+from
+  PartDoc,
+  ContDoc
+where
+((
+  cTitleDoc    == PartDoc.cDoc and
+  PartDoc.NRec == ContDoc.cPart
+));
+
+function FiltrCond(cTDoc, AtlLastUser, Attr1, Attr2: comp; dDoc: date; sDocNmb: string[20]; sDocText: string[100]): boolean;
+{
+  Result := inherited::FiltrCond(cTDoc, AtlLastUser, Attr1, Attr2, dDoc, sDocNmb, sDocText);
+
+  if (StandAccess) and (Result)
+  {
+    var bFind: boolean = false;
+    cvTestPodr0.cTitleDoc := cTDoc;
+    cvTestPodr0._loop PartDoc
+      cvTestPodr0._loop ContDoc
+        if (not bFind)
+          bFind := (cvTestPodr0.ContDoc.cDopRef <> 0);
+
+    if (not bFind)
+      if (AtlLastUser <> UserID)
+        result := false;
+  }
+}
+
+function GetStatusTD: string;
+{
+   result := '';
+   if SpallStaffASM.wNoCon = 5
+   {
+     result := ExtASM.numbers[2];
+     if result = 'Подписан'
+       result := 'Действующий'; 
+   }
+}
+function GetStatusDS: string;
+{
+   result := '';
+   if SpallStaffASM.wnocon = 6
+     result := ExtASM.numbers[2];
+}
+
+function GetRPDnums: string;
+{
+  result := ', ' + string(tPartdoc.TypeOper);
+  _loop tPartDoc
+    if InStr(', ' + string(tPartDoc.TypeOper), result) = 0
+      result := result + ', ' + string(tPartdoc.TypeOper);
+  result := Ltrim(Ltrim(result, ','), ' ');
+}
+
+function GetPplTabs: string;
+{
+  result := ', ' + string(tPersons.Tabnmb);
+  _loop tPartDoc
+    if InStr(', ' + string(tPersons.Tabnmb), result) = 0
+      result := result + ', ' + string(tPersons.Tabnmb);
+  result := Ltrim(Ltrim(result, ','), ' ');
+}
+
+procedure CheckDopStat;
+{
+  if fDopStatus = '' or fDopStatus = 'Создан'
+    SetFieldOption(#Process.Name, ofSelectable);
+  else
+    ClearFieldOption(#Process.Name, ofSelectable);
+}
+
+procedure CheckRefresh();
+{
+  ShowButton(EditTitle, cmValue47, tmpTitleDoc.wStatus > 0);
+}
+
+procedure RefreshTitleDoc();
+{
+  UpdateTable();
+  ReReadRecord(#TitleDoc); 
+  RereadRecord(#TmpTitleDoc);
+  COO.ReReadRecords;
+  ReReadRPD();
+}
+
+procedure InsideReScan(Sender: comp);
+var
+  sDocText: string[100];
+  sFIO: string;
+  i: integer;
+  bEllipsis: boolean;
+{
+  ReReadRecord(tnTmpTitleDoc);
+  /* надо проапдейтить наши рабочие таблицы о том, что приказ стал сводным или наоборот
+   для этого проверим, пробежавшись по количеству. Кроме того, надо сформировать
+   в некоторых случаях новый номер приказа, т.к. нумерация по индивидуальным и
+   сводным, как правило, различная */
+  var bSvodn, bEmpty: boolean;
+  var NewNmb, OldNmb: string[20]; // новый номер приказа
+  var wOldType: word;
+  bSvodn := false;
+  NewNmb := OldNmb := TmpTitleDoc.DocNmb;
+  wOldType := 0;
+
+  if getfirst PartDocPrav where ((TitleDoc.Nrec == PartDocPrav.cDoc)) = tsOk
+  {
+    if PartDocPrav.NRec <> Sender //этот раздел здесь был раньше
+      wOldType := PartDocPrav.TypeOper;
+
+    if getnext PartDocPrav where ((TitleDoc.Nrec == PartDocPrav.cDoc)) = tsOk
+    {
+      bSvodn := true;
+
+      if PartDocPrav.NRec <> Sender //этот раздел здесь был раньше
+        wOldType := PartDocPrav.TypeOper;
+    }
+  }
+
+  if bSvodn
+  {
+    if TmpTitleDoc.DocType <> 1 //стал сводным из индивидуального
+    {
+      if bDifferNumberRPD
+      {
+        UNOO.DelNmbPr(wOldType, OldNmb); //освобождаем номер для того раздела, который здесь был раньше
+        NewNmb := UNOO.GetNmbPrWithYear(0, Year(TitleDoc.DocDate)); // получили новый номер приказа для сводного
+      }
+
+      update current TitleDoc
+        set TitleDoc.DocType := 1,
+            TitleDoc.DocNmb := NewNmb;
+      update current TmpTitleDoc
+        set TmpTitleDoc.DocType := 1,
+            TmpTitleDoc.DocNmb := NewNmb;
+    }
+  }
+  else
+    if TmpTitleDoc.DocType <> 0 //стал индивидуальным из сводного
+    {
+      if bDifferNumberRPD
+      {
+        UNOO.DelNmbPr(0, OldNmb); //освобождаем номер сводного приказа
+        NewNmb := UNOO.GetNmbPrWithYear(wOldType, Year(TitleDoc.DocDate)); // новый номер для индивидуального
+      }
+
+      update current TitleDoc
+        set TitleDoc.DocType := 0,
+            TitleDoc.DocNmb := NewNmb;
+      update current TmpTitleDoc
+        set TmpTitleDoc.DocType := 0,
+            TmpTitleDoc.DocNmb := NewNmb;
+    }
+
+  if (cNewRecord4DocText = TmpTitleDoc.nRec) and (TmpTitleDoc.wStatus = 0)
+  {
+    sDocText := '';
+    bEllipsis := false;
+    i := 0;
+
+    if IsValidAll(#tPartDoc)
+    {
+      if IsValidAll(#tTypePr)
+        sDocText += tTypePr.NOper;
+
+      var bBreak: boolean = false;
+
+      _loop tPartDoc
+      {
+        _loop tContDoc
+          if (tContDoc.TypeOper = 6) and (tContDoc.cNew7 <> 0)
+          {
+            if (GetFirst test_tContDoc <> tsOk)
+              continue;
+
+            if (test_tContDoc.TypeOper = 8)
+              sDocText := 'Отпуск с последующим увольнением';
+            else
+              sDocText := 'Отпуск с последующим увольнением на пенсию';
+
+            bBreak := true;
+            break;
+          }
+
+        if (bBreak)
+          break;
+      }
+
+      _loop tContDoc
+        if IsValidAll(#tPersons)
+        {
+          if ++i > 2
+          {
+            bEllipsis := true;
+            break;
+          }
+
+          sFIO := tPersons.FIO;
+          iStrFunc.GetFioIn(sFIO);
+
+          sDocText += if(i=1, ' ', ', ') + sFIO;
+        }
+
+      if tmpTitleDoc.DocType <> 0
+        bEllipsis := true;
+    }
+
+    if bEllipsis
+    {
+      sDocText +=  ', ...';
+      if SubStr(sDocText, Length(sDocText)-4, 5)  <> ', ...'
+        sDocText := SubStr(sDocText, 1, Length(sDocText)-5) + '...';
+    }
+
+
+    update current TitleDoc
+    set TitleDoc.DocText := sDocText;
+
+    update current TmpTitleDoc
+    set TmpTitleDoc.DocText := sDocText;
+  }
+
+  if (IsUseWF)
+  {
+    var tmpPR: word = WFR.GetWFByRDP(TitleDoc.NRec);
+
+    if (TmpTitleDoc.TypeObj <> tmpPR)
+    {
+      if (tmpPR = 0) and (TmpTitleDoc.TypeObj = 0)
+        tmpPR := wDefaultWF;
+
+      if (tmpPR <> 0)
+      {
+        TmpTitleDoc.TypeObj := tmpPR;
+        TmpTitleDoc.cWF := GetStartState(tmpPR);
+        update current TmpTitleDoc;
+
+        TitleDoc.cWF := TmpTitleDoc.cWF;
+        update current TitleDoc;
+        coSetAttr(coTitleDoc, TitleDoc.NRec, 'TypeObj', TmpTitleDoc.TypeObj, '');
+      }
+    }
+  }
+  if (IsValidAll(#tPartDoc) and (tPartDoc.TypeOper = 41 or tPartDoc.TypeOper = 71))
+  {
+    sDocText := '';
+    if getfirst fastfirstrow ContDoc where ((tPartDoc.nRec == ContDoc.cPart)) = tsOk
+      if getfirst fastfirstrow KLOtpusk where ((ContDoc.cNew1 == KLOtpusk.nRec)) = tsOk
+            sDocText := KLOtpusk.Notpus;
+    if getfirst fastfirstrow KLOtpusk where ((Sender == KLOtpusk.nRec)) = tsOk
+            sDocText := KLOtpusk.Notpus;
+
+    sDocText := KLOtpusk.Notpus;   
+    sFIO := Persons.FIO;
+    iStrFunc.GetFioIn(sFIO);
+
+    if (sDocText != '')
+    {
+      update current TitleDoc
+      set TitleDoc.DocText := sDocText + ' ' + sFIO;
+      update current TmpTitleDoc
+      set TmpTitleDoc.DocText := sDocText + ' ' + sFIO;
+      ReReadRecord(tnTmpTitleDoc);
+    }
+  }
+
+  if IsActiveWindow
+    fnLockCurrAndMsg(false);
+} //Procedure InsideReScan(Sender: comp);
+
+ExtendFormats brwDoc;
+browse brwDoc(, hcStaffAllPr);
+table TmpTitleDoc;
+  Fields
+     TitleDoc.Atl_LastDate 'Дата создания/изменения' ('Дата создания/изменения'): [15], Protect;  //HR-460, FIM
+     fStatusTD 'Статус ТД' ('Cтатус трудового договора')        : [10], Protect;
+     fStatusDS 'Статус ДС' ('Cтатус доп.соглашения'): [10], Protect;
+     GetRPDnums 'РПД' ('РПД'): [4], Protect;
+     GetPplTabs 'Таб.' ('Таб.'): [8], Protect;
+end; //browse
+//}  HR-373
+
+HandleEvent
+
+cmIdle:
+{
+  inherited::handleEvent(cmIdle);
+  SetFieldState(#fDopStatus_br1, sfVisible); //HR-361, FIM
+  SetFieldState(#Cur_X$Users.XU$FULLNAME, sfVisible); //HR-460, FIM
+  CheckRefresh();  
+}
+
+cmPositionChanged:
+{
+  inherited::handleEvent(cmPositionChanged);  
+  CheckRefresh();    
+}
+
+end; //HandleEvent
+
+Window WhatIsInOrder EscClose;
+  Show at (,, 100, 37);
+
+ExtendFormats EditTitle;
+Screen EditTitle;
+  Show at (,,, 5) Fixed_Y;
+  Table TmpTitleDoc;
+  fields
+    [VU_attr] (oExtAttr.bGetAttr(coTitledoc, TitleDoc.nrec, 'СНГ. Признак ВУ')) ('ВУ/Признак по ЛС'): noprotect; //HR-1101 BOD
+buttons
+  cmValue47, [singleLine];
+<<
+                                                                                     <. Обновить .>
+
+
+                                                              [.] ВУ/Признак по ЛС `
+>>
+end;
+end;  // Window WhatIsInOrder
+
+WindowEvent WhatIsInOrder;
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+  CheckDopStat();
+  CheckRefresh();
+//HR-1101 BOD
+//--------------------
+  if PartDoc.TypeOper = 6 or PartDoc.TypeOper = 41 or PartDoc.TypeOper = 71
+  {
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpVisible, true);    
+  }
+  else
+  {
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpVisible, false);
+  }
+  if tmpTitleDoc.wStatus = 1 or tmpTitleDoc.wStatus= 2
+  {
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpskip, true);
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpProtect, true);
+  }
+  else
+  {
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpskip, false);
+    cfsSetProp('ci_EDITTITLE_VU_ATTR_ВУ/Признак_по_ЛС', cfpProtect, true);
+  }
+//--------------------
+  cfsSetProp('L_EDITTITLE_Идентификатор_приказа:','Title','Ссылка на приказ в Directum'); // HR-1143
+}
+//HR-1101 BOD
+//--------------------
+cmClusterChanged:
+{
+    case curfield  of
+    #VU_attr:
+    {
+      oExtAttr.bSetAttr(coTitledoc, TitleDoc.nrec, 'СНГ. Признак ВУ', if(VU_attr=TRUE, false, true));
+      rescanpanel(#TmpTitleDoc);
+    }
+  end;
+  inherited::handleEvent(cmClusterChanged);
+}
+//--------------------
+cmValue47:
+{
+  RefreshTitleDoc();
+}
+cmPick:
+{
+  inherited::handleEvent(cmPick);
+  
+  case CurField of 
+    #fDopStatus:
+    {
+      RefreshTitleDoc();
+      CheckRefresh();
+      CheckDopStat();
+    } 
+    #Process.Name:
+    {
+      RefreshTitleDoc();
+      CheckRefresh();
+      CheckDopStat();
+    }
+  end;  
+}
+cmHyperlink:
+{
+  case CurField of
+
+  #EXTERNALASM.NUMBERS[1]:
+  {
+    if (EXTERNALASM.NUMBERS[1] <> 0)
+    {
+      var aErrorCode: integer;
+      //var sPagePath: string;
+      //sPagePath := Replace(sBasePath, '%::ID::%', EXTERNALASM.NUMBERS[1]);
+      var sPagePath: string = EXTERNALASM.NUMBERS[5]+EXTERNALASM.NUMBERS[6];
+      ExecProgram('start' , sPagePath, 'Печать файла', 0, aErrorCode);
+    }
+  }
+  end;
+}
+end; //window WhatIsInOrder
+
+HandleEvent
+
+cmHotKeys:
+{
+  var iTmp, iTmp2: longint = 0;
+
+  if not IsValid(tnTmpTitleDoc)
+    iTmp := LoadMenu('TmpPersons_HotKeys')
+  else
+  {
+
+    if not bEditable
+      iTmp := LoadMenu('ReadOnly_prikaz_hotkey');
+    else
+      if (PersNrec <> 0) or (wTypeRPD <> 0) // индивидуальные приказы
+      {
+        iTmp := LoadMenu('PR_prikaz_hotkey');
+      }
+      else
+      {
+        iTmp := LoadMenu('prikaz_hotkey');
+        AddMenuItemEx(iTmp, 'Отчет "Приказы по состояниям"','Отчет "Приказы по состояниям"', hcStaff_PrintFromAllPr, cmExp, kbNoKey);
+      }
+
+    if (not IfAccess(TitleDoc.Nrec))
+    {
+      SetMenuItemState(iTmp, 'Утвердить', cmLegend, mfDisabled);
+      SetMenuItemState(iTmp, 'Печать', cmPrintDoc, mfDisabled);
+      SetMenuItemState(iTmp, 'Отчет "Приказы по состояниям"', cmExp, mfDisabled);
+      DisableCommand(cmExp);
+    }
+    else
+    {
+
+      SetMenuItemState(iTmp, 'Утвердить', cmLegend, mfEnabled);
+      SetMenuItemState(iTmp, 'Печать', cmPrintDoc, mfEnabled);
+      if boUsePartOrders
+      {
+        SetMenuItemState(iTmp, 'Отчет "Приказы по состояниям"', cmExp, mfEnabled);
+        EnableCommand(cmExp);
+      }
+      else
+      {
+        SetMenuItemState(iTmp, 'Отчет "Приказы по состояниям"', cmExp, mfDisabled);
+        DisableCommand(cmExp);
+      }
+    }
+
+    if (tmpTitleDoc.wStatus = 0)
+    {
+      EnableCommand(cmCheckOrder);
+    }
+    else
+    {
+      SetMenuItemState(iTmp, 'Проверить приказ', cmCheckOrder, mfHidden);
+      DisableCommand(cmCheckOrder);
+    }
+
+    if (tmpTitleDoc.wStatus = 2)                                   //HR-904 NNT
+    {
+      SetMenuItemState(iTmp, 'Утвердить', cmLegend, mfHidden);
+      DisableCommand(cmLegend);
+    }
+    else
+    {
+      SetMenuItemState(iTmp, 'Утвердить', cmLegend, mfEnabled);
+      EnableCommand(cmLegend);
+    }
+
+
+    var FunArr: array [1..10] of string;
+    var bFun: boolean = false;
+    var i: byte = 0;
+
+    for(i := 1; i <= 10; i++)
+    {
+      FunArr[i] := sGetTune('UP.STAFF.COMMONRULES.Alg.DopFunc' + LPadCh(string(i), '0', 2));
+      if (trim(FunArr[i]) <> '')
+        bFun := true;
+    }
+
+    if (bFun)
+    {
+      iTmp2 := CreateMenu;
+
+      for (i := 1; i <= 10; i++)
+        if (trim(FunArr[i]) <> '')
+        {
+          var wCommand: word = case(i; 1: cmValue61, 2: cmValue62, 3: cmValue63, 4: cmValue64, 5: cmValue65,
+                                       6: cmValue66, 7: cmValue67, 8: cmValue68, 9: cmValue69, 10: cmValue60; 0);
+          if (wCommand <> 0)
+            AddMenuItemEx(iTmp2, FunArr[i], FunArr[i], hcNoContext, wCommand, 0);
+        }
+
+      AddSubMenu(iTmp, iTmp2, 'Дополнительные функции', '', hcNoContext);
+    }
+
+    AddMenuItemEx(iTmp, 'Скрыть/показать столбцы', 'Скрыть/показать столбцы', hcNoContext, cmValue70, 0);
+  }
+
+  PutHotCommand(RunLoadMenu(iTmp));
+
+}
+
+cmPositionChanged:
+{
+  SetStatus;
+
+  if (not IfAccess(TitleDoc.Nrec))
+  {
+    DisableCommand(cmLegend);
+    DisableCommand(cmPrintDoc);
+    DisableCommand(cmExp);
+  }
+  else
+  {
+    EnableCommand(cmLegend);
+    EnableCommand(cmPrintDoc);
+    if boUsePartOrders
+    {
+      EnableCommand(cmExp);
+    }
+    else
+    {
+      DisableCommand(cmExp);
+    }
+  }
+
+  if (tmpTitleDoc.wStatus = 0)
+  {
+    EnableCommand(cmCheckOrder);
+  }
+  else
+  {
+    DisableCommand(cmCheckOrder);
+  }
+
+  if (tmpTitleDoc.wStatus = 2)          //HR-904 NNT
+  {
+    DisableCommand(cmLegend);
+  }
+  else
+  {
+    EnableCommand(cmLegend);
+  }
+
+  prSetControlForDopstatus;
+}
+end;
+end.

@@ -1,0 +1,468 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика ERP 8.10 - Управление персоналом
+// Реестр приказов по персоналу
+//------------------------------------------------------------------------------
+#include OrdersListSNG.vih  
+#include AtlProtocol.vih
+#include DeclarePointsOrders.VIH
+
+#component "Z_StaffOrders"
+
+extensionpoint epStaffOrder_AccessInsertDelete (cmEvent: longint; DocDate : date ; RPDtype: word) ;
+
+#doc
+Реестр приказов по персоналу
+#end
+Interface OrdersListSNG 'Реестр приказов: установлен фильтр' (, hcStaffAllPr, sci1478EscInsC8) Cyan, EscClose;
+
+
+public function CheckOrderSNG(cTitle: comp = 0): boolean;
+{
+  result := true;
+  var bCheck, bValid: boolean = true;
+  var i: integer = 0;
+  var pStatus: word = 0;
+  var pTitle: comp = cTitle;
+
+  if (pTitle = 0)
+    pStatus := TitleDoc.wStatus;
+  else
+    if (GetFirst TitleDoc where (( pTitle == TitleDoc.NRec )) = tsOk)
+      pStatus := TitleDoc.wStatus;
+
+  if (pTitle = 0)
+    pTitle := TitleDoc.NRec;
+
+
+  //--- для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+  var lbSetStatus2 : boolean = false;
+  if TitleDoc.wStatus = 2
+  {
+     lbSetStatus2 := true;
+     update current TitleDoc set TitleDoc.wStatus := 0;
+     pStatus := TitleDoc.wStatus;
+  }
+  //---
+
+  if ( (pStatus = 0) or (pStatus = 2) )
+  {
+    IOP.LogStartVisual('Проверка приказа', 0);
+
+    _loop PartDoc where (( pTitle == PartDoc.cDoc ))
+    {
+      LoadDisLoadNeedRealization;
+      RPD.SetRelation(PartDoc.nRec);
+
+      _try
+        if not NullVipRef(RPD)
+          IRPD_Base3(RPD).SetCheckBeforePrint;
+      _except
+        on ExObjIfcNoImpl:{};
+
+      if (GetFirst ContDoc where (( PartDoc.Nrec  == ContDoc.cPart and
+                                    PartDoc.TypeOper == ContDoc.TypeOper and
+                                    1 == ContDoc.SeqNmb )) <> tsOk)
+      {
+        bValid := false;
+        i++;
+      }
+      else
+        if (not RPD.CheckOrder)
+          bCheck := false;
+
+      _try
+        if not NullVipRef(RPD)
+          IRPD_Base3(RPD).ClearCheckBeforePrint;
+      _except
+        on ExObjIfcNoImpl:{};
+    }
+
+    IOP.LogStopVisual;
+  }
+
+  if (not bValid)
+  {
+    if (i = 1)
+      message('При проверке обнаружен незаполненный приказ!');
+    else
+      message('При проверке обнаружены незаполненные приказы!');
+  }
+  else
+    if (bCheck)
+      message('Приказ проверен успешно.');
+
+  //--- возврат //для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+  if lbSetStatus2
+     update current TitleDoc set TitleDoc.wStatus := 2;
+  //---
+
+  result := (bValid) and (bCheck);
+}
+
+public procedure ConfirmOrderSNG(cTitle: comp = 0);
+{
+  var lbSetStatus2 : boolean = false;
+
+  if ( getfirst TitleDoc where (( cTitle == TitleDoc.NRec )) = tsOk )
+  {
+    SetStatus;
+
+    if ( not bEditable )
+    {
+      Message(chr(3) + 'Включен режим "только просмотр" утверждение недоступно!', Warning + OkButton);
+      bPluginConfirm := false;
+      abort;
+      exit;
+    }
+
+    if ( not epStaffOrder_AccessInsertDelete (cmLegend, TitleDoc.DocDate, PartDoc.TypeOper) )
+    {
+      bPluginConfirm := false;
+      abort;
+      exit;
+    }
+
+    if ( not IfAccess(TitleDoc.Nrec) )
+    {
+      bPluginConfirm := false;
+      abort;
+      exit;
+    }
+
+    if fnLockCurrAndMsg <> tsOk
+    {
+      bPluginConfirm := false;
+      abort;
+      exit;
+    }
+    else
+    {
+      ClearSemaphore('OrderList_'+string(TitleDoc.NRec));
+      UnLockAll(#TitleDoc);
+    }
+
+    if UpdateTable
+    {
+      case TitleDoc.wStatus of
+        1:
+        {
+          message('Приказ N ' + trim(TitleDoc.DocNmb) + ' от ' + trim(string(TitleDoc.DocDate)) +
+                  ' уже утвержден.', Information);
+          bPluginConfirm := false;
+          abort;
+          exit;
+        }
+
+        4:
+        {
+          message('Приказ N ' + trim(TitleDoc.DocNmb) + ' от ' + trim(string(TitleDoc.DocDate)) +
+                  ' отменен.', Information);
+          bPluginConfirm := false;
+          abort;
+          exit;
+        }
+
+        else
+        {
+          if (message('Утвердить приказ N ' + trim(TitleDoc.DocNmb) + ' от '+
+                      trim(string(TitleDoc.DocDate)) + '?', Confirmation + YesNo) <> Yes)
+          {
+            bPluginConfirm := false;
+            abort;
+            exit;
+          }
+        }
+      end;
+
+      if TitleDoc.wStatus = 2
+      {
+        lbSetStatus2 := true;
+        update current TitleDoc set TitleDoc.wStatus := 0;
+      }
+
+      // ПРОВЕРКА приказа
+      var isWasError: boolean;
+      // состояние РПД
+      var wStateOrder: word;
+      // признак того, что ни один из РПД не прошёл проверку
+      var boAllNoCheck: boolean;
+
+      boAllNoCheck := true;
+
+      isWasError := false;
+      // чистим временную таблицу с информацией об ошибках, требующих подтверждения о продолжении
+      delete all mt_DopMessError;
+
+      IOP.LogStartVisual('Утверждение приказа', 0);
+
+      if ( getfirst TitleDoc where (( cTitle == TitleDoc.NRec )) = tsOk )
+        _loop PartDoc
+        {
+          if (GetFirst ContDoc <> tsOk)
+          {
+            isWasError := true;
+            IOP.PartMessage(PartDoc.nRec, 'Раздел не заполнен!');
+          }
+          else
+          {
+            LoadDisLoadNeedRealization;
+            RPD.SetRelation(PartDoc.nRec);
+
+            // если РПД не утвержден либо отключена настройка
+            if (PartDoc.wInf1 <> 1 and boUsePartOrders) or (NOT boUsePartOrders)
+            {
+              if (PersNrec = 0) and (wTypeRPD = 0)
+              {
+                IRPD_Base2(RPD).pConfirm := true;
+
+                if not RPD.CheckOrder
+                {
+                  if boUsePartOrders
+                    isWasError := false;
+                  else
+                    isWasError := true;
+                }
+
+                IRPD_Base2(RPD).pConfirm := false;
+              }
+              else
+              {
+                if getfirst ContDocSecond where((PartDoc.nRec == ContDocSecond.cPart
+                                        and 1 == ContDocSecond.SeqNmb
+                                        and PersNrec == ContDocSecond.Person)) = tsOK
+                {
+                  if ((ContDocSecond.wYearPr = 0 or ContDocSecond.wYearPr = 3) and boUsePartOrders) or (not boUsePartOrders)
+                  {
+                    IRPD_Base2(RPD).pConfirm := true;
+                    if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 11');
+                    if not IRPD1(RPD).CheckOneOrder(ContDocSecond.nRec)
+                    {
+                      isWasError := true;
+                    }
+                    else if boUsePartOrders
+                      isWasError := false;
+
+                    IRPD_Base2(RPD).pConfirm := false;
+                  }
+                }
+              }
+              // если включена настройка
+              if boUsePartOrders
+              {
+                wStateOrder := GetStateOrder;
+                if wStateOrder = 1
+                  wStateOrder := 3;
+                PartDoc.wInf1 := wStateOrder;
+
+                Update Current PartDoc;
+                if PartDoc.wInf1 <> 0
+                {
+                  if (PersNrec = 0) and (wTypeRPD = 0)
+                    boAllNoCheck := false;
+                  else
+                    boAllNoCheck := isWasError;
+                }
+              }
+            }
+
+            if (PartDoc.wInf1 = 1 and boUsePartOrders)
+              boAllNoCheck := false;
+          }
+        }
+
+      //--- возврат //для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+      if lbSetStatus2
+        update current TitleDoc set TitleDoc.wStatus := 2;
+
+      if (boAllNoCheck and boUsePartOrders) or (isWasError and NOT boUsePartOrders)
+      {
+        IOP.TitleMessage(TitleDoc.nRec, 'Есть ошибки в содержании приказа. Приказ утвердить нельзя!');
+        IOP.LogStopVisual;
+        ShowErrors();
+        bPluginConfirm := false;
+        abort;
+        exit;
+      }
+
+      // если есть какие то ошибки, требующие подтверждения о продолжении
+      if ( not AskForContinueWithError )
+      {
+        bPluginConfirm := false;
+        abort;
+        exit;
+      }
+
+      // раз дошли досюда, значит, проверки закончили. УТВЕРЖДАЕМ
+      if ( getfirst TitleDoc where (( cTitle == TitleDoc.NRec )) = tsOk )
+      {
+        if (PersNrec <> 0) or (wTypeRPD <> 0)
+        {
+          mDocNmb := TitleDoc.DocNmb;
+          if not boUsePartOrders
+            if GetFirst PartDocSecond where((TitleDoc.nRec == PartDocSecond.cDoc)) = tsOk
+              if GetNext PartDocSecond where((TitleDoc.nRec == PartDocSecond.cDoc)) = tsOk
+              {
+                message(chr(3)+'Приказ ' + mDocNmb + ' является сводным!' + chr(13) +
+                        chr(3) + 'Утвердить приказ можно только в интерфейсе "Все приказы по персоналу"!', OkButton);
+                IOP.LogStopVisual;
+                bPluginConfirm := false;
+                abort;
+                exit;
+              }
+
+          if GetFirst FastFirstRow PartDoc where ((GetCurTypeRpd4Ind == PartDoc.TypeOper and TitleDoc.nRec == PartDoc.cDoc)) = tsOk
+          {
+            if not boUsePartOrders
+              if GetFirst ContDocSecond where ((PartDoc.nRec == ContDocSecond.cPart
+                                              and 1 == ContDocSecond.SeqNmb))= tsOk
+                if GetNext ContDocSecond where ((PartDoc.nRec == ContDocSecond.cPart
+                                              and 1 == ContDocSecond.SeqNmb)) = tsOk
+                {
+                  message(chr(3)+'Приказ ' + mDocNmb + ' является групповым.' + chr(13) +
+                    chr(3) + ' Утвердить приказ можно только в интерфейсе "Все приказы по персоналу"!', Information);
+                  IOP.LogStopVisual;
+                  bPluginConfirm := false;
+                  abort;
+                  exit;
+                }
+
+            LoadDisLoadNeedRealization;
+            RPD.SetRelation(PartDoc.nRec);
+
+            // если РПД не утвержден либо отключена настройка
+            if (PartDoc.wInf1 <> 0 and PartDoc.wInf1 <> 1 and boUsePartOrders) or (NOT boUsePartOrders)
+            {
+              if getfirst ContDocSecond where((PartDoc.nRec == ContDocSecond.cPart
+                                        and 1 == ContDocSecond.SeqNmb
+                                        and PersNrec == ContDocSecond.Person)) = tsOK
+                {
+                  //--- для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+                  if TitleDoc.wStatus = 2
+                  {
+                    lbSetStatus2 := true;
+                    update current TitleDoc set TitleDoc.wStatus := 0;
+                  }
+                  //---
+
+                  if not IRPD1(RPD).ConfirmOneOrder(ContDocSecond.nRec)
+                  {
+                    IOP.PartMessage(PartDoc.nRec, 'Внимание! Ошибка при утверждении приказа. Приказ не утвержден');
+                    isWasError := true;
+                  }
+                  else
+                  {
+                  if boUsePartOrders
+                    isWasError := false;
+                  }
+                }
+              if boUsePartOrders
+              {
+                wStateOrder := GetStateOrder;
+                PartDoc.wInf1 := wStateOrder;
+
+                Update Current PartDoc;
+              }
+            }
+          }
+        }
+        else
+        {
+          //--- для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+          if TitleDoc.wStatus = 2
+          {
+             lbSetStatus2 := true;
+             update current TitleDoc set TitleDoc.wStatus := 0;
+          }
+          //---
+
+          _loop PartDoc
+          {
+            LoadDisLoadNeedRealization;
+            RPD.SetRelation(PartDoc.nRec);
+
+            // если РПД не утвержден либо отключена настройка
+            if (PartDoc.wInf1 <> 0 and PartDoc.wInf1 <> 1 and boUsePartOrders) or (NOT boUsePartOrders)
+            {
+              if not RPD.ConfirmOrder
+              {
+                IOP.PartMessage(PartDoc.nRec, 'Внимание! Ошибка при утверждении приказа. Приказ не утвержден');
+                isWasError := true;
+                if NOT boUsePartOrders
+                  break;
+              }
+              else
+                if boUsePartOrders
+                  isWasError := false;
+
+              if boUsePartOrders
+              {
+                wStateOrder := GetStateOrder;
+                PartDoc.wInf1 := wStateOrder;
+
+                Update Current PartDoc;
+              }
+            }
+          }
+        }
+      }
+
+
+      //--- возврат //для корректной проверки приказов, есть баги при TitleDoc.wStatus=2="исполняемый"
+      if isWasError
+      if lbSetStatus2
+         update current TitleDoc set TitleDoc.wStatus := 2;
+      //---
+
+      //проверка состояния приказа
+      if boUsePartOrders
+      {
+        CheckRpd.fCheckStateRPD(PartDoc.nRec, PartDoc.cDoc);
+        RereadRecord(#TitleDoc);
+        if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 12');
+        if (TitleDoc.wStatus = 1) or (TitleDoc.wStatus = 3) {
+          if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 13');
+          epConfirmOrder(TitleDoc.Nrec);
+        }
+      }
+      else
+      {
+        if not isWasError
+        {
+          //  к сожалению, оказалось, что нужно загонять под локальную переменную
+          // т.к. при обычном кривом возврате из-за несовпадения данных все равно
+          // выходил алгоритм в эту ветку.
+          update current TitleDoc
+            set TitleDoc.wStatus := word(1);
+
+          //Инициируем точку расширения - приказ утвержден
+          if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 14');
+          epConfirmOrder(TitleDoc.Nrec); // насколько известно, пока нигде никто не подписан
+          if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 15');
+          // на этот обработчик
+          // сигналим подписчикам об утверждении
+          OrderN.Changed(0, 0, TitleDoc.Nrec);
+        } // нет ошибок
+      }
+
+      // в случае открытости окна, надо перерисовать
+      if IsActiveWindow
+      {
+        // утвердили: надо задизеблиться
+        EnableDisAbleFields(false);
+        COO.SetRelation(TitleDoc.nRec);
+        COO.ReDrawPanels;
+      }
+
+      IOP.TitleMessage(TitleDoc.nRec, 'Утверждение приказа завершено!', APE_INFO);
+      IOP.LogStopVisual;
+
+      ShowErrors;
+    } //if UpdateTable
+
+    GetVipRef(Notifier, 'Z_Staff::ReceptNotify');
+    Notifier.Changed(ContDoc.Person);
+  }
+}
+
+end.

@@ -1,0 +1,36 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_90 '' escclose;
+
+create view;
+
+HandleEvent
+
+  cmPick:
+  { 
+    case CurField of
+      #fWP:
+      {
+        if SalScale.TimeStart <> time(0,0,0,0) or SalScale.TimeEnd <> time(0,0,0,0)
+        {
+          message('Нельзя задавать шаблон рабочего дня, если задано время начала/окончания отклонения', Error);
+          exit;
+        }
+
+        var parrec: comp = SalScale.cWorkPattern;
+        if RunInterface('WorkPattern', parrec, 2) <> cmcancel
+        { 
+          set SalScale.cWorkPattern := parrec;
+
+          CalcAllKindHours;
+        }
+
+        SetTimeFieldOptions;
+      }
+    else 
+      inherited::handleevent(cmPick);   
+    end;         
+  }
+
+end;
+end.

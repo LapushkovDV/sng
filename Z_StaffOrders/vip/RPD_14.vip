@@ -1,0 +1,15 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_14
+
+HandleEvent
+cmOnVipLoad:
+{
+    if (inherited::handleEvent(cmOnVipLoad)) = heAbort { abort; }
+    cfsSetProp('b_scrDet14_Примечание',                             cfpVisible,   false );
+    cfsSetProp('L_SCRDET14_Прервать_с_(выход_на_работу)',           cfpVisible,   false );
+    cfsSetProp('i_SCRDET14_DFIRSTRABDAY',                           cfpVisible,   false );
+}
+end;
+
+end.

@@ -1,0 +1,31 @@
+#component "Z_StaffOrders"
+
+#include DeptIer.vih
+
+alter interface PickSubstitution;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brPart;
+
+Create view PickSubstitution
+
+As select
+  DepIer.GetFulDepNameEx(Appointments.Department)
+    (fieldname = DeptNameIer)
+;
+
+browse brPart 'Разделы' (, hcStaffWinPr);
+table Appointments;
+fields
+  DeptNameIer  'Подразделение': [25], protect;
+  CatPost.Name 'Должность': [28], protect;
+  SubstPerson.FIO 'Замещаемый', 'сотрудник': [28], protect;
+  DateToStr(TitleDoc.DocDate, 'DD/MM/YYYY') 'Дата', 'приказа': [10], protect;
+  TitleDoc.DocNmb 'Номер', 'приказа': [10], protect;
+  DateToStr(ContDoc.Dat1, 'DD/MM/YYYY') 'Дата','начала': [10], protect;
+  if(Day(Appointments.DateEnd) = 0, '', DateToStr(Appointments.DateEnd, 'DD/MM/YYYY')) 'Дата', 'окончания': [10], protect;
+end;
+
+end.

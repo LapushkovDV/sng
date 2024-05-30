@@ -1,0 +1,193 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+alter interface RPD_70; // HR-631 GKS
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+#include OWFunc.vpp;
+#declare OverworkCalculationF2(_Tbl)
+  if(#_Tbl.OWMode = ocmDaily, 'поденный',
+    if(#_Tbl.OWMode = ocmSummed, 'суммированный',
+      if(#_Tbl.OWMode = ocmNone, 'несуммированный', '')))
+#end
+
+create view
+as select
+  If(Apphist.PayModel = 20, 0, 1)
+    (FieldName = wFormOpl),
+  #OverworkCalculationF2(NewAppoint)
+  (fieldname = OverworkCalculation2)
+;
+
+OverloadFormats scrDet70;
+// -----------------------------------------------------------------------------
+// Окно содержимого приказа на временный перевод
+screen scrDet70 (,hcStaffWinPr, sci1Esc);     // временное перемещение
+  show at (, 5,,);
+  table NewAppoint;
+fields
+  fullNamePodr: protect;
+  CatPost.Name: protect;
+  KlRejim.NRejim ('График (назначение)'): protect;
+  Appointments.TaxRate ('Оклад (назначение)'): [11.3], protect;
+
+  scdLastUser0 ('Корректирующий коэффициент (назначение)', ): [10.3], protect;
+//новое назначение
+  ContDoc.Dat1 ('Временно перемещается с указанной даты', hcStaffAppAppointDate, sci13esc) :[10,'DD/MM/YYYY'], noprotect;
+  ContDoc.Dat2 ('Временно перемещается по указанную дату', hcStaffAppEndDate, sci13esc): [10,'DD/MM/YYYY'], noprotect;
+  NewAppoint.wAddWord1 ('Замещает сотрудника или вакантную ставку'):
+      [list 'сотрудника ', 'вакантную ставку'], protect;
+  NewAppoint.sWorkPlace: protect, pickbutton;
+  ChangePersons.FIO ('ФИО замещаемого сотрудника',, sci13esc): {Font = {BackColor = if(ContDoc2.ObjNRec = 0, ColorNeed, 0)}}, protect;
+  OldFullNamePodr: protect;
+  NewPostCat.Name         ('Профессия, должность.', hcStaffWinPr): protect;
+  if (IsValid(#ChangePersons), if(NewAppoint.StaffStr=0,'вне ШР','по ШР'),'по ШР'): skip;
+
+  osob_usl (,, sci13esc): protect, pickbutton;
+
+  wFormOpl ('Форма оплаты'): [list 'Сдельная', 'Повременная'] Protect;  // HR-756 GKS
+  NewAppHist.TaxRate ('Оклад, ставка, тариф', hcStaffAppTaxRate): [11.3], noprotect;
+  AppKlVal.SimvolV   ('Валюта', hcStaffNoContext, sci13esc), protect;
+
+  NewAppHist.coef1   ('Количество занимаемых ставок', hcStaffPrikazRate): [5.3], noprotect;
+
+  scdLastUser1 ('Корректирующий коэффициент', hcStaffAppTaxRate): [10.3], noprotect;
+
+  FullIf ('Источники финансирования',, sciStaffTypical13Esc): protect;
+  NewWorkCondCat.Name ('Условия труда.', hcStaffAppWorkCond, sci13esc): Protect;
+  fRejimStrSec ('Режим труда и продолжительность рабочего дня (недели), ч', hcStaffAppHours, sci13esc): Protect;
+  OverworkCalculation2  ('Способ учета сверхурочных работ',,sci13esc): protect;
+  NewAppoint.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  NewDopInfoCat.Name ('Дополнительные сведения',, sci13esc): protect;
+  NewTypeMove.Name ('Причина перемещения', hcStaffPrikazRate, sci13esc): Protect;
+  fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+  sExternalLink ('Идентификатор доп.соглашения',, sciStaffTypical1Esc): protect, {hyperlink = (sExternalLink <> '')};
+  ContDoc.SBottom ('Основание замещения', hcStaffAppFoundation): [40], noprotect;
+buttons
+  cmValue14,[singleline],,,
+   'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+  cmValue5, [singleline];
+  cmValue6, [singleline];
+
+  cmValue12,[singleline],,,
+   'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+  cmValue25, [SingleLine],,, 'Штрих-код';
+  cmValue1,,,'Доплаты, надбавки', ;
+  cmViewAdvance1,,,'Просмотр примечания к приказу', hcStaffWinPr;
+  cmValue21,,, 'Дополнительные условия по приказу';
+<<
+ Основная ставка.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ График         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Оклад.@@@@@@@@@@@@    Корр.коэф..@@@@@@@<.>>.>
+
+ Замещает  с    .@@@@@@@@@@@@ по .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@ Раб. место .@@@@@@@@@@@@
+`Cотрудника    `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Подразделение  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Должность .@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@
+ Условия труда на рабочем месте .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ Форма оплаты   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   <.Подставить данные по основному назначению.>
+ Оклад          .@@@@@@@@@@@@@@@.@@@@@@@@@@@@@   <.     Подставить данные по замещению      .>
+ Кол-во ставок  .@@@@@ Корр.коэф..@@@@@@@<.>>.> `ИФ`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ Условия труда     .@@@@@@@@@@@@@@@@@@@@@@@@@@@ Режим труда.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@@@@@@   `Период` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                              Доп. сведения.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Причина        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Доп.соглашение`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ДС в Directum`.@@@@@@@@@@
+                                                                               <. Штрих-код .>
+ Основание      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                 <.  Доплаты  .>    <. Примечание .>    <. Доп. условия .>
+>>
+end; // screen scrDet70
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+  {
+    SetFieldAndLabelVisible(#Appointments.TaxRate, false);
+    SetFieldAndLabelVisible(#NewAppHist.TaxRate, false);
+  }
+}
+
+HandleEvent
+
+  cmOnVipLoad:
+  {
+    inherited::handleEvent(cmOnVipLoad);
+    IsSummedOWH := false;
+
+    cfsSetProp('T_SCRDET70_Оклад',                cfpVisible, false);
+    cfsSetProp('i_SCRDET70_APPOINTMENTS.TAXRATE', cfpVisible, false);
+    cfsSetProp('T_SCRDET70_Оклад#1',              cfpVisible, false);
+    cfsSetProp('i_SCRDET70_NEWAPPHIST.TAXRATE',   cfpVisible, false);
+    cfsSetProp('i_SCRDET70_APPKLVAL.SIMVOLV',     cfpVisible, false);
+  } //cmOnVipLoad
+
+  cmCheckField:
+  {
+    inherited::handleEvent(cmCheckField);
+    if CurField = #wFormOpl
+    {
+      var wPayModel: word;
+      if Word(ExprFieldValue) = 0
+      {
+        // выбрана сдельная форма оплаты
+        wPayModel := 20;
+      }
+      else
+      {
+        // выбрана повременная форма оплаты
+        if IsValidAll(#TarStav)
+          wPayModel := TarStav.SisOpl;
+        else if IsValidAll(#StaffStruct)
+          wPayModel := StaffStruct.PayModel;
+      }
+      if wPayModel <> 0
+      {
+        set Apphist.PayModel := wPayModel;
+        set Appointments.PayModel := wPayModel;
+      }
+    }
+  } //cmCheckField
+
+  cmPick:
+  {
+    if CurField = #OverworkCalculation2
+    {
+      case runmenu('CaseOWModeSNG70') of //Выбор для способа учета сверхурочных
+        cmValue61:
+          set NewAppoint.OWMode := ocmDaily;
+        cmValue62:
+          set NewAppoint.OWMode := ocmSummed;
+        cmValue63:
+          set NewAppoint.OWMode := ocmNone;
+      end;  //case
+
+      SetModified(true);
+      UpdateTable;
+      #SetVisibleOWPeriod(NewAppoint, #NewAppoint.PeriodOW)
+    }
+    else
+    {
+      inherited::handleevent(cmPick);
+    }
+  }
+
+end; //HandleEvent
+
+end.
+
+CaseOWModeSNG70 menu   //Выбор для поля способ учета сверхурочных
+{
+  - 'Поденный',cmValue61,'Способ учета сверхурочных поденный';
+  - 'Суммированный',cmValue62,'Способ учета сверхурочных суммированный';
+  - 'Несуммированный',cmValue63,'Способ учета сверхурочных несуммированный';
+}

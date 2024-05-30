@@ -1,0 +1,682 @@
+#component 'Z_StaffOrders'
+
+#include CatFunc.vih
+
+#doc
+Докомпиляция интерфейса РПД-6
+#end
+
+alter interface RPD_6;
+
+create view
+
+as select uowrktabel.colnum
+from uowrktabel
+where (( WpKlOtpusk.notationko == uowrktabel.nrec )) ;
+
+overload
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+  procedure IRPD_Base.EnableDisable;
+  procedure ChangeVacFactYearEnd;
+  procedure ChangeCurrPutVacConAndDuration;
+  procedure ClearDataForChangeUp;
+  procedure SetPlanOtpusk(_cPlanOtpusk: comp);
+  function fnConfirmCurrOrder: boolean;
+  procedure prMyDelCurr(_bOnlyCancel: boolean);
+end;
+
+var
+  oExtAttr: iextAttr;
+  //oExtAttrTEK: iExtAttr; // атрибут 
+  oCatFunc: CatalogsFunctions;
+
+  extAttrID_VacType: comp;
+  cRec:              comp = 0;
+
+OverloadFormats scrDet6;
+OverloadFormats brAllVac;
+OverloadFormats scrEmpty;
+
+create view
+as select
+  Catalogs_prichina.nrec
+  //oExtAttrTEK.sGetAttr(coPartDoc, PartDoc.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina)  
+from
+  Catalogs Catalogs_prichina
+  //Catalogs Catalogs_Yprichina 
+where
+((
+   PartDoc.cPRef == Catalogs_prichina.nrec
+))
+;
+
+// Окно содержимого приказа на оформление отпуска
+screen scrDet6 (, hcStaffWinPr, sciStaffTypical1Esc);
+  show at (, 5,,15);
+  table
+    ContDoc;
+
+  fields
+    [VacationType]
+      (oCatFunc.GetCatalogsName(oExtAttr.coGetAttrID(coPartdoc, Partdoc.nrec, extAttrID_VacType))) ('Вид мероприятия'): noprotect, pickbutton,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( VacationType = '', ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) ) }};
+
+    AppHist.TaxRate     ('Оклад, ставка, тариф', hcStaffAppoint): [11.3], protect,
+                        {Font = {Color     = ColorSysGray;
+                                 BackColor = ColorSys06}};
+
+    AppWorkCondCat.Name ('Условия труда.', hcStaffAppoint): protect,
+                        {Font = {Color     = ColorSysGray;
+                                 BackColor = ColorSys06}};
+
+    fRejim              ('Режим труда.', hcStaffAppWorkRegime): protect,
+                        {Font = {Color     = ColorSysGray;
+                                 BackColor = ColorSys06}};
+
+    fPlanOtpusk         ('Согласно план-графика отпусков'): Protect,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( ContDoc.cWorkPeriod = comp(0), ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) )}};
+
+    flIsArchPlan        ('Признак архивного планового отпуска'): protect, skip,
+                        {Font = {Color = ColorSysRed}};
+
+    ContDoc.dat1        ('Дата начала отпуска', hcStaffVacationsFactYearBeg): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( ContDoc.dat1 = to_date(0, 0, 0), ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) )
+                        }};
+
+    ContDoc.dat2        ('Дата окончания отпуска', hcStaffVacationsFactYearEnd): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( ContDoc.dat2 = to_date(0, 0, 0) // одно из полей д.б. заполнено
+                                              and dDuration    = 0, ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) )}};
+
+    dDuration           ('Продолжительность отпуска, дней (количество дней компенсации)', hcStaffVacationsDuration): [7.2], NoProtect,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( ContDoc.dat2 = to_date(0, 0, 0) // одно из полей д.б. заполнено
+                                              and dDuration    = 0, ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) )}};
+
+    fWorkPeriod         ('Рабочий период пакета отпусков'): Protect,
+                        {Font = {Color = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( ContDoc.cWorkPeriod = comp(0), ColorNeed,
+                                             if ( funIsOrderConfirm, ColorSys06, 0 ) )}};
+
+    ContDoc.wAttrDoc1   ('Признак долгосрочного отпуска'): NoProtect;
+    ContDoc.wAttrDoc4   ('Отпуск без оплаты'): NoProtect;
+    ContDoc.wAttrDoc3   ('Признак предоставления матпомощи'): protect;
+
+    dWelfare1           ('Материальная помощь'): [15.2, '\p[|-]66666666666667.88'], protect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, 0 )}};
+
+    ContDoc.SBottom     ('Основание'): noprotect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, 0 )}};
+<<
+
+ `Вид мероприятия`.@@@@@@@@@@@@@@@@@@
+ `Cтавка, оклад`  .@@@@@@@@@@@@@@@@@@
+ `Условия труда`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Режим труда`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Согласно план-графика отпусков`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@
+  Предоставить отпуск`c         `.@@@@@@@@@@@ `по`.@@@@@@@@@@@`дней:`.@@@@@@
+ `Рабочий период пакета отпусков`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  [:] долгосрочный отпуск с освобождением ставки`
+  [:] отпуск без оплаты                         `
+  [:] Мат. помощь  `.@@@@@@@@@@@@@@@@@@
+ `Основание`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+>>
+
+end; // screen scrDet6
+
+// -----------------------------------------------------------------------------
+browse brAllVac(, hcStaffWinPr, sciStaffTypical1Esc);
+  show at (, 16,, 20);
+  table
+    PutVacCon;
+
+  fields
+    { font = {color = if ( isValid(#ContDoc) and (ContDoc.Dat1 <> ZeroDate)
+      and (ContDoc.Dat1 < (if(PutVacation.wTypeVac = 1,WP_WorkPeriodRemain.dPerBeg,WP_WorkPeriodOtp.dPerBeg)))
+      , ColorSysGreen, 0)} };
+
+    PutVacCon.Wnum         '№', 'п/п':[4], NoProtect;
+
+    fTypeVac               'Тип', 'отпуска':[7], protect;
+
+    WpKlOtpusk.Notpus      'Наименование', 'отпуска':[16], protect;
+	
+	uowrktabel.colnum      'Вид отсутствия', : [15],protect;
+
+    fNameDay               'Дни', 'учета'
+                           ('Тип дней отпуска согласно полю "Признак отпуска для расчета" в классификаторе отпусков', ):
+                              [7], protect, browseText 'Итого';
+
+    PutVacCon.wDayCount    'Предоставить', 'дней':[7], NoProtect, browseSum;
+
+    fDayCountIz            'Из', 'дней':[4], protect, browseSum,
+    {font = {BackColor = if(PutVacation.wProvidWay = word(2), ColorSysYellow, 0)}};
+
+    PutVacation.wSumWay    'Способ', 'суммирования'
+                           ('Способ суммирования отпусков', ) : [8], skip,
+                           [list '"0" - сверх всех отпусков',
+                                 '"1" - сверх основного минимального отпуска ',
+                                 '"2" - сверх основного отпуска',
+                                 '"3" - сверх всех отпусков (со смещением)'];
+
+    PutVacation.wProvidWay 'Способ', 'предоставления'
+                           ('Способ предоставления отпусков', ) : [8], skip,
+                           [list '"0" - полностью',
+                                 '"1" - пропорционально отработанному времени ',
+                                 '"2" - пропорционально (за вредные условия труда)'];
+
+    fWP_WorkPeriod         'Отпуск/остаток', 'за период'
+                           ('Отпуск/остаток за период',): [17], protect;
+end; //browse brAllVac
+
+screen scrEmpty(, hcStaffWinPr, sciStaffTypical178Esc);
+  show at (, 21,,);
+buttons
+   cmValue22,,, 'С последующим увольнением';
+   cmValue59,,, 'С последующим увольнением на пенсию';
+   cmViewAdvance1,,, 'Просмотр примечания к приказу', hcStaffWinPr;
+   cmValue21,,, 'Дополнительные условия по приказу';
+
+<<
+
+<.С увольнением.> <.С увольнением на пенсию.> <.Примечание к приказу.> <.Доп. условия.>
+
+>>
+end; //screen
+
+function fnConfirmCurrOrder: boolean;
+{
+  result := inherited::fnConfirmCurrOrder;
+  iWP.RunCreatePutVacation2(ContDoc.cWorkPeriod, ContDoc.Person, 0, 66618);
+}
+
+procedure prMyDelCurr(_bOnlyCancel: boolean);
+var
+  curPC: word;
+  NrecFactOtp, cDel: comp;
+{
+  NrecFactOtp := 0;
+  VWTRef.Clear;
+
+  if funIsOrderConfirm and ContDoc.ObjnRec = comp(0)
+  {
+    if ( GetFirst FactOtpusk where (( ContDoc.nRec == FactOtpusk.cContDoc )) = tsOk )
+    {
+      _loop PutVacCon where (( coContDoc          == PutVacCon.wTable
+                            and ContDoc.nRec      == PutVacCon.cTable ))
+      {
+        if (GetFirst PutVacation = tsOk)
+        {
+          _loop Vacations where ((FactOtpusk.nRec  == Vacations.cFactOtpusk and
+                                  PutVacation.nRec == Vacations.cPutVac (NoIndex)))
+          {
+            if (GetFirst Otpusk where ((Vacations.nRec == Otpusk.cVacations)) = tsOk)
+            {
+              DeleteAdjacentInfo(Otpusk.Nrec, Otpusk.tPerson);
+              delete Otpusk where ((Vacations.Nrec == Otpusk.cVacations));
+            }
+
+            delete current Vacations;
+          }
+
+          iFV.prBalanceDel(PutVacation.nRec, PutVacCon.wDayCount);
+        }
+      }
+
+      // периоды переформирования табеля
+      VWTRef.QueuePeriod(FactOtpusk.cLsch, FactOtpusk.FactYearBeg,  FactOtpusk.FactYearEnd);
+
+      case FactOtpusk.choice of
+
+        vltCurrentPeriod:
+          curPC := pcCurrentVacation;
+
+        vltPastPeriod:
+          curPC := pcArchiveVacation;
+
+        vltFuturePeriod:
+          curPC := pcFutureVacation;
+
+      end; //case
+
+      if ( delete prvidopl where (( FactOtpusk.Nrec == prvidopl.mnrec
+                                and curPC           == prvidopl.choice )) <> tsOk )
+        SetErrorOrder('Не удалось удалить материальную помощь к отпуску!');
+
+      delete current FactOtpusk;
+    }
+  }
+
+  if _bOnlyCancel
+  {
+    update current ContDoc
+    set ContDoc.wYearPr := 0;
+
+    update PutVacCon where (( coContDoc == PutVacCon.wTable and ContDoc.nRec == PutVacCon.cTable ))
+    set PutVacCon.ResWord[1] := 0;
+
+    iWP.RunCreatePutVacation2(ContDoc.cWorkPeriod, ContDoc.Person, 0, 66618);
+
+    prFillContDocMT(ContDoc.NRec);
+  }
+  else
+  {
+    //удаление записей в AllMemo
+    Delete All AllMemo where ((coContDoc == AllMemo.wTable
+                         and ContDoc.nRec == AllMemo.cRec));
+
+    if (ContDoc.ObjnRec = 0)
+      delete all PutVacCon where (( coContDoc    == PutVacCon.wTable
+                                   and ContDoc.nRec == PutVacCon.cTable ));
+
+    cDel := ContDoc.NRec;
+
+    iWP.RunCreatePutVacation2(ContDoc.cWorkPeriod, ContDoc.Person, 0, 66618);
+
+    if delete current ContDoc = tsOk
+      prFillContDocMT(cDel, true);
+  }
+
+  //Проводим переформирование табеля
+  //Если общесистемная настройка предполагает делать это
+  if VF.AutoReformWorkingTableAll
+    VWTRef.Run;
+}
+
+procedure ChangeDate8;
+{
+  if (GetFirst Appointments <> tsOk)
+    exit;
+
+  if (GetFirst ContDoc_8_Syn <> tsOk)
+    exit;
+
+  var wOrderVid: word = 0;
+
+  case ContDoc.wAttrDoc2 of
+    0: wOrderVid := 0;
+    1: wOrderVid := if((Persons.cSovm = 3) and (Appointments.lPrizn = 0), 0, 1);
+    else wOrderVid := 999;
+  end;
+
+  var datetmp: date = ContDoc.dat2;
+
+  if (wOrderVid = 0)
+  {
+    if (ContDoc_8_Syn.TypeOper = 8)
+    {
+    if (Appointments.dOrderDisDate = datetmp)
+      exit;
+
+    set Appointments.dOrderDisDate := datetmp;
+    update current Appointments;
+  }
+  else
+  {
+      if (Persons.PensionDate = datetmp)
+        exit;
+
+      set Persons.PensionDate := datetmp;
+      update current Persons;
+    }
+  }
+  else
+  {
+    if (ContDoc_8_Syn.dat1 = datetmp)
+      exit;
+
+    set ContDoc_8_Syn.dat1 := datetmp;
+    update current ContDoc_8_Syn;
+  }
+}
+
+procedure ChangeVacFactYearEnd;
+{
+  inherited::ChangeVacFactYearEnd;
+  ChangeDate8;
+}
+
+procedure ChangeCurrPutVacConAndDuration;
+{
+  inherited::ChangeCurrPutVacConAndDuration;
+  ChangeDate8;
+}
+
+procedure ClearDataForChangeUp;
+{
+  inherited::ClearDataForChangeUp;
+  ChangeDate8;
+}
+
+procedure SetPlanOtpusk(_cPlanOtpusk: comp);
+{
+  inherited::SetPlanOtpusk(_cPlanOtpusk);
+  ChangeDate8;
+}
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{
+  result:=inherited::ChildCheckOneOrder(cNrec);
+  
+   if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+  if(#VacationType) = ''{
+    SetErrorOrder('Не заполнен вид мероприятия!');
+    result := false;
+  }
+
+
+} //Function ChildCheckOneOrder: boolean;
+
+// Процедура открытия\закрытия полей для редактирования
+procedure EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if fnFieldsOpen // приказ не утвержден
+    SetFieldOption(#VacationType, ofSelectable);
+  else // приказ утвержден
+    ClearFieldOption(#VacationType, ofSelectable);
+
+  if (ContDoc.cNew7 <> 0)
+    DisableCommand(cmValue59);
+  else
+    EnableCommand(cmValue59);
+
+  if not (fnFieldsOpen and (fnCheckDetalisationMode(ContDoc.cNew5) = false))
+    DisableCommand(cmValue59);
+} //procedure EnableDisable;
+
+TableEvent Table ContDoc;
+
+cmCheckField:
+{
+  inherited::handleEvent(cmCheckField);
+
+  case CurField of
+
+    #ContDoc.dat2,
+    #dDuration: ChangeDate8;
+
+  end;
+}
+
+
+end;
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+
+  extAttrID_VacType := oExtAttr.CreateAttrComp(coPartdoc, 'Вид', cgAttrType_Comp, cgKatKau_System, coPartdoc);
+
+  cfsSetProp('L_SCRDET6_Cтавка,_оклад', cfpVisible, boolean(false));
+  cfsSetProp('i_SCRDET6_APPHIST.TAXRATE', cfpVisible, boolean(false));
+  cfsSetProp('L_SCRDET6_Условия_труда', cfpVisible, boolean(false));
+  cfsSetProp('i_SCRDET6_APPWORKCONDCAT.NAME', cfpVisible, boolean(false));
+  cfsSetProp('L_SCRDET6_Режим_труда', cfpVisible, boolean(false));
+  cfsSetProp('i_SCRDET6_FREJIM', cfpVisible, boolean(false));
+  cfsSetProp('ci_SCRDET6_CONTDOC.WATTRDOC4_отпуск_без_оплаты', cfpVisible, boolean(false));
+}
+
+cmPick:
+{
+  if inherited::handleEvent(cmPick) = heAbort
+    abort;
+
+  case CurField of
+    #VacationType:
+    { // вызов каталога "Вид мероприятий (для отпусков)"
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-31699), cRec, 0, 0) = cmDefault ) {
+        oExtAttr.coSetAttrID(coPartdoc, Partdoc.nrec, extAttrID_VacType, cRec, '');
+      }
+    }
+    #fPlanOtpusk: ChangeDate8;
+  end;
+}
+
+cmValue22:
+{
+  if (GetFirst Persons <> tsOk)
+  {
+    message('Не указан сотрудник', Information);
+    exit;
+  }
+
+  if (GetFirst Appointments <> tsOk)
+  {
+    message('Отсутствует назначение', Information);
+    exit;
+  }
+
+  if (ContDoc.dat2 = ZeroDate)
+  {
+    message('Не задана дата окончания пакета отпусков', Information);
+    exit;
+  }
+
+  if (message('Добавить РПД-8 "Увольнение"?', yesNo + Information) <> cmYes)
+    exit;
+
+  if (GetFirst PartDoc_8 where (( 8 == PartDoc_8.TypeOper and
+                                  TitleDoc.NRec == PartDoc_8.cDoc )) <> tsOk)
+  {
+    ClearBuffer(tnPartDoc_8);
+    PartDoc_8.cDoc := TitleDoc.NRec;
+    PartDoc_8.nRec := GetNextnRec(tnPartDoc, 0);
+
+    if (GetLast PartDocNmb where ((nRecOrder == PartDocNmb.NRec)) = tsOk)
+      PartDoc_8.NRazd := PartDocNmb.NRazd + 1
+    else
+      PartDoc_8.NRazd := 1;
+
+    PartDoc_8.TypeOper := 8;
+
+    insert current PartDoc_8;
+  }
+
+  ClearBuffer(tnContDoc_8);
+  ContDoc_8.ObjType := 1;
+  ContDoc_8.SeqNmb := 1;
+  ContDoc_8.nRec := GetNextnRec(tnContDoc, 0);
+  ContDoc_8.cPart := PartDoc_8.Nrec;
+  ContDoc_8.TypeOper := PartDoc_8.TypeOper;
+  ContDoc_8.NumPart := PartDoc_8.NRazd;
+  ContDoc_8.wAttrDoc2 := ContDoc.wAttrDoc2;
+  ContDoc_8.Person := ContDoc.Person;
+  ContDoc_8.cDopRef := ContDoc.cDopRef;
+  ContDoc_8.cStr := ContDoc.cStr;
+
+  if (GetLast ContDocNmb where (( PartDoc_8.nRec == ContDocNmb.cPart    and
+                                  PartDoc_8.TypeOper == ContDocNmb.TypeOper and
+                                  1 == ContDocNmb.SeqNmb)) = tsOk)
+    ContDoc_8.wRec := ContDocNmb.wRec + 1
+  else
+    ContDoc_8.wRec := 1;
+
+  insert current ContDoc_8;
+
+  var wOrderVid: word = 0;
+
+  case ContDoc.wAttrDoc2 of
+    0: wOrderVid := 0;
+    1: wOrderVid := if((Persons.cSovm = 3) and (Appointments.lPrizn = 0), 0, 1);
+    else wOrderVid := 999;
+  end;
+
+  var datetmp: date = ContDoc.dat2;
+
+  if (wOrderVid = 0)
+  {
+    set Appointments.dOrderDisDate := datetmp;
+    update current Appointments;
+    ContDoc_8.cNew7 := WWC.GetContractOnDate(ContDoc_8.Person, Appointments.dOrderDisDate, ContDoc_8.cStr);
+
+    if (wCountry <> ccRus)
+      if (ContDoc_8.cNew7 <> 0)
+        ContDoc_8.dRezerve := Appointments.dOrderDisDate;
+  }
+  else
+  {
+    ContDoc_8.dat1 := datetmp;
+    ContDoc_8.cNew7 := WWC.GetContractOnDate(ContDoc_8.Person, ContDoc_8.dat1, ContDoc_8.cStr);
+
+    if (wCountry <> ccRus)
+      if (ContDoc_8.cNew7 <> 0)
+        ContDoc_8.dRezerve := ContDoc_8.dat1;
+  }
+
+  update current ContDoc_8;
+
+  ContDoc.cNew7 := ContDoc_8.NRec;
+
+  update current ContDoc;
+
+  OnIdle(ContDoc.nRec);
+  EnableDisable;
+  ReReadRecord(#ContDoc);
+  ReReadRecord(#TitleDoc);
+  COO.JumpRPD(TitleDoc.NRec, PartDoc_8.Nrec, ContDoc_8.NRec);
+}
+
+cmValue59:
+{
+  if (GetFirst Persons <> tsOk)
+  {
+    message('Не указан сотрудник', Information);
+    exit;
+  }
+
+  if (GetFirst Appointments <> tsOk)
+  {
+    message('Отсутствует назначение', Information);
+    exit;
+  }
+
+  if (ContDoc.dat2 = ZeroDate)
+  {
+    message('Не задана дата окончания пакета отпусков', Information);
+    exit;
+  }
+
+  if (message('Добавить РПД-108 "Увольнение на пенсию""?', yesNo + Information) <> cmYes)
+    exit;
+
+  if (GetFirst PartDoc_8 where (( 108 == PartDoc_8.TypeOper and
+                                  TitleDoc.NRec == PartDoc_8.cDoc )) <> tsOk)
+  {
+    ClearBuffer(tnPartDoc_8);
+    PartDoc_8.cDoc := TitleDoc.NRec;
+    PartDoc_8.nRec := GetNextnRec(tnPartDoc, 0);
+
+    if (GetLast PartDocNmb where ((nRecOrder == PartDocNmb.NRec)) = tsOk)
+      PartDoc_8.NRazd := PartDocNmb.NRazd + 1
+    else
+      PartDoc_8.NRazd := 1;
+
+    PartDoc_8.TypeOper := 108;
+
+    insert current PartDoc_8;
+  }
+
+  ClearBuffer(tnContDoc_8);
+  ContDoc_8.ObjType := 1;
+  ContDoc_8.SeqNmb := 1;
+  ContDoc_8.nRec := GetNextnRec(tnContDoc, 0);
+  ContDoc_8.cPart := PartDoc_8.Nrec;
+  ContDoc_8.TypeOper := PartDoc_8.TypeOper;
+  ContDoc_8.NumPart := PartDoc_8.NRazd;
+  ContDoc_8.wAttrDoc2 := ContDoc.wAttrDoc2;
+  ContDoc_8.Person := ContDoc.Person;
+  ContDoc_8.cDopRef := ContDoc.cDopRef;
+  ContDoc_8.cStr := ContDoc.cStr;
+
+  if (GetLast ContDocNmb where (( PartDoc_8.nRec == ContDocNmb.cPart    and
+                                  PartDoc_8.TypeOper == ContDocNmb.TypeOper and
+                                  1 == ContDocNmb.SeqNmb)) = tsOk)
+    ContDoc_8.wRec := ContDocNmb.wRec + 1
+  else
+    ContDoc_8.wRec := 1;
+
+  insert current ContDoc_8;
+
+  var wOrderVid: word = 0;
+
+  case ContDoc.wAttrDoc2 of
+    0: wOrderVid := 0;
+    1: wOrderVid := if((Persons.cSovm = 3) and (Appointments.lPrizn = 0), 0, 1);
+    else wOrderVid := 999;
+  end;
+
+  var datetmp: date = ContDoc.dat2;
+
+  if (wOrderVid = 0)
+  {
+    set Persons.PensionDate := datetmp;
+    update current persons;
+    ContDoc_8.cNew7 := WWC.GetContractOnDate(ContDoc_8.Person, Persons.PensionDate, ContDoc_8.cStr);
+
+    if (wCountry <> ccRus)
+      if (ContDoc_8.cNew7 <> 0)
+        ContDoc_8.dRezerve := Persons.PensionDate;
+  }
+  else
+  {
+    ContDoc_8.dat1 := datetmp;
+    ContDoc_8.cNew7 := WWC.GetContractOnDate(ContDoc_8.Person, ContDoc_8.dat1, ContDoc_8.cStr);
+
+    if (wCountry <> ccRus)
+      if (ContDoc_8.cNew7 <> 0)
+        ContDoc_8.dRezerve := ContDoc_8.dat1;
+  }
+
+  update current ContDoc_8;
+
+  ContDoc.cNew7 := ContDoc_8.NRec;
+
+  update current ContDoc;
+
+  OnIdle(ContDoc.nRec);
+  EnableDisable;
+  ReReadRecord(#ContDoc);
+  ReReadRecord(#TitleDoc);
+  COO.JumpRPD(TitleDoc.NRec, PartDoc_8.Nrec, ContDoc_8.NRec);
+}
+
+end;
+end.

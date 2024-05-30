@@ -11,46 +11,46 @@
 \*************************************************************************************************/
 /*
 структура JSON
-{
-    "MSG_KATKAU_SPKAU": [
-        {
-            "KAU_NAME": "Пользовательская аналитика. Тест",
-            "KAU_CODE": "10500",
-            "SP_KAU": [
-                {
-                    "CODE" : "01",
-                    "NAME" : "name 01",
-                    "NREC" : "1",
-                    "CPARENT" : "0"
-                },
-                {
-                    "CODE" : "02",
-                    "NAME" : "name 02",
-                    "NREC" : "2",
-                    "CPARENT" : "1"
-                }
-            ]
-        },
-        {
-            "KAU_NAME": "Пользовательская аналитика. Тест 1",
-            "KAU_CODE": "10501",
-            "SP_KAU": [
-                {
-                    "CODE" : "001-1",
-                    "NAME" : "name 01-125",
-                    "NREC" : "21",
-                    "CPARENT" : "0"
-                },
-                {
-                    "CODE" : "002-1",
-                    "NAME" : "name 02-458",
-                    "NREC" : "22",
-                    "CPARENT" : "0"
-                }
-            ]
-        }
-    ]
-}
+[
+      {
+        "QRY_INSTANCE" :
+        [
+          {
+            "ADDWHERETERMS" : "",
+            "CODE" : "JSON_QRY_INSTANCE",
+            "DESCRIPTION" : "",
+            "NAME" : "JSON_QRY_INSTANCE",
+            "QRY_INSTANCE_FLD" :
+            [
+              {
+                "CLEVEL" : "16",
+                "DESCRIPTION" : "",
+                "FIELDJSON" : "NOTALWAYSARRAY",
+                "FIELDNAME" : "QRY_INSTANCE_FLD_LVL.NOTALWAYSARRAY",
+                "FIELDSYNONIM" : "NOTALWAYSARRAY_46F7BC6BAB954A35A25821791CF1C6B6",
+                "POSTFUNCTION" : "",
+                "TABLECODE" : "13583",
+                "TABLENAME" : "QRY_INSTANCE_FLD_LVL"
+              },
+              .....
+            ],
+            "QRY_INSTANCE_FLD_LVL" :
+            [
+              {
+                "CLEVEL" : "0",
+                "DESCRIPTION" : "MESSAGE",
+                "FLD_JSON_NAME" : "MESSAGE",
+                "NOTALWAYSARRAY" : "TRUE",
+                "NREC" : "12"
+              },
+              ..........
+            ],
+            "TEMPLATE_CODE" : "JSON_QRY_INSTANCE"
+          },
+          ...
+        ]
+      }
+]
 */
 #include QUE_ProcessMessIncomeMessageGalaktika.vih
 #include QUE_BASE.vih
@@ -61,39 +61,60 @@ vipinterface QUE_Process_QRY_INSTANCE implements oQUE_ProcessMessIncomeMessageGa
   Licensed(free);
 
 Interface QUE_ProcessMessIncomeQueue_QRY;
-table struct tKatKau (
-   KAUCODE : word
- , KAUNAME : string
+
+table struct tQRY_Instance (
+    Nrec          : comp
+  , CODE          : string
+  , DESCRIPTION   : string
+  , NAME1         : string
+  , template_code : string
+  , ADDWHERETERMS : widestring[2000]
 )
 with index(
- ind0 = KAUCODE
+   ind0 = nrec (unique, surrogate)
 );
 
-table struct tSpKau (
-       KAUCODE : word
-     , CODE    : string
-     , NAME    : string
-     , NREC    : comp
-     , CPARENT : comp
-     , NREC_cur    : comp
-     , CPARENT_cur : comp
+table struct tQRY_INSTANCE_FLD (
+    ctQRY_Instance : comp
+  , CLEVEL         : comp
+  , DESCRIPTION    : string
+  , FIELDJSON      : string
+  , FIELDNAME      : string
+  , FIELDSYNONIM   : string
+  , POSTFUNCTION   : string
+  , TABLECODE      : word
+  , TABLENAME      : string
 )
 with index(
-  ind0 = KAUCODE + CPARENT
- ,ind1 = KAUCODE + nrec
+  ind0 = ctQRY_Template
+);
+
+table struct tQRY_INSTANCE_FLDLVL (
+    ctQRY_Instance : comp
+  , CLEVEL         : comp
+  , DESCRIPTION    : string
+  , FLD_JSON_NAME  : string
+  , NOTALWAYSARRAY : boolean
+  , NREC_SRC       : comp
+  , nrec_dstn      : comp
+)
+with index (
+   ind0 = ctQRY_Instance + CLEVEL
+ , ind2 = NREC_SRC
 );
 
 create view
 var _logQUE_OUT : string = '';
     _cQUE_Handler_tune : comp;
 from
-   KatKau
- , SpKau
- , QUE_Handler_tune Handler_tune
+   QUE_Handler_tune Handler_tune
 
- , tKatKau
- , tSpKau
- , tSpKau tSpKau_loop
+ , QRY_Instance
+ , QRY_INSTANCE_FLD
+ , QRY_INSTANCE_FLD_LVL
+ , tQRY_Instance
+ , tQRY_INSTANCE_FLD
+ , tQRY_INSTANCE_FLDLVL
 
 where ((
         _cQUE_Handler_tune == Handler_tune.nrec
@@ -101,7 +122,7 @@ where ((
 ;
 
 Function GenerateNewFile: string; {
- result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+olegenerateguid+'_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
 
 function GetLogFile : string; {
@@ -114,111 +135,14 @@ Procedure MyLog(_str: string; _needlog : boolean = false); {
   LogStrToFile(GetLogFile,DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + shortstrtowin(_str));
 }
 
-procedure  inserttKATKAU(_KAUCODE : word; _KAUNAME : string); {
-  if getfirst tKatKau where ((_KAUCODE == tKatKau.KAUCODE)) <> tsOK {
-    insert tKatKau set
-       tKatKau.KAUCODE := _KAUCODE
-     , tKatKau.KAUNAME := _KAUNAME
-    ;
-  }
-}
-
-procedure inserttSPKAU(_KAUCODE : word; _CODE, _NAME : string; _NREC, _CPARENT : comp); {
-  if getfirst tSpKau where ((_KAUCODE == tSpKau.KAUCODE
-                            and _NREC == tSpKau.nrec)) <> tsOK {
-    insert tSpKau set
-       tSpKau.KAUCODE := _KAUCODE
-     , tSpKau.CODE    := _CODE
-     , tSpKau.NAME    := _NAME
-     , tSpKau.NREC    := _NREC
-     , tSpKau.CPARENT := _CPARENT
-    ;
-  }
-}
-function SynchSpKauRecursive(_KAUCODE : word; _nrec_up, _cParent : comp; var _answer : string) : boolean; {
-mylog('SynchSpKauRecursive _KAUCODE=' + _KAUCODE+'   _nrec_up=' + _nrec_up + '_cParen='  + _cParent);
-   _loop tSpKau_loop where ((_KAUCODE == tSpKau_loop.KAUCODE and _cParent == tSpKau_loop.CPARENT )) {
-     mylog('tSpKau_loop');
-/* тут над о хранить все таки нреки ранее вставленные и иерархию перестраивать
-    if getfirst spkau where ((_KAUCODE == spkau.kodgrkau
-                     and   tSpKau_loop.code == spkau.code)) = tsOK {
-                     }
-*/
-    if getfirst spkau where ((_KAUCODE == spkau.kodgrkau
-                     and   tSpKau_loop.code == spkau.code)) = tsOK {
-                       if spkau.cnode <> _nrec_up {
-                         SpKau.cnode := _nrec_up;
-                         if Update current SpKau <> tsOK {
-                           _answer := 'Ошибка обновления записи в spkau';
-                           result := false;
-                           exit;
-                         }
-                       }
-                     } else {
-                       clearbuffer(tnspkau);
-                        SpKau.cnode    := _nrec_up;
-                        SpKau.name     := tSpKau_loop.NAME;
-                        SpKau.CODE     := tSpKau_loop.CODE;
-                        spkau.kodgrkau := _KAUCODE;
-                       if insert current spkau <> tsOK {
-                         _answer := 'Ошибка вставки записи в spkau';
-                         result := false;
-                         exit;
-                       }
-                     }
-       Update current tSpKau_loop set
-           tSpKau_loop.nrec_cur   := spkau.nrec
-         , tSpKau_loop.cparent_cur := _cParent
-        ;
-
-         pushpos(tntSpKau_loop);
-          if not SynchSpKauRecursive(_KAUCODE, tSpKau_loop.nrec_cur, tSpKau_loop.nrec, _answer) {
-            result := false;
-          }
-         poppos(tntSpKau_loop);
-      }
-  result := true;
-}
-
-function SynchSpKau(_KAUCODE : word; var _answer : string) : boolean ;{
-  result := false;
-  if not SynchSpKauRecursive(_KAUCODE, 0h, 0h, _answer) {
-     exit;
-    }
-  result := true;
-}
-
-function SynchKATKAU(var _answer : string) : boolean; {
- result := false;
- _loop tKatKau {
-   if getfirst katkau where ((tKatKau.KAUCODE == katkau.kodgroup)) <> tsOK {
-       clearbuffer(tnkatkau);
-        katkau.kodgroup := tKatKau.KAUCODE;
-        katkau.name     := tKatKau.KAUNAME;
-        katkau.sysnum   := 1;
-     if insert current katkau <> tsOK {
-       _answer := 'Ошибка вставки записи в katkau';
-       exit;
-     }
-   }
-   if katkau.name <> tKatKau.KAUNAME {
-     katkau.name := tKatKau.KAUNAME;
-     if update current katkau <> tsOK {
-       _answer := 'Ошибка обновления записи в katkau';
-       exit;
-     }
-   }
-   if not SynchSpKau(tKatKau.KAUCODE,_answer) {
-     exit;
-   }
- }
- result := true;
-}
 
 function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLong : tptr; var _answer : string) : boolean; {
  result := false;
- delete all tKatKau;
- delete all tSpKau;
+ delete all tQRY_Instance;
+ delete all tQRY_INSTANCE_FLD;
+ delete all tQRY_INSTANCE_FLDLVL;
+
+
  var iQUE_BASE : QUE_BASE new;
  var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
 
@@ -226,9 +150,13 @@ function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLon
   _answerLong :=  HttpConnect_CreateLongString( m_service);
 
 
-
-
-
+  //debug
+  /*
+    var _FilePath_retMessage : string = iQUE_INCOME_BASE.GenerateNewFile+'_messageQRY_TEMPLATE.txt';
+    HttpConnect_SaveToFileEx(m_service, _message, _FilePath_retMessage, cpUTF8, false);
+    putfiletoclient(_FilePath_retMessage, false);
+    */
+  // end debug
 
   var JSON_Object : tptr = HttpConnect_JSONObjectByLongString(m_service, _message);
    if JSON_Object = 0 {
@@ -236,80 +164,174 @@ function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLon
       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
       exit;
     }
-  var JSON_MSG_KATKAU_SPKAU_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,JSON_Object,'MSG_KATKAU_SPKAU');
-    if JSON_MSG_KATKAU_SPKAU_ARR = 0 {
-      _answer := 'Ошибка в структуре сообщения. Не найден массив MSG_KATKAU_SPKAU';
-       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-      exit;
-    }
 
-   var JSON_KAU_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_MSG_KATKAU_SPKAU_ARR);
-    if JSON_KAU_ARRCount =  0 {
-      _answer := 'Пустой массив MSG_KATKAU_SPKAU';
+    var JSON_BODY_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_Object);
+    if JSON_BODY_ARRCount =  0 {
+      _answer := 'Пустой массив BODY';
       HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
        exit;
      }
 
-   var i_JSON_KAU_ARR : longint = 0;
-   for (i_JSON_KAU_ARR := 0; i_JSON_KAU_ARR <= JSON_KAU_ARRCount - 1; i_JSON_KAU_ARR++) {
-     MyLog('Идем по массиву JSON_MSG_KATKAU_SPKAU_ARR');
-     var _JSON_Element : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_MSG_KATKAU_SPKAU_ARR, i_JSON_KAU_ARR);
+   var i_JSON_QRY_BODY_ARR : longint = 0;
+   for (i_JSON_QRY_BODY_ARR := 0; i_JSON_QRY_BODY_ARR  <= JSON_BODY_ARRCount - 1; i_JSON_QRY_BODY_ARR++) {
+//
+    var _JSON_Element_Body : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_Object, i_JSON_QRY_BODY_ARR);
 
-      var _KAUNAME : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'KAU_NAME');
-      var _KAUCODE : word = word(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'KAU_CODE'));
-      if _KAUNAME = '' {
-        _answer := 'Массив MSG_KATKAU_SPKAU элемент "'+string(i_JSON_KAU_ARR)+'" пустое поле "KAU_NAME"';
-        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-        exit;
-      }
-      if _KAUCODE = 0 {
-        _answer := 'Массив MSG_KATKAU_SPKAU элемент "'+string(i_JSON_KAU_ARR)+'" нулевое или не числовое поле "_KAUCODE"';
-        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-        exit;
-      }
-      inserttKATKAU(_KAUCODE, _KAUNAME);
 
-      var JSON_SPKAU_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element,'SP_KAU');
-      var JSON_SPKAU_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_SPKAU_ARR);
-      MyLog('Идем по массиву JSON_SPKAU_ARRCount = ' + JSON_SPKAU_ARRCount);
-      if JSON_SPKAU_ARRCount > 0 {
-          var i_JSON_SPKAU_ARR : longint = 0;
-          for (i_JSON_SPKAU_ARR := 0; i_JSON_SPKAU_ARR  <= JSON_SPKAU_ARRCount - 1; i_JSON_SPKAU_ARR++) {
-           var _JSON_Element_SP : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_SPKAU_ARR, i_JSON_SPKAU_ARR);
-             MyLog('Идем по массиву JSON_SPKAU_ARR ');
-            var _CODE    : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'CODE');
-            var _NAME    : string = HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'NAME');
-            var _NREC    : comp = comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'NREC'));
-            var _CPARENT : comp = comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_SP, 'CPARENT'));
-            if _CODE = '' {
-              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". Код значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" пустое';
-              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-              exit;
-            }
-            if _NAME = '' {
-              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". Наименование значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" пустое';
-              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-              exit;
-            }
-            if _NREC = 0h {
-              _answer := 'Массив SP_KAU аналитика "'+_KAUNAME+'". NREC значения аналитики в позиции "'+string(i_JSON_SPKAU_ARR)+'" нулевой';
-              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-              exit;
-            }
-            MyLog('Идем по массиву JSON_SPKAU_ARR ' + _KAUCODE +'|'+ _CODE+'|'+  _NAME+'|'+  _NREC+'|'+  _CPARENT);
-            inserttSPKAU(_KAUCODE, _CODE, _NAME, _NREC, _CPARENT);
+      var JSON_MSG_QRY_TEMPLATE_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element_Body,'QRY_INSTANCE');
+        if JSON_MSG_QRY_TEMPLATE_ARR = 0 {
+          _answer := 'Ошибка в массиве BODY элемент № "'+string(i_JSON_QRY_BODY_ARR)+'" не найден массив QRY_INSTANCE';
+           HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+          exit;
+        }
+
+       var JSON_QRY_TEMPLATE_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_MSG_QRY_TEMPLATE_ARR);
+        if JSON_QRY_TEMPLATE_ARRCount =  0 {
+          _answer := 'Пустой массив QRY_INSTANCE';
+          HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+           exit;
+         }
+
+       var i_JSON_QRY_TEMPLATE_ARR : longint = 0;
+       for (i_JSON_QRY_TEMPLATE_ARR := 0; i_JSON_QRY_TEMPLATE_ARR <= JSON_QRY_TEMPLATE_ARRCount - 1; i_JSON_QRY_TEMPLATE_ARR++) {
+    //     MyLog('Идем по массиву QRY_TEMPLATE');
+         var _JSON_Element : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_MSG_QRY_TEMPLATE_ARR, i_JSON_QRY_TEMPLATE_ARR);
+
+              clearbuffer(tntQRY_Template);
+               tQRY_Instance.CODE          := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'CODE');
+               tQRY_Instance.DESCRIPTION   := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'DESCRIPTION');
+               tQRY_Instance.NAME1         := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'NAME');
+               tQRY_Instance.TEMPLATE_CODE := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element, 'TEMPLATE_CODE');
+              var _WHERETERMS : tptr = HttpConnect_JsonObjectLongValueByName( m_service, _JSON_Element, 'ADDWHERETERMS');
+               if _WHERETERMS <> 0
+                then tQRY_Instance.WHERETERMS := iQUE_INCOME_BASE.longstring_to_widestring(iQUE_INCOME_BASE.convertLongstringFromBase64(_WHERETERMS));
+
+             insert current tQRY_Instance;
+
+          if tQRY_Template.NAME1 = '' {
+            _answer := 'Элемент массива QRY_INSTANCE "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "NAME"';
+            HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+            exit;
+          }
+
+          if tQRY_Template.CODE = '' {
+            _answer := 'Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "CODE"';
+            HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+            exit;
+          }
+
+          if tQRY_Template.TEMPLATE_CODE = '' {
+            _answer := 'Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" пустое поле "TEMPLATE_CODE"';
+            HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+            exit;
+          }
+
+          var JSON_QRY_instance_fld_lvl_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element,'QRY_INSTANCE_FLD_LVL');
+          var JSON_QRY_instance_fld_lvl_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_QRY_instance_fld_lvl_ARR);
+
+                if JSON_QRY_instance_fld_lvl_ARRCount =  0 {
+                  _answer :=  'Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" Пустой массив QRY_INSTANCE_FLD_LVL';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                   exit;
+                 }
+
+          if JSON_QRY_instance_fld_lvl_ARRCount > 0 {
+              var i_JSON_QRY_instance_fld_lvl_ARR : longint = 0;
+              for i_JSON_QRY_instance_fld_lvl_ARR := 0; i_JSON_QRY_instance_fld_lvl_ARR  <= JSON_QRY_instance_fld_lvl_ARRCount - 1; i_JSON_QRY_instance_fld_lvl_ARR++) {
+               var _JSON_Element_fld_lvl : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_QRY_instance_fld_lvl_ARR, i_JSON_QRY_instance_fld_lvl_ARR);
+    //             MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ');
+
+
+                  var _NOTALWAYSARRAY : boolean  = false;
+                  var _NOTALWAYSARRAYstr : string = '';
+                  _NOTALWAYSARRAYstr := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'NOTALWAYSARRAY');
+                  if UPCASE(_NOTALWAYSARRAYstr) = 'TRUE' {
+                       _NOTALWAYSARRAY := true;
+                  }
+
+                 clearbuffer(tntQRY_INSTANCE_FLDLVL);
+                  tQRY_INSTANCE_FLDLVL.ctQRY_Instance := tQRY_Instance.nrec;
+                  tQRY_INSTANCE_FLDLVL.CLEVEL         := comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'CLEVEL'));
+                  tQRY_INSTANCE_FLDLVL.DESCRIPTION    := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'DESCRIPTION');
+                  tQRY_INSTANCE_FLDLVL.FLD_JSON_NAME  := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'FLD_JSON_NAME');
+                  tQRY_INSTANCE_FLDLVL.NOTALWAYSARRAY := _NOTALWAYSARRAY
+                  tQRY_INSTANCE_FLDLVL.NREC_SRC       := comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'NREC'));
+                  tQRY_INSTANCE_FLDLVL.nrec_dstn      := comp(0)
+                 insert current tQRY_INSTANCE_FLDLVL;
+
+                 if tQRY_TEMPLATESP.FLD_JSON_NAME = '' {
+                  _answer := '"Экземпляр "'+ tQRY_Instance.CODE +'". Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" QRY_INSTANCE_FLD_LVL № '+string(i_JSON_QRY_instance_fld_lvl_ARR)+' пустое поле "QRY_INSTANCE_FLD_LVL"';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                  exit;
+                }
+
+                 if tQRY_TEMPLATESP.NREC_SRC = 0 {
+                  _answer := '"Экземпляр "'+ tQRY_Instance.CODE +'". Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" QRY_INSTANCE_FLD_LVL № '+string(i_JSON_QRY_instance_fld_lvl_ARR)+' пустое поле "NREC"';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                  exit;
+                }
+              //  MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ' + _KAUCODE +'|'+ _CODE+'|'+  _NAME+'|'+  _NREC+'|'+  _CPARENT);
+           }
+         }
+
+
+          var JSON_QRY_instance_fld_ARR : TPTr = HttpConnect_JSONArrayByName(m_service,_JSON_Element,'QRY_INSTANCE_FLD');
+          var JSON_QRY_instance_fld_ARRCount : longint = HttpConnect_JsonCount(m_service, JSON_QRY_instance_fld_ARR);
+
+                if JSON_QRY_instance_fld_ARRCount =  0 {
+                  _answer :=  'Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATE_ARR)+'" Пустой массив QRY_INSTANCE_FLD';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                   exit;
+                 }
+
+          if JSON_QRY_instance_fld_ARRCount > 0 {
+              var i_JSON_QRY_instance_fld_ARR : longint = 0;
+              for i_JSON_QRY_instance_fld_ARR := 0; i_JSON_QRY_instance_fld_ARR  <= JSON_QRY_instance_fld_ARRCount - 1; i_JSON_QRY_instance_fld_ARR++) {
+               var _JSON_Element_fld : TPtr = HttpConnect_JSONObjectByIndexOfArray(m_service, JSON_QRY_instance_fld_ARR, i_JSON_QRY_instance_fld_ARR);
+    //             MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ');
+
+
+                  var _NOTALWAYSARRAY : boolean  = false;
+                  var _NOTALWAYSARRAYstr : string = '';
+                  _NOTALWAYSARRAYstr := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'NOTALWAYSARRAY');
+                  if UPCASE(_NOTALWAYSARRAYstr) = 'TRUE' {
+                       _NOTALWAYSARRAY := true;
+                  }
+
+                 clearbuffer(tntQRY_INSTANCE_FLDLVL);
+                  tQRY_INSTANCE_FLDLVL.ctQRY_Instance := tQRY_Instance.nrec;
+                  tQRY_INSTANCE_FLDLVL.CLEVEL         := comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'CLEVEL'));
+                  tQRY_INSTANCE_FLDLVL.DESCRIPTION    := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'DESCRIPTION');
+                  tQRY_INSTANCE_FLDLVL.FLD_JSON_NAME  := HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'FLD_JSON_NAME');
+                  tQRY_INSTANCE_FLDLVL.NOTALWAYSARRAY := _NOTALWAYSARRAY
+                  tQRY_INSTANCE_FLDLVL.NREC_SRC       := comp(HttpConnect_JsonObjectValueByName( m_service, _JSON_Element_fld_lvl, 'NREC'));
+                  tQRY_INSTANCE_FLDLVL.nrec_dstn      := comp(0)
+                 insert current tQRY_INSTANCE_FLDLVL;
+
+                 if tQRY_TEMPLATESP.FLD_JSON_NAME = '' {
+                  _answer := '"Экземпляр "'+ tQRY_Instance.CODE +'". Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" QRY_INSTANCE_FLD_LVL № '+string(i_JSON_QRY_instance_fld_lvl_ARR)+' пустое поле "QRY_INSTANCE_FLD_LVL"';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                  exit;
+                }
+
+                 if tQRY_TEMPLATESP.NREC_SRC = 0 {
+                  _answer := '"Экземпляр "'+ tQRY_Instance.CODE +'". Элемент массива QRY_INSTANCE № "'+string(i_JSON_QRY_TEMPLATESP_ARR)+'" QRY_INSTANCE_FLD_LVL № '+string(i_JSON_QRY_instance_fld_lvl_ARR)+' пустое поле "NREC"';
+                  HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+                  exit;
+                }
+              //  MyLog('Идем по массиву JSON_QRY_TEMPLATESP_ARR ' + _KAUCODE +'|'+ _CODE+'|'+  _NAME+'|'+  _NREC+'|'+  _CPARENT);
+           }
+         }
+
        }
-     }
-   }
-   if SynchKATKAU(_answer) then result := true;
+  }
+   if SynchQRY_Template(_answer) then result := true;
    _answer := 'Сообщение успешно обработано';
    HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
-   mylog('QUE_ProcessMessIncomeQueue_testInsertKAU HttpConnect_GetLongStringLength(m_service, _answerLong) = ' + HttpConnect_GetLongStringLength(m_service, _answerLong));
-//   putfiletoclient(_logQUE_OUT,false);
 }
 
 function GetDescription : string; {
-  result := 'Test. Пример реализации обработки сообщения. Генерирует пользоват. аналитику и ее значения из сообщения'
+  result := 'Создание / обновление экземпляров запросов'
 }
 procedure Setup(__cQUE_Handler_tune : comp);{
   set _cQUE_Handler_tune := __cQUE_Handler_tune;

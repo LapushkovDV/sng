@@ -1,0 +1,175 @@
+#component "Z_StaffOrders"
+#include DeptIer.vih
+
+alter interface KandFizFiltr;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brPers;
+
+Create view vKandFizFiltr
+
+As select
+  DepIer.GetFulDepNameEx(tmpPersons.cDept)
+    (fieldname = DeptNameIer)
+;
+
+browse brPers;
+  table tmpPersons;
+fields
+  tmpPersons.TabN 'Таб. номер', ('Табельный номер',,): [10], protect;
+  tmpPersons.StrTabN 'Таб. номер', ('Табельный номер',,): [10], protect;
+  tmpPersons.FIO    'Фамилия, имя, отчество', ('Фамилия Имя Отчество',,): [30], protect;
+  DeptNameIer       'Подразделение',('Подразделение',,): [30], protect;
+  tmpPersons.AppDate 'Дата приема', ('Дата приема',,): [10], protect;
+  tmpPersons.DisDate 'Дата увольнения', ('Дата увольнения',,): [10], protect;
+  sType             'Тип карточки' ('Тип карточки'): [10], protect;
+end;
+
+#declare KandFizIns
+  insert NoVisual into tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Persons.Department,
+      Persons.AppDate,
+      Persons.DisDate,
+      Persons.IsEmployee
+    From
+      Persons
+    where
+#end
+
+#declare KandFizIns1(sType)
+  #sType /== Persons.IsEmployee and
+  tmpDate >> Persons.DisDate and
+  0 == Persons.cNew_Person (NoIndex) and
+  (Persons.DisDate <> ZeroDate)
+#end
+
+#declare KandFizIns2(sType)
+  #sType /== Persons.IsEmployee and
+  tmpPodr == Persons.Department and
+  tmpDate >> Persons.DisDate (NoIndex) and
+  0 == Persons.cNew_Person (NoIndex) and
+  (Persons.DisDate <> ZeroDate)
+#end
+
+#declare KandFizIns3(sType)
+  #sType /== Persons.IsEmployee and
+  tmpDate == Persons.DisDate
+#end
+
+#declare KandFizIns4(sType)
+  #sType /== Persons.IsEmployee and
+  tmpPodr == Persons.Department and
+  tmpDate == Persons.DisDate (NoIndex)
+#end
+
+HandleEvent
+
+cmInit:
+{
+  StartNewVisual(vtRotateVisual, vfTimer + vfBreak, 'Инициализация', 1);
+
+  var sType: s1 = if(wType = 0, 'К', 'Ф');
+  var tmpDate: date = dateBounds;
+  var tmpPodr: comp = cPodr;
+
+  mtClear(#tmpPersons, mfNormal);
+
+  if (dateBounds <> ZeroDate)
+  {
+    if (tmpPodr = 0)
+    {
+      #KandFizIns
+      ((
+         #KandFizIns1('С')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns1('У')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns1('К')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns1('Ф')
+      ));
+    }
+    else
+    {
+      #KandFizIns
+      ((
+         #KandFizIns2('С')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns2('У')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns2('К')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns2('Ф')
+      ));
+    }
+  }
+  else
+  {
+    if (tmpPodr = 0)
+    {
+      #KandFizIns
+      ((
+         #KandFizIns3('К')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns3('Ф')
+      ));
+    }
+    else
+    {
+      #KandFizIns
+      ((
+         #KandFizIns4('К')
+      ));
+
+      #KandFizIns
+      ((
+         #KandFizIns4('Ф')
+      ));
+    }
+  }
+
+  // в зависимости от типа табельного закрываем нужный от видимости
+  if (wGetTune('FormatClockNumber') = 0)
+    ClearFieldState(#tmpPersons.StrTabn, sfVisible)
+  else
+    ClearFieldState(#tmpPersons.Tabn, sfVisible);
+
+  StopVisual('', 0);
+
+  SetWindowTitle(wnMainWindow, 'Выбор карточки ( ' + string(RecordsInTable(#tmpPersons)) + ' )');
+
+  SetOrder(tiFIO);
+  SetColumnSorting(brPers, #tmpPersons.FIO, 1);
+}
+
+end;
+
+end.

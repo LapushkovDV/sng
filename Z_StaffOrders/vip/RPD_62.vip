@@ -1,0 +1,205 @@
+#component 'Z_STAFFORDERS'
+
+#include CatFunc.vih
+
+#doc
+Докомпиляция интерфейса РПД-62
+#end
+
+alter interface RPD_62;
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+const
+  coSysCodeDriverClass: integer = -31689; //системный код справочника "Классность водителя"
+end;
+
+var
+  oExtAttr: iextAttr;
+  oCatFunc: CatalogsFunctions;
+
+  extAttrID_DrCl: comp;
+  extAttrID_NProt: comp;
+  extAttrID_DCom: comp;
+  fullNamePodr: string; //HR-965
+
+  cur_catalog: comp;
+//***********************************************************************
+//HR-672, nnt ссылка на ИД ДС  для RX
+//***********************************************************************
+function GetDopStatLink56: string; forward;
+
+create view
+as select
+  (GetDopStatLink56)
+    (fieldname = sExternalLink56)
+;
+
+function GetDopStatLink56: string;
+{
+  result := '';
+  var tmpLink: comp = NOAA.GetFirstAgreementByLink(GetCo4Agreement(), GetNRec4Agreement());
+  if (getFirst fastfirstrow ExternalASM where ((byte(101)   == ExternalASM.ASM_Type
+                                  and coSpAllStaff == ExternalASM.wTable
+                                  and tmpLink      == ExternalASM.cRec)) =  tsOk)
+     result := ExternalASM.Numbers[5] + string(ExternalASM.Numbers[6]);
+}
+//***********************************************************************
+
+OverloadFormats scrDet62;
+
+screen scrDet62 (,hcStaffWinPr, scStaffMyPnl);   //изменение разряда
+  show at (, 5,,14);
+  table AppHist;
+fields
+  /*
+  KlSisOpl.NaSisOpl ('Система оплаты труда. ', hcStaffAppPayModel):  skip;
+  AppHist.TaxRate ('Оклад, ставка, тариф', hcStaffAppTaxRate) : [11.3], skip;
+  KlVal.SimvolV ('Валюта', hcNoContext) :skip;
+  [scdLastUser62] vTSFuncs.GetRealCorrCoeff(AppHist.Tariff, AppHist.LastUser)
+            ('Корректирующий коэффициент', hcStaffAppTaxRate): [10.3], skip;
+  TarStav.Naitar: Skip;
+  AppHist.Category: Skip;
+  */
+  AppHist.dRec  ('С даты', hcStaffWinPr, scStaffMyPnlPick) :[10,'DD/MM/YYYY'], {Font = {BackColor = if(AppHist.dRec = ZeroDate, ColorNeed, 0)}}, noprotect;
+  AppHist.dEnd  ('По дату', hcStaffWinPr, scStaffMyPnlPick) :[10,'DD/MM/YYYY'], noprotect;
+  wValue1: noprotect;
+  i_NKategory ('Квалификационный разряд/категория'): NoProtect;
+  [DriverClName]
+    (oCatFunc.GetCatalogsName(oExtAttr.coGetAttrID(coAppHist, AppHist.nrec, extAttrID_DrCl))) ('Классность водителя'): Skip;
+  wValue2: noprotect;
+  KlRejim.NRejim     ('Режим работы', hcStaffWinPr, scStaffMyPnlPick),  skip;
+  fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+  sExternalLink ('Идентификатор доп.соглашения'): protect, {hyperlink = (sExternalLink <> '')};
+  ContDoc.SBottom    ('Основание', hcStaffWinPr), noprotect;
+  [ProtNumber]
+    (oExtAttr.sGetAttrID(coAppHist, AppHist.nrec, extAttrID_NProt)) ('Номер протокола'): NoProtect;
+  [DateCom]
+    (oExtAttr.dGetAttrID(coAppHist, AppHist.nrec, extAttrID_DCom)) ('Дата комиссии'): NoProtect;
+buttons
+  //cmValue12,[singleline],,,'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+  cmValue25, [SingleLine],,, 'Штрих-код';
+  cmOrgLevel, [singleline],,, 'Выбор организационных уровней';            //HR-965
+<<
+   C даты          .@@@@@@@@@@  по дату .@@@@@@@@@@@
+
+   [:] Классность водителя`.@@@@@ .@@@@@@@@@@@@@@@@@@@@
+
+   [:] Режим работы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Доп. соглашение` .@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ДС в Directum`.@@@@@@@@@@
+                                                                   <. Штрих-код .>
+     Основание
+     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     Номер протокола.@@@@@@@@    Дата комиссии.@@@@@@@@@@
+
+     <.    Орг.уровни .>
+>>
+end; // screen scrDet62
+
+//******************************************************************************
+// Процедура открытия\закрытия полей для редактирования
+//******************************************************************************
+Procedure EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if fnFieldsOpen
+  {
+    // если приказ ещё не утверждён, то поля открыты на редактирование
+    SetFieldOption(#ProtNumber, ofSelectable);
+    SetFieldOption(#DateCom, ofSelectable);
+
+    // добавление PickButton к полю
+    SetInputLineFlags(scrDet62, #i_NKategory, inPickButton);
+
+    ToggleFieldProtected(#i_NKategory, true);
+
+  }
+  else
+  {
+    // если приказ уже утверждён, то поля закрыты на редактирование
+    ClearFieldOption(#ProtNumber, ofSelectable);
+    ClearFieldOption(#DateCom, ofSelectable);
+  }
+
+}
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+
+  extAttrID_DrCl := oExtAttr.CreateAttrComp(coAppHist, 'Классность водителя', cgAttrType_Comp, cgKatKau_System, coAppHist);
+  extAttrID_NProt := oExtAttr.CreateAttr(coAppHist, 'Номер протокола', cgAttrType_Str);
+  extAttrID_DCom := oExtAttr.CreateAttr(coAppHist, 'Дата комиссии', cgAttrType_Date);
+}
+
+cmPick:
+{
+  if inherited::handleEvent(cmPick) = heAbort
+    abort;
+
+  case CurField of
+    #i_NKategory:
+    {
+      if (RunInterface('Z_StaffCat::PickCatalog2', coSysCodeDriverClass, cur_catalog, comp(0), comp(0)) = cmDefault ) {
+        oExtAttr.coSetAttrID(coAppHist, AppHist.nrec, extAttrID_DrCl, cur_catalog, '');
+
+        set AppHist.cInf2 := comp(oCatFunc.GetCatalogsCode(oExtAttr.coGetAttrID(coAppHist, AppHist.nrec, extAttrID_DrCl)));
+        update current AppHist;
+
+      }
+    }
+  end;
+}
+//HR-672 nnt
+cmHyperlink:
+  {
+    case CurField of
+      #sExternalLink:
+      {
+        if (sExternalLink <> '')
+        {
+          var aErrorCode: integer;
+          var sPagePath: string = GetDopStatLink56;
+          ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+        }
+      }
+    end;
+  }
+//HR-965
+cmOrgLevel:
+{
+      ParentSav := Appointments.nrec;
+      var sampodr: widestring = IDepartIer.GetLongNameHistOrSamPodrEx(ContDoc.cDopRef, if(AppHist.dRec <> ZeroDate , AppHist.dRec, Cur_Date));
+      var cPodr: comp;
+      ParentSav := ContDoc.cDopRef;
+      RunInterFace('SNG_ORGLEVEL::SNG_ORGLEVEL', ParentSav, sampodr, TitleDoc.wStatus );
+}
+end;
+
+tableevent table AppHist;
+
+cmCheckField:
+{
+  if inherited::handleEvent(cmCheckField) = heAbort
+    abort;
+
+  case CurField of
+    #ProtNumber:
+    {
+      oExtAttr.sSetAttrID(coAppHist, AppHist.nrec, extAttrID_NProt, ExprFieldValue);
+    }
+    #DateCom:
+    {
+      oExtAttr.dSetAttrID(coAppHist, AppHist.nrec, extAttrID_DCom, StrToDate(ExprFieldValue, 'DD/MM/YYYY'));
+    }
+  end;
+}
+
+end; //tableevent table AppHist
+
+end.

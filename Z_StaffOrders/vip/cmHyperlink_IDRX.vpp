@@ -1,0 +1,27 @@
+cmHyperlink:
+{
+    case CurField of
+    #sExternalLink:  //'Идентификатор доп.соглашения',
+    {
+        if (sExternalLink <> '')
+        {
+          var aErrorCode: integer;
+          var sPagePath: string = '';
+
+          //ссылка на ДС по РПД-2, РПД-3, РПД-10, РПД-12, РПД-44, РПД-45, РПД-46
+          //РПД-50, РПД-60, РПД-61, РПД-62, РПД-70, РПД-100
+          var tmpLink : comp = NOAA.GetFirstAgreementByLink(GetCo4Agreement(), GetNRec4Agreement());
+          if tmpLink <> 0
+          if (getFirst ExternalASM where ((byte(101)   == ExternalASM.ASM_Type
+                                  and coSpAllStaff == ExternalASM.wTable
+                                  and tmpLink      == ExternalASM.cRec)) =  tsOk)
+              sPagePath := ExternalASM.Numbers[5] + string(ExternalASM.Numbers[6]);
+
+          ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+        }
+    }
+    else
+       inherited::handleEvent(cmHyperlink);
+
+    end;
+}

@@ -1,0 +1,44 @@
+#include GeneralFuncSNG.vih         // ”ã­ªæ¨¨ à ¡®âë á  ¤à¥á ¬¨
+
+Interface GeneralFuncSNG;
+
+create view
+  as select *
+       
+ from
+    StaffStruct,
+    catalogs catalogs1
+; //view
+
+function GetFullStr(_cNrec: comp; _cParent: comp; _StaffStr:comp):WideString;
+{
+   var nrec_tmp : comp;
+   nrec_tmp := _cParent;
+  result := '';
+  if (getfirst staffstruct where(( _StaffStr == StaffStruct.nRec)) = tsOk )
+  //  if (getfirst staffstruct where(( Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+   {
+      var lv_nrec:string;
+      lv_nrec := SubStr(string(StaffStruct.nRec),Length(string(StaffStruct.nRec))-4,5);
+      result := '(‘¨áâ¥¬­ë© ª®¤ ' + lv_nrec + ') ' + StaffStruct.longname + ''#13#10; // HR-1214      
+      nrec_tmp:= StaffStruct.Department;
+   }
+
+   do
+   {
+    
+      if (getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) 
+          = tsOk)
+      {
+         if(LengTh(catalogs1.code) <=4)
+              exit;
+
+         result += catalogs1.longname +''#13#10;
+         nrec_tmp := catalogs1.cparent;
+      }      
+   }
+   While(getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+}
+
+//ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+end. // Š®­¥æ ¨­â¥àä¥©á 

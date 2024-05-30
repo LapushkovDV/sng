@@ -1,0 +1,124 @@
+#component "Z_StaffOrders"
+#include OrdersProtocol.vih
+#include Pickcat.vih
+#include CatFunc.vih
+#doc
+  Интерфейс приказа "Снятие дисциплинарного взыскания"
+#end
+
+Alter Interface RPD_32;
+
+const cs_syscod:integer = -31600;
+end;
+
+create view
+
+
+from SNG_Punishments,
+     Catalogs Ctg
+
+ where (( Punishments.Nrec   == SNG_Punishments.Nrec and
+      SNG_Punishments.Reason == Ctg.Nrec  ));
+
+
+function CreateSNGPun( ):boolean;forward;
+OverloadFormats my_Punishments;
+
+screen my_Punishments(,, sci178Esc);
+show at (,5,,);
+table Punishments;
+  Fields
+    PunCatalog.Name      //#3'Вид взыскания/',#3'наказания',
+                          ('Вид доплаты/надбавки.',,scStaffMyPnlPick): [20], {Font = {BackColor = if(not IsValid(#PUNCATALOG), ColorNeed, 0)}}, protect;
+    TypePuncat.Name   //    #3'Вид проступка/',#3'нарушения',
+                          ('Вид проступка/нарушения',,): [20], skip;
+    Punishments.LastDate // #3'Дата ',#3'совершения',#3'проступка',
+                          ('Дата совершения проступка',,) : [10], skip;
+    Punishments.Dat1    // #3'Дата',#3'взыскания',
+                          ('Дата взыскания',,) : [10], skip;
+    ContDoc.Dat2    // #3'Дата',#3'фактического',#3'снятия',
+                          ('Дата фактического снятия',,): [10], {Font = {BackColor = if(ContDoc.Dat2 = ZeroDate, ColorNeed, 0)}}, noprotect;
+
+    Ctg.sdopinf( 'Причина снятия',,)        :[3]  NoProtect, pickButton;
+    Ctg.name( 'Текст из справочника' ,,) :[10] Protect, noFrame;
+
+    ContDoc.SBottom       ('Основание', hcStaffAppFoundation): [40], noprotect;
+  buttons
+    cmViewAdvance1,,, 'Просмотр примечания к приказу';
+
+<<
+ Вид взыскания/наказания  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Вид проступка/нарушения  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Дата совершения          .@@@@@@@@@@@@
+ Дата взыскания           .@@@@@@@@@@@@
+ Дата фактического снятия .@@@@@@@@@@@@ Причина снятия .@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@
+ Основание                .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                            <. Примечание .>
+>>
+
+end;
+
+
+function CreateSNGPun( ):boolean;{
+      result := false;
+
+      if IsValid(#SNG_Punishments) = false {
+        insert SNG_Punishments set SNG_Punishments.nRec := Punishments.nRec;
+        result := true;
+      }else{
+        GetFirst SNG_Punishments where Punishments.nRec = SNG_Punishments.nRec;
+        result := true;
+    }
+}
+
+HandleEvent
+
+cmOnVipLoad:{
+   inherited::handleevent(cmOnVipLoad);
+    if Punishments.nRec <> Comp(0){
+      CreateSNGPun( );
+    }
+ };//cmInit
+
+  cmPick:{
+   inherited::handleevent(cmPick);
+
+   case CurField of
+     #Ctg.sdopinf: //CatCode
+     {
+
+       if ( not IsValid(#Punishments) )
+          {
+             message('Не заполнена информация о взыскании');
+             exit;
+          }
+
+       if CreateSNGPun( ) = false
+          {
+             message('Не удается создать запись в SNG_Punishments');
+             exit;
+          }
+
+       if GetFirst Ctg where (( cs_syscod == Ctg.syscode  )) = tsOk
+          {
+
+               if(RunInterface('Z_StaffCat::PickCatalog2', Integer(cs_syscod), Ctg.Nrec, comp(0), comp(0)) = cmDefault )
+
+                {
+                     Set SNG_Punishments.Reason := Ctg.Nrec;
+                     update current SNG_Punishments;
+
+                     ReReadRecord(#SNG_Punishments);
+                     ReReadRecord(#Ctg);
+                }
+
+          }
+     }
+
+
+   end; //Case
+
+ };//cmPick
+end; //HandleEvent
+
+end.

@@ -1,0 +1,17 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+Alter interface RPD_61;
+
+HandleEvent
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+  cfsSetProp('L_SCRDET61_ИД_доп.соглашения','Title','Ссылка на ДС в Directum'); // HR-1143 
+}
+
+end;
+
+end.

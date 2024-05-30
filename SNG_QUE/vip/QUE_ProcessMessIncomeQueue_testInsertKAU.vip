@@ -101,7 +101,7 @@ where ((
 ;
 
 Function GenerateNewFile: string; {
- result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_INCOME_'+olegenerateguid+'_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
 
 function GetLogFile : string; {

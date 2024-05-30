@@ -1,0 +1,35 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_95;
+
+HandleEvent
+
+cmPick:
+{
+  case CurField of
+
+    #OldFullNamePodr:
+    {
+      ParentSav := StaffStruct.Department;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-11), ParentSav, comp(0)) = cmDefault)
+      {
+        if (RecordsInTable(#StaffStruct) > 0)
+        {
+          var sBackButton: string = 'RPD_BACK_PV_'+string(UserID);
+          SaveMyDsk(true, sBackButton);
+          if (SetAppInside(ParentSav, ContDoc.dat1)) {} //
+          SaveMyDsk(false, sBackButton);
+        }
+      }
+      CheckAppoint;
+    }
+    else
+      inherited::handleevent(cmPick);
+
+  end;
+}
+
+end;
+
+end.

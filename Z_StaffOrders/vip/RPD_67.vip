@@ -1,0 +1,118 @@
+#component "Z_StaffOrders"
+
+alter Interface RPD_67;
+
+var dogovorStr67: string;
+//******************************************************************************
+create view
+as select
+    SpAllStaff4Dog67.Cbaset
+  , SpAllStaff4Dog67.ResString[1]
+  , SpAllStaff4Dog67.ResDate[1]
+  , SpAllStaff4Dog67.ResDate[2]
+  , SpAllStaff4Dog67.ResDate[3]
+	, Cats4Dog67.Name
+  , ExtAsm4Dog67.Numbers[1]
+from
+    synonym SpAllStaff  SpAllStaff4Dog67
+	, synonym Catalogs    Cats4Dog67
+  , synonym ExternalAsm ExtAsm4Dog67
+where
+((
+			Persons.Nrec == SpAllStaff4Dog67.Cbaset
+  and 5 == SpAllStaff4Dog67.Wnocon
+	and SpAllStaff4Dog67.ResComp[1] == Cats4Dog67.NRec
+  and SpAllStaff4Dog67.NRec == ExtAsm4Dog67.CRec
+  and 101 == ExtAsm4Dog67.Asm_Type
+  and 32211 == ExtAsm4Dog67.WTable
+))
+;
+//******************************************************************************
+procedure GetRecord67;
+{
+  var dogovorDiscovered : boolean = false;
+  // 1. check if current line is good enough
+  if (SpAllStaff4Dog67.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog67.ResDate[3] = zeroDate or SpAllStaff4Dog67.ResDate[3] >= TitleDoc.DOCDATE))
+    dogovorDiscovered := true;
+  // 2. otherwise go through entire db
+  else
+	{
+		var relevantCbaset : comp = SpAllStaff4Dog67.Cbaset;
+	  if (GetFirst SpAllStaff4Dog67 = tsOk)
+	  {
+	    if (SpAllStaff4Dog67.Cbaset = relevantCbaset and 
+      SpAllStaff4Dog67.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog67.ResDate[3] = zeroDate or SpAllStaff4Dog67.ResDate[3] >= TitleDoc.DOCDATE))
+				dogovorDiscovered := true;
+	    else
+				while (GetNext SpAllStaff4Dog67 = tsOk)
+					if (SpAllStaff4Dog67.Cbaset = relevantCbaset and 
+          SpAllStaff4Dog67.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog67.ResDate[3] = zeroDate or SpAllStaff4Dog67.ResDate[3] >= TitleDoc.DOCDATE))
+					{
+            dogovorDiscovered := true;
+						break;
+					}
+	  }
+	}
+  // 3. display the appropriate message
+  if (dogovorDiscovered = true)
+    if (SpAllStaff4Dog67.ResDate[1] = zeroDate)
+      dogovorStr67 := (string(Cats4Dog67.Name) + ' ' + string(SpAllStaff4Dog67.ResString[1]));
+    else
+      dogovorStr67 := (string(Cats4Dog67.Name) + ' ' + string(SpAllStaff4Dog67.ResString[1]) + ' от ' + string(SpAllStaff4Dog67.ResDate[1]));
+  else
+    dogovorStr67 := 'Договор не найден';
+} //procedure GetRecord67
+//******************************************************************************
+ExtendFormats scrDet67;
+
+screen scrDet67;
+  show at (,5,,);
+  table ContDoc;
+fields
+  dogovorStr67 ('Вид договора'):
+    skip;
+  ExtAsm4Dog67.Numbers[1] ('Идентификатор договора'):
+    protect,
+    {hyperlink = (ExtAsm4Dog67.Numbers[1] <> '')};
+      buttons
+  cmOrgLevel, [singleline],,, 'Выбор организационных уровней';            //HR-965 
+<<
+ 
+ 
+ 
+ `Договор     `.@@@@@@@@@@@@@@@@@@@@ `Ссылка на ТД в Directum`.@@@@@@@@
+
+ <.    Орг.уровни .> 
+>>
+
+end; //scrDet67
+//******************************************************************************
+HandleEvent
+
+cmPositionChanged:
+{
+  GetRecord67;
+} //cmPositionChanged
+
+cmHyperlink:
+{
+  case CurField of
+    #ExtAsm4Dog67.Numbers[1]:
+    {
+      var aErrorCode: integer;
+      if (ExtAsm4Dog67.Numbers[1] <> '')
+        ExecProgram('start' , ExtAsm4Dog67.Numbers[5]+ExtAsm4Dog67.Numbers[6], 'Переход', 0, aErrorCode);
+    }
+    else
+      inherited::handleEvent(cmHyperlink);
+  end;
+}
+//HR-965
+cmOrgLevel:
+{
+      ParentSav := Appointments.nRec; 
+      RunInterFace('SNG_OrgLevel::SNG_OrgLevel', ParentSav, fullNamePodr, Check_TitleDoc.wStatus );
+}
+end;
+//******************************************************************************
+end.

@@ -1,0 +1,6 @@
+28.05.2024 21:14:19.829 || 
+SELECT sng.CHECKCURATORUSER('lapus', 1, 1)
+Parameters : 0
+
+Error code 42883 with message ОШИБКА: функция sng.checkcuratoruser(unknown, integer, integer) не существует;
+Error while executing the query

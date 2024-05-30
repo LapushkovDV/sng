@@ -1,0 +1,40 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+alter interface RPD_50
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+  {
+    SetFieldAndLabelVisible(#AppHist.TaxRate, false);
+    cfsSetProp('T_SCRDET50_Тар.ставка/оклад', cfpVisible, false);
+  }
+}
+
+HandleEvent
+
+#include cmHyperlink_IDRX.vpp // событие cmHyperlink  //GLX-1321
+
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+    SetFieldAndLabelVisible( #wValue4, false);
+    cfsSetProp('ci_SCRDET50_wValue4_Система_оплаты', cfpHidden, true);
+    cfsSetProp('i_SCRDET50_KLSISOPL.NASISOPL', cfpHidden, true);
+    cfsSetProp('L_SCRDET50_ИД_доп.соглашения','Title','Ссылка на ДС в Directum'); // HR-1143 
+}
+
+end;
+
+end.

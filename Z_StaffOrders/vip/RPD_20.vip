@@ -1,0 +1,34 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+alter interface RPD_20;
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+  {
+    SetFieldAndLabelVisible(#Fortune.DocSum, false);
+    cfsSetProp('T_SCRDET20_Сумма(процент)', cfpVisible, false);
+  }
+}
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  if (inherited::handleEvent(cmOnVipLoad)) = heAbort { abort; }
+  cfsSetProp('b_SCRDET20_Оклад_на_дату', cfpVisible, false);
+} //cmInit
+
+end;
+
+end.

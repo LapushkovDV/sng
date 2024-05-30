@@ -1,0 +1,909 @@
+#component "Z_StaffOrders"
+#include ChoiseYourPersons.vih
+#include Protector.vih
+
+alter interface WorkWithContract;
+
+overload
+  function fnAddContract(_cPerson, _cDog: comp; _sNmb: string; _dContract, _dBegin, _dEnd: date; _cAppHist: comp): comp;
+  procedure EnableDisableFields;
+  function IWorkWithContractDogovor.DelContractIfNew(_cContract, _cAppHist: comp): boolean;
+  function IWorkWithContractDogovor.GetContractString(_cContract: comp): string;
+  function fnShowContract(_cContract, _cAppHist: comp; _bEditable: boolean; _dNewBeg: date = ZeroDate; _dNewEnd: date = ZeroDate; _dConfirm: date = ZeroDate): comp;
+end;
+
+var
+  viCYPersons: ChoiseYourPersons;
+  bRast1, bRast2, bRast3, bRast4, bRast5, bNotif, bKat1, bKat2, bKat3: boolean;
+  boolCrutch4s3 : boolean = true;
+  bNoCancel: boolean = true;
+
+function GetWordFromFlags: word; forward;
+function GetJobNature: string; forward;
+
+overloadFormats scrContract;
+overloadFormats brwPersContractsAndAgr;
+overloadFormats brwPersContracts;
+
+Create View  WorkWithContract
+var
+  iKolCheck : integer;
+  P: IProtector;
+  ExtNum: string;
+
+as select
+
+  if(IsValid(#AppContDoc), AppContDoc.OrderNmb, AppointmentsPrik.OrderNmb)
+    (FieldName = OrderNmb),
+
+  if(IsValid(#AppContDoc), AppContDoc.OrderDate, AppointmentsPrik.OrderDate)
+    (FieldName = OrderDate),
+
+  iCatFunc.GetCatalogsName(if(IsValid(#AppContDoc), AppContDoc.Post, AppointmentsPrik.Post) )
+    (FieldName = AppPost),
+
+  if(IsValid(#AppContDoc), AppContDoc.wAddWord1, AppointmentsPrik.wAddWord1)
+    (FieldName = wShr),
+
+  if(IsValid(#AppContDoc), KlSovm.NSovm, KlSovm2.NSovm)
+    (FieldName = JobType),
+
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[1]) (FieldName = s1),  // срок расторжения работодателем
+//  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[2]) (FieldName = s2),  // срок расторжения сотрудн
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[3]) (FieldName = s3),  // место пров. работ
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[4]) (FieldName = s4),  // пункт сбора
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[5]) (FieldName = s5),  // как добирается
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[6]) (FieldName = s6),  // буферная зона
+
+ // (iStrFunc.UnVisibleDate(dContract_win, 'DD/MM/YYYY'))
+ //   (FieldName = ExtDateAccept),   // ResDate[1]
+
+  if(IsValid(#ExternalASMDogovor),
+    if(ExternalASMDogovor.Numbers[3] <> '' , ExternalASMDogovor.Numbers[3], PsnSpAllStaff.ResString[1] ), PsnSpAllStaff.ResString[1] )
+    (FieldName = ExtNum2) ,
+
+  (iStrFunc.UnVisibleDate(PsnSpAllStaff.ResDate[1], 'DD/MM/YYYY'))
+    (FieldName = ExtDateAccept2) ,
+
+  (iStrFunc.UnVisibleDate(PsnSpAllStaff.ResDate[2], 'DD/MM/YYYY'))
+    (FieldName = ExtDateFrom) ,
+
+  (iStrFunc.UnVisibleDate(PsnSpAllStaff.ResDate[3], 'DD/MM/YYYY'))
+    (FieldName = ExtDateTo) ,
+
+  GetJobNature()
+    (FieldName = JobNature) ,
+
+  if((SpAllStaff_Exp.ResWord[1] and 1) = 1, '30-60 км',
+    if((SpAllStaff_Exp.ResWord[1] and 2) = 2, '60-100 км',
+      if((SpAllStaff_Exp.ResWord[1] and 4) = 4, '100-180 км',
+        if((SpAllStaff_Exp.ResWord[1] and 8) = 8, '180-250 км',
+          if((SpAllStaff_Exp.ResWord[1] and 16) = 16, 'свыше 250 км', '')))))
+    (FieldName = strRast)
+
+From
+   Appointments AppContDoc
+ , Catalogs
+ , Catalogs CatPost
+ , Catalogs JobNaturePers
+ , Persons Persons1
+ , Persons Persons2
+ , SpAllStaff SpAllStaff_Exp
+ , SpAllStaff SpAllStaff_Exp2
+ , KlSovm
+ , KlSovm KlSovm2
+ , ExternalASM  ExternalASMDogovorScr
+ , ExternalASM  ExternalASM_GF
+ , ContDoc ContDoc_TD
+ , AppHist AppHist_AppPrik
+
+where
+((
+
+      cPerson_gl            == Persons.nrec
+  and Persons.JobNature     == JobNaturePers.Nrec
+  and Persons.cSovm         == KlSovm2.Sovm
+
+  and cgAllStaffExp         == SpAllStaff_Exp.wNoCon
+  and PsnSpAllStaff.nrec    == SpAllStaff_Exp.cBaseT
+
+  and AppointmentsPrik.nrec == ContDoc_TD.ObjNrec
+  and AppointmentsPrik.nrec == AppHist_AppPrik.cAppoint
+
+  and ContDocTD.ObjNrec     == AppContDoc.nrec
+  and AppContDoc.Post       == CatPost.Nrec
+  and word(ContDocTD.cNew2) == KlSovm.Sovm
+
+  and SpAllStaff_Exp.ResComp[7] == Persons1.nrec
+  and SpAllStaff_Exp.ResComp[8] == Persons2.nrec
+
+  and byte(101)          == ExternalASMDogovorScr.ASM_Type
+  and coSpAllStaff       == ExternalASMDogovorScr.wTable
+  and BrwSpAllStaff.Nrec == ExternalASMDogovorScr.cRec
+
+));
+
+
+#declare RunHyperLinkFull(Tab)
+
+  if (#Tab.Numbers[1] <> '')
+  {
+     var aErrorCode: integer;
+     var sPagePath: string = #Tab.Numbers[5]+#Tab.Numbers[6];
+     ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+  }
+
+#end
+
+function GetJobNature: string;
+{
+  if bEditable_ex_win
+  {
+    result := JobNaturePers.Name;
+    exit;
+  }
+
+  var endTD, endApp: date;
+
+  _loop AppointmentsPrik
+  {
+    endTD := dEnd_win;
+    endApp := AppointmentsPrik.DATEEND;
+
+    if (endTD = ZeroDate)
+      endTD := Date(1,1,2999);
+
+    if (endApp = ZeroDate)
+      endApp := Date(1,1,2999);
+
+    if ( AppointmentsPrik.APPOINTDATE <= endTD AND endApp >= dBegin_win )
+    {
+      // пересечены
+      if IsValid(#AppHist_AppPrik)
+      {
+        result := iCatFunc.GetCatalogsName(AppHist_AppPrik.cRez2);
+        exit;
+      }
+    }
+  }
+}
+
+window winContract doaccept;
+  show at (,,97, 33);
+
+screen scrContract(,, sci1EnEsc);
+  show at (,,96, 32);
+  table BrwSpAllStaff;
+  bevel b1 {1, 0, 85, 4, bsRaised, bsFrame};
+  bevel b2 {1, 4, 85, 13, bsRaised, bsFrame};
+  bevel b3 {1, 13, 85, 21, bsRaised, bsFrame};
+  bevel b4 {1, 21, 85, 24, bsRaised, bsFrame};
+  bevel b5 {1, 24, 85, 30, bsRaised, bsFrame};
+Fields
+  Persons.FIO ('Фамилия, Имя, Отчество'): skip;
+  AppPost ('Должность'): skip;
+  [PTabn] GetStrTabN(Persons.TabNmb, Persons.StrTabN) ('Таб. №'): skip;
+
+  OrderNmb: skip;
+  OrderDate: skip;
+  sDogType ('Вид договора'): {Font = {BackColor = if(sDogType = '', ColorNeed, 0)}}, protect, pickbutton;
+  ExtNum ('Номер договора'): protect;
+  ExternalASMDogovorScr.Numbers[1] ('Ссылка на ТД в Directum'): protect, {hyperlink = true};
+  dBegin_win ('Действует с'): noprotect;
+  dEnd_win ('Действует по'): noprotect;
+  dContract_win ('Заключен'): noprotect;
+  ExternalASMDogovorScr.Numbers[2] ('Статус ТД'): skip;
+  JobType ('Вид работы'): skip;
+  JobNature ('Характер работы'): skip;
+  [ShrOrNot] case(wShr; 0: '', 1: 'по ШР', 2: 'вне ШР'): skip;
+
+  bNotif: noprotect, noframe;
+  s1: protect, pickbutton;
+//  s2: protect, pickbutton;
+  s3: {Font = {BackColor = if(boolCrutch4s3, ColorNeed, 0)}}, protect, pickbutton;
+  s4: protect, pickbutton;
+  s5: protect, pickbutton;
+  s6: protect, pickbutton;
+
+  bRast1: noprotect, noframe;
+  bRast2: noprotect, noframe;
+  bRast3: noprotect, noframe;
+  bRast4: noprotect, noframe;
+  bRast5: noprotect, noframe;
+
+  bKat1: noprotect, noframe;
+  bKat2: noprotect, noframe;
+  bKat3: noprotect, noframe;
+
+//  [Emp1] GetStrTabn(Persons1.Tabnmb, Persons1.StrTabN): protect, pickbutton;
+//  SpAllStaff_Exp.ResWord[2]: noprotect;
+//  SpAllStaff_Exp.ResWord[3]: noprotect;
+//  [Emp2] GetStrTabn(Persons2.Tabnmb, Persons2.StrTabN): protect, pickbutton;
+//  SpAllStaff_Exp.ResWord[4]: noprotect;
+//  SpAllStaff_Exp.ResWord[5]: noprotect;
+
+
+//   Срок расторжения сотрудником   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//   Уведомить по эл.почте о приближении срока  `Начать сообщать за (дней)` `Завершить сообщать за (дней)`
+//    Табельный № работника ОК   .@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@            .@@@@@@@@@@@@@@
+//    Табельный № начальника ОК  .@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@            .@@@@@@@@@@@@@@
+
+
+<<
+   Сотрудник
+   Ф.И.О.    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Должность .@@@@@@@@@@@@@@@@@@@@@@@@@@@@  Таб.№  .@@@@@@@@@@@@@@@@@@@
+
+   Параметры договора
+   Номер приказа   .@@@@@@@@@@ Дата приказа .@@@@@@@@@@
+   Вид договора    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Номер договора  .@@@@@@@@@@@@@@@ Ссылка на ТД в Directum .@@@@@@@@@@
+   Действует с     .@@@@@@@@@@ по .@@@@@@@@@@   Заключен    .@@@@@@@@@@
+   Статус ТД       .@@@@@@@@@@@@@@@@@@@@@@@@@
+   Вид работы      .@@@@@@@@@@@@@@@@@@@@@@@@@
+   Характер работы .@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@
+
+   Дополнительные атрибуты договора
+   [:] Уведомление по гос./муниципал. служащим`
+   Срок расторжения работодателем .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Место проведения работ         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Пункт сбора                    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Как добирается                 .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Буферная зона                  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   Надбавка за время пути к месту работы
+   [:] 30-60 км` [:] 60-100 км` [:] 100-180 км` [:] 180-250 км` [:] свыше 250 км`
+
+   Категория работников
+   [:] Прочие работники`
+   [:] Работники, управляющие транспортными средствами`
+   [:] Дистанционные работники (ПТФ "Сургутнефтетранссервис")`
+
+>>
+end;   // screen scrContract
+
+end;   // window winContract
+
+windowevent winContract;
+cmInit:
+{
+  inherited::HandleEvent(cmInit);
+
+  bRast1 := bRast2 := bRast3 := bRast4 := bRast5 := bNotif := false;
+  bKat1 := bKat2 := bKat3 := false;
+
+  if (getfirst Persons = tsOk)  {}
+  if (getfirst ContDocTD = tsOk)  {}
+  if (getfirst SpAllStaff_Exp = tsOk) {}
+
+  bRast1 := (SpAllStaff_Exp.ResWord[1] and 1) = 1;
+  bRast2 := (SpAllStaff_Exp.ResWord[1] and 2) = 2;
+  bRast3 := (SpAllStaff_Exp.ResWord[1] and 4) = 4;
+  bRast4 := (SpAllStaff_Exp.ResWord[1] and 8) = 8;
+  bRast5 := (SpAllStaff_Exp.ResWord[1] and 16) = 16;
+  bNotif := (SpAllStaff_Exp.ResWord[1] and 32) = 32;
+  bKat1  := (SpAllStaff_Exp.ResWord[1] and 64) = 64;
+  bKat2  := (SpAllStaff_Exp.ResWord[1] and 128) = 128;
+  bKat3  := (SpAllStaff_Exp.ResWord[1] and 256) = 256;
+
+  ExtNum := sNmb_win;
+
+  if IsValid(#ExternalASMDogovorScr)
+    if (Trim(ExternalASMDogovorScr.Numbers[3]) <> '')
+      ExtNum := ExternalASMDogovorScr.Numbers[3];
+
+  if (length(s3) > 0)
+    boolCrutch4s3 := false;
+  else
+    boolCrutch4s3 := true;
+  //Message(string(length(s3)) + ' => ' + string(boolCrutch4s3));
+}
+
+cmCancel:
+{
+  bNoCancel := false;
+}
+
+cmDone:
+{
+  if not bEditable_ex_win
+    exit;
+
+  if not CheckDateEnd(0, '', ZeroDate, dBegin_win, dEnd_win)
+    Message('Срок, на который заключен договор, превышает 5 лет');
+
+  if not bNoCancel
+  {
+    bNoCancel := true;
+    exit;
+  }
+  
+  if dEnd_win = ZeroDate
+   {
+   var lv_attr  : string;
+   lv_attr := sGetAttr(25031, cDog_win,'Признак срочного договора');
+   if lv_attr = 1 {
+    Message('Договор является срочным. Необходимо заполнить дату окончания действия договора',Error);
+    abort;
+    exit;
+   }
+   }
+ 
+
+  iKolCheck := 0;
+
+  if bKat1
+    iKolCheck++;
+  if bKat2
+    iKolCheck++;
+  if bKat3
+    iKolCheck++;
+
+  if iKolCheck = 0
+  {
+    var sCode: string;
+    if getfirst fastfirstrow catalogs where ((cDog_win == catalogs.NRec)) = tsOk
+      sCode := Catalogs.Code;
+    else
+      sCode := '';
+
+    if not (sCode = '09' or sCode = '99')
+    {
+      Message('Необходимо заполнить раздел "Категория работников"', Error);
+      abort;
+      exit;
+    }
+  }
+
+  if cContract_win = 0 //новый
+  {
+    if (cDog_win <> 0) or (sNmb_win <> '') or (dContract_win <> ZeroDate)
+      cContract_win := fnAddContract(cPerson_gl, cDog_win, sNmb_win, dContract_win, dBegin_win, dEnd_win, 0);
+  }
+  else
+  {
+    if (cDog_win = 0) and (sNmb_win = '') and (dContract_win = ZeroDate)
+    {
+      if (delete SearchSpAllStaff where ((cContract_win == SearchSpAllStaff.NRec)) = tsOk)
+      {
+        DeleteLinkBarCode(cContract_win);
+
+        delete SearchSpAllStaff where (( cContract_win == SearchSpAllStaff.cBaseT and
+                                         cgAllStaffExp == SearchSpAllStaff.wNoCon ));
+      }
+    }
+    else
+    {
+      update SearchSpAllStaff
+      where ((cContract_win == SearchSpAllStaff.NRec))
+      set   SearchSpAllStaff.ResComp[1] := cDog_win
+          , SearchSpAllStaff.ResString[1] := sNmb_win
+          , SearchSpAllStaff.ResDate[1] := dContract_win
+          , SearchSpAllStaff.ResDate[2] := dBegin_win
+          , SearchSpAllStaff.ResDate[3] := dEnd_win
+          //если запись новая, обновим первоначальную дату заключения контракта
+          , SearchSpAllStaff.ResDate[4] := if((SearchSpAllStaff.ResComp[2] = cAppHist_ex_win) or (SearchSpAllStaff.ResComp[2] = 0), dEnd_win, SearchSpAllStaff.ResDate[4]);
+
+      // если нет расширяющей записи, то добавляем
+      if (getfirst SearchSpAllStaff
+      where (( cgAllStaffExp == SearchSpAllStaff.wNoCon and
+               cContract_win == SearchSpAllStaff.cBaseT )) <> tsOk)
+      {
+        ClearBuffer(#SearchSpAllStaff);
+        SearchSpAllStaff.wNoCon := cgAllStaffExp;
+        SearchSpAllStaff.cBaseT := cContract_win;
+        SearchSpAllStaff.ResComp[1] := SpAllStaff_Exp.ResComp[1];
+        SearchSpAllStaff.ResComp[2] := SpAllStaff_Exp.ResComp[2];
+        SearchSpAllStaff.ResComp[3] := SpAllStaff_Exp.ResComp[3];
+        SearchSpAllStaff.ResComp[4] := SpAllStaff_Exp.ResComp[4];
+        SearchSpAllStaff.ResComp[5] := SpAllStaff_Exp.ResComp[5];
+        SearchSpAllStaff.ResComp[6] := SpAllStaff_Exp.ResComp[6];
+        SearchSpAllStaff.ResComp[7] := SpAllStaff_Exp.ResComp[7];
+        SearchSpAllStaff.ResComp[8] := SpAllStaff_Exp.ResComp[8];
+        SearchSpAllStaff.ResWord[1] := GetWordFromFlags;
+        SearchSpAllStaff.ResWord[2] := SpAllStaff_Exp.ResWord[2];
+        SearchSpAllStaff.ResWord[3] := SpAllStaff_Exp.ResWord[3];
+        SearchSpAllStaff.ResWord[4] := SpAllStaff_Exp.ResWord[4];
+        SearchSpAllStaff.ResWord[5] := SpAllStaff_Exp.ResWord[5];
+        insert current SearchSpAllStaff;
+      }
+      else
+      {
+        // обновляем расширяющую запись
+        update SearchSpAllStaff
+        where (( cgAllStaffExp == SearchSpAllStaff.wNoCon and
+                 cContract_win == SearchSpAllStaff.cBaseT ))
+        set
+          SearchSpAllStaff.ResComp[1] := SpAllStaff_Exp.ResComp[1],
+          SearchSpAllStaff.ResComp[2] := SpAllStaff_Exp.ResComp[2],
+          SearchSpAllStaff.ResComp[3] := SpAllStaff_Exp.ResComp[3],
+          SearchSpAllStaff.ResComp[4] := SpAllStaff_Exp.ResComp[4],
+          SearchSpAllStaff.ResComp[5] := SpAllStaff_Exp.ResComp[5],
+          SearchSpAllStaff.ResComp[6] := SpAllStaff_Exp.ResComp[6],
+          SearchSpAllStaff.ResComp[7] := SpAllStaff_Exp.ResComp[7],
+          SearchSpAllStaff.ResComp[8] := SpAllStaff_Exp.ResComp[8],
+          SearchSpAllStaff.ResWord[1] := GetWordFromFlags,
+          SearchSpAllStaff.ResWord[2] := SpAllStaff_Exp.ResWord[2],
+          SearchSpAllStaff.ResWord[3] := SpAllStaff_Exp.ResWord[3],
+          SearchSpAllStaff.ResWord[4] := SpAllStaff_Exp.ResWord[4],
+          SearchSpAllStaff.ResWord[5] := SpAllStaff_Exp.ResWord[5];
+      }
+
+
+      if ( bEdit )
+      {
+        _loop SearchAppointments where (( cPerson_gl     == SearchAppointments.Person and
+                                           cContract_win == SearchAppointments.ResComp[1] (noindex) ))
+        {
+          SearchAppointments.ContractNmb := ExtNum;
+          SearchAppointments.ContractDate := dContract_win;
+          SearchAppointments.cDog := cDog_win;
+
+          update current SearchAppointments;
+        }
+
+        bEdit := False;
+      }
+    }
+  }
+}
+
+cmHyperlink:
+{
+  case CurField of
+
+  #ExternalASMDogovorScr.Numbers[1]:
+  {
+     #RunHyperLinkFull(ExternalASMDogovorScr)
+  }
+  end;
+}
+end;   // window
+
+
+
+function IWorkWithContractDogovor.DelContractIfNew(_cContract, _cAppHist: comp): boolean;
+{
+  if not ContractIsNew(_cContract, _cAppHist)
+    result := false;
+  else
+  {
+    result := true;
+
+    if (delete SearchSpAllStaff where ((_cContract == SearchSpAllStaff.NRec)) = tsOk)
+    {
+      DeleteLinkBarCode(_cContract);
+
+      delete SearchSpAllStaff where (( cgAllStaffExp   == SearchSpAllStaff.wNoCon and
+                                       _cContract      == SearchSpAllStaff.cBaseT ));
+
+    }
+  }
+}
+
+function GetLastVidDogFromDS(_cContract: comp): comp;
+{
+  var lastDate: date = ZeroDate;
+  result := 0;
+  // ищем последнее ДС по дате начала действия
+  _loop SearchSpAllStaff where ((cgAllStaffAddAgreement == SearchSpAllStaff.wNoCon and
+                                             _cContract == SearchSpAllStaff.cBaseT))
+  {
+    if (lastDate < SearchSpAllStaff.ResDate[2])
+    {
+      if (getfirst SpAllStaff_Exp2 where ((cgAllStaffExp           == SpAllStaff_Exp2.wNoCon and
+                                             SearchSpAllStaff.nrec == SpAllStaff_Exp2.cBaseT)) = tsOk)
+        result := SpAllStaff_Exp2.ResComp[8];
+
+      lastDate := SearchSpAllStaff.ResDate[2];
+    }
+  }
+
+  if (result = 0)
+  {
+    if (getfirst SearchSpAllStaff where (( _cContract  == SearchSpAllStaff.nrec )) = tsOk)
+      result := SearchSpAllStaff.ResComp[1];
+  }
+}
+
+function IWorkWithContractDogovor.GetContractString(_cContract: comp): string;
+{
+  var sNumDog, sDateAccept: string = '';
+
+  if getfirst SpAllStaff where ((_cContract == SpAllStaff.NRec)) <> tsOk
+    result := '';
+  else
+  {
+    // смотрим загрузили ли внешней загрузкой данные о ТД
+    if getfirst ExternalASM_GF where (( byte(101)          == ExternalASM_GF.ASM_Type
+                                        and coSpAllStaff   == ExternalASM_GF.wTable
+                                        and _cContract     == ExternalASM_GF.cRec )) = tsOk
+      sNumDog := ExternalASM_GF.Numbers[3];
+
+    if (sNumDog = '')
+      sNumDog := SpAllStaff.ResString[1];
+
+    sDateAccept := iStrFunc.UnVisibleDate(SpAllStaff.ResDate[1], 'DD/MM/YYYY');
+
+
+    result := iCatFunc.GetCatalogsName(GetLastVidDogFromDS(_cContract)) + ' '
+            + if(sNumDog = '', '', '№ ' + sNumDog + ' ')
+            + if(sDateAccept = '', '', 'от ' + sDateAccept);
+  }
+}
+
+function GetWordFromFlags: word;
+{
+  var w: word = 0;
+
+  if bRast1   w := w or 1;
+  if bRast2   w := w or 2;
+  if bRast3   w := w or 4;
+  if bRast4   w := w or 8;
+  if bRast5   w := w or 16;
+  if bNotif   w := w or 32;
+  if bKat1    w := w or 64;
+  if bKat2    w := w or 128;
+  if bKat3    w := w or 256;
+  result := w;
+}
+
+procedure EnableDisableFields;
+{
+  inherited::EnableDisableFields;
+
+  SetFontColor(scrContract, #Persons.FIO, ColorSys06, 0);
+  SetFontColor(scrContract, #AppPost, ColorSys06, 0);
+  SetFontColor(scrContract, #PTabn, ColorSys06, 0);
+  SetFontColor(scrContract, #OrderNmb, ColorSys06, 0);
+  SetFontColor(scrContract, #OrderDate, ColorSys06, 0);
+  SetFontColor(scrContract, #ExtNum, ColorSys06, 0);
+  SetFontColor(scrContract, #dContract_win, ColorSys06, 0);
+  SetFontColor(scrContract, #ExternalASMDogovorScr.Numbers[2], ColorSys06, 0);
+  SetFontColor(scrContract, #ExternalASMDogovorScr.Numbers[1], ColorSys06, 0);
+  SetFontColor(scrContract, #JobType, ColorSys06, 0);
+  SetFontColor(scrContract, #JobNaturePers.Name, ColorSys06, 0);
+  SetFontColor(scrContract, #ShrOrNot, ColorSys06, 0);
+
+  P.SetProtected(not bEditable_ex_win);
+
+  if not bEditable_ex_win
+  {
+    // режим "только просмотр" (6-ое окно картотеки, утверждённый приказ)
+    SetFontColor(scrContract, #sDogType, ColorSys06, 0);
+    SetFontColor(scrContract, #dBegin_win, ColorSys06, 0);
+    SetFontColor(scrContract, #dEnd_win, ColorSys06, 0);
+    SetFontColor(scrContract, #s1, ColorSys06, 0);
+//    SetFontColor(scrContract, #s2, ColorSys06, 0);
+    SetFontColor(scrContract, #s3, ColorSys06, 0);
+    SetFontColor(scrContract, #s4, ColorSys06, 0);
+    SetFontColor(scrContract, #s5, ColorSys06, 0);
+    SetFontColor(scrContract, #s6, ColorSys06, 0);
+//    SetFontColor(scrContract, #Emp1, ColorSys06, 0);
+//    SetFontColor(scrContract, #Emp2, ColorSys06, 0);
+    SetFontColor(scrContract, #SpAllStaff_Exp.ResWord[2], ColorSys06, 0);
+    SetFontColor(scrContract, #SpAllStaff_Exp.ResWord[3], ColorSys06, 0);
+    SetFontColor(scrContract, #SpAllStaff_Exp.ResWord[4], ColorSys06, 0);
+    SetFontColor(scrContract, #SpAllStaff_Exp.ResWord[5], ColorSys06, 0);
+  }
+  else
+  {
+    // режим "редактирование" (например, из приказа)
+    if (getfirst ContDocTD = tsOk)
+    {
+      ToggleFieldProtected(#ExtNum, ContDocTD.cNew2 <> 2);
+      ToggleFieldProtected(#dContract_win, ContDocTD.cNew2 <> 2);
+    }
+  }
+}
+
+function fnShowContract(_cContract, _cAppHist: comp; _bEditable: boolean; _dNewBeg: date = ZeroDate; _dNewEnd: date = ZeroDate; _dConfirm: date = ZeroDate): comp;
+{
+  if getfirst BrwSpAllStaff where ((_cContract == BrwSpAllStaff.NRec)) <> tsOk
+  {
+    ClearBuffer(#BrwSpAllStaff);
+    BrwSpAllStaff.ResDate[1] := _dConfirm;
+    BrwSpAllStaff.ResDate[2] := _dNewBeg;
+    BrwSpAllStaff.ResDate[3] := _dNewEnd;
+    BrwSpAllStaff.ResDate[4] := _dNewEnd;
+
+    if (IsValid(#ContDocTD))
+      if (ContDocTD.cNew2 = 2)
+        BrwSpAllStaff.ResComp[1] := iCatFunc.GetCatalogsNRec(-31601);
+  }
+
+
+  bEditable_ex_win := _bEditable;
+  cAppHist_ex_win := _cAppHist;
+
+  RunWindowModal(winContract);
+  result := cContract_win;
+}
+
+function fnAddContract(_cPerson, _cDog: comp; _sNmb: string; _dContract, _dBegin, _dEnd: date; _cAppHist: comp): comp;
+{
+  ClearBuffer(#SpAllStaff);
+
+  SpAllStaff.wNoCon := cgAllStaffContract;
+  SpAllStaff.cBaseT := _cPerson;
+  SpAllStaff.ResComp[1] := _cDog;
+  SpAllStaff.ResComp[2] := _cAppHist;
+  SpAllStaff.ResString[1] := _sNmb;
+  SpAllStaff.ResDate[1] := _dContract;
+  SpAllStaff.ResDate[2] := _dBegin;
+  SpAllStaff.ResDate[3] := _dEnd;
+  SpAllStaff.ResDate[4] := _dEnd;
+
+  if (insert current SpAllStaff <> tsOk)
+    message('Ошибка вставки записи SpAllStaff');
+
+  result := SpAllStaff.NRec;
+
+  // вставляем расширяющую запись
+  ClearBuffer(#SpAllStaff);
+  SpAllStaff.wNoCon := cgAllStaffExp;
+  SpAllStaff.cBaseT := result;
+  SpAllStaff.ResComp[1] := SpAllStaff_Exp.ResComp[1];
+  SpAllStaff.ResComp[2] := SpAllStaff_Exp.ResComp[2];
+  SpAllStaff.ResComp[3] := SpAllStaff_Exp.ResComp[3];
+  SpAllStaff.ResComp[4] := SpAllStaff_Exp.ResComp[4];
+  SpAllStaff.ResComp[5] := SpAllStaff_Exp.ResComp[5];
+  SpAllStaff.ResComp[6] := SpAllStaff_Exp.ResComp[6];
+  SpAllStaff.ResComp[7] := SpAllStaff_Exp.ResComp[7];
+  SpAllStaff.ResComp[8] := SpAllStaff_Exp.ResComp[8];
+
+  SpAllStaff.ResWord[1] := GetWordFromFlags;
+  SpAllStaff.ResWord[2] := SpAllStaff_Exp.ResWord[2];
+  SpAllStaff.ResWord[3] := SpAllStaff_Exp.ResWord[3];
+  SpAllStaff.ResWord[4] := SpAllStaff_Exp.ResWord[4];
+  SpAllStaff.ResWord[5] := SpAllStaff_Exp.ResWord[5];
+
+  if (insert current SpAllStaff <> tsOk)
+    message('Ошибка вставки записи SpAllStaff');
+}
+
+
+window winPersContractsAndAgr Cyan;
+  show at (,,70, 10);
+
+browse brwPersContractsAndAgr(,, sci1478EnEscA);
+  show at (,,, 5);
+table PsnSpAllStaff;
+fields
+  IsDogOfPrik  ('Договор введён приказом'): [2], protect;
+  iCatFunc.GetCatalogsName(PsnSpAllStaff.ResComp[1]) 'Вид','договора': [20], protect;
+  ExtNum2 'Номер','договора': [20], protect;
+  ExtDateAccept2 'Дата','заключения': [10], protect;
+  PsnSpAllStaff.ResDate[2] 'Действует','с': [10], protect;
+  PsnSpAllStaff.ResDate[3] 'по': [10], protect;
+  ExternalASMDogovor.Numbers[1] 'ИД трудового', 'договора' ('Идентификатор трудового договора'):[10], protect, {hyperlink = true};
+  ExternalASMDogovor.Numbers[2] 'Статус ТД' : [10], protect;
+  JobNature 'Характер','работы': [10], protect;
+  s1 'Срок','расторжения','работодателем': [10], protect;
+//  s2 'Срок','расторжения','сотрудником': [10], protect;
+  s3 'Место','проведения','работ': [10], protect;
+  s4 'Пункт','сбора': [10], protect;
+  s5 'Как','добирается': [10], protect;
+  s6 'Буферная', 'зона': [10], protect;
+  strRast 'Надбавка за', 'время пути', 'к месту работы': [10], protect;
+  [ImageOnArchive4] oArchiveFuncs.GetImageState(cgDoc_1803, PsnSpAllStaff.nRec, m_sCurrentBarKod) 'А' ('Состояние документа в архиве',,) : [2], image;
+end;
+
+end;
+
+windowevent winPersContractsAndAgr;
+
+cmDefault:
+{
+  inherited::handleEvent(cmDefault);
+
+  if (GetCurrentFormat = brwPersContractsAndAgr)
+    fnShowContract(PsnSpAllStaff.NRec, 0, false);
+
+  if (GetCurrentFormat = embAgreements)
+  {
+    NOAA.ReadOnlyMode(true);
+
+    var position: comp = NOAA.GetPosition;
+
+    if ( getfirst SpAllStaff where (( cgAllStaffAgreementLink == SpAllStaff.wNoCon and
+                                       position == SpAllStaff.cBaseT  and
+                                      coContDoc == SpAllStaff.wChoise (noindex) ))  = tsOk )
+      NOAA.ShowAgreementWin(coContDoc, SpAllStaff.cLinkT, ZeroDate, 0, cPerson_gl);
+    else
+      if ( getfirst SpAllStaff where (( cgAllStaffAgreementLink == SpAllStaff.wNoCon and
+                                        position == SpAllStaff.cBaseT  and
+                                        coAppHist == SpAllStaff.wChoise (noindex) ))   = tsOk )
+        NOAA.ShowAgreementWin(coAppHist, SpAllStaff.cLinkT, ZeroDate, 0, cPerson_gl);
+
+    NOAA.ReadOnlyMode(false);
+  }
+
+}
+cmHyperlink:
+{
+  case CurField of
+  #ExternalASMDogovor.Numbers[1]:
+  {
+     #RunHyperLinkFull(ExternalASMDogovor);
+  }
+  end;
+}
+end;   // windowevent
+
+
+window winPersContracts doaccept, Cyan;
+  show at (,,70, 10);
+
+browse brwPersContracts(,, sci147EnEsc);
+  show at (,,,);
+  table PsnSpAllStaff;
+fields
+  iCatFunc.GetCatalogsName(GetLastVidDogFromDS(PsnSpAllStaff.nrec)) 'Вид', 'договора': [20], protect;
+  ExtNum2 'Номер', 'договора': [20], protect;
+  ExtDateAccept2 'Дата', 'заключения': [10], protect;
+  ExtDateFrom 'Действует с': [10], protect;
+  ExtDateTo 'по': [10], protect;
+  ExternalASMDogovor.Numbers[1] 'ИД трудового', 'договора'('Идентификатор договора'):[10], protect, {hyperlink = true};
+  ExternalASMDogovor.Numbers[2] 'Статус ТД' : [10], protect;
+  ImageOnArchive1  'А' ('Состояние документа в архиве',,) : [2], image;
+end;
+
+end;
+
+windowevent winPersContracts;
+cmHyperlink:
+{
+  case CurField of
+  #ExternalASMDogovor.Numbers[1]:
+  {
+     #RunHyperLinkFull(ExternalASMDogovor);
+  }
+  end;
+}
+end;
+
+
+handleEvent   // интерфейс
+cmOnVipLoad:
+{
+  case Inherited::HandleEvent(cmOnVipLoad) of
+    heAbort :  Abort;
+    heStop  :  Exit;
+  end;
+
+  LoadVipRef(P, 'Protector');
+  // будем устанавливать защиту на весь интерфейс
+  P.LinkTo(cfsGetCurrentContainerSelf, '');
+}
+
+cmPick:
+{
+  case Inherited::HandleEvent(cmPick) of
+    heAbort :  Abort;
+    heStop  :  Exit;
+  end;
+
+  case CurField of
+//    #s1, #s2, #s3, #s4, #s5, #s6:
+    #s1, #s3, #s4, #s5, #s6:
+    {
+      var SCod: integer;
+      ParentSav := 0;
+
+      case CurField of
+//        #s1, #s2: SCod := -31687;
+        #s1: SCod := -31687;
+        #s3: SCod := -31686;
+        #s4: SCod := -31685;
+        #s5: SCod := -31684;
+        #s6: SCod := -31683;
+      end;
+
+      if (RunInterface(Z_StaffCat::PickCatalog2, SCod, ParentSav, comp(0)) = cmDefault)
+      {
+        case CurField of
+          #s1: set SpAllStaff_Exp.ResComp[1] := ParentSav;
+//          #s2: set SpAllStaff_Exp.ResComp[2] := ParentSav;
+          #s3: set SpAllStaff_Exp.ResComp[3] := ParentSav;
+          #s4: set SpAllStaff_Exp.ResComp[4] := ParentSav;
+          #s5: set SpAllStaff_Exp.ResComp[5] := ParentSav;
+          #s6: set SpAllStaff_Exp.ResComp[6] := ParentSav;
+        end;
+      }
+    }
+
+//#Emp1, #Emp2:
+//    {
+//      var wK: word = 0;
+//      var cChoice: comp =
+//      case(CurField; #Emp1: PsnSpAllStaff.ResComp[9], #Emp2: PsnSpAllStaff.ResComp[10]);
+
+//      var DummyMarker1: TPtr = InitMarker('', 8, 1, 1);
+//      var DummyMarker2: TPtr = InitMarker('', 8, 1, 1);
+
+//      if viCYPersons.Choice(DummyMarker1, 1, vfCanSelect, wK, cChoice, DummyMarker2)
+//      {
+//        ParentSav := viCYPersons.GetPsnByKindChoice(wK, cChoice);
+
+//        case CurField of
+//          #Emp1: set SpAllStaff_Exp.ResComp[7] := ParentSav;
+//          #Emp2: set SpAllStaff_Exp.ResComp[8] := ParentSav;
+//        end;
+//      }
+
+//      DoneMarker(DummyMarker1, '');
+//      DoneMarker(DummyMarker2, '');
+//    }
+  end;
+}
+
+cmCheckField:
+{
+  case CurField of
+    #bRast1:
+    {
+      bRast2 := bRast3 := bRast4 := bRast5 := false;
+    }
+
+    #bRast2:
+    {
+      bRast1 := bRast3 := bRast4 := bRast5 := false;
+    }
+
+    #bRast3:
+    {
+      bRast1 := bRast2 := bRast4 := bRast5 := false;
+    }
+
+    #bRast4:
+    {
+      bRast2 := bRast3 := bRast1 := bRast5 := false;
+    }
+
+    #bRast5:
+    {
+      bRast2 := bRast3 := bRast4 := bRast1 := false;
+    }
+
+    #bKat1:
+    {
+      bKat2 := bKat3 := false;
+    }
+
+    #bKat2:
+    {
+      bKat1 := bKat3 := false;
+    }
+
+    #bKat3:
+    {
+      bKat1 := bKat2 := false;
+    }
+
+    #Extnum:
+    {
+      sNmb_win := ExtNum;
+    }
+
+  end;
+}
+
+cmDelOnProtect:
+{
+  Inherited::HandleEvent(cmDelOnProtect);
+
+  case CurField of
+    #s1:  set SpAllStaff_Exp.ResComp[1] := 0;
+//    #s2:  set SpAllStaff_Exp.ResComp[2] := 0;
+    #s3:  set SpAllStaff_Exp.ResComp[3] := 0;
+    #s4:  set SpAllStaff_Exp.ResComp[4] := 0;
+    #s5:  set SpAllStaff_Exp.ResComp[5] := 0;
+    #s6:  set SpAllStaff_Exp.ResComp[6] := 0;
+//    #Emp1: set SpAllStaff_Exp.ResComp[7] := 0;
+//    #Emp2: set SpAllStaff_Exp.ResComp[8] := 0;
+  end;
+}
+end;
+
+end.

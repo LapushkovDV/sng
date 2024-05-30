@@ -1,0 +1,71 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+Alter interface RPD_13;
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+create view
+var
+  bSNG_TaxRate: boolean;
+as select
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseHist.rHSum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate)
+;
+
+OverloadFormats brwRaise9;
+
+Browse brwRaise9 'Назначение доплат' (,, sci178Esc);
+  show at (, 10,,17);
+  table RaiseHist;
+    Fields
+  RaiseCat.Name     'Вид доплаты/надбавки', ('Вид доплаты/надбавки.', hcStaffRaiseType, scStaffPr1Pick):[20], protect,
+                    {Font = {BackColor = if(not IsValid(#RaiseCat), ColorNeed, 0)}};
+  fSNG_TaxRate      'Сумма/процент доплаты/надбавки', ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum): [10], noprotect;
+  CurrName          'Валюта', ('Валюта оплаты.', hcStaffRaiseCurr, scStaffPr1Pick):[10] , protect;
+  RaiseHist.dRec    'С даты', ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, scStaffPr1Pick): [10,'DD/MM/YYYY'], noprotect, centered,
+                    {Font = {BackColor = if(RaiseHist.dRec = ZeroDate, ColorNeed, 0)}};
+  RaiseHist.dDat2   'По дату', ('Дата, по которую установлена доплата', hcStaffRaiseFromDate, scStaffPr1Pick): [10,'DD/MM/YYYY'], noprotect, centered;
+  infPsn1.Sum1      'Дни', ('Количество отработанных дней',):[13.3], noprotect;
+  infPsn1.sum2      'Часы', ('Количество отработанных часов',):[13.3],noprotect;
+end;   //  brwRaise
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  bSNG_TaxRate := ((VPerAccess.GetAccessMask(6) and 32768) <> 0);
+  ToggleFieldSelectable(#fSNG_TaxRate, bSNG_TaxRate and fnFieldsOpen);
+  SetFieldAndLabelVisible(#fSNG_TaxRate, bSNG_TaxRate);
+}
+
+TableEvent table RaiseHist;
+
+cmExprFieldChanged:
+{
+  case CurField of
+
+    #fSNG_TaxRate:
+    {
+      _try
+        set RaiseHist.rHSum := Double(ExprFieldValue);
+      _except
+        on ExNumberConvert:
+        {
+          message('Неверное значение!', Warning);
+          set RaiseHist.rHSum := double(OldFieldValue);
+        }
+
+      UpdateTable;
+    }
+
+  end;
+}
+
+end;
+
+end.

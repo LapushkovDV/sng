@@ -1,0 +1,18 @@
+
+#component "Z_StaffOrders"
+
+#doc
+Функции работы общие
+#end
+ObjInterface ObjGeneralFuncSNG;
+
+  function GetFullStr(_cNrec: comp; _cParent: comp; _StaffStr:comp):WideString;
+
+end;
+
+
+//------------------------------------------------------------------------------
+VipInterface GeneralFuncSNG
+  implements ObjGeneralFuncSNG
+  licensed(free);
+

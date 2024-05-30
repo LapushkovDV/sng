@@ -1,0 +1,219 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_2
+
+//var oExtAttrTEK    : iExtAttr; // атрибут 
+
+overload
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+  procedure IRPD_Base.EnableDisable;
+end;
+
+
+function GetDopStatLink56: string; forward; //HR-551, FIM
+
+create view
+as select
+  (GetDopStatLink56)  //HR-551, FIM
+    (fieldname = sExternalLink56)  
+;
+
+
+create view
+as select
+  Catalogs_prichina.nrec
+  //oExtAttrTEK.sGetAttr(coPartDoc, PartDoc.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina)  
+from
+  Catalogs Catalogs_Prichina,
+  ProcessState ProcessState_Dop
+  //Catalogs Catalogs_Yprichina 
+where
+((
+   PartDoc.cPRef == Catalogs_Prichina.nrec and
+   TitleDoc.cwf == ProcessState_Dop.nrec
+))
+;
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{ 
+  result:=inherited::ChildCheckOneOrder(cNrec);
+  
+   if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+  if (ContDoc.Dat2 != ZeroDate)
+  {
+    set Persons.BORNDATE := ContDoc.Dat2;//HR-675 MAN
+    Update Current Persons;
+  }
+/*if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if ( getfirst FastFirstRow Catalogs_Yprichina <> tsOk ) or (Ypricina = '')
+    {
+        SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+        //result := false; 
+    }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+      //result := false
+    }
+*/
+  } //Function ChildCheckOneOrder: boolean;
+
+Procedure EnableDisable;
+{
+  inherited::EnableDisable;
+  CfsSetProp('c_BRPSN_FULLNAMEPODR_Подразделение', 'DefaultPickButton', false);
+  var sDopStatus :string = ProcessState_Dop.name;
+  if (sDopStatus <> 'Создан') and (sDopStatus <> 'На доработке') 
+  {
+    cfsSetProp('i_SCRDET2_CONTDOC.DAT1', cfpProtect, true);
+    cfsSetProp('i_SCRDET2_CONTDOC.DAT2', cfpProtect, true);
+  }
+  else
+  {
+    cfsSetProp('i_SCRDET2_CONTDOC.DAT1', cfpProtect, false);
+    cfsSetProp('i_SCRDET2_CONTDOC.DAT2', cfpProtect, false);
+  }
+
+  if (sDopStatus = 'Подписан')
+  {
+    cfsSetProp('i_SCRDET2_CASEPSN.PSND',    cfpProtect,    true);
+    cfsSetProp('i_SCRDET2_CASEPSN.DCHANGE', cfpProtect,    true);
+    cfsSetProp('i_SCRDET2_FAGREEMENT',      cfpPickButton, false);
+    cfsSetProp('i_SCRDET2_FAGREEMENT',      cfpProtect,    true);
+    cfsSetProp('i_SCRDET2_CONTDOC.SBOTTOM', cfpProtect,    true);
+  }
+  else
+  {
+    cfsSetProp('i_SCRDET2_CASEPSN.PSND',    cfpProtect,    false);
+    cfsSetProp('i_SCRDET2_CASEPSN.DCHANGE', cfpProtect,    false);
+    cfsSetProp('i_SCRDET2_FAGREEMENT',      cfpPickButton, true );
+    cfsSetProp('i_SCRDET2_FAGREEMENT',      cfpProtect,    false);
+    cfsSetProp('i_SCRDET2_CONTDOC.SBOTTOM', cfpProtect,    false);
+  }
+}
+
+//HR-551, FIM
+function GetDopStatLink56: string;
+{
+  result := '';
+  var tmpLink: comp = NOAA.GetFirstAgreementByLink(GetCo4Agreement(), GetNRec4Agreement());
+  if (getFirst ExternalASM where ((byte(101)   == ExternalASM.ASM_Type
+                                  and coSpAllStaff == ExternalASM.wTable
+                                  and tmpLink      == ExternalASM.cRec)) =  tsOk)
+     result := ExternalASM.Numbers[5] + string(ExternalASM.Numbers[6]);
+  //Message(string(ExternalASM.Nrec,0,0) + ':  ' + result);
+}
+
+OverloadFormats scrDet2;
+screen scrDet2 (,hcStaffWinPr, scStaffMyPnl);     //Изменение фамилии
+show at (, 5,,);
+table CasePsn;
+  fields
+    CasePsn.PsnV   ('Старые фамилия, имя, отчество', hcStaffWinPr, sci13Esc), protect, nopickbutton;
+    ContDoc.Dat1   ('Старая дата рождения', hcStaffWinPr, ): [10,'DD/MM/YYYY'], noprotect;
+    CasePsn.PsnD   ('Новые фамилия, имя, отчество', hcStaffWinPr):{Font = {BackColor = if(not IsValid(#CasePsn) or trim(CasePsn.PsnD) = '', ColorNeed, 0)}}, noprotect;
+    ContDoc.Dat2   ('Новая дата рождения', hcStaffWinPr, ): [10,'DD/MM/YYYY'], noprotect;
+    CasePsn.DChange ('Дата изменения ФИО',
+                hcStaffWinPr, ): [10,'DD/MM/YYYY'], {Font = {BackColor = if(not IsValid(#CasePsn) or CasePsn.DChange = ZeroDate, ColorNeed, 0)}}, noprotect;
+    fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+    sExternalLink ('Идентификатор доп.соглашения'): protect, {hyperlink = (sExternalLink <> '')};
+    ContDoc.SBottom    ('Основание', hcStaffWinPr), noprotect;
+  buttons
+    cmValue25, [SingleLine],,, 'Штрих-код';
+    cmValue4, [singleline],,, 'Документы'; //HR-1070
+    cmViewAdvance1,,,'Просмотр примечания к приказу', hcStaffWinPr;
+    cmValue21,,, 'Дополнительные условия по приказу';
+<<
+ Старые фамилия, имя, отчество                                     Старая дата рождения
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   .@@@@@@@@@@@@@@@@@@@
+ Новые фамилия, имя, отчество                                      Новая дата рождения
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   .@@@@@@@@@@@@@@@@@@@
+ Дата изменения  .@@@@@@@@@@                     <. Штрих-код .>
+`Доп. соглашение`.@@@@@@@@@@@@@@@@@@@@ `Ссылка на ДС в Directum`.@@@@@@@@@@@
+ Основание
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+<. Документы .>       <. Примечание .>       <. Доп. условия .>
+
+>>
+end; // screen scrDet2
+
+HandleEvent
+  cmPick:
+  {
+    inherited::handleEvent(cmPick);   
+
+    case CurField of
+      #CasePsn.PsnV, #Persons.FIO: // выбираем чела
+      {
+        set ContDoc.Dat1 := Persons.BORNDATE;
+      }
+      #ContDoc.Dat2:
+      {
+        setModified(true);
+      }
+    end; //case
+  }
+
+//HR-1070
+cmSwitchToContainer:
+  if not UpdateTableWithInserted
+    abort;
+
+cmValue4:
+{
+  if Not UpdateTableWithInserted
+    abort;
+
+  if (not NullVipRef(vPWD))
+    FreeVipInterface(vPWD);
+
+  vPWD.InitWin(Persons.FIO, Persons.Nrec, false, Persons.PasspRus, true, 0);
+  vPWD.RunWin;
+}
+//
+end;
+window winSetColumn 'Скрыть/показать столбцы', Gray;
+end; // window winSetColumn
+HandleEvent
+  //HR-551, FIM
+  cmHyperlink:
+  {
+    //inherited::handleEvent(cmHyperlink);
+    case CurField of
+      #sExternalLink:
+      {
+        if (sExternalLink <> '')
+        {
+          var aErrorCode: integer;
+          var sPagePath: string = GetDopStatLink56;
+          ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+        }
+      }
+    end;
+  } 
+end; // window winSetColumn
+
+end.

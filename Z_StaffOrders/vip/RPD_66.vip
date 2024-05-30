@@ -1,0 +1,191 @@
+#component "Z_StaffOrders"
+
+alter Interface RPD_66;
+
+Overload
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+ end; 
+
+
+var dogovorStr66: string;
+//var oExtAttrTEK : iExtAttr; // атрибут 
+//******************************************************************************
+create view
+as select
+    SpAllStaff4Dog66.Cbaset
+  , SpAllStaff4Dog66.ResString[1]
+  , SpAllStaff4Dog66.ResDate[1]
+  , SpAllStaff4Dog66.ResDate[2]
+  , SpAllStaff4Dog66.ResDate[3]
+	, Cats4Dog66.Name
+  , ExtAsm4Dog66.Numbers[1]
+  //, oExtAttrTEK.sGetAttr(coPartDoc, PartDoc.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina)  
+from
+    synonym SpAllStaff  SpAllStaff4Dog66
+	, synonym Catalogs    Cats4Dog66
+  , synonym ExternalAsm ExtAsm4Dog66
+  , synonym Catalogs    Catalogs_prichina
+  //, synonym Catalogs    Catalogs_Yprichina 
+where
+((
+			Persons.Nrec == SpAllStaff4Dog66.Cbaset
+  and 5 == SpAllStaff4Dog66.Wnocon
+	and SpAllStaff4Dog66.ResComp[1] == Cats4Dog66.NRec
+  and SpAllStaff4Dog66.NRec == ExtAsm4Dog66.CRec
+  and 101 == ExtAsm4Dog66.Asm_Type
+  and 32211 == ExtAsm4Dog66.WTable
+  and Check_PartDoc.cPRef == Catalogs_prichina.nrec
+))
+;
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{
+  result:=inherited::ChildCheckOneOrder(cNrec);
+
+  if GetFirst FastFirstRow Check_PartDoc where ((ContDoc.cPart == Check_PartDoc.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+
+/*
+ if GetFirst FastFirstRow Check_PartDoc where ((ContDoc.cPart == Check_PartDoc.nRec)) = tsOk
+  {
+    if ( getfirst FastFirstRow Catalogs_Yprichina <> tsOk ) or (Ypricina = '')
+    {
+        SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+        //result := false; 
+    }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+      //result := false
+    } 
+*/    
+}  //Function ChildCheckOneOrder: boolean;
+
+//******************************************************************************
+procedure GetRecord66;
+{
+  var dogovorDiscovered : boolean = false;
+  // 1. check if current line is good enough
+  if (SpAllStaff4Dog66.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog66.ResDate[3] = zeroDate or SpAllStaff4Dog66.ResDate[3] >= TitleDoc.DOCDATE))
+    dogovorDiscovered := true;
+  // 2. otherwise go through entire db
+  else
+	{
+		var relevantCbaset : comp = SpAllStaff4Dog66.Cbaset;
+	  if (GetFirst SpAllStaff4Dog66 = tsOk)
+	  {
+	    if (SpAllStaff4Dog66.Cbaset = relevantCbaset and 
+      SpAllStaff4Dog66.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog66.ResDate[3] = zeroDate or SpAllStaff4Dog66.ResDate[3] >= TitleDoc.DOCDATE))
+				dogovorDiscovered := true;
+	    else
+				while (GetNext SpAllStaff4Dog66 = tsOk)
+					if (SpAllStaff4Dog66.Cbaset = relevantCbaset and 
+          SpAllStaff4Dog66.ResDate[2] <= TitleDoc.DOCDATE and (SpAllStaff4Dog66.ResDate[3] = zeroDate or SpAllStaff4Dog66.ResDate[3] >= TitleDoc.DOCDATE))
+					{
+            dogovorDiscovered := true;
+						break;
+					}
+	  }
+	}
+  // 3. display the appropriate message
+  if (dogovorDiscovered = true)
+    if (SpAllStaff4Dog66.ResDate[1] = zeroDate)
+      dogovorStr66 := (string(Cats4Dog66.Name) + ' ' + string(SpAllStaff4Dog66.ResString[1]));
+    else
+      dogovorStr66 := (string(Cats4Dog66.Name) + ' ' + string(SpAllStaff4Dog66.ResString[1]) + ' от ' + string(SpAllStaff4Dog66.ResDate[1]));
+  else
+    dogovorStr66 := 'Договор не найден';
+} //procedure GetRecord66
+//******************************************************************************
+ExtendFormats scrDet66;
+
+screen scrDet66;
+  show at (,5,,);
+  table Vacations;
+fields
+  dogovorStr66 ('Вид договора'):
+    skip;
+  ExtAsm4Dog66.Numbers[1] ('Идентификатор договора'):
+    protect,
+    {hyperlink = (ExtAsm4Dog66.Numbers[1] <> '')};
+    Buttons
+  cmOrgLevel, [singleline],,, 'Выбор организационных уровней';            //HR-965
+<<
+ 
+ 
+ 
+ `Договор       `.@@@@@@@@@@@@@@@@@@@@ `Ссылка на ТД в Directum`.@@@@@@@
+ 
+ <.    Орг.уровни .>
+>>
+end; //scrDet66
+//******************************************************************************
+tableevent table Vacations;
+cmCheckField:
+{
+  inherited::handleEvent(cmCheckField);
+  if (ContDoc.Dat2 = ZeroDate)
+    ContDoc.Dat2 := date(31, 12, 9999); 
+}
+cmPick:
+{
+  inherited::handleEvent(cmPick);
+  Vacations.FactYearBeg := ZeroDate;
+  ContDoc.Dat2 := date(31, 12, 9999);
+}
+end;
+HandleEvent
+cmOnVipLoad:
+{
+  inherited::handleEvent(cmOnVipLoad);
+  SetFieldAndLabelVisible(#Vacations.Duration, false);
+}
+cmPositionChanged:
+{
+  GetRecord66;
+  if (ContDoc.Dat2 = ZeroDate)
+  ContDoc.Dat2 := date(31, 12, 9999); 
+} //cmPositionChanged
+
+cmHyperlink:
+{
+  case CurField of
+    #ExtAsm4Dog66.Numbers[1]:
+    {
+      var aErrorCode: integer;
+      if (ExtAsm4Dog66.Numbers[1] <> '')
+        ExecProgram('start' , ExtAsm4Dog66.Numbers[5]+ExtAsm4Dog66.Numbers[6], 'Переход', 0, aErrorCode);
+    }
+    else
+      inherited::handleEvent(cmHyperlink);
+  end;
+}
+//HR-965
+cmOrgLevel:
+{
+      ParentSav := Appointments.nRec; 
+      RunInterFace('SNG_OrgLevel::SNG_OrgLevel', ParentSav, fullNamePodr, Check_TitleDoc.wStatus );
+}
+end;
+//******************************************************************************
+end.

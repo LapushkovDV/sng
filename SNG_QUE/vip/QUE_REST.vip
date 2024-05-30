@@ -21,18 +21,24 @@ var
 ;
 function oQUE_REST.PutMessageToIncomeQueue(system_code : string; isbase64 : boolean; body : widestring[2097151]): TResultPutMessageToIncomeQueue; {
   var res: TResultPutMessageToIncomeQueue;
-  if length(body) = '' {
+  if length(body) = 0 {
     res.Code     := '400' ;
     res.Message  := 'γαβ ο α¥ªζ¨ο body';
     res.ID_QUEUE := '';
+    result := res;
+    exit;
   }
-  if length(body) = '' {
+  if system_code = '' {
     res.Code     := '400' ;
     res.Message  := 'γαβ ο α¥ªζ¨ο system_code';
     res.ID_QUEUE := '';
+    result := res;
+    exit;
   }
   var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+
   var _ID_QUEUE : string[36] = '';
+
   if iQUE_INCOME_BASE.PutMessageToQueueIncome(system_code, isbase64, body, _ID_QUEUE) {
 
     res.Code     := '200' ;

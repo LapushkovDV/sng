@@ -1,0 +1,2789 @@
+#include PersCopy.VIH
+#include AppFuncs.vih
+#include SNG_RPD_PickInterface.vih
+#include LSchet.inc
+#include ActionJsonCreate.vih
+#include PerAcces.VIH
+#include GeneralFuncSNG.vih // HR-1261
+
+#component "Z_StaffOrders"
+
+alter interface rpd_1
+
+#include OWFunc.vpp
+#declare OverworkCalculationF2(_Tbl)
+  if(#_Tbl.OWMode = ocmDaily, 'поденный',
+    if(#_Tbl.OWMode = ocmSummed, 'суммированный',
+      if(#_Tbl.OWMode = ocmNone, 'несуммированный', '')))
+#end
+
+Overload
+  Procedure FillAndRefillList;
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+  procedure EnableDisableNewLschet;
+  procedure CreateAndModifyPersons(bTmp1: byte; cCurPersRec: comp = 0; bCopyExperience: boolean = true; bCopyTabN: boolean = true);
+  Procedure DisableFields;
+  Procedure EnableFields;
+  Procedure IRPD_Base.EnableDisable;
+  function IRPD_Base.ChildConfirmOneOrder(cNrec : comp = 0): boolean;
+  procedure IRPD_Base.MyDel;
+  function IRPDCancel3.CancelOneOrderLink99(_cCont: comp; _cCont99: comp): boolean;
+  function IRPDCancel2.RestoreAfterDelCanc(_cCont: comp): boolean;    
+end;
+
+var iGeneralFuncSNG : GeneralFuncSNG; // HR-1261
+var _Num : word;
+var wProbationUnit : word;
+var SNG_AppFuncs: AppointmentsFunctions new;
+var cSNG_AppointLast: comp;
+//HR-121, 134,  ganeev_ii для закрытия поля при повторном открытии -------------------
+var oExtAttrTEK    : iExtAttr; // атрибут
+var VPerAccess: SetPersonsAccess;
+
+create view
+var
+BornName :string;
+GrCatName :string;
+GrCatNrec :comp;
+as select
+  SNG_Appointments.NRec,
+  Check_Processstate.Name,                               //HR-636
+  oExtAttrTEK.sGetAttr(coPartDocWork, PartDocWork.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina), 
+  If(Apphist.PayModel = 20, 0, 1)
+    (FieldName = wFormOpl),
+   #OverworkCalculationF2(AppHist)
+   (fieldname = OverworkCalculation2)
+from
+  Appointments SNG_Appointments,
+  Catalogs SNG_Catalogs,
+  Catalogs CatTarZone,
+  Catalogs Catalogs_prichina,
+  Processstate Check_Processstate,              //HR-636
+  Catalogs Terr_Catalogs,
+  Persons Test_Persons,
+  Persons SNG_NEW_Persons,
+  catalogs catalogs1,  
+  catalogs catalogs11  
+where
+((
+  cSNG_AppointLast == SNG_Appointments.NRec
+  and  PartDocWork.cPRef == Catalogs_prichina.nrec
+  and  TitleDoc.CWF == Check_Processstate.NREC   //HR-636
+  and  persons.department == catalogs11.nrec
+  and  catalogs11.cparent == catalogs1.nrec
+))
+;
+
+create view vSNG_DOG
+var
+  cRec: comp;
+as select
+  SpAllStaff.ResComp[3]
+from
+  SpAllStaff
+where
+((
+  cgAllStaffExp == SpAllStaff.wNoCon and
+  cRec          == SpAllStaff.cBaseT
+))
+;
+
+var vc_MainLink : Comp;
+//Получаем имя верхнего каталога в ПАО
+ function getCatNrec(fnrec: comp) : comp;
+{
+    var nrec_tmp : comp;
+    var n : integer;
+
+    Result := 0;
+    nrec_tmp := fnrec;
+
+    if ((fnrec <> 0) and getFirst catalogs where ((nrec_tmp == catalogs.nrec)) = tsOk)
+    do
+    {
+        if(vc_MainLink = catalogs.cParent)
+         exit;
+
+        Result := catalogs.Nrec;
+
+        if(LengTh(catalogs.code) <=4 )
+         exit;
+
+        nrec_tmp := catalogs.cparent;
+    }
+    While(getFirst catalogs where ((nrec_tmp == catalogs.nrec)) = tsOk)
+}
+ //Код + имя раздела
+ function getCatName(fnrec_: comp) : string;
+{
+  if (fullNamePodr = '')
+    result := '';
+  if (getFirst catalogs where ((fnrec_ == catalogs.nrec)) = tsOk)
+    result := catalogs.code + ' ' + catalogs.name;
+}
+
+Procedure DisableFields;
+{
+ inherited::DisableFields;
+
+ ClearFieldOption(#_Num, ofSelectable);
+ ClearFieldOption(#wProbationUnit, ofSelectable);
+}
+
+Procedure EnableFields;
+{
+ inherited::EnableFields;
+
+ SetFieldOption(#_Num, ofSelectable);
+ SetFieldOption(#wProbationUnit, ofSelectable);
+
+  ClearFieldOption(#AppHist.TaxRate, ofSelectable);
+  ClearFieldOption(#AppKlVal.SimvolV, ofSelectable);
+}
+
+procedure CreateAndModifyPersons(bTmp1: byte; cCurPersRec: comp = 0; bCopyExperience: boolean = true; bCopyTabN: boolean = true);
+{
+  // а с персоной нужно поступать следующим образом. Если уже создана запись, то
+  // нужно ее грохнуть и заново для создать болванку по таблице Persons
+  if GetFirst FastFirstRow PersonsRab
+      where ((ContDoc.Person == PersonsRab.nRec
+              and 'П' == PersonsRab.IsEmployee(NoIndex))) = tsOk
+    if delete current PersonsRab = tsOk {}
+  // для варианта "новой карточки" всегда необходим
+  var cJNature: comp;
+  cJNature := Persons.JobNature;
+  var cSovm: comp;
+  cSovm := Persons.cSovm;
+  var cTemp : comp = 0;
+  if (cCurPersRec != 0)
+    cTemp := cCurPersRec;
+  else
+    cTemp := GetNextnRec(tnPersons, 0);
+  set ContDoc.Person := cTemp;
+
+  ClearBuffer(#Persons);
+  Persons.IsEmployee := 'П';
+  Persons.JobNature := cJNature;
+  Persons.cSovm := cSovm;
+  Persons.nRec := cTemp;
+  Persons.cAddNRec2 := iCatFunc.GetNrecCategPSV();  
+
+  if GetFirst FastFirstRow PersTabN
+                    where (( ContDoc.cNew1 == PersTabN.Nrec )) = tsOk
+  {
+    set Persons.FIO := PersTabN.FIO;
+    Persons.BornDate := PersTabN.BornDate;
+    set Persons.BornAddr := PersTabN.BornAddr;
+    set Persons.Gr := PersTabN.Gr;    
+
+    var bKandFiz: boolean = ((PersTabN.IsEmployee = 'К') or (PersTabN.IsEmployee = 'Ф'));
+
+    if ( (wGetTune('UP.ReuseTabN') <> 0) and (bCopyTabN) ) or (bKandFiz) // разрешен повторный прием на тот же табельный
+    {
+      set ContDoc.LiTabN := PersTabN.TabNmb;
+      set ContDoc.StTabN := PersTabN.StrTabN;
+      set Persons.TabNmb := PersTabN.TabNmb;
+      set Persons.StrTabN := PersTabN.StrTabN;
+    }
+    else
+      PushTabNToPersons;
+  }
+  else
+    if (bTmp1 <> 4) // не студент
+    {
+      if wGetTune('UP.ReuseTabN') <> 0 // разрешен повторный прием на тот же табельный
+      {
+        set ContDoc.LiTabN := PersTabN.TabNmb;
+        set ContDoc.StTabN := PersTabN.StrTabN;
+        set Persons.TabNmb := PersTabN.TabNmb;
+        set Persons.StrTabN := PersTabN.StrTabN;
+      }
+      else
+        PushTabNToPersons;
+    }
+    else // студент
+      PushTabNToPersons;  
+  if insert current Persons <> tsOk
+    set ContDoc.Person := 0;
+  // Скопируем документы из предыдущей карточки
+  var tmp_old: comp;
+  var tmp_new: comp;
+  tmp_old := ContDoc.cNew1;
+  tmp_new := ContDoc.Person;
+
+  if tmp_new > 0
+  {
+    delete all from Passports where (( tmp_new == Passports.Person )) ;
+
+    if getfirst fastfirstrow tmpPers where (( tmp_old == tmpPers.nrec )) = tsok
+    {
+      //Национальный паспорт сотрудника
+      if (getfirst Passports where ((tmpPers.PasspRus == Passports.Nrec)) = tsOk)
+      {
+        Passports.Nrec:= 0;
+        Passports.Person:= tmp_new;
+        if (insert current Passports <> tsOK){};
+        Persons.PasspRus:= Passports.Nrec;
+      }
+      //Загранпаспорт сотрудника
+      if (getfirst Passports where ((tmpPers.PasspFor == Passports.Nrec)) = tsOk)
+      {
+        Passports.Nrec:= 0;
+        Passports.Person:= tmp_new;
+        if (insert current Passports <> tsOK){};
+        Persons.PasspFor:= Passports.Nrec;
+      }      
+      if update current persons = tsOk {}
+
+      delete all from PasAddress where (( Persons.NRec == PasAddress.cPerson and 24 == PasAddress.ObjType));
+      if getfirst PasAddress where ((tmpPers.PasspAddr == PasAddress.Nrec)) = tsOk
+      {
+        // скопируем адрес
+        set ContDoc.cCat1:= iAdrFunc.CopyAddress(PasAddress.Nrec, Persons.NRec, WORD(24));
+      }
+    } //if getfirst fastfirstrow tmpPers where
+
+    _loop Passports where (( tmp_old == Passports.Person ))
+    {
+      if (tmpPers.PasspRus = Passports.Nrec)
+        continue; //исключаем запись для Национальный паспорта
+      if (tmpPers.PasspFor = Passports.Nrec)
+        continue; //исключаем запись для Загранпаспорта .
+
+      ClearBuffer(#INN);
+      INN.Buffer := Passports.Buffer;
+      INN.nRec := 0;
+      INN.Person := tmp_new;
+      if (insert current INN <> tsOk){};
+    }//_loop Passports where (( tmp_old == Passports.Person ))
+
+    // зачистка предыдущих мест работы
+    delete all from Experience where (( tmp_new == Experience.Person ));
+
+    // наполнение их из старой карточки
+    if ( bCopyExperience )
+    {
+      _loop nocache Experience where (( tmp_old           /== Experience.Person and
+                                        coStatusManualHide == Experience.FilialNo (NoIndex) ))
+      {
+        ClearBuffer(#tmpExp);
+        tmpExp.Buffer := Experience.Buffer;
+        tmpExp.NRec := 0;
+        tmpExp.Person := tmp_new;
+        insert current tmpExp;
+        sSetAttr(coExperience, tmpExp.NRec, 'AppDopInfo', sGetAttr(coExperience, Experience.NRec, 'AppDopInfo'));
+      }
+    }
+
+    // зачистка введенных доков об образовании
+    delete all from Education where (( tmp_new == Education.Person));
+
+    // вставка образований
+    var VCopy_Psn: Copy_Psn;
+    VCopy_Psn.CopyPersEducation(tmp_new, tmp_old);
+  } //if tmp_new > 0
+} //CreateAndModifyPersons;
+
+private function Get_AtlBranch(cDept: comp): comp;
+{
+  result := 0;
+
+  var tmpDept: comp = cDept;
+
+  while (tmpDept <> 0) and (GetFirst SNG_Catalogs where (( tmpDept == SNG_Catalogs.NRec )) = tsOk)
+  {
+    result := coGetAttr(coCatalogs, SNG_Catalogs.NRec, '_Atl_Branch');
+
+    if (result <> 0)
+      break;
+    else
+      tmpDept := SNG_Catalogs.cParent;
+  }
+}
+
+private procedure CheckContDocwOrderSNG(cPers: comp);
+{
+  var wOld: word = ContDoc.wOrder;
+  set ContDoc.wOrder := 0;
+
+  if wOld > 1 // делаем что-то только когда
+  {                          // изменилась идеология по карточке
+    // теперь подтягиваем эту карточку, как новую
+    var bTmp1: byte = ContDoc.wDopAttr;
+
+    if (bTmp1 = 1)
+      bTmp1 := 0;
+    // теперь создание и переподцепка
+    CreateAndModifyPersons(bTmp1);
+  }
+}
+
+procedure EnableDisableNewLschet;
+{
+  DisableCommand(cmInsert);
+  DisableCommand(cmDelete);
+  SetFieldAndLabelVisible(#ContDoc.wOrder, false);
+
+  if ContDoc.wDopAttr = RepeatEmpl or ContDoc.wDopAttr = RepeatEmplNewFillial
+    SetFieldOption(#Persons.fio, ofProtected);
+  else
+    ClearFieldOption(#Persons.fio, ofProtected);
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+    SetFieldAndLabelVisible(#AppHist.TaxRate, false);
+
+  pVisibleWATTRDOC1;
+}
+
+function get_Dat1() : date;
+{
+  var days : Integer;
+  result:= CONTDOC.DPRIK;
+  if (_Num <> 0)
+    case wProbationUnit of
+    10:
+        result:= Add_day(CONTDOC.DPRIK, _Num);
+    12:
+        result:= Add_months(CONTDOC.DPRIK, _Num);
+    11:
+      {
+        days:= _Num * 7;
+        result:= Add_day(CONTDOC.DPRIK, days);
+      }
+    13:
+      {
+        days:= _Num * 12;
+        result:= Add_months(CONTDOC.DPRIK, days);
+      }
+    end;
+}
+
+function get_Num() : integer;
+{
+  var wDelta : integer;
+  var DeltaDate : date;
+  var _wNum: integer;
+
+  result:= 0;
+
+  if ( CONTDOC.DAT1 <> to_date(0, 0, 0))
+  {
+    wDelta:= Months_Between(CONTDOC.DPRIK, CONTDOC.DAT1);
+    DeltaDate:= Add_Months(CONTDOC.DPRIK, wDelta);
+    if DeltaDate = CONTDOC.DAT1
+    {
+        wDelta:= word(wDelta/12);
+        if wDelta != 0
+        {
+          result:= wDelta;
+          wProbationUnit:= 13;
+        }
+        else
+        {
+          result:= Months_Between(CONTDOC.DPRIK, CONTDOC.DAT1);
+          wProbationUnit:= 12;
+        }
+    }
+    else
+    {
+      wDelta:= CalcDaysBetweenDates(CONTDOC.DPRIK, CONTDOC.DAT1, false);
+      result:= wDelta - 1;
+      wProbationUnit:= 10;
+    }
+  }
+}
+
+procedure EnableDisable;
+{
+  inherited::EnableDisable;
+  if KlSovm.NSovm = 'Договор ГПХ'
+  {
+    //ClearFieldOption(KlKatego.NaiKat, ofSelectable);
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpPickButton          ,   false );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpProtect             ,   true );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpSkip                ,   true );
+  }
+  else
+  {
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpFontBackColor       ,   colorneed );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpPickButton          ,   true );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpProtect             ,   false );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpSkip                ,   false );
+  }
+
+//HR-636
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpFontBackColor       ,   colorneed );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpPickButton          ,   true );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpProtect             ,   false );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpSkip                ,   false );
+
+  if getfirst FastFirstRow Check_Processstate = tsOk 
+  { 
+    if ( Check_Processstate.NAME = 'Отправлен в RX' or Check_Processstate.NAME = 'На согласовании' or
+         Check_Processstate.NAME = 'На подписании' or Check_Processstate.NAME = 'Подписан' )
+
+  { //message (Check_Processstate.NAME);
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpPickButton          ,   false );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpProtect             ,   true );
+    cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpSkip                ,   true );
+
+    cfsSetProp('i_SCRDOC_WFORMOPL', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_SCRDOC_WFORMOPL', cfpPickButton          ,   false );
+    cfsSetProp('i_SCRDOC_WFORMOPL', cfpProtect             ,   true );
+    cfsSetProp('i_SCRDOC_WFORMOPL', cfpSkip                ,   true );  
+
+    cfsSetProp('i_FIRSTSCR_PERSONS.BORNDATE', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_FIRSTSCR_PERSONS.BORNDATE', cfpPickButton          ,   false );
+    cfsSetProp('i_FIRSTSCR_PERSONS.BORNDATE', cfpProtect             ,   true );
+    cfsSetProp('i_FIRSTSCR_PERSONS.BORNDATE', cfpSkip                ,   true );   
+
+    cfsSetProp('i_SCRDOC_GRCATNAME', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_SCRDOC_GRCATNAME', cfpPickButton          ,   false );
+    cfsSetProp('i_SCRDOC_GRCATNAME', cfpProtect             ,   true );
+    cfsSetProp('i_SCRDOC_GRCATNAME', cfpSkip                ,   true );
+
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpFontBackColor       ,   0 );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpPickButton          ,   false );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpProtect             ,   true );
+    cfsSetProp('i_SCRDOC_BORNNAME', cfpSkip                ,   true );
+  }
+}
+//HR-636
+
+//HR-821
+    ClearFieldOption(#KLKATEGO.NAIKAT, ofSelectable);
+    
+  Set _num:= get_num();
+  ReScanPanel(#Appointments);//
+}
+
+OverloadFormats brPsn;
+
+#include RPD_DOPFIELDS_MACRO.vpp
+//******************************************************************************
+// Люди по данному РПД
+//******************************************************************************
+Browse brPsn (, hcStaffWinPr, sciStaffTypical1378Esc);
+  Show at (,,,4) fixed_y;
+  Table ContDoc;
+Fields
+  FirstNamePodr 'Подразделение' ('Подразделение'): [25], skip;
+  fFIO 'ФИО' ('Фамилия имя отчество'): [28], protect;
+  ContDoc.LiTabN 'Табельный №' ('Табельный номер',, sciStaffTypical178Esc):
+  {Font = {BackColor = if((FormatClock = 0 and ContDoc.LiTabN = 0), ColorNeed, 0)}}, [12], protect;
+  ContDoc.StTabN 'Табельный №' ('Табельный номер',, sciStaffTypical178Esc):
+  {Font = {BackColor = if((FormatClock <> 0 and trim(ContDoc.StTabN) = ''), ColorNeed, 0)}},[12], protect;
+  Catalogs.Name 'Профессия, должность'
+    ('Должность (из основного назначения или совмещения - для увольнения совместителей)'): [15], skip;
+  [Plans] (StaffStruct.sCodeST + ' ' + StaffStruct.sNameST) 'Штатная единица' ('Штатная должность'): [25], skip;
+  PersOrderStateIsp 'Исполнение' ('Исполнение'): [12], skip,
+      { font = {Color = if ( isValid(#ContDoc) and (TitleDoc.wStatus <> 1) and (ContDoc.wYearPr = 0 or ContDoc.wYearPr = 3) and isValid(#AllMemo), ColorSysRed, 0)} };
+  #fContDopFieldsBR
+end; //browse brPsn
+
+//HR-820
+OverloadFormats FirstScr;
+Screen FirstScr (, hcStaffprt1main, sciStaffTypical13Esc);
+  Show  at (, 5,, 12.2) fixed_y;
+  Table ContDoc;
+Fields
+  ContDoc.wDopAttr('Оформление приказа о приеме на работу'): [list ''], protect;
+  KlSovm.NSovm ('Вид работы'): protect;
+  OrgCat.Name ('Наименование организации, предприятия'): protect;
+  Persons.LastDate ('Дата начала первого рабочего периода, в случае '): NoProtect;
+  ComplSrcCat.Name ('Наименование источника комплектования'): protect;
+  Persons.FIO    ('Фамилия, имя, отчество',, sciStaffTypical1Esc): {Label=getFioCaptionName(), Font = {BackColor = if(trim(Persons.FIO) = '', ColorNeed, 0)}}, noprotect;
+  Persons.BornDate ('Дата рождения' ): {Font = {BackColor = if(Persons.BornDate = ZeroDate, ColorNeed, 0)}}, NoProtect;
+  ClockNumberPerson ('Табельный номер работника',, sciStaffTypical1Esc):
+  {Font = {BackColor = if(FormatClock = 0, if(ContDoc.LiTabN = 0, ColorNeed, 0),
+                                           if(trim(ContDoc.StTabN) = '', ColorNeed, 0))}}, NoProtect;
+Buttons
+  cmValue8, [singleline],,, 'Сканирование документа',,;                   //
+  cmStaffDoEduStatus, [singleline],,, 'Получить список свободных табельных номеров.',,;
+Fields
+  ContDoc.wOrder('Вариант оформления лицевого счета и карточки'): [list ''], protect;
+  CodeINN ('Код ИНН',, sciStaffTypical1Esc):  {Font = {BackColor = if(CodeINN = '', ColorNeed, 0)}}, NoProtect;
+  JobNatureCat.Name ('Характер работы',, scStaffReceptionT2ComPick): protect, {Font = {BackColor = if(not IsValid(#JobNatureCat), ColorNeed, 0)}};                    //HR-820
+  StrahCat.Code    ('Код категории плательщика страховых взносов', hcStaffStrahCatCodeName): Protect;
+  StrahCat.CatData ('Наименование категории плательщика страховых взносов', hcStaffStrahCatCodeName): Protect;
+  ContDoc.WATTRDOC1 ('Не переводить действующие совместительства в архив', hcStaffStrahCatCodeName);
+
+<<
+`Вариант оформ-я` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Вид paботы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Перевод  из`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`дата начала РП`.@@@@@@@@@@@@@
+`Источник компл.` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Фамилия И.О.`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`дата рожд.`.@@@@@@@@@@<.Сканирование документа.>
+`Табельный номер` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <.Свободные таб. номера.>
+`Вариант ЛС и карточки`.@@@@@@@@@@@@@@@@@@@@@@@  `Код ИНН`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Характер работы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Категория плательщика страховых взносов`    .@@@@@@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ [.] Не переводить совместительства в архив`
+>>
+end; // screen FirstScr
+//HR-820
+
+OverloadFormats scrDoc;
+Screen scrDoc (, hcStaffprt1main, sciStaffTypical13Esc);
+  Show at (, 13.2,,);
+  Table Appointments;
+Fields
+  ContDoc.dPrik ('Дата зачисления на работу'): {Font = {BackColor = if(ContDoc.dPrik = ZeroDate, ColorNeed, 0)}}, noProtect;
+  Appointments.DateEnd ('Назначен на срок по ...');
+  fChPerson ('ФИО сотрудника, на период отсутствия которого производится прием'): protect, pickbutton;
+  //ContDoc.Dat1 ('Дата окончания испытательного срока'): noProtect;
+  ContDoc.Dat1 ('Дата окончания испытательного срока'): skip, Protect;
+  _Num: noprotect ;
+  wProbationUnit ('Единица времени'): [list 13 'годы', 12 'месяцы', 11 'недели', 10 'дни'], noprotect;
+  fLeadPerson ('Руководитель стажировки'): protect, pickbutton;
+  //AppTypeMove.Name ('Условия приема на работу');
+ // AppNatCat.Name   ('Характер назначения');
+  Appointments.wAddWord1 ('По штатному расписанию/вне штатного расписания',, sciStaffTypical1Esc):
+            [list ' ', 'по ШР', 'вне ШР' ], Protect;
+  ContractStr: {Font = {BackColor = if(ContractStr = '', ColorNeed, 0)}}, protect, pickbutton;
+
+  sContractLink ('Идентификатор договора',,sciStaffTypical1Esc): protect, {hyperlink = (sContractLink <> '')};
+  fullNamePodr ('Подразделение'): {Font = {BackColor = if(not IsValid(#AppKatPodr), ColorNeed, 0)}}, protect;
+  AppPostCat.Name ('Профессия, должность') skip, protect, nopickbutton;
+  [Razdel] getCatName(getcatnrec(Appointments.Department)) ('Раздел персонала'): skip, protect; //HR-188
+  Plans: Skip;
+  KlKatego.NaiKat ('Категория'): {Font = {BackColor = if(AppHist.cSpr4 = 0, ColorNeed, 0)}};
+  osob_usl;
+
+  //KlSisOpl.NaSisOpl ('Система оплаты труда');
+  //FormOpl ('Форма оплаты'): skip;
+  wFormOpl ('Форма оплаты'): [list 'Сдельная', 'Повременная'] Protect;
+
+  AppHist.TaxRate ('Оклад, ставка, тариф',, sciStaffTypical1Esc): [11.3], noProtect;
+  AppKlVal.SimvolV ('Валюта оплаты');
+  scdLastUser;
+
+  TarStav.Naitar: Skip;
+  AppHist.Category: Skip;
+  i_kategory;
+  TarStav.Codtar: Skip;
+  AppHist.coef1 ('Количество занимаемых ставок',, sciStaffTypical1Esc): [5.3], noProtect,
+  {Font = {BackColor = if(AppHist.coef1 < 0, ColorSysRed, 0)}};
+  FullIf ('Источники финансирования'): protect;
+  fRejimStr ('Режим труда и продолжительность рабочего дня (недели), ч');
+  OverworkCalculation2  ('Способ учета сверхурочных работ'): protect;
+  AppHist.PeriodOW ('Период расчета сверхурочных работ при суммированном учете'): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  //AppWorkCondCat.Name ('Условия труда');
+  AppDopInfoCat.Name ('Дополнительные сведения');
+  Appointments.Foundation ('Основание назначения',, sciStaffTypical1Esc): [40];
+  PasName ('Место регистрации'): protect;
+  GrCatName ('Гражданство. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : {Font = {BackColor = if(GrCatName = '', ColorNeed, 0)}}, pickbutton, protect;
+  BornName ('Место рождения',, scStaffReceptionT2CDEdit): {Font = {BackColor = if(BornName = '', ColorNeed, 0)}}, pickbutton;
+  InfPsn1.dBeg ('Дата начала непрерывного стажа для выплаты северных'): [13], noProtect;
+  KlKategs.Naikat ('Категория работающего для выплаты северных надбавок'): [13], noProtect;
+  InfPsn1.str1 ('Процент начисления',, sciStaffTypical1Esc): Skip;
+  persent ('Процент',, sciStaffTypical1Esc): [1], Skip;
+  InfPsn1.sum1 ('Процент районной надбавки', hcRaion, sciStaffTypical1Esc): [6.2], noProtect;
+  InfPsn1.sum2 ('Сумма районной надбавки', hcRaion, sciStaffTypical1Esc): [13], noProtect;
+  sWF_APP: protect,
+  {Font = {Color = if(funIsOrderConfirm, ColorSysGray, 0);
+           BackColor = if(funIsOrderConfirm, ColorSys06, 0)}};
+Buttons
+  cmStaffWordDoc, [SingleLine],,, 'Просмотр договора в формате Word';
+  cmValue24, [SingleLine],,, 'Штрих-код';
+  cmFullOrg, [SingleLine],,, 'Полное наименование';
+  cmValue12, [singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+  cmValue26, [singleline],,, 'Установить районный коэффициент из вредных условий';
+  cmValue4, [singleline],,, 'Документы';
+  cmValue6, [singleline],,, 'Сведения об образовании';
+  cmValue22, [singleline],,, 'Медосмотр';
+  cmValue5, [singleline],,, 'Предыдущие места работы';
+  cmValue7, [singleline],,, 'Компетенции';
+  cmValue1, [singleline],,, 'Сведения о стажах';
+  cmStaffT2Raise, [singleline],,, 'Доплаты, надбавки';
+  cmValue13, [singleline],,, 'Привязка персональных отпусков';
+  cmValue21, [singleline],,, 'Дополнительные условия по приказу';
+  cmValue27, [singleline],,, 'Плановые даты смены процента северной надбавки';
+  cmViewAdvance1, [singleline],,, 'Просмотр примечания к приказу';
+  cmOrgLevel, [singleline],,, 'Выбор организационных уровней';            //HR-965
+<<
+ Зачислить с       .@@@@@@@@@@ `по`.@@@@@@@@@@`на пер. отсут.`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Испыт. срок по    .@@@@@@@@@@ .@@@@@@@ .@@@@@@@@@@ Руководитель стажировки.@@@@@@@@@@@@@@@@@@@@@
+ Соот-вие ШР       .@@@@@@
+ Договор           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ТД в Directum` .@@@@@@@@@@@@@
+                                                                  <.  Договор  .> <. Штрих-код .>
+ Структ.подразд./орг.ед..@@@@@@@@@@@@@@@@@@@@@@@@@@@ Профессия, должность.@@@@@@@@@@@@@@@@@@@@@@@
+ Раздел персонала  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Штатная единица.@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                                                        <.Полное наименование.> 
+ Категория         .@@@@@@@@@@@@@@@@@ Усл.труда на раб.месте  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                      Форма оплаты .@@@@@@@@@@@@@@@@@@@
+ Тар.ст.,оклад     .@@@@@@@@@@@@@@@@@@.@@@@@@@@@@@@ Корр.коэф..@@@@@@@@@@@@<.>>.>
+ Тариф             .@@@@@@@@@@@@@@@@@@@@  Разряд.@@@@@@ Разряд(категория).@@@@@ Сетка.@@@@@@@@@@@
+ Кол-во ставок     .@@@@@@@          `ИФ`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Режим труда       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@   `Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Доп.сведения      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Основание         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Место регистрации .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Гражданство       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Место рождения    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Cеверные:`            `Начало` .@@@@@@@@@@@             `Категория`.@@@@@@@@@@@@@@@ .@@@@@ .@@@
+ `Районный коэффициент:``Процент`.@@@@@@@<.Установить из ВУ.> `Сумма`.@@@@@@@@@@@@@@@
+ `Трудовая функция`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ <.    Документы     .>  <.    Образование    .>  <.    Медосмотр     .>  <. Пред. места работы .>
+ <.   Компетенции    .>  <.   Периоды для СН  .>  <.     Доплаты      .>  <.  Привязка отпусков .>
+ <.   Доп. условия   .>  <.  Даты смены % СН  .>  <.    Примечание     .> <.     Орг.уровни     .>
+>>
+end; // scrDoc
+
+//HR-1095 nnt
+//-----------------------------------------------------------------------------
+var oExtAttr: iExtAttr;
+	ExtAttrID : comp;
+	LgotEnd: date;
+
+window winLgotEndOtpusk 'Конец использования льготного отпуска' EscClose;
+  show at (,,50,10);
+
+screen scLgotEnd;// (,,sci1Esc);
+fields
+ // LgotEnd ('Конец использования льготного отпуска',, sci147Esc): NoProtect;
+  LgotEnd: NoProtect;
+
+<<
+
+
+  Конец использования льготного отпуска.@@@@@@@@@@
+
+>>
+end; // scLgotEnd
+
+end; //window winLgotEndOtpusk
+handleEvent
+	cmCheckField:
+	{
+    case CurField of
+		#LgotEnd:
+		{
+      if LgotEnd = zerodate
+		  oExtAttr.DeleteValueID(coPersons, Persons.nRec, ExtAttrID);
+      else
+		  oExtAttr.dSetAttrID(coPersons, Persons.nRec, ExtAttrID, LgotEnd);
+  		}
+		end;
+	}
+	end;
+//-----------------------------------------------------------------------------
+
+//HR-134 ganeev_ii Оставили только Прием и повторное трудоустройство ----------
+Procedure FillAndRefillList;
+{
+  //полная очистка листа
+  SetLimit(arGroup, 0);
+  SetLimit(arGroupVal, 0);
+
+  arGroup[0] := if (FromRecwin, 'Прием', 'Обычное оформление приказа');
+//  arGroup[1] := 'Первичное трудоустройство, но личная карточка уже заполнена';
+//  arGroup[2] := 'Перевод из другого филиала (распределенная БД)';
+  arGroup[1] := 'Повторное трудоустройство';
+//  arGroup[4] := 'Первичное трудоустройство, но личная карточка cтудента';
+//  arGroup[5] := 'Повторное трудоустройство в новом филиале';
+
+  arGroupVal[0] := UsualReception;
+ // arGroupVal[1] := PrimaryEmplOnExCart;
+ // arGroupVal[2] := TransFromFilial;
+  arGroupVal[1] := RepeatEmpl;
+//  arGroupVal[4] := PrimaryEmplOnExCartStud;
+ // arGroupVal[5] := RepeatEmplNewFillial;
+
+  if (FromRecwin)
+  {
+    //удаляем от большего к меньшему чтобы удалялись нужные элементы
+    ArrAtDelete(arGroup, RepeatEmplNewFillial); // удаление 'Повторное трудоустройство в новом филиале'
+    ArrAtDelete(arGroupVal, RepeatEmplNewFillial); // удаление 'Повторное трудоустройство в новом филиале'
+    ArrAtDelete(arGroup, PrimaryEmplOnExCartStud); // удаление 'Первичное трудоустройство, но личная карточка cтудента'
+    ArrAtDelete(arGroupVal, PrimaryEmplOnExCartStud); // удаление 'Первичное трудоустройство, но личная карточка cтудента'
+    ArrAtDelete(arGroup, TransFromFilial); // удаление 'Перевод из другого филиала (распределенная БД)'
+    ArrAtDelete(arGroupVal, TransFromFilial); // удаление 'Перевод из другого филиала (распределенная БД)'
+    ArrAtDelete(arGroup, PrimaryEmplOnExCart);  // удаление 'Первичное трудоустройство, но личная карточка уже заполнена'
+    ArrAtDelete(arGroupVal, PrimaryEmplOnExCart);  // удаление 'Первичное трудоустройство, но личная карточка уже заполнена'
+
+    SetHelpAndStatusContext(FirstScr, -1, sci13Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, -1, sci13Esc, hcStaffNazn);
+    SetHelpAndStatusContext(FirstScr, #Persons.FIO, sci13Esc, hcStaffNazn);
+    SetHelpAndStatusContext(FirstScr, #ClockNumberPerson, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #Appointments.wAddWord1, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #Appointments.ContractDate, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #Appointments.ContractNmb, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #AppHist.TaxRate, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #i_kategory, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #AppHist.coef1, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #InfPsn1.sum1, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #InfPsn1.sum2, sci1Esc, hcStaffNazn);
+    SetHelpAndStatusContext(scrDoc, #Appointments.Foundation, sci1Esc, hcStaffNazn);
+    DisableCommand(cmPickClass);
+    DisableCommand(cmPickAttr);
+  }
+  else
+    //Проверяем наличие модуля Студенты в системе...
+    if (not boGetTune('UP.UseStudents')) //не используется
+    {
+      ArrAtDelete(arGroup, PrimaryEmplOnExCartStud);    // удаление 'Первичное трудоустройство, но личная карточка cтудента'
+      ArrAtDelete(arGroupVal, PrimaryEmplOnExCartStud); // удаление 'Первичное трудоустройство, но личная карточка cтудента'
+    }
+
+  setFioFieldState();
+}
+//HR-134ganeev_ii ------------------------------------------------------------
+
+private function getCatNameEx(fnrec: comp): string;
+{
+  result := '';
+
+  var nrec_tmp: comp = fnrec;
+  var vc_MainLink: comp = 0;
+
+  if (GetFirst SNG_Catalogs where (( -11 == SNG_Catalogs.SysCode )) = tsOk)
+    vc_MainLink := SNG_Catalogs.NRec;
+
+  while (GetFirst SNG_Catalogs where (( nrec_tmp == SNG_Catalogs.NRec )) = tsOk)
+  {
+    if (coGetAttr(coCatalogs, SNG_Catalogs.NRec, '_Atl_Branch') <> 0)
+    {
+      result := SNG_Catalogs.Code + ' ' + SNG_Catalogs.Name;
+      break;
+    }
+
+    if (vc_MainLink = SNG_Catalogs.cParent)
+      break;
+    else
+      nrec_tmp := SNG_Catalogs.cParent;
+  }
+}
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{
+  var sMessage: string;
+      //result:=inherited::ChildCheckOneOrder(cNrec);
+      //inherited::ChildCheckOneOrder(cNrec);
+      /*
+      if not (KlSovm.Sovm = 2 and Appointments.wAddWord1 = 2)
+      {
+        if (Appointments.Post = comp(0))
+        {
+          //SetErrorOrder('Не указана должность!', Error, FromRecwin);
+
+          //result := true;
+        }
+      }
+      */
+  result := true;
+
+  if cNrec <> 0
+    GetFirst ContDoc where ((cNrec == ContDoc.NRec));
+
+  if (ContDoc.cNew2 <> 2)
+  {
+    if wGetTune('UP.STAFF.RPD_1.Otpusk') = 1 // HR-664 GKS
+    {
+      if (not isValid(#PersVacation))
+      {
+        SetErrorOrder('Необходимо выполнить привязку отпусков', Error, FromRecwin);
+        result := false;
+      }
+    }
+
+    if wGetTune('UP.STAFF.RPD_1.SevNad') = 1 // HR-664 GKS
+    {
+      var sRazd :string = substr(Razdel, 1, 4);
+      if not (sRazd = 7100 or sRazd = 8500 or sRazd = 8000)
+      {
+        if (KlKategs.Kod = 0)
+        {
+          SetErrorOrder('Необходимо внести северную надбавку', Error, FromRecwin);
+          result := false;
+        }
+      }
+    }
+  }
+
+  if GetFirst FastFirstRow PartDocWork where ((ContDoc.cPart == PartDocWork.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!', Error, FromRecwin);
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!', Error, FromRecwin);
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!', Error, FromRecwin);
+    result := false;
+  }
+
+  if (ContDoc.cNew2 = 0)
+    if (GetFirst Old_Persons = tsOk)
+      if (Old_Persons.cNew_Person <> 0)
+        if (GetFirst SNG_NEW_Persons where (( Old_Persons.cNew_Person == SNG_NEW_Persons.NRec )) = tsOk)
+        {
+          SetErrorOrder('Работник уже принят на работу в ' + getCatNameEx(SNG_NEW_Persons.department), Error, FromRecwin);
+          result := false;
+        }
+  
+/*  if GetFirst FastFirstRow PartDocWork where ((ContDoc.cPart == PartDocWork.nRec)) = tsOk
+  {
+    if ( getfirst FastFirstRow Catalogs_Yprichina <> tsOk ) or (Ypricina = '')
+    {
+        SetErrorOrder('Не заполнено уточнение причины мероприятия!', Error, FromRecwin);
+        //result := false; 
+    }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнено уточнение причины мероприятия!', Error, FromRecwin);
+      //result := false
+    }*/
+  
+
+  if (ContDoc.wDopAttr = PrimaryEmplOnExCartStud) and (CodeINN = '') // студент
+  {
+    SetErrorOrder('Необходимо заполнить ИНН сотрудника', Error, FromRecwin);
+    result := false;
+  }
+
+  if ( ContDoc.wDopAttr <> UsualReception ) and ( wPerfOrd = 2 )
+  {
+    SetErrorOrder('Перевести приказ в состояние "Исполняется" можно только при варианте оформления: '
+          + '"Обычное оформление приказа"!', Error, FromRecwin);
+    result := false;
+  }
+  if (not FromRecwin)
+  {
+    if (GetFirst Persons <> tsOk) or (GetFirst Appointments <> tsOk)
+    {
+      SetErrorOrder('Не заполнено содержание приказа!');
+      result := false;
+    }
+  }
+  else
+  {
+    if (GetFirst Appointments <> tsOk)
+    {
+      SetErrorOrder('Не заполнены сведения о назначении!', Error, true);
+      result := false;
+    }
+  }
+
+  if (GetLast CheckHistoryStr where ((IFHS.GetHistoryStrNRec(StaffStruct.nRec,ContDoc.dPrik) == CheckHistoryStr.NRec)) = tsOk)
+  {
+    if (CheckHistoryStr.wCodOper = 21)
+    {
+      SetErrorOrder('Выбранная ставка на дату ' + string(ContDoc.dPrik) + ' закрыта!', Error, FromRecwin);
+      result := false;
+    }
+  }
+
+  if (ContDoc.wDopAttr <> PrimaryEmplOnExCart) // если бы было равно 1, то не надо все это. Надо просто
+  {                          // связывать, ничего более не проверяя
+    if Trim(Persons.FIO) = ''
+    {
+      SetErrorOrder('Не заполнены обязательные поля!', Error, FromRecwin);
+      result := false;
+    }
+
+      if (ContDoc.LiTabN = 0) and (ContDoc.StTabN = '')
+      {
+        SetErrorOrder('Не заполнен табельный номер!', Error, FromRecwin);
+        result := false;
+      }
+      else
+      {
+        var bKandFiz: boolean = false;
+        if (GetFirst PersTabN where (( ContDoc.cNew1 == PersTabN.Nrec )) = tsOk)
+          bKandFiz := ((PersTabN.IsEmployee = 'К') or (PersTabN.IsEmployee = 'Ф'));
+        // для проверки приказа при заведенной уже карточке эта функция не корректна,
+        //поэтому пишем свой кусочек: т.е. достаточно проверить, нет ли такого л\с,
+        // в том случае когда стоит уникальность, а это исследуется несколькими строками ниже
+        if ( (wGetTune('UP.ReuseTabN') = 0) and ((wFioMode = 2) or (wFioMode = 3)) ) and (not bKandFiz)
+          if (ContDoc.wDopAttr <> PrimaryEmplOnExCart)
+            if (not VFreeTabN.IsFreeLS(ContDoc.LiTabN, ContDoc.StTabN, Persons.Nrec, ContDoc.cNew1) and // проверка табельного
+                not bOldTabN)
+            {
+              SetErrorOrder('Табельный номер уже задействован', Error, FromRecwin);
+              result := false;
+            }
+      } //if (ContDoc.LiTabN = 0) and (ContDoc.StTabN = '')
+
+      // нужна проверка на тот случай, когда повт. трудоустройство, однако не надо
+      // заводить л\с.
+      if ContDoc.wDopAttr = RepeatEmpl or ContDoc.wDopAttr = RepeatEmplNewFillial // повторное трудоустройство
+      {
+        if (ContDoc.wOrder <> 0) // принимаем на старый л\с
+        {
+          if not GetFirstLschet(ContDoc.cNew1) // л\с первого приема
+          {
+            SetErrorOrder('Не найден л\с с признаком "физическое лицо", к которому можно привязать данную карточку.', Error, FromRecwin);
+            result := false;
+          }
+          else
+            if LSchet.DatUv = 0
+            {
+              SetErrorOrder('В л\с не заполнена дата увольнения!', Error, FromRecwin);
+              result := false;
+            }
+        }
+        else //
+        {
+          if not GetFirstLschet(ContDoc.cNew1) // л\с первого приема
+          {
+            SetErrorOrder('Не найден л\с с признаком "физическое лицо" по первому приему', Error, FromRecwin);
+            result := false;
+          }
+          else
+            if LSchet.DatUv = 0
+            {
+              SetErrorOrder('В л\с не заполнена дата увольнения! Привязка нового и старого лицевых счетов не произойдет!', Error, FromRecwin);
+              result := false;
+            }
+        }
+      } // повторное трудоустройство
+
+      if (ContDoc.wDopAttr = RepeatEmpl or ContDoc.wDopAttr = RepeatEmplNewFillial)
+        and ContDoc.wOrder = 0
+        if GetFirst FastFirstRow Lschet where ((ContDoc.cNew1 == Lschet.tPerson)) = tsOk
+          if LSchet.DatUv = 0
+          {
+            SetErrorOrder('В л\с не заполнена дата увольнения!', Error, FromRecwin);
+            result := false;
+          }
+
+      if (not PF.CanInsert(false))
+        result := false;
+
+  // делаем проверку, освобождена ли старая ставка
+      if (ContDoc.wDopAttr = PrimaryEmplOnExCart)
+      {
+        if Appointments.Dismissdate <> to_date(0,0,0)
+        {
+          SetErrorOrder('У сотрудника есть занятая ставка! Необходимо освободить ставку в Картотеке!', Error, FromRecwin);
+          result := false;
+        }
+      }
+      if wGetTune('UP.ReuseTabN') = 0  // осталась уникальность табельного номера
+      {
+        if (ContDoc.wDopAttr <> RepeatEmpl and ContDoc.wDopAttr <> RepeatEmplNewFillial ) // не повторный прием
+        {
+          if (GetFirst LSchet where ((ContDoc.LiTabN == LSchet.TabN and
+                                      ContDoc.StTabN == LSchet.StrTabN)) = tsOk)
+          {
+            if ((ContDoc.wDopAttr = UsualReception) or (ContDoc.wDopAttr = RepeatEmpl)
+                or (ContDoc.wDopAttr = PrimaryEmplOnExCart) or (ContDoc.wDopAttr = PrimaryEmplOnExCartStud))
+            {
+              if AskGoOnAndMess(chr(3) + 'В модуле "Зарплата" уже есть лицевой счет ' +
+                                    'с таким табельным номером. ' + chr(13) +
+                                chr(3) + 'Лицевой счет на сотрудника не откроется.' + chr(13),
+                                chr(3) + 'Будете исправлять табельный номер?', '', true, FromRecwin)
+              {
+                result := false;
+                exit;
+              }
+            }
+          }
+        }
+      }
+
+      if (ContDoc.dPrik = to_date(0, 0, 0))
+      {
+        SetErrorOrder('Не заполнена дата назначения!', Error, FromRecwin);
+        result := false;
+      }
+
+      if (Appointments.Department = comp(0))
+      {
+        SetErrorOrder('Не указано подразделение!', Error, FromRecwin);
+        result := false;
+      }
+
+      // проверка на трудоустройство по бессрочному ТД на ставку с датой ликвидации по настройке
+      case ConfirmLimit of
+        0: { // всегда разрешаем
+           }
+        1: { // подтверждаем
+             if (CheckConfirmLimit)
+               if message(''#3'Сотрудник ' + trim(Persons.FIO) + ' трудоустраивается на ставку'#13#3+
+                          'с установленной датой ликвидации ('+ string(StaffStruct.dClose) +')! Продолжить?', Confirmation + YesNo) = cmYes
+               {
+                 SetErrorOrder('Трудоустройство по бессрочному ТД на ставку с установленной датой ликвидации - Да!', Information, FromRecwin);
+               }
+               else
+               {
+                 SetErrorOrder('Трудоустройство по бессрочному ТД на ставку с установленной датой ликвидации - Нет!', Warning, FromRecwin);
+                 result := false;
+               }
+            }
+        2:
+          { // запрещаем
+            if (CheckConfirmLimit)
+            {
+              SetErrorOrder('Трудоустройство по бессрочному ТД на ставку с установленной датой ликвидации запрещено!', Error, FromRecwin);
+              result := false;
+            }
+          }
+      end;
+
+      if not (KlSovm.Sovm = 2 and Appointments.wAddWord1 = 2)
+      {
+
+        if (Appointments.EmpCategory = comp(0))
+        {
+          SetErrorOrder('Не указана категория!', Error, FromRecwin);
+          result := false;
+        }
+      }
+      // проверка оклада
+      if not CheckTaxRate
+      {
+        result := false;
+      }
+
+      if (Appointments.Rate < 0)
+      {
+        SetErrorOrder('Количество занимаемых ставок не может быть отрицательным!', Error, FromRecwin);
+        result := false;
+      }
+
+      if (Appointments.Rate > 1)
+      {
+        SetErrorOrder('Количество занимаемых ставок не может быть превышать 1!', Error, FromRecwin);
+        result := false;
+      }
+
+      if bCheckRate and (Abs(Appointments.Rate) < 0.00001)
+      {
+        SetErrorOrder('Количество занимаемых ставок не может быть нулевым!', Error, FromRecwin);
+        result := false;
+      }
+
+      // проверим доплаты относительно их даты начала
+      _loop Raise
+      {
+        if ( ContDoc.dPrik <> Raise.FromDate )
+        {
+          if not AskGoOnAndMess(''#3'У сотрудника ' + trim(Persons.FIO) + ' найдена доплата(ы)'#13#3+
+                                'с датой отличной от даты приема на работу!',' Продолжить?', '', false, FromRecwin)
+            result := false;
+          break;
+        }
+      } //_loop Raise where ((ContDoc.nRec == Raise.cRDop))
+      // теперь заполним табличку, которая поможет нам проанализировать возможность
+      // утверждения в случаях, когда вакансий займется больше, чем можно
+      // причем исключим случай, когда статус приказа "Исполняется", т.к.
+      // при переводе в данный статус, вакансии уже занимаются
+      var boNeedCheckVacancy: boolean = true;
+      var boNeedCheckCard : boolean = false;
+
+      if IsValid(#PartDoc)
+        if IsValid(#TitleDoc) //TitleDoc может не быть, см. FromRecwin
+        {
+          if (TitleDoc.wStatus = 2)
+            boNeedCheckVacancy := false;
+          if ( (TitleDoc.wStatus = 0) and (wFioMode = 0) and (ContDoc.cNew2 <> 2) )
+            if (boGetTune('UP.STAFF.RPD_1.CHECKFIO'))
+              boNeedCheckCard := true;
+        }
+
+      if not CheckRateOnDate(Appointments.StaffStr, ContDoc.dPrik, Appointments.Rate, ContDoc.TypeOper, not boConfirm, FromRecwin)
+        result := false;
+
+      if boNeedCheckCard
+        if getfirst PersTabN where (('С' == PersTabN.IsEmployee and Persons.FIO == PersTabN.FIO and ZeroDate == PersTabN.DisDate)) = tsOk
+        {
+          if not AskGoOnAndMess('Сотрудник ' + trim(PersTabN.FIO) + ' уже есть в картотеке (табельный номер '+
+                                 GetStrTabn(PersTabN.TabNmb,PersTabN.StrTabn)+')'+char(13), 'Продолжить?', '', false, FromRecwin)
+            result := false;
+        }
+
+      if coGetTune('UP.STAFF.PICKDOCS') > 0
+      {
+        _loop NASTRREP where ((PickDocsChoice == NASTRREP.choice ))
+        {
+          if getfirst fastfirstrow
+            passports where ((Persons.nrec    == Passports.Person and
+                              Nastrrep.Nastr1 == Passports.DocName(noindex))) = tsok
+          {
+            if Passports.Nmb = ''
+            {
+              SetErrorOrder('Документ "'
+                    + iCatFunc.GetCatalogsName(NASTRREP.Nastr1) + '" не заполнен.', Error, FromRecwin);
+              result := false;
+            }
+          }
+          else
+          {
+            SetErrorOrder('Не найден документ "'
+                  + iCatFunc.GetCatalogsName(NASTRREP.Nastr1) + '".', Error, FromRecwin);
+            result := false;
+          }
+        } //_loop NASTRREP where
+      } //if coGetTune('UP.STAFF.PICKDOCS') > 0
+    } // нормальные  режимы приказов
+    else
+    {
+      if getfirst SEContDoc where ((ContDoc.Person == SEContDoc.Person and
+                                    integer(1) == SEContDoc.TypeOper and
+                                    Integer(1) == SEContDoc.SeqNmb)) = tsOk
+      {
+        if (SEContDoc.nRec = ContDoc.nRec)
+        {
+          if GetNext SEContDoc where ((ContDoc.Person == SEContDoc.Person and
+                                    integer(1) == SEContDoc.TypeOper and
+                                    Integer(1) == SEContDoc.SeqNmb)) = tsOk
+          {
+            {
+              SetErrorOrder('Для данного сотрудника найден приказ о приеме, оформить первичное трудоустройство на заполненную личную карточку нельзя!', Error, FromRecwin);
+              result := false;
+            }
+          }
+        }
+        else
+        {
+          SetErrorOrder('Для данного сотрудника найден приказ о приеме, оформить первичное трудоустройство на заполненную личную карточку нельзя!', Error, FromRecwin);
+          result := false;
+        }
+      }
+    }
+
+  if ( (Persons.BornDate = ZeroDate) and
+       (ContDoc.wDopAttr <> 3) and (ContDoc.wDopAttr <> 5) )
+  {
+    SetErrorOrder('Не заполнена дата рождения!', Error, FromRecwin);
+    result := false;
+  }
+
+  if (wJobFunc = 1)
+    if (not iWorkFunctions.CheackTFDates(iWorkFunctions.ppPosition, ContDoc.dPrik, Appointments.DateEnd, coContDoc, true))
+    {
+      SetErrorOrder('Период назначения не соответствует периоду трудовой функции!', Error, FromRecwin);
+      result := false;
+    }
+  if (Add_Months(Persons.BornDate, (wGetTune('UP.STAFF.WORK_AGE') * 12)) > ContDoc.dPrik)
+  {
+    SetErrorOrder(chr(3) + 'Сотрудник не имеет право работать в таком возрасте!', Error, FromRecwin);
+    result := false;
+    abort;
+  }
+  if iCatFunc.GetCatalogsName(Persons.Gr) = ''
+  {
+    SetErrorOrder('Не заполнено гражданство!', Error, FromRecwin);
+    result := false;
+  }
+  if iAdrFunc.GetFullAddressIndOnDate(Persons.BornAddr, Persons.BornDate) = ''
+  {
+    SetErrorOrder('Не заполнено место рождения!', Error, FromRecwin);
+    result := false;
+  }
+
+    //HR-820
+ if iCatFunc.GetCatalogsName(Persons.JobNature) = ''
+  {
+    SetErrorOrder('Не заполнен характер работы!', Error, FromRecwin);
+    result := false;
+  }
+
+  var tInstances: JsonQueryArray;
+  setLimit(tInstances, 6);
+  tInstances[0].instance := 'RPD_1_INSTANCE';
+  tInstances[0].nRec := TitleDoc.nRec;
+  tInstances[1].instance := 'RPD_1_Documents';
+  tInstances[1].nRec := TitleDoc.nRec;
+  tInstances[2].instance := 'RPD_PA0007_INSTANCE';
+  tInstances[2].nRec := TitleDoc.nRec;
+  tInstances[3].instance := 'RPD_1_PA9010';
+  tInstances[3].nRec := TitleDoc.nRec;
+  tInstances[4].instance := 'RPD_1_ADDRESS';
+  tInstances[4].nRec := TitleDoc.nRec;
+  tInstances[5].instance := 'RPD_PA0008_INSTANCE';
+  tInstances[5].nRec := TitleDoc.nRec;
+
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 01');
+  var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+  if (oJsonSender.createChainedJson(tInstances, 'X')) {
+    if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+      SetErrorOrder(oJsonSender.getErrorMessage(), Warning, FromRecwin);
+    }
+  }
+
+} //Function ChildCheckOneOrder: boolean;
+
+function IRPD_Base.ChildConfirmOneOrder(cNrec : comp = 0): boolean;
+{
+  result := true;
+
+  ProcessCommand(cmVal1); // запуск алгоритма
+
+  if cNrec <> 0
+    GetFirst ContDoc where ((cNrec == ContDoc.NRec));
+
+  AKps.ChangeMainKPS(Appointments.nrec, ContDoc.cNew3);
+
+  // Нужно переписать табельный номер из приказа в карточку
+  if ( FormatClock = 0 )
+    Persons.TabNmb := ContDoc.LiTabN;
+  else
+    Persons.StrTabN := ContDoc.StTabN;
+
+  if (ContDoc.wDopAttr <> 0)
+    if (GetFirst Old_Persons = tsOk)
+    {
+      Persons.cOld_Person := Old_Persons.NRec;
+      Old_Persons.cNew_Person := Persons.NRec;
+      update current Old_Persons;
+    }
+
+  update current Persons;
+
+  /* Сейчас мы проработаем случай, когда приказ заводится только для того,
+  чтобы он был, т.е. данные по назначению уже давно существуют и надо только
+  их связать с приказом... Т.е. обрабатываем случай, когда приказ в режиме
+  "личная карточка уже заполнена"*/
+  var cccCont : comp;
+  cccCont          := ContDoc.nRec;
+  RunInterFace('Z_StaffOrders::ConfirmRpd_1', cccCont, 0);
+  if (GetFirst Persons = tsOk){};
+  Persons.cSovm := KlSovm.Sovm;  
+  update current Persons;
+
+  _Loop CompetencePers
+  {
+    CompetencePers.cPers := Persons.Nrec;
+    update Current CompetencePers;
+
+    if ( GetFirst Find_HistCompetence <> tsOk )
+      {
+        ClearBuffer(tnHistCompetence);
+        HistCompetence.wDetail := word(0);
+        HistCompetence.cPers := Persons.Nrec;
+        HistCompetence.cSourceRec := CompetencePers.Nrec;
+        HistCompetence.dBeg := Cur_Date;
+
+        insert current HistCompetence;
+      }
+  }
+
+  Converting.CompetPers_wPos(Persons.Nrec);
+  prCreateWP;
+
+  if ( GetFirstLschet(Persons.nRec) )
+  {
+     LSCHET.PensNal := double(InfPsn1.sum1);        //Процент районной надбавки
+     LSCHET.Summa2  := double(InfPsn1.sum2);    //Сумма районной надбавки
+     LSCHET.DATN13  := if (InfPsn1.dBeg = zerodate, ContDoc.dPrik, InfPsn1.dBeg);        //Дата начала непрерывного стажа для выплаты северных
+     LSchet.KATEGS  := word(InfPsn1.cRef1);   //Категория работающего для выплаты северных надбавок
+     LSCHET.SOVM := Persons.cSovm;
+     if boGetTune('UP.ZAR.SEV.AutoCategory') // северная категория будет рассчитываться, а не выбираться из лицевого счета
+       LSCHET.FILIALNO := LSCHET.FILIALNO or 1;
+
+     if ( wCOUNTRY = ccRus ) // проверка принадлежности СНИЛС РФ
+       if (GetFirst PassportSS = tsOk)
+       {
+         var SubPassportsNmb: string = IPsnFuncs.NormalizeNumber(PassportSS.Nmb);
+
+         if (LSchet.Snils <> SubPassportsNmb)
+           LSchet.Snils := SubPassportsNmb;
+       }
+
+     if (GetLast HistoryStrDate where ((IFHS.GetHistoryStrNRec_FastEx(StaffStruct.Nrec, Appointments.OrderDate, StaffStruct.ATL_LASTDATE, StaffStruct.ATL_LASTTIME) == HistoryStrDate.NRec)) = tsOK)
+     {
+       if (HistoryStrDate.CSPR4 <> 0)
+         LSchet.CexDop[1] := HistoryStrDate.CSPR4;
+       if (GetFirst KlFilter where ((HistoryStrDate.CSPR5 == KlFilter.NRec)) = tsOk)
+       {
+         LSchet.ChozOper := KlFilter.cHozOper;
+         LSchet.Param    := KlFilter.Param;
+         LSchet.cSchetD  := KlFilter.cSchetD;
+         LSchet.cSubSchD := KlFilter.cSubSchD;
+         LSchet.cKauD    := KlFilter.cKauD;
+         LSchet.TblD     := KlFilter.TblD;
+       }
+     }
+
+    var tCode: string = '';
+    var terr_main: comp = 0;
+
+    vSNG_DOG.cRec := Appointments.ResComp[1];
+    if (vSNG_DOG.GetFirst SpAllStaff = tsOk)
+      if (vSNG_DOG.SpAllStaff.ResComp[3] <> 0)
+        tCode := iCatFunc.GetCatalogsName(coGetAttr(coCatalogs, vSNG_DOG.SpAllStaff.ResComp[3], 'РКС/МКС'));
+
+    if (GetFirst Terr_Catalogs where (( -178 == Terr_Catalogs.SysCode )) = tsOk)
+      terr_main := Terr_Catalogs.NRec;
+
+     _loop Terr_Catalogs where (( terr_main == Terr_Catalogs.cParent ))
+       if (Terr_Catalogs.Code = tCode)
+     {
+        LSCHET.CEXDOP[9] := Terr_Catalogs.NRec;
+        LSCHET.FILIALNO := LSCHET.FILIALNO or 2;
+        break;
+     }
+
+     if (update current  LSCHET = tsOk) {};
+  }
+
+  if cccCont <> 0
+  {
+    result := false;
+    exit;
+  }
+  // посылаем сообщения в картотеку
+  if (ContDoc.wDopAttr <> PrimaryEmplOnExCart)
+  {
+    GetVipRef(Notifier, 'Z_Staff::ReceptNotify');
+    Notifier.Changed(Persons.nRec);
+  }
+
+  //сообщение в корзину
+  if (ContDoc.wDopAttr = PrimaryEmplOnExCart)
+  {
+    wRes := vMZS.ZarSignal_LShet(Appointments.Nrec, Appointments.OrderNmb, Appointments.OrderDate, AppHist.Nrec, comp(0), word(8));
+    if ( wRes = 0 )
+      SetErrorOrder('Утеряно сообщение о корректировке данных!', Warning, FromRecwin);
+    else if ( ( wRes and 2 ) > 0 )
+      SetErrorOrder('Не найден лицевой счет сотрудника!', Warning, FromRecwin);
+
+    ShowErrors;
+  }
+
+  _loop Raise where ((Persons.nrec == Raise.Person and Appointments.nRec == Raise.Appoint))
+  {
+    set Raise.cRDop := ContDoc.nRec;
+    update current Raise;
+  }
+
+  if (wJobFunc = 1)
+    iWorkFunctions.CopyFromOrder(coContDoc, ContDoc.NRec, coAppointments, Appointments.NRec);
+
+  //в дополнение к FillErrMess4Confirm
+  boConfirmed := true;
+
+  if (SH.Get_Hist_OnDate(Persons.NRec, Persons.AppDate) = 1005)
+    if (GetFirst SpAllStaff where (( SH.Get_Hist_OnDateNRec(Persons.NRec, Persons.AppDate) == SpAllStaff.NRec )) = tsOk)
+    {
+      var tmpDate: date = if(SpAllStaff.ResDate[1] < Persons.AppDate, Sub_Day(Persons.AppDate, 1), Persons.AppDate);
+      SH.Update_DateEnd(Persons.NRec, tmpDate);
+    }
+
+  SH.Insert_Sovm(Persons.NRec, Persons.cSovm, Persons.AppDate, Persons.DisDate);
+
+  ProcessCommand(cmVal2); // запуск алгоритма
+
+} //Function ChildConfirmOneOrder: boolean;
+
+procedure IRPD_Base.MyDel;
+{
+  ProcessCommand(cmVal3); // запуск алгоритма
+
+  if (wJobFunc = 1)
+    iWorkFunctions.DeleteOrder(coContDoc, ContDoc.NRec, coAppointments, Appointments.NRec);
+
+  if GetFirst Persons = tsOk
+  {
+    WWIF.DeleteIFFromTable(coContDoc, ContDoc.nRec, 0);
+    if (bWhatIsIT)// приказ не утвержден
+    {
+      if (ContDoc.wDopAttr <> PrimaryEmplOnExCart) // отбросить режим "личная карточка уже заполнена"
+      {
+        if (ContDoc.Nrec <> 0)
+          delete NoVisual Raise where ((ContDoc.Nrec == Raise.cRDop));
+
+        iCorrKoef.DeleteKK(ContDoc.Nrec, skkPrik);
+        iCorrKoef.DeleteKK(Appointments.Nrec, skkApp);
+
+        if getfirst AppHist where (( ContDoc.Nrec == AppHist.cContDoc )) = tsOk
+          iAH.DeleteRecord(AppHist.NRec);
+        AKps.DeleteAllKPS(2, Appointments.NRec);
+        delete Appointments where (( ContDoc.ObjNrec == Appointments.Nrec ));
+        // следующие данные должны удаляться только в случае, когда не привязана
+        // старая карточка сотрудника
+
+        if (ContDoc.wDopAttr <> RepeatEmpl )
+          or
+           (ContDoc.wDopAttr = RepeatEmplNewFillial )
+          or
+           (
+            ContDoc.wDopAttr = RepeatEmpl
+            and
+            ContDoc.wOrder <> 2 // та же карточка
+            and
+            ContDoc.wOrder <> 3 // та же карточка
+           )
+        {
+          // удаляем введенную информацию
+          DeleteNewDataUnderButtons(ContDoc.Person);
+          // удаляем карточку сотрудника
+          delete Persons where (( ContDoc.Person == Persons.NRec ));
+        }
+      }
+      else
+      {
+        iCorrKoef.DeleteKK(ContDoc.Nrec, skkPrik);
+        iCorrKoef.DeleteKK(AppHist.Nrec, skkAppHist);
+      }
+    }
+    else // приказ уже утвержден
+    {
+      iCorrKoef.DeleteKK(ContDoc.Nrec, skkPrik);
+
+      if (ContDoc.wDopAttr <> PrimaryEmplOnExCart) // отбросить режим "личная карточка уже заполнена"
+        iCorrKoef.DeleteKK(Appointments.Nrec, skkApp);
+      //Доплаты
+      _loop Raise where ((ContDoc.Nrec == Raise.cRDop))
+      {
+        Raise.cRDop := 0;
+        Raise.wRState1 := 0;
+        Raise.OrderNmb1 := '';
+        Raise.OrderDate1 := ZeroDate;
+        update current Raise;
+        // надо почистить ссылки в истории доплат
+        iHRaise.UpdNeedRHist(Raise.Nrec, 0, ZeroDate, '');
+      }
+      // история
+      if (getfirst FastFirstRow AppHist = tsOk)
+      {
+        update current AppHist set
+          AppHist.cContDoc := 0,
+          AppHist.DocNmb := '',
+          AppHist.DocDate := ZeroDate;
+      }
+      // назначение
+      if (getfirst FastFirstRow Appointments = tsOk)
+      {
+        update current Appointments set
+          Appointments.cCont := 0,
+          Appointments.OrderNmb := '',
+          Appointments.OrderDate := ZeroDate;
+      }
+
+      // чистим рабочие периоды
+      iWP.prReturnWPforOrder(ContDoc.ObjNrec);
+
+      // откатим переходы, связанные с утверждением данного приказа при повторном трудоустройстве
+      if ContDoc.wDopAttr = RepeatEmpl or ContDoc.wDopAttr = RepeatEmplNewFillial
+      {
+        RollBackRepeating;
+        SH.Delete_Sovm(Persons.NRec);
+      }
+      else
+        message('Будет удалена только запись в таблице приказов,'#13 +
+                'Удалить карточку сотрудника (' + Persons.FIO + ') можно только в интерфейсе "Картотека".',
+                Information + OkButton);
+
+      //удаляем необработанные сигналы в РК
+      iBF.DelSignal_Pers(TitleDoc.DocDate, TitleDoc.DocNmb, Persons.NRec);
+    } // утвержден
+  }//if IsValid(tnPersons)
+
+  // удаление истории компетенций, экспертов и компетенций сотрудника
+  _loop CompetencePers
+  {
+    _loop HistCompetence
+      delete all Expert where (( HistCompetence.Nrec == Expert.cSourceRec ));
+
+    delete all HistCompetence where (( CompetencePers.Nrec == HistCompetence.cSourceRec ));
+  }
+
+  delete all CompetencePers where (( ContDoc.Nrec == CompetencePers.cOrder ));
+
+  delete all InfPsn1 where (( ContDoc.nRec        == InfPsn1.cPers
+                          and comp(skkPrikRPD1)   == InfPsn1.cRef2 ));
+
+  delete all AllMemo where (( coContDoc    == AllMemo.wTable
+                          and ContDoc.Nrec == AllMemo.cRec ));
+
+  cContDocDeleted := ContDoc.NRec;
+
+  if (GetFirst Old_Persons = tsOk)
+    update current Old_Persons set Old_Persons.cNew_Person := 0;
+
+  delete current ContDoc;
+
+  ProcessCommand(cmVal4); // запуск алгоритма
+} // procedure MyDel
+
+//******************************************************************************
+// Процедура отката изменений по 1 человеку из данного РПД
+//******************************************************************************
+function CancelOneOrderLink99(_cCont: comp; _cCont99: comp): boolean;
+{
+  result := false;
+
+  if ( _cCont = 0 )
+    exit
+  else
+    if ( getfirst ContDoc where (( _cCont == ContDoc.NRec )) <> tsOk )
+      exit;
+    else
+      if ( getfirst PartDoc where (( ContDoc.cPart == PartDoc.nRec )) <> tsOk )
+        exit;
+      else
+        if ( getfirst TitleDoc where (( PartDoc.cDoc == TitleDoc.Nrec )) <> tsOk )
+          exit;
+        else
+          if ( getfirst Persons <> tsOk)
+            exit;
+          else
+            if ( getfirst Appointments <> tsOk)
+              exit;
+
+  // приказ РПД-99 на отмену
+  if ( getfirst ContDocTemp where (( _cCont99 == ContDocTemp.NRec )) <> tsOk )
+    exit;
+
+  // Устанавливаем для приказа статус "Отменен"
+  TitleDoc.wStatus := 4;
+  ContDoc.wYearPr  := 100b;
+
+  Persons.IsEmployee := 'Х';
+  Persons.DisDate := ContDocTemp.dPrik;
+
+  Appointments.DismissDate := ContDocTemp.dPrik;
+
+  update current Appointments;
+  update current ContDoc;
+  update current TitleDoc;
+  update current Persons;
+
+  // чистим рабочие периоды
+  iWP.prReturnWPforOrder(ContDoc.ObjNrec);
+  
+  // чистим полагающиеся отпуска
+  delete all PersVacation where (( Persons.Nrec == PersVacation.cPersons));  
+
+  var cDog: comp = WWC.GetContractOnDate(Persons.NRec, ContDocTemp.dPrik, Appointments.NRec);
+  WWC.SetCanceledAttr(cDog, true);
+
+  if ( GetFirstLschet(Persons.nRec) )
+  {
+    LSchet.char9 := pasArchive;
+    LSchet.LastTime := Time(1, 0, 0, 0);
+    LSchet.DatUv := ContDocTemp.dPrik;
+    update current LSchet;
+  }
+
+  result := true;
+}
+
+function RestoreAfterDelCanc(_cCont: comp): boolean;
+{
+  result := false;
+
+  if ( _cCont = 0 )
+    exit
+  else
+    if ( getfirst ContDoc where (( _cCont == ContDoc.NRec )) <> tsOk )
+      exit;
+    else
+      if ( getfirst PartDoc where (( ContDoc.cPart == PartDoc.nRec )) <> tsOk )
+        exit;
+      else
+        if ( getfirst TitleDoc where (( PartDoc.cDoc == TitleDoc.Nrec )) <> tsOk )
+          exit;
+        else
+          if ( getfirst Persons <> tsOk)
+            exit;
+          else
+            if ( getfirst Appointments <> tsOk)
+              exit;
+
+  var dDisDate: Date = Persons.DisDate;
+
+    // Устанавливаем для приказа статус "Отменен"
+  TitleDoc.wStatus := 1;
+  ContDoc.wYearPr  := 1b;
+
+  Persons.IsEmployee := 'С';
+  Persons.DisDate := ZERODATE;
+
+  Appointments.DismissDate := ZERODATE;
+
+  update current Appointments;
+  update current TitleDoc;  
+  update current Persons;
+
+  // создаем РП заново
+  prCreateWP;
+
+  var cDog: comp = WWC.GetContractOnDate(Persons.NRec, dDisDate, Appointments.NRec);
+  WWC.SetCanceledAttr(cDog, false);
+
+  if ( GetFirstLschet(Persons.nRec) )
+  {
+    LSchet.char9 := pasNeedRacalc;
+    LSchet.Summa30 := pasNeedRacalcFuture;
+    LSchet.LastTime := ZEROTIME;
+    LSchet.DatUv := ZERODATE;
+    update current LSchet;
+  }
+
+  result := true;
+}
+
+function GetContractHyperLinkFull(_cContract: comp): string;
+{
+  result := '';
+  if getfirst ExternalASM where ((byte(101)       == ExternalASM.ASM_Type
+                                 and coSpAllStaff == ExternalASM.wTable
+                                 and _cContract   == ExternalASM.cRec )) = tsOk
+    result :=  ExternalASM.Numbers[5]+ExternalASM.Numbers[6];
+}
+
+TableEvent table Appointments;
+cmHyperlink:
+{
+    case CurField of
+    #sContractLink:
+    {
+      if (sContractLink <> '')
+      {
+        var aErrorCode: integer;
+     // var sPagePath: string = Replace(sBasePath, '%::ID::%', sContractLink);
+        var sPagePath: string = GetContractHyperLinkFull(Appointments.ResComp[1]);
+        ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+      }
+    }
+    end;
+}
+end;
+
+TableEvent table ContDoc;
+
+cmCheckField:
+{
+  case CurField of
+
+    #ContDoc.wDopAttr:
+    {
+      var wOld: word = ContDoc.wOrder;
+      set ContDoc.wOrder := 0;
+      CheckContDocwOrder(wOld);
+    }
+
+  end;
+
+ inherited::handleEvent(cmCheckField);
+}
+
+cmCheckRecord:
+{
+  if (Persons.IsEmployee = 'С')
+  {
+    if (not PF.CanInsert(false))
+      exit;
+  }
+
+  bOldTabN := false;
+
+  // если табельный номер еще не заполнен не осуществляем проверку
+  if (FormatClock = 0)
+    if  ContDoc.LiTabN = word(0)
+      Exit;
+
+  if (FormatClock != 0)
+    if  ContDoc.StTabN = ''
+      Exit;
+
+  var bKandFiz: boolean = false;
+
+  if (GetFirst PersTabN where (( ContDoc.cNew1 == PersTabN.Nrec )) = tsOk)
+    bKandFiz := ((PersTabN.IsEmployee = 'К') or (PersTabN.IsEmployee = 'Ф'));
+
+  if ( (wGetTune('UP.ReuseTabN') = 0) and (wFioMode != 2) ) and (not bKandFiz)
+    if ContDoc.wDopAttr <> PrimaryEmplOnExCart // личная карточка уже заведена
+      if not VFreeTabN.IsFreeLS(ContDoc.LiTabN, ContDoc.StTabN, Persons.Nrec, ContDoc.cNew1) // проверка табельного
+      {
+        ShowErrors;
+        iMesAnswer := message(chr(3) + 'Такой табельный номер уже задействован.' +
+                              chr(3) + 'Присвоить следующий свободный табельный номер?' + chr(13) +
+                              chr(3) + 'Да     - присвоить следующий свободный табельный номер;' + chr(13) +
+                              chr(3) + 'Нет    - продолжить с заданным табельным номером;' + chr(13) +
+                              chr(3) + 'Отмена - вернуться к редактированию табельного номера.', mfYesNoCancel + Confirmation);
+        case iMesAnswer of
+
+          Yes:
+            {
+              if (FormatClock = 0)
+              {
+                SetModified(true);
+
+                set ContDoc.LiTabN := VFreeTabN.Next;
+
+                if ( Persons.IsEmployee = 'П' )
+                  set Persons.TabNmb := ContDoc.LiTabN;
+              }
+              else
+              {
+                SetModified(true);
+
+                set ContDoc.StTabN := VFreeTabN.Next;
+
+                if ( Persons.IsEmployee = 'П' )
+                  set Persons.StrTabN := ContDoc.StTabN;
+              }
+            }
+
+          No:
+            bOldTabN := true;
+
+          Cancel:
+            {
+              SelectField(#ClockNumberPerson);
+              abort;
+              exit;
+            }
+
+        end;
+      }
+
+  if (FromRecwin)
+    if (ContDoc.Person = comp(0))
+    {
+      Message('Необходимо выбрать сотрудника!', Warning);
+      SelectField(#Persons.FIO);
+      abort;
+    }
+}
+
+end;
+
+window winFullOrg 'Полное наименование орг. присвоения' EscClose;
+  show at (,,50,7);
+screen scFullOrg (,,sci1Esc);
+fields
+  iGeneralFuncSNG.GetFullStr(catalogs11.nrec, catalogs11.cparent, Appointments.StaffStr):Protect, WordWrap;
+
+<<
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+end; //window winFullOrg
+
+handleEvent
+cmFullOrg:    //HR-1261
+{
+ RunWindowModal(winFullOrg);
+}
+cmOnVipLoad:
+  {
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+
+  IsSummedOWH := false;
+
+  var bLockTabnmb : boolean = boGetTune('UP.STAFF.LOCK_TABNMB');
+  if not bLockTabnmb then
+    SetFieldOption(#ClockNumberPerson, ofProtected);
+
+  cfsSetProp('L_FIRSTSCR_Перевод_из',            cfpVisible,   false );
+  cfsSetProp('i_FIRSTSCR_ORGCAT.NAME',           cfpVisible,   false );
+  cfsSetProp('L_FIRSTSCR_Источник_компл.',       cfpVisible,   false );
+  cfsSetProp('i_FIRSTSCR_COMPLSRCCAT.NAME',      cfpVisible,   false );
+  cfsSetProp('T_SCRDOC_Руководитель_стажировки', cfpVisible,   false );
+  cfsSetProp('i_SCRDOC_FLEADPERSON',             cfpVisible,   false );
+//-----------------------------------------------------------------------------------HR-400
+  cfsSetProp('T_SCRDOC_Разряд(категория)',       cfpVisible,   false );
+  cfsSetProp('i_SCRDOC_I_KATEGORY',              cfpVisible,   false );
+//-----------------------------------------------------------------------------------HR-400
+  cfsSetProp('L_FIRSTSCR_Категория_плательщика_страховых_взносов', cfpVisible,   false );
+  cfsSetProp('i_FIRSTSCR_STRAHCAT.CODE',                           cfpVisible,   false );
+  cfsSetProp('i_FIRSTSCR_STRAHCAT.CATDATA',                        cfpVisible,   false );
+
+  vc_MainLink := if(GetFirst Catalogs Where(( -11 == Catalogs.SysCode))=tsOk, Catalogs.Nrec,0);
+  
+  ShowButton(FirstScr, cmStaffDoEduStatus, false); //HR-323
+
+  }
+
+ cmPick:
+{
+  case CurField of
+
+    #Persons.FIO:
+    {
+      case wFioMode of
+        0:
+        {
+          var bTmp1 : byte;
+          bTmp1 := ContDoc.wDopAttr;
+          if (bTmp1 = 1)
+            bTmp1 := 0;
+
+          if ( bTmp1 <> 3 )and( bTmp1 <> 4 ) and (bTmp1 <> 5)  // не повторное трудоустройство (вероятно, личная карточка заведена)
+          {
+            if (RunInterface('Z_Staff::PrikPsn', bTmp1, comp(0), ParentSav) = cmDefault)
+            {
+              set ContDoc.Person    := ParentSav;
+              set ContDoc.Dat1      := Persons.TestPeriod;
+              set ContDoc.wAttrDoc3 := 1;
+              set ContDoc.LiTabN    := Persons.TabNmb;
+              set ContDoc.StTabN    := Persons.StrTabN;
+              var cComp: comp; // чисто вспомогательная переменная
+              var bBol: boolean = false; //а это соответствующий флажок
+              // выбираем основное назначение
+              if (RunInterface('Z_Staff::GetApp', ParentSav, cComp, 0, ZeroDate) = cmDefault)
+                bBol := true
+              else
+                bBol := false;
+
+              if bBol // выбрано конкретное назначение
+              {
+                if (GetFirst ChangeAppoint where ((cComp == ChangeAppoint.nRec)) = tsOk)
+                  bBol := true
+                else
+                  bBol := false;
+              }
+              else // берем первое попавшееся назначение
+                if (GetFirst ChangeAppoint where ((ParentSav == ChangeAppoint.Person)) = tsOk)
+                  bBol := true
+                else
+                  bBol := false;
+
+              if not CheckPodrInFiltr(ChangeAppoint.Department)
+              {
+                set ContDoc.Person := 0;
+                Message('Установленный фильтр не позволяет выбирать данное подразделение.', Information);
+              }
+              else
+              {
+                if bBol // выбрано конкретное назначение
+                {
+                  set ContDoc.cNew2 := Persons.cSovm;
+                  set ContDoc.ObjNrec := ChangeAppoint.Nrec;
+                  set ContDoc.cDopRef := ChangeAppoint.Department;
+                  set ContDoc.cstr := ChangeAppoint.nRec;
+                  set ContDoc.cCat2 := Persons.ComplSrc;
+                  set ContDoc.dPrik := ChangeAppoint.AppointDate;
+                  set ContDoc.cNew3 := AKps.GetMainKps(ChangeAppoint.Nrec);
+                  WWIF.CopyIFFromTo(coAppointments, ChangeAppoint.Nrec, coContDoc, ContDoc.Nrec);
+                }
+                else
+                {
+                  set ContDoc.cNew2 := 0;
+                  set ContDoc.ObjNrec := 0;
+                  set ContDoc.cDopRef := 0;
+                  set ContDoc.cstr := 0;
+                  set ContDoc.cCat2 := 0;
+                  set ContDoc.dPrik := ZeroDate;
+                  set ContDoc.cNew3 := 0;
+                  WWIF.DeleteIFFromTable(coContDoc, ContDoc.Nrec, 0);
+                }
+
+                UpdateTableWithInserted; // если еще не было вставки, то нРек не валиден
+
+                // к сожалению, в этой не продуманной схеме у нас теряется корректность
+                // данной ссылки, если в одном приказе перебирают сотрудников, т.к.
+                // не чистится ссылка по первым записям AppHist
+                update ChangeAppHist where ((ContDoc.Nrec == ChangeAppHist.cContDoc))
+                  set ChangeAppHist.cContDoc := 0;
+
+                if (GetFirst FastFirstRow ChangeAppHist where ((ContDoc.ObjNrec == ChangeAppHist.cAppoint )) = tsOk)
+                {
+                  update current ChangeAppHist
+                    set ChangeAppHist.cContDoc := ContDoc.Nrec;
+                }
+
+                if getfirst fastfirstrow tmpPers where (( ParentSav == tmpPers.nrec )) = tsok
+                {
+                  if getfirst PasAddress where ((tmpPers.PasspAddr == PasAddress.Nrec)) = tsOk
+                  {
+                    Set ContDoc.cCat1:= iAdrFunc.CopyAddress(PasAddress.Nrec, Persons.NRec, WORD(24));
+                  }
+                }
+
+                ReReadRecord(tnContDoc);
+              }
+            }
+          }
+          else  // повторное трудоустройство
+          {
+            /*
+            В прилагаемом файле нет скриншота настройки отчет закладка "Дополнительные настройки",
+            на этой закладке есть настройка "Количество знаком после запятой". Какое значение стоит в вашем случае.
+            И если выставить значение 2
+            */
+            If ContDoc.dPrik != ZeroDate
+              SaveMyDsk(ContDoc.dPrik, 'PR_T1_dateAppoint');
+            else
+            {
+              ReReadRecord(#TitleDoc);
+              SaveMyDsk(TitleDoc.DocDate, 'PR_T1_dateAppoint');
+            }
+
+            var InterfaceTrueFalse: boolean;
+            InterfaceTrueFalse := false;
+
+            if (bTmp1 = 4) // студент
+            {
+              var wK: word = 0;
+              var cChoice: comp = 0;
+
+              if viCYPersons.Choice(DummyMarker1, 5, vfCanSelect, wK, cChoice, DummyMarker2)
+              {
+                InterfaceTrueFalse := true;
+                ParentSav := viCYPersons.GetPsnByKindChoice(wK, cChoice);
+              }
+
+              set CodeINN := PF.GetUniqueTaxNumber(ParentSav);
+              VisualCodeINN(ContDoc.wDopAttr, ParentSav);
+            }
+            else
+            {
+              if ( RunInterface('Z_Staff::SelDisPers', ParentSav, if(ContDoc.dPrik != ZeroDate, ContDoc.dPrik, if (FromRecwin, Cur_Date, TitleDoc.DocDate))) = cmDefault )
+              {
+                CheckContDocwOrderSNG(ParentSav);
+                InterfaceTrueFalse := true;
+              }
+            }
+            // теперь начинаем обработку, которая будет базироваться на следующем
+            // принципе: если карточка должна быть новой (см. поле в интерфейсе),
+            // тогда работаем по-старому с заведением новой карточки, если ее не было.
+            // если же должна быть старой, то и цепляем выбранную карточку, ничего не заводя
+            // нового. Единственно, что тогда придется контролировать процесс в cmCheckField
+            if InterfaceTrueFalse
+            {
+              if ( GetFirst FastFirstRow PersTabN
+                    where (( ParentSav == PersTabN.Nrec )) = tsOk )
+              {
+                set ContDoc.cNew1     := ParentSav;
+                set ContDoc.wAttrDoc3 := 1;
+
+                case ContDoc.wOrder of
+                  0, 1: CreateAndModifyPersons(0); // новая карточка
+                  2, 3: ConnectOldPersons; // старая карточка
+                end;
+              }
+
+              update current Persons;
+            }
+            set ContDoc.cNew2 := KlSovm.Sovm;
+          } // повторное трудоустройство
+        }
+        1,2:
+        {
+          if ( RunInterface('Z_Staff::PrikPsnLS', if(wFioMode = 1, 0, 3), wFioMode = 2, ParentSav) = cmDefault )
+          {
+            if ( getfirst PersTabN where (( ParentSav == PersTabN.Nrec )) = tsOk )
+            {
+              set ContDoc.cNew1     := ParentSav;
+  //            set ContDoc.wAttrDoc3 := 1;
+
+              CreateAndModifyPersons(0, 0, wFioMode = 2, wFioMode = 2); // новая карточка, не копируем предыдущую трудовую деятельность и табельный
+              Persons.BornDate := PersTabN.BornDate;
+              Persons.sex := PersTabN.sex;
+            }
+
+            update current Persons;
+          }
+        } // повторное трудоустройство
+        3:
+        {
+          var bTmp1: byte = ContDoc.wDopAttr;
+          if (bTmp1 = 1)
+            bTmp1 := 0;
+
+          if (RunInterface('Z_Staff::PrikPsn', bTmp1, comp(0), ParentSav) = cmDefault)
+          {
+            if ( getfirst PersTabN where (( ParentSav == PersTabN.Nrec )) = tsOk )
+            {
+              set ContDoc.cNew1 := ParentSav;
+
+              CreateAndModifyPersons(0, 0, false, false); // новая карточка, не копируем предыдущую трудовую деятельность и табельный
+              Persons.BornDate := PersTabN.BornDate;
+              Persons.sex := PersTabN.sex;
+            }
+          }
+        }
+      end;
+    } //#Persons.FIO:
+    #fChPerson:
+    {
+      ParentSav := Appointments.ResComp[2];
+
+      if (RunInterface('SNG_RPD_PickInterface::SNG_ChoiseLongAbs', ParentSav, ContDoc.dPrik) = cmDefault)
+      {
+        set Appointments.ResComp[2] := ParentSav;
+
+        WWC.SetContractEndIfNew(Appointments.ResComp[1], 0, ZeroDate);
+
+        if IsValid(#ChangePersons)
+          if getfirst ChangeAppoint where ((ChangePersons.AppointCur == ChangeAppoint.NRec)) = tsOk
+            CopyFromChangeToOrder;
+          else
+            if getfirst ChangeAppoint where ((ChangePersons.AppointLast == ChangeAppoint.NRec)) = tsOk
+              CopyFromChangeToOrder;
+      }
+    }
+    #fLeadPerson:
+    {
+      ParentSav := Appointments.ResComp[3];
+
+      var wK: word = 0;
+      var cChoice: comp = 0;
+
+      if viCYPersons.Choice(DummyMarker1, 1, vfCanSelect, wK, cChoice, DummyMarker2)
+      {
+        ParentSav := viCYPersons.GetPsnByKindChoice(wK, cChoice);
+        set Appointments.ResComp[3] := ParentSav;
+      }
+    }
+    #osob_usl:
+    {
+      SetModified(true);
+      UpdateTableWithInserted;
+
+      if (#Appointments > 0)
+      {
+        var nRecKps: comp;
+
+        nRecKps := AKps.PickNRecKPS(Appointments.nrec,ContDoc.cNew3);
+
+        if (nRecKps <> comp(0))
+          if not funIsOrderConfirm
+          {
+            set ContDoc.cNew3 := nRecKps;
+            update current ContDoc;
+            ReReadRecord(#ContDoc);
+
+            set AppHist.cSpr2 := ContDoc.cNew3;
+            if update current AppHist <> tsOk {};
+          }
+      }
+      else
+        message('Не заполнена запись о назначении.');
+
+      ReReadRecord(#Appointments);
+    }
+    #PersonAbsence.Fio, #PersonAbsence.TabNmb, #PersonAbsence.StrTabn:
+    {
+      if (RunInterface('Z_Staff::PrikPsn', 0, 0, ParentSav) = cmdefault)
+      {
+        set ContDoc.cRezerv := ParentSav;
+
+        if IsValid(tnContDoc)
+          if update current ContDoc <> tsOk {}
+      }
+    }
+
+    #KlSovm.NSovm:
+    {
+      var wSovm: word = word(Persons.cSovm);
+      var wOldSovm: word = word(ContDoc.cNew2);
+
+      if (runinterface('Z_Zar::PickSovm', wSovm, word(0)) <> cmCancel)
+      {
+        set ContDoc.cNew2 := comp(wSovm);
+        SetModified(True);
+
+        if (IsValid(#Appointments)) and (wSovm = 2)
+          set Appointments.wAddWord1 := 2;
+
+        if ( IsValid(#ContDoc) )
+          update current ContDoc;
+
+        if ( boGetTune('UP.STAFF.RPD_1.LINKGPH') )
+        {
+          if ( (ContDoc.wDopAttr = 0) and (wSovm = 2) )
+          {
+            if ( message('Вы оформляете договор подряда работнику предприятия?', confirmation + yesNo) = cmYes )
+            {
+              bGPHMode := true;
+
+              set ContDoc.cNew1 := 0;
+              set Persons.FIO := '';
+              set Persons.BornDate := ZERODATE;
+
+              if (FormatClock = 0)
+              {
+                set ContDoc.LiTabN := VFreeTabN.Next;
+                set ContDoc.StTabN := '';
+              }
+              else
+              {
+                set ContDoc.LiTabN := 0;
+                set ContDoc.StTabN := VFreeTabN.Next;
+              }
+            }
+            else
+              bGPHMode := false;
+          }
+        }
+
+        setFioFieldState();
+        EnableDisable();
+
+        if ( (wOldSovm = 3) and (wSovm <> 3) or
+             (wOldSovm <> 3) and (wSovm = 3)    )
+        {
+          set ContDoc.cNew1 := 0;
+          set Persons.FIO := '';
+          set Persons.BornDate := ZERODATE;
+
+          if (FormatClock = 0)
+          {
+            set ContDoc.LiTabN := VFreeTabN.Next;
+            set ContDoc.StTabN := '';
+          }
+          else
+          {
+            set ContDoc.LiTabN := 0;
+            set ContDoc.StTabN := VFreeTabN.Next;
+          }
+        }
+      }
+      if KlSovm.NSovm = 'Договор ГПХ'
+      {
+         //ClearFieldOption(KlKatego.NaiKat, ofSelectable);
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpFontBackColor       ,   0 );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpPickButton          ,   false );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpProtect             ,   true );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpSkip                ,   true );
+      }
+      else
+      {
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpFontBackColor       ,   colorneed );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpPickButton          ,   true );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpProtect             ,   false );
+         cfsSetProp('i_SCRDOC_KLKATEGO.NAIKAT', cfpSkip                ,   false );
+      }
+    }
+
+    #AppKlVal.SimvolV:
+    {
+      ParentSav := AppHist.PayCurrency;
+
+      if (RunInterface('Z_Staff::StaffGetCurrency',ParentSav) = cmDefault)
+      {
+        set AppHist.PayCurrency := ParentSav;
+        SetModified(true);
+      }
+    }
+
+    #JobNatureCat.Name:
+    {
+      if ContDoc.Person = comp(0)
+      {
+        message('Необходимо выбрать сотрудника!');
+        abort;
+        exit;
+      }
+      ParentSav := Persons.JobNature;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-12), ParentSav, comp(0)) = cmDefault)
+      {
+        Set Persons.JobNature := ParentSav;
+        SetModified(true);        
+        if Persons.gr = 0
+          Persons.gr := GrCatNrec;
+        update current Persons;
+
+        set ContDoc.wAttrDoc3 := 1;
+      }
+    }
+
+    #ContractStr:
+    {
+      ParentSav := Appointments.ResComp[1];
+      var tmpParentSav: comp = Appointments.ResComp[1];
+
+      if (not IsValid(#Appointments))
+        UpdateTableWithInserted;
+
+      WWC.SetContDoc_TD(ContDoc.Nrec);
+
+      if IsValid(#ChangePersons)
+        set Appointments.ResComp[1] := WWC.ShowContractWinDates(ParentSav, ContDoc.Person, 0, ContDoc.dPrik, ZeroDate)
+      else
+        set Appointments.ResComp[1] := WWC.ShowContractWinDates(ParentSav, ContDoc.Person, 0, ContDoc.dPrik, Appointments.DateEnd);
+
+      WWC.PutContractInfo(Appointments.ResComp[1], Appointments.cDog, Appointments.ContractNmb, Appointments.ContractDate);
+
+      if (tmpParentSav <> Appointments.ResComp[1])
+        UpdateTableWithInserted;
+    }
+
+    #OrgCat.Name:
+    {
+      ParentSav := ContDoc.cAddInf;
+
+      //Проверяем наличие модуля Студенты в системе...
+      //UP.UseStudents ==UP.UseSalary
+      var cg_Students : Integer;
+
+      if (ContDoc.wDopAttr = PrimaryEmplOnExCartStud) // студент
+        cg_Students := 3011;
+      else
+        cg_Students := -35;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', cg_Students, ParentSav, comp(0)) = cmDefault)
+      {
+        set ContDoc.cAddInf := ParentSav;
+        SetModified(true);
+      }
+
+      prEnableDisableDateBegWP;
+    }
+
+    #ComplSrcCat.Name:
+    {
+      ParentSav := ContDoc.cCat2;
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-23), ParentSav, comp(0)) = cmDefault)
+        set ContDoc.cCat2 := ParentSav;
+    }
+
+    #fRejimStr:
+    {
+      liTmp := NewKlRejim.Rejim;
+
+      if (RunInterface('z_calendar::PickRejExt', liTmp, Year(ContDoc.dPrik), Month(ContDoc.dPrik)) <> cmCancel)
+      {
+        if (GetFirst NewKlRejim where ((liTmp == NewKlRejim.Rejim)) = tsOk)
+        {
+          Set AppHist.WorkRegime := NewKlRejim.Nrec;
+          SetModified(true);
+        }
+        SelectField(#AppWorkCondCat.Name);
+      }
+    }
+
+    #OverworkCalculation2:
+    {
+      case runmenu('CaseOWModeSNG1') of //Выбор для способа учета сверхурочных
+        cmValue61:
+          set AppHist.OWMode := ocmDaily;
+        cmValue62:
+          set AppHist.OWMode := ocmSummed;
+        cmValue63:
+          set AppHist.OWMode := ocmNone;
+      end;  //case
+
+      SetModified(true);
+      UpdateTable;
+      #SetVisibleOWPeriod(AppHist, #AppHist.PeriodOW)
+    }
+
+    #fullNamePodr:
+    {
+      var OldDept: comp;
+          OldDept:= Appointments.Department;
+      var OldPost: comp;
+          OldPost:= Appointments.Post;
+
+      var _parmode: word;
+      var _sTag   : word;
+
+      if KlSovm.Sovm = 2
+      {
+        _parmode:= 7;
+        _sTag:= 1;
+      }
+      else
+      {
+        _parmode:= 0;
+        _sTag:= 0;
+      }
+
+      if getfirst fastfirstrow Catalogs where (( -11 == Catalogs.syscode)) = tsOk
+      {
+        ParentSav := Catalogs.nrec;// Appointments.Department; 
+      }
+
+      if (comp(Appointments.StaffStr) <> 0)
+        cPar := Appointments.StaffStr
+      else
+        cPar := comp(0);
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', -11, ParentSav, _parmode, 0, _sTag) = cmDefault)
+      {
+        if not CheckPodrInFiltr(ParentSav)
+          Message('Установленный фильтр не позволяет выбирать данное подразделение.', Information);
+        else
+        {
+          if (RecordsInTable(#StaffStruct) = 0) or (Appointments.wAddWord1 = 2)
+          {
+            if (Appointments.NRec <> 0) and (ParentSav <> Appointments.Department)
+              AKps.DeleteAllKPS(2, Appointments.NRec);
+
+            Set Appointments.Department := ParentSav;
+          }
+          else
+          {
+            var sBackButton: string = 'RPD_BACK_PV_'+string(UserID);
+            SaveMyDsk(true, sBackButton);
+            var bSetAppInside: boolean = SetAppInside(ParentSav, ContDoc.dPrik);
+            SaveMyDsk(false, sBackButton);
+
+            SetModified(true);
+            UpdateTable;
+
+            if (bSetAppInside)
+            {
+              // удалить уже взятые однажды доплаты
+              ORS.DelVacancyRaise(cPar, ContDoc.nRec);
+              // завести по новой ставке
+              ORS.AddVacancyRaise(Appointments.nRec, Appointments.StaffStr, ContDoc.nRec);
+            }
+
+            SelectField(#AppHist.coef1);
+          }
+        }
+
+        set ContDoc.cNew3 := AKps.GetMainKps(Appointments.nRec);
+
+        set ContDoc.cDopRef := Appointments.Department;
+
+        if (ContDoc.wDopAttr <> UsualReception)
+          CheckContDocwOrderSNG(ContDoc.cNew1);
+
+        update current ContDoc;
+
+        MessConfirmLimit;
+
+        RecalcIF;
+
+        if GetFirst fastfirstrow CatTarZone where ((Tarstav.Tarzone == CatTarZone.nRec)) = tsOk
+        {
+          InfPsn1.sum1 := Double(CatTarZone.CatData);
+          update current InfPsn1;
+        }
+      } //if (RunInterface(PickCatalog2, integer(-11), ParentSav, comp(0)) = cmDefault)
+    } //fullNamePodr:
+
+    #KlKatego.NaiKat:
+    {
+      var ItemTable: comp;
+      var Marker: TPtr;
+      var cOldValue: comp = Appointments.EmpCategory;
+      Marker := InitMarker('', 8, 1, 1);// Маркер для полей
+      RunInterface('Z_Zar::PickKat1', word(0), Marker, vfCanSelect or vfSingleSelection); // выбор родителя для записи
+
+      if GetMarkerCount(Marker) > 0
+      {
+        GetMarker(Marker, 0, ItemTable);
+
+        if GetFirst FastFirstRow KlKatego where ((ItemTable == KlKatego.nRec)) = tsOk
+        {
+          if ( not oiUAK.GetKategoryAccessByID(ItemTable, UserID) )
+          {
+            Message('У пользователя ' + UserName() + ' нет прав на выбор данной категории!', Information);
+            set Appointments.EmpCategory := cOldValue;
+            set AppHist.cSpr4 := cOldValue;
+          }
+          else
+          {
+            set Appointments.EmpCategory := ItemTable;
+            set AppHist.cSpr4 := ItemTable;
+          }
+
+          ReReadRecord(tnKlKatego); // восстановим относительно ограничений
+        }
+      }
+
+      DoneMarker(Marker, '');// Маркер для полей
+    }
+
+    #AppPostCat.Name:
+    {
+      var OldDept: comp;
+      OldDept := Appointments.Department;
+      var OldPost: comp;
+      OldPost := Appointments.Post;
+
+      if (comp(Appointments.StaffStr) <> 0)
+        cPar := Appointments.StaffStr
+      else
+        cPar := comp(0);
+
+      if (RecordsInTable(#StaffStruct) > 0 and Appointments.wAddWord1 <> 2)
+      {
+        if (SetAppInside(Appointments.Department, ContDoc.dPrik))
+          if (not IsNew) // не новый
+          {
+            update current Appointments;
+            // удалить уже взятые однажды доплаты
+            ORS.DelVacancyRaise(cPar, ContDoc.nRec);
+            // завести по новой ставке
+            ORS.AddVacancyRaise(Appointments.nRec, Appointments.StaffStr, ContDoc.nRec);
+          }
+
+        SelectField(#AppDopInfoCat.Name);
+      }
+      else
+      {
+        ParentSav := Appointments.Post;
+        if (RunInterface('Z_StaffCat::PickCatalog2', -22, ParentSav, 0) = cmDefault)
+        {
+          if (Appointments.NRec <> 0) and (ParentSav <> Appointments.Post)
+            AKps.DeleteAllKPS(2, Appointments.NRec);
+
+          Set Appointments.Post := ParentSav;
+
+          if (wJobFunc = 1)
+            iWorkFunctions.CreateOneLink(coAppointments, Appointments.NRec, coCatalogs, Appointments.Post, ContDoc.dPrik, Appointments.DateEnd);
+        }
+      }
+
+      set ContDoc.cNew3 := AKps.GetMainKps(Appointments.nRec);
+      update current ContDoc;
+
+      MessConfirmLimit;
+
+      RecalcIF;
+
+      RedrawPanel(CurTable);
+    } //#AppPostCat.Name:
+
+    #KlSisOpl.NaSisOpl:
+    {
+      if (ContDoc.dPrik = ZeroDate)
+      {
+        message(chr(3)+'Не заполнено поле дата назначения.',Warning+OkButton);
+        exit;
+      }
+
+      var wSisOpl: word;
+      var tari: Double;
+      var koeff: double;
+
+      tari := 0;
+      wTmp := 0;
+      koeff := vTSFuncs.GetRealCorrCoeff(AppHist.Tariff, AppHist.LastUser);
+      wSisOpl := if(IsValid(#KlSisOpl), KlSisOpl.SisOpl, 0);
+      cTmp := if(IsValid(#AppHist), AppHist.Tariff, 0);
+
+      if wSisOpl = 0
+      {
+        #DeserializeParameter(wSisOpl, 'wSisOpl');
+      }
+
+      if (RunInterface('Z_Staff::KlSisOplTariff', wSisOpl, cTmp, wTmp, tari, ContDoc.dPrik, koeff) = cmDefault)
+      {
+        #SerializeParameter(wSisOpl, 'wSisOpl');
+        SetModified(true);
+        Set AppHist.PayModel := wSisOpl;
+
+        var prizn: longint;
+        prizn := 0;
+
+        set AppHist.Tariff := cTmp;
+        set AppHist.Category := wTmp;
+        set Appointments.cCat2 := comp(wTmp);
+        set AppHist.LastUser := vTSFuncs.GetModCorrCoeffD(cTmp, koeff);
+
+        if (GetFirst KlSisOpl where (( wSisOpl == KlSisOpl.SisOpl )) = tsOk)
+          prizn := KlSisOpl.filialNo;
+
+        if (isMultiCorrCoef)
+        {
+          set AppHist.LastUser := DoubleToStr(iCorrKoef.GetFullCorrKoef1(ContDoc.Nrec, skkPrik), '[|-]36666666666667.88999999999999999999');
+          UpdateTableWithInserted;
+
+          if (prizn = 11)
+            set AppHist.TaxRate := vTSFuncs.RoundStaffTarif(AppHist.PayModel, GetTarByTarif(AppHist.TaxRate, false, 1) * AppHist.coef1);
+          else
+            set AppHist.TaxRate := vTSFuncs.RoundStaffTarif(AppHist.PayModel, GetTarByTarif(AppHist.TaxRate, false, 1));
+        }
+        else
+        {
+          if (tari <> 0)
+          {
+            if (prizn = 11)
+              set AppHist.TaxRate := vTSFuncs.RoundStaffTarif(AppHist.PayModel, tari * AppHist.coef1);
+            else
+              set AppHist.TaxRate := vTSFuncs.RoundStaffTarif(AppHist.PayModel, tari);
+          }
+        }
+
+        SetModified(true);
+      }
+    }
+
+    #AppWorkCondCat.Name:
+    {
+      ParentSav := AppHist.WorkCond;
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-33), ParentSav, comp(0)) = cmDefault)
+      {
+        Set AppHist.WorkCond := ParentSav;
+        SetModified(true);
+      }
+    }
+
+    #AppTypeMove.Name:
+    {
+      ParentSav := Appointments.TypeMove;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(1446), ParentSav, comp(0)) = cmDefault)
+        set Appointments.TypeMove := ParentSav;
+    }
+
+    #AppDopInfoCat.Name:
+    {
+      ParentSav := Appointments.cAddNrec1;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-175), ParentSav, comp(0)) = cmDefault)
+      {
+        set Appointments.cAddNrec1 := ParentSav;
+        SelectField(#AppHist.coef1);
+      }
+    }
+
+    #AppNatCat.Name:
+    {
+      ParentSav := Appointments.KindApp;
+      iEntry := -123;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', iEntry, ParentSav, comp(0)) = cmDefault)
+        Set Appointments.KindApp := ParentSav;
+    }
+    #PasName:
+    {
+      if (not UpdateTableWithInserted)
+      {
+        abort;
+        exit;
+      };
+      var strAddrTitle: string;
+      ParentSav := ContDoc.cCat1;
+      strAddrTitle := 'Место регистрации ' + Persons.FIO;
+      RunInterface('Z_Staff::HistAdrReg', strAddrTitle, ParentSav, WORD(24), Persons.NRec);
+      set ContDoc.cCat1 := ParentSav;
+      SetModified(true);
+    }
+    #FullIf: // источники финансирования
+    {
+      if UpdateTableWithInserted
+        if not funIsOrderConfirm
+        {
+          if WWIF.ShowScreenOnDate(coContDoc, ContDoc.Nrec, 1, AppHist.coef1, Appointments.AppointDate)
+            ReDrawPanel(tnAppointments); // прорисовать в случае изменения
+        }
+        else
+          if WWIF.ShowScreenOnDate(coContDoc, ContDoc.Nrec, 0, AppHist.coef1, Appointments.AppointDate)
+            ReDrawPanel(tnAppointments); // прорисовать в случае изменения
+    }
+    #KlKategs.naikat:   //Категория работающего для выплаты северных надбавок
+    {
+      var NorthernCategory: word;
+      if (runinterface('Z_Zar::PickkatS', NorthernCategory) = cmDefault)
+      {
+        set InfPsn1.cRef1 := NorthernCategory;
+        set InfPsn1.str1 := string(iRunStaj.GetPercServN(Persons.NRec, NorthernCategory, ContDoc.dPrik));
+        if (update current InfPsn1 = tsOk)  {}
+      }
+      SetModified(true);
+    }
+    #StrahCat.CatData,
+    #StrahCat.Code:
+    {
+      if (not UpdateTableWithInserted)
+      {
+        abort;
+        exit;
+      }
+
+      ParentSav := Persons.cAddNRec2;
+      if (RunInterface('Z_StaffCat::PickCatalog2', -4, ParentSav, 0) = cmDefault)
+        if (ParentSav <> Persons.cAddNRec2)
+          {
+          Persons.cAddNRec2 := ParentSav;          
+          update current Persons;
+          ReReadRecord(tnPersons);
+          set ContDoc.wAttrDoc3 := 1;
+          }
+    }
+
+    #sWF_APP:
+    {
+      if (Appointments.Post = 0) and (ContDoc.cNew2 <> 2)
+        message('Не выбрана ставка/должность');
+      else
+      {
+        iWorkFunctions.SetTFAppoint(coContDoc, ContDoc.NRec, if(ContDoc.cNew2 = 2, 0,
+                                    case(Appointments.wAddWord1; 1: Appointments.StaffStr, 2: Appointments.Post; 0)),
+                                    ContDoc.dPrik, Appointments.DateEnd, if(ContDoc.cNew2 = 2, 2, Appointments.wAddWord1));
+        set sWF_APP;
+      }
+    }
+
+    #Appointments.wAddWord1:
+    {
+       cfsSetProp('i_SCRDOC_APPPOSTCAT.NAME', cfpFontBackColor       ,   0 );
+    }
+
+    #BornName:
+    {
+      if (not UpdateTableWithInserted)
+      {
+        abort;
+        exit;
+      };
+      var strAddrTitle: string;
+      ParentSav := Persons.BornAddr;
+      strAddrTitle := 'Место рождения ' + Persons.FIO;
+      RunInterface('Z_STAFF::AddressWinN', strAddrTitle, ParentSav, WORD(3), Persons.NRec);
+      BornName := iAdrFunc.GetFullAddressIndOnDate(ParentSav, Persons.BornDate);
+      if (BornName <> '')
+        set Persons.BornAddr := ParentSav;
+      else
+        set Persons.BornAddr := 0;      
+      update current Persons;
+      SetModified(true);
+    }
+    #GrCatName:
+    {
+      RunInterface('Z_StaffCat::PickCatalog2', -120, Persons.Gr, 0);      
+      update current Persons;
+      GrCatName := iCatFunc.GetCatalogsName(Persons.Gr);
+      GrCatNrec := Persons.Gr;
+      ReReadRecord(tnPersons);
+      SetModified(true);
+    }
+
+    end;//case
+}
+
+cmWindowCreated:
+{
+  BornName := iAdrFunc.GetFullAddressIndOnDate(Persons.BornAddr, Persons.BornDate);
+  GrCatName := iCatFunc.GetCatalogsName(Persons.Gr);  
+  if GrCatName = '' 
+  {
+    if getfirst fastfirstrow SNG_Catalogs Where(( -120 == SNG_Catalogs.SysCode )) = tsOk
+    {
+      var cParGr: comp = SNG_Catalogs.nRec;
+      if getfirst fastfirstrow SNG_Catalogs Where(( cParGr == SNG_Catalogs.cParent and
+                                                    643    == SNG_Catalogs.Code )) = tsOk
+    {
+      GrCatName := iCatFunc.GetCatalogsName(SNG_Catalogs.NRec);
+      set Persons.Gr := SNG_Catalogs.NRec;
+      GrCatNrec := SNG_Catalogs.NRec;      
+      var bTestPers: boolean = false;
+
+      if (IsValid(#Persons))
+        if (Persons.NRec <> 0)
+          if (GetFirst Test_Persons where (( Persons.NRec == Test_Persons.NRec )) = tsOk)
+            bTestPers := true;
+
+      if (bTestPers)       
+        update current Persons;
+    }
+  }
+  }
+  ReScanPanel(#Appointments);
+}
+
+cmPostInit:
+{
+   inherited::handleEvent(cmPostInit);
+   _Num := 0;
+   _Num := get_num();
+   ReScanPanel(#Appointments);
+}
+
+cmCheckField:
+{
+  if inherited::handleEvent(cmCheckField) = heAbort
+    abort;
+
+  case CurField of
+    #_num, #wProbationUnit:
+    {
+      ContDoc.Dat1:=get_Dat1();
+      update current CONTDOC;
+    }
+
+    #wFormOpl:
+    {
+      var wPayModel: word;
+
+      if Word(ExprFieldValue) = 0
+      {
+        // выбрана сдельная форма оплаты
+        wPayModel := 20;
+      }
+      else
+      {
+        // выбрана повременная форма оплаты
+        if IsValidAll(#TarStav)
+          wPayModel := TarStav.SisOpl;
+        else if IsValidAll(#StaffStruct)
+          wPayModel := StaffStruct.PayModel;
+      }
+
+      if wPayModel <> 0
+      {
+        set Apphist.PayModel := wPayModel;
+        set Appointments.PayModel := wPayModel;
+      }
+    }
+  end;
+} //cmCheckField
+
+// стажи
+cmValue1:
+{
+  if (TitleDoc.wStatus = 1) or ( TitleDoc.wStatus = 2 )
+    RunInterface(AllStaj, Persons.Nrec, word(1), true); //просмотр
+  else
+  {
+    RunInterface(AllStaj, Persons.Nrec, word(100), true); //просмотр, редактирование стажей
+
+    set InfPsn1.str1 := string(iRunStaj.GetPercServN(Persons.NRec, InfPsn1.cRef1, ContDoc.dPrik));
+    update current InfPsn1;
+  }
+}
+
+cmValue27:
+{
+  if(InfPsn1.cRef1<>0 and ((KlKategs.FilialNo and 2)=0) and ContDoc.dPrik<>zerodate)
+    RunInterface('SNG_ServlenFunc::PlanDateChangeSN', Persons.NRec, InfPsn1.cRef1, ContDoc.dPrik);
+}
+
+
+cmValue13:    // HR-1095 nnt
+{
+
+  if inherited::handleEvent(cmValue13) = heAbort
+    abort;
+
+	 ExtAttrID:=oExtAttr.CreateAttr(coPersons, 'Конец использования льготного отпуска', cgAttrType_Date);
+	 LgotEnd := oExtAttr.dGetAttr(coPersons, Persons.nRec, 'Конец использования льготного отпуска') ;
+   RunWindowModal(winLgotEndOtpusk);
+}
+
+//HR-965
+cmOrgLevel:
+{
+      ParentSav := Appointments.nrec;// Appointments.Department; 
+      //message(TitleDoc.wStatus);
+      RunInterFace('SNG_OrgLevel::SNG_OrgLevel', ParentSav, fullNamePodr, TitleDoc.wStatus );
+}
+end; //handleEvent
+
+end.
+
+// HR-864 GKS Убрал лишний пункт из меню
+CaseOWModeSNG1 menu   //Выбор для поля способ учета сверхурочных
+{
+  - 'Поденный',cmValue61,'Способ учета сверхурочных поденный';
+  - 'Суммированный',cmValue62,'Способ учета сверхурочных суммированный';
+  - 'Несуммированный',cmValue63,'Способ учета сверхурочных несуммированный';
+}

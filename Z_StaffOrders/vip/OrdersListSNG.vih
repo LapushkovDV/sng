@@ -1,0 +1,32 @@
+//------------------------------------------------------------------------------
+//                                                      (c) корпорация Галактика
+// Галактика 10.1 - Управление персоналом
+//------------------------------------------------------------------------------
+
+#ifndef _OrdersListSNG_INCLUDED_
+#define _OrdersListSNG_INCLUDED_
+
+#component "Z_StaffOrders"
+
+#include OrdersList.vih
+
+ObjInterface IOrdersListSNG01;
+
+  #doc
+    Утверждение всего приказа
+  #end
+  public procedure ConfirmOrderSNG(cTitle: comp = 0);
+
+  #doc
+    Проверка всего приказа
+  #end
+  public function CheckOrderSNG(cTitle: comp = 0): boolean;
+
+end;
+
+
+VipInterface OrdersListSNG (OrdersList)
+  implements IOrdersListSNG01
+  licensed (staffmainmenu,staffmainmenu2);     
+
+#end

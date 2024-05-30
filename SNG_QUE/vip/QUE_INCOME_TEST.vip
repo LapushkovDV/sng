@@ -59,7 +59,7 @@ create view
 
 handleevent // фейса
  cmValue1: {
-  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
   var _res : TResultGetStatusMessageInIncomeQueue = iQUE_INCOME_BASE.GetStatusMessageInIncomeQueue(_ID_QUEUE);
   var _body : widestring[2097151] = _res.Body;
   var _FilePath : string = iQUE_INCOME_BASE.GenerateNewFile + '.txt';
@@ -69,9 +69,9 @@ handleevent // фейса
   putfiletoclient(_FilePath,false);
 }
 cmValue2: {
-  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
-   iQUE_INCOME_BASE.ProcessQueueIncome;
-   message('Готово')
+  var iQUE_INCOME_BASE00 : QUE_INCOME_BASE new;
+  iQUE_INCOME_BASE00.ProcessQueueIncome;
+  message('Готово')
 }
 cmValue3: {
  runinterface('SNG_QUE::QUE_View_QUE_INCOME');
@@ -80,7 +80,7 @@ cmValue4: {
  runinterface('SNG_QUE::QUE_SenderSystems');
 }
 cmvalue5: {
-  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
   if iQUE_INCOME_BASE.PutMessageToQueueIncome('test', true, _txtbody, '') {
     message('Запись успешно добавлена');
   } else {

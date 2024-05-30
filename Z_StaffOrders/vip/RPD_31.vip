@@ -1,0 +1,128 @@
+#component "Z_StaffOrders"
+
+#doc
+Докомпиляция интерфейса РПД-31
+#end
+alter interface RPD_31;
+
+create view 
+var
+  oExtAttr: iExtAttr;
+  ExtAttrIDDay : comp;
+  ExtAttrIDChk : comp;
+as select
+  oExtAttr.lGetAttrID(coPunishments,Punishments.nrec,ExtAttrIDChk) (fieldname = Chk_D),
+  oExtAttr.lGetAttrID(coPunishments,Punishments.nrec,ExtAttrIDDay) (fieldname = Col_Days)
+;
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+extendFormats scrDet31;
+
+screen scrDet31 (,hcStaffWinPr, scStaffMyPnl);  //Взыскание
+show at (, 5,,);
+table Punishments;
+  fields
+	Chk_D ('Пребывание в вытрезвителе'): noprotect;
+	Col_Days ('Кол-во потерянных дней'): [4], noprotect;
+<<
+ 
+ 
+                                                        [.] Пребывание в вытрезвителе`
+ 
+                                                 Кол-во потерянных дней .@@@@
+
+
+
+
+
+>>
+
+end; // screen scrDet35
+
+// Процедура открытия\закрытия полей для редактирования
+procedure EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if fnFieldsOpen // приказ не утвержден
+  {
+    SetFieldOption(#Chk_D, ofSelectable);
+    SetFieldOption(#Col_Days, ofSelectable);
+  }
+  else // приказ утвержден
+  {
+    ClearFieldOption(#Chk_D, ofSelectable);
+    ClearFieldOption(#Col_Days, ofSelectable);
+  }
+}
+
+TableEvent table CONTDOC;
+  cmDeleteRecord:
+  {
+    inherited::handleEvent(cmDeleteRecord);
+    oExtAttr.DeleteValueID(coPunishments, Punishments.nrec, ExtAttrIDChk);
+    oExtAttr.DeleteValueID(coPunishments, Punishments.nrec, ExtAttrIDDay);
+  }
+end;
+
+TableEvent table PUNISHMENTS;
+  cmCheckField:
+  {
+    inherited::handleEvent(cmCheckField);
+    case CurField of
+      #Chk_D:
+        oExtAttr.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDChk, if(Chk_D = 0, 1, 0));
+
+      #Col_Days:
+        oExtAttr.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDDay, LongInt(ExprFieldValue));
+      #PUNISHMENTS.DAT1:
+        set PUNISHMENTS.FILIALNO := To_Days(Add_Months(PUNISHMENTS.DAT1, 12));
+    end;       //case
+  }
+
+  cmInsertRecord:
+  {
+    var _Chk_D:LongInt = LongInt(Chk_D);
+    var _Col_Days:LongInt = LongInt(Col_Days);
+    if(oExtAttr.ValueExistsID(coPunishments, 0, ExtAttrIDChk))
+     oExtAttr.DeleteValueID(coPunishments, 0, ExtAttrIDChk);
+    if(oExtAttr.ValueExistsID(coPunishments, 0, ExtAttrIDDay))
+     oExtAttr.DeleteValueID(coPunishments, 0, ExtAttrIDDay);
+
+    inherited::handleEvent(cmInsertRecord);
+    oExtAttr.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDChk, _Chk_D);
+    oExtAttr.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDDay, _Col_Days);
+  }
+end;  //TableEvent PUNISHMENTS
+
+handleEvent
+  cmOnVipLoad:
+  {
+    ExtAttrIDDay:=oExtAttr.CreateAttr(coPunishments, 'Кол-во потерянных дней', cgAttrType_LongInt);
+    ExtAttrIDChk:=oExtAttr.CreateAttr(coPunishments, 'Пребывание в вытрезвителе', cgAttrType_LongInt);
+
+    if inherited::handleEvent(cmOnVipLoad) = heAbort
+      abort;
+
+    SetFieldAndLabelVisible(#PUNISHMENTS.DOCSUM, false);
+    cfsSetProp('T_SCRDET31_Сумма_(процент)', cfpVisible, false);  //т.к. метка не скрывается через SetFieldAndLabelVisible
+    ClearFieldState(#PUNISHMENTS.DOCSUM, sfVisible);
+    ClearFieldState(#CurrNamePun, sfVisible);
+    cfsSetProp('T_SCRDET31_Дата_окончания', cfpTitle, 'Дата снятия');
+  }
+
+  cmPositionChanged:
+  {
+    if (oExtAttr.ValueExistsID(coPunishments, 0, ExtAttrIDChk))
+      oExtAttr.DeleteValueID(coPunishments, 0, ExtAttrIDChk);
+    if (oExtAttr.ValueExistsID(coPunishments, 0, ExtAttrIDDay))
+      oExtAttr.DeleteValueID(coPunishments, 0, ExtAttrIDDay);
+
+    inherited::handleEvent(cmPositionChanged)
+  }
+
+end;  //handleEvent
+end.

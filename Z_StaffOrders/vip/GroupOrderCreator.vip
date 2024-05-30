@@ -1,0 +1,29 @@
+#component "Z_StaffOrders"
+
+alter interface GroupOrderCreator;
+
+var viCYPersons2: ChoiseYourPersons new;
+
+overload
+procedure PickWorkers;
+end;
+
+Procedure PickWorkers;
+{
+  var DummyMarker, tmpWorkingMarker : TPtr;
+  DummyMarker := InitMarker('', 8, 1, 1);
+  tmpWorkingMarker := InitMarker('', 8, 10, 30, false);
+
+  CopyMarker(tmpWorkingMarker, WorkingMarker);
+
+  var cChoice: comp = 0;
+
+  if viCYPersons2.Choice(DummyMarker, 6, vfMultipleSelection, wK, cChoice, WorkingMarker)
+    AboutMarkerStr; // прорисовать
+  else
+    CopyMarker(WorkingMarker, tmpWorkingMarker);
+
+  DoneMarker(tmpWorkingMarker, '');
+  DoneMarker(DummyMarker, '');
+} // Procedure PickWorkers;
+end.

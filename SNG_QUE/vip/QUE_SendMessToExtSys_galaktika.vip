@@ -36,7 +36,7 @@ create view
 var _cQUE_Handler_tune : comp;
     iQUE_BASE : QUE_BASE;
     iQUE_INCOME_BASE : QUE_INCOME_BASE;
-    logenable : boolean = true;
+    logenable : boolean = false;
 from
   QUE_Handler_tune Handler_tune
 where ((
@@ -103,13 +103,16 @@ function AuthenficateGetToken(address: string; _usr, _pswd: string; var _logfile
           {
             result := lToken;
           } else {
-            if _CanRelogin = true
-             result := AuthenficateGetToken(address, _usr, _pswd, _logfile, false);
+            if _CanRelogin = true {
+               result := AuthenficateGetToken(address, _usr, _pswd, _logfile, false);
+             }
           }
-    var _file : string = iQUE_BASE.GenerateNewFile +'_logLogin.log';
-    _logfile := _file;
-    HttpConnect_ResponseLogToFile(httpCon, _file);
-    putfiletoclient(_file, false);
+    if _logfile = '' then  { // в случае релогина только последний нуден
+      var _file : string = iQUE_BASE.GenerateNewFile +'_logLogin.log';
+      _logfile := _file;
+      HttpConnect_ResponseLogToFile(httpCon, _file);
+    }
+    //putfiletoclient(_file, false);
     // HttpConnect_Free(httpCon);
 
 
@@ -187,7 +190,7 @@ function DoRequest(address: string; token: tptr; _JSONBODYlongstring : tptr; var
     var _file : string = iQUE_BASE.GenerateNewFile +'_logDorequest.log';
     HttpConnect_ResponseLogToFile(httpCon, _file);
     _logfile := _file;
-    putfiletoclient(_file, false);
+    //putfiletoclient(_file, false);
     //HttpConnect_Free(httpCon);
   }
 }
@@ -198,7 +201,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
  var iQUE_BASE : QUE_BASE new;
 
  set _cQUE_Handler_tune := __cQUE_Handler_tune;
-
+// message('Galaktika')
  if getfirst Handler_tune <> tsOK {
     _retFileLog := '';
     _retStatus  := 'Не найдена настройка QUE_Handler_tune.nrec=' + string(__cQUE_Handler_tune);
@@ -269,10 +272,12 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
   deletefile(_messageFileBase64);
 
 
+  /*
   var _messlongstr : tptr = iQUE_INCOME_BASE.convertLongstringFromBase64(_longValue64 );
    var _convertLongstringFromBase64File : string = iQUE_BASE.GenerateNewFile +'_convertLongstringFromBase64.log' ;
     HttpConnect_SaveToFileEx(httpCon, _messlongstr, _convertLongstringFromBase64File, cpUTF8, false);
     putfiletoclient(_convertLongstringFromBase64File,false);
+  */
 
 
 
@@ -325,6 +330,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
      _retStatus := 'Ошибка авторизации';
       exit;
    }
+   deletefile(_retFileLog);
 // message('after HttpConnect_GetLongStringLength');
  var _lresponse : tptr;
 

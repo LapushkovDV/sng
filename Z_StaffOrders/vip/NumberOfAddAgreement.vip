@@ -1,0 +1,1063 @@
+#component "Z_StaffOrders"
+
+#include StrFunc.vih
+#include ChoiseYourPersons.vih
+
+alter interface NumberOfAddAgreement;
+
+overload
+procedure ShowAgrWin(_wLink: word; _cLink: comp; _dateAgreement: date; _cContract: comp; _cPsn: comp = 0; _cApp: comp = 0);
+procedure DeleteAgLi(_wLink: word; _cLink: comp; _cDopLink: comp = 0);
+function GetCompAgVid(_cAgreement: comp): comp;
+function GetStrAgVid(_cAgreement: comp): string;
+function CreateAgreementWithNum(_cContract: comp; _dateAgreement, _dateBeg, _dateEnd: date; _nmbAgreement: string; _wLink: word; _cLink: comp; _cDopLink: comp = 0): comp;
+end;
+
+var
+  iStrFunc: StringFunctions;
+  viCYPersons: ChoiseYourPersons;
+  ParentSav,
+  cAgreementLT: comp;
+  old_comp: array [1..12] of comp;
+  old_string: array [1..5] of string;
+  old_word: word;
+
+function GetJobNature: string; forward;
+function GetJobNatureForBrowse: string; forward;
+
+create View  NumberOfAddAgreement
+var
+  bProtected: boolean;
+
+as select
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[1]) (FieldName = s1),  // срок расторжения работодателем
+//  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[2]) (FieldName = s2),  // срок расторжения сотрудн
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[3]) (FieldName = s3),  // место пров. работ
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[4]) (FieldName = s4),  // пункт сбора
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[5]) (FieldName = s5),  // как добирается
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[6]) (FieldName = s6),  // буферная зона
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[7]) (FieldName = VidDS),  // вид ДС
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp.ResComp[8]) (FieldName = VidTD),  // вид ТД
+
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[3]) (FieldName = s3_browse),  // место пров. работ
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[4]) (FieldName = s4_browse),  // пункт сбора
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[5]) (FieldName = s5_browse),  // как добирается
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[6]) (FieldName = s6_browse),  // буферная зона
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[7]) (FieldName = VidDS_browse),  // вид ДС в 6 окне
+  iCatFunc.GetCatalogsName(SpAllStaff_Exp1.ResComp[8]) (FieldName = VidTD_browse),  // вид ТД
+
+  ((SpAllStaff_Exp.ResWord[1] and 1) = 1) (FieldName = bRast1),
+  ((SpAllStaff_Exp.ResWord[1] and 2) = 2) (FieldName = bRast2),
+  ((SpAllStaff_Exp.ResWord[1] and 4) = 4) (FieldName = bRast3),
+  ((SpAllStaff_Exp.ResWord[1] and 8) = 8) (FieldName = bRast4),
+  ((SpAllStaff_Exp.ResWord[1] and 16) = 16) (FieldName = bRast5),
+
+  if(IsValid(#ExternalASMDopSogl2),
+    if(Length(ExternalASMDopSogl2.Numbers[3]) > 0, ExternalASMDopSogl2.Numbers[3], sAgreement_gl ), sAgreement_gl)
+    (FieldName = ExtNum),
+
+  (iStrFunc.UnVisibleDate(dAgreement_gl, 'DD/MM/YYYY'))
+    (FieldName = ExtDateAccept),
+
+  BCase( IsValidAll(tnAppCur) : CatPostCur.Name,
+         IsValidAll(tnAppLast): CatPostLast.Name )
+    (FieldName = PostPers),
+
+  GetJobNature()
+    (FieldName = JobNat),
+
+  GetJobNatureForBrowse()
+    (FieldName = JobNat_browse),
+
+  iCatFunc.GetCatalogsName(AppointmentsPrik.Post)
+    (FieldName = PostPers2),
+
+  GetStrTabN(PersonsPrik.TabNmb, PersonsPrik.StrTabN)
+    (FieldName = TabN_fld),
+
+  WWC.GetContractString(cContract_gl)
+    (FieldName = ContractString),
+
+  case(AppContDoc.wAddWord1; 0: '', 1: 'по ШР', 2: 'вне ШР')
+    (FieldName = shr_fld) ,
+
+  if((SpAllStaff_Exp1.ResWord[1] and 1) = 1, '30-60 км',
+    if((SpAllStaff_Exp1.ResWord[1] and 2) = 2, '60-100 км',
+      if((SpAllStaff_Exp1.ResWord[1] and 4) = 4, '100-180 км',
+        if((SpAllStaff_Exp1.ResWord[1] and 8) = 8, '180-250 км',
+          if((SpAllStaff_Exp1.ResWord[1] and 16) = 16, 'свыше 250 км', '')))))
+    (FieldName = strRast)
+
+from
+   Appointments NewAppoint
+ , AppHist AppHistOfContDoc
+ , AppHist NewAppHist
+ , AppHist AppHistForDS
+ , AppHist AppHist_CD
+ , AppHist AppHist_CD5rpd
+ , AppHist AppHist_AH
+ , Catalogs CatPostCur
+ , Catalogs CatPostLast
+ , Catalogs JobNaturePers
+ , Catalogs JobNatureContD
+ , Catalogs JobNatureAppHist
+ , Catalogs JobNature5rpd
+ , ContDoc ContDoc2part
+ , ContDoc ContDoc2part_CD
+ , ContDoc ContDoc_CD
+ , ContDoc ContDoc_AH
+ , Persons PersonsPrik
+ , Persons Persons1
+ , Persons Persons2
+ , Persons Persons3
+ , Persons Persons4
+ , Persons Persons5
+ , Persons Syn_Persons1
+ , Persons Syn_Persons2
+ , Persons Syn_Persons3
+ , Persons Syn_Persons4
+ , Persons Syn_Persons5
+ , SpAllStaff SpAllStaff_Exp
+ , SpAllStaff SpAllStaff_Exp1
+ , SpAllStaff SpAllStaff_AgrLink_CD
+ , SpAllStaff SpAllStaff_AgrLink_AH
+ , SpAllStaff SpAllStaff_TD_Exp
+ , SpAllStaff SpAllStaff_TD_Exp2
+ , SpAllStaff SpAllStaff_2
+ , KlSovm KlSovmPers
+ , ExternalASM ExternalASMDopSogl2
+
+where
+((
+      Setted_SpAllStaff.cBaseT == PersonsPrik.nrec
+  // доп поля ТД
+  and cgAllStaffExp            == SpAllStaff_TD_Exp.wNoCon
+  and Setted_SpAllStaff.nrec   == SpAllStaff_TD_Exp.cBaseT
+
+  and AppCur.Post              == CatPostCur.nrec
+  and AppLast.Post             == CatPostLast.nrec
+
+  and PersonsPrik.JobNature   == JobNaturePers.Nrec
+  and word(PersonsPrik.cSovm) == KlSovmPers.Sovm
+
+  // для определения Характера работы
+  and ContDoc.cRef1        == JobNatureContD.Nrec
+  and ContDoc.NRec         == AppHistOfContDoc.cContDoc
+  and AppHistOfContDoc.cRez2  == JobNatureAppHist.NRec
+
+  // для определения Характера работы  РПД-5
+  and ContDoc.cPart         == ContDoc2part.cPart
+  and ContDoc.TypeOper      == ContDoc2part.TypeOper
+  and ContDoc.Person        == ContDoc2part.Person
+  and Integer(1)            << ContDoc2part.SeqNmb
+  and ContDoc.wRec          == ContDoc2part.wRec(noIndex)
+  and ContDoc2part.nRec     == NewAppHist.cContDoc
+  and NewAppHist.cRez2      == JobNature5rpd.Nrec
+  and ContDoc2part.cStr     == NewAppoint.Nrec
+
+
+
+  // для 6-й картотеки кнопка "договора" инфа из доп. полей
+  and cgAllStaffExp                  == SpAllStaff_Exp1.wNoCon
+  and InMem_AddAgreements.cAgreement == SpAllStaff_Exp1.cBaseT
+
+  // данные для browse (когда ДС связано с ContDoc)
+  and cgAllStaffAgreementLink      == SpAllStaff_AgrLink_CD.wNoCon
+  and SpAllStaff_Exp1.cBaseT       == SpAllStaff_AgrLink_CD.cBaseT
+  and coContDoc                    == SpAllStaff_AgrLink_CD.wChoise (noindex)
+  and SpAllStaff_AgrLink_CD.cLinkT == ContDoc_CD.nrec
+  and ContDoc_CD.NRec              == AppHist_CD.cContDoc
+
+  // для определения Характера работы из РПД-5   для показа в browse
+  and ContDoc_CD.cPart         == ContDoc2part_CD.cPart
+  and ContDoc_CD.TypeOper      == ContDoc2part_CD.TypeOper
+  and ContDoc_CD.Person        == ContDoc2part_CD.Person
+  and Integer(1)               << ContDoc2part_CD.SeqNmb
+  and ContDoc_CD.wRec          == ContDoc2part_CD.wRec(noIndex)
+  and ContDoc2part_CD.nRec     == AppHist_CD5rpd.cContDoc
+
+  // данные для browse (когда ДС связано с AppHist)
+  and cgAllStaffAgreementLink      == SpAllStaff_AgrLink_AH.wNoCon
+  and SpAllStaff_Exp1.cBaseT       == SpAllStaff_AgrLink_AH.cBaseT
+  and coAppHist                    == SpAllStaff_AgrLink_AH.wChoise (noindex)
+  and SpAllStaff_AgrLink_AH.cLinkT == AppHist_AH.nrec
+  and AppHist_AH.cContDoc          == ContDoc_AH.nrec
+
+  // для окна редактирования ДС
+  and cgAllStaffExp         == SpAllStaff_Exp.wNoCon
+  and cAgreementLT          == SpAllStaff_Exp.cBaseT
+
+  // ссылка на данные из DX для окна редактирования ДС
+  and byte(101)             == ExternalASMDopSogl2.ASM_Type
+  and coSpAllStaff          == ExternalASMDopSogl2.wTable
+  and cAgreementLT          == ExternalASMDopSogl2.cRec
+
+  and comp(SpAllStaff_Exp.ResString[1]) == Persons1.nrec
+  and comp(SpAllStaff_Exp.ResString[2]) == Persons2.nrec
+  and comp(SpAllStaff_Exp.ResString[3]) == Persons3.nrec
+  and comp(SpAllStaff_Exp.ResString[4]) == Persons4.nrec
+  and comp(SpAllStaff_Exp.ResString[5]) == Persons5.nrec
+
+  and comp(SpAllStaff_Exp1.ResString[1]) == Syn_Persons1.nrec
+  and comp(SpAllStaff_Exp1.ResString[2]) == Syn_Persons2.nrec
+  and comp(SpAllStaff_Exp1.ResString[3]) == Syn_Persons3.nrec
+  and comp(SpAllStaff_Exp1.ResString[4]) == Syn_Persons4.nrec
+  and comp(SpAllStaff_Exp1.ResString[5]) == Syn_Persons5.nrec
+));
+
+#declare RunHyperLinkFull(Tab)
+
+  if (#Tab.Numbers[1] <> '')
+  {
+     var aErrorCode: integer;
+     var sPagePath: string = #Tab.Numbers[5]+#Tab.Numbers[6];
+     ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+  }
+
+#end
+
+function GetJobNature: string;
+{
+  case ContDoc.TypeOper of
+    4: result := JobNatureContD.Name;
+    5: result := JobNature5rpd.Name;
+    45,65:  result := JobNatureAppHist.Name;
+
+  else
+    result := JobNaturePers.Name;
+  end;
+}
+
+function GetJobNatureForBrowse: string;
+{
+  if IsValid(#SpAllStaff_AgrLink_CD)
+  {
+    case ContDoc_CD.TypeOper of
+      4: result := iCatFunc.GetCatalogsName(ContDoc_CD.cRef1);
+      5: result := iCatFunc.GetCatalogsName(AppHist_CD5rpd.cRez2);
+      45,65:  result := iCatFunc.GetCatalogsName(AppHist_CD.cRez2);
+
+    else
+      result := if(isValid(#JobNaturePers), JobNaturePers.Name, '' );
+    end;
+  }
+  else
+    if IsValid(#SpAllStaff_AgrLink_AH)
+    {
+      case ContDoc_AH.TypeOper of
+        4: result := iCatFunc.GetCatalogsName(ContDoc_AH.cRef1);
+        //5: result := iCatFunc.GetCatalogsName(AppHist_AH5rpd.cRez2);
+        45,65:  result := iCatFunc.GetCatalogsName(AppHist_AH.cRez2);
+
+      else
+        result := if(isValid(#JobNaturePers), JobNaturePers.Name, '' );
+      end;
+    }
+    else
+      result := '';
+}
+
+overloadFormats scrAgreement;
+overloadFormats brwContractAgreement;
+
+window wnAgreement 'Редактирование данных о доп. соглашении' (,, sci1Esc) doAccept;
+  show at (,,91, 33);
+
+screen scrAgreement;
+  show at (,,90, 32);
+  table Appointments;
+  bevel b1 {1, 0, 85, 4, bsRaised, bsFrame};
+  bevel b2 {1, 4, 85, 15, bsRaised, bsFrame};
+  bevel b3 {1, 15, 85, 21, bsRaised, bsFrame};
+  bevel b4 {1, 21, 85, 29, bsRaised, bsFrame};
+  bevel b5 {1, 29, 85, 32, bsRaised, bsFrame};
+
+Fields
+  PersonsPrik.FIO ('Фамилия, Имя, Отчество'): skip;
+  PostPers2 ('Должность'): skip;
+  TabN_fld ('Таб. №'): skip;
+
+  ContractString (,, sci17Esc): skip;
+  ExternalASMTrudDog.Numbers[2] ('Статус ТД'): skip;
+  ExternalASMTrudDog.Numbers[1] ('Ссылка на ТД Directum'): protect, {hyperlink = true};
+  TitleDoc.DOCNMB ('Номер приказа'): skip;
+  TitleDoc.DOCDATE ('Дата приказа'): skip;
+  VidTD ('Вид договора'): protect, pickbutton;
+  VidDS ('Вид доп. соглашения'): protect, pickbutton, {Font = {BackColor = if(SpAllStaff_Exp.ResComp[7] = 0, ColorNeed, 0);}};
+  ExtNum ('Номер доп. соглашения'): skip;
+  ExternalASMDopSogl2.Numbers[1]  ('Ссылка на ДС Directum'): protect, {hyperlink = true};
+  dAGBeg ('Действует с'): noprotect, {Font = {BackColor = if(dAGBeg = ZeroDate, ColorNeed, 0);}};
+  dAGEnd ('Действует по'): noprotect;
+  ExtDateAccept ('Заключен'): skip;
+  ExternalASMDopSogl2.Numbers[2] ('Статус ДС'): skip;
+  KlSovmPers.NSovm  ('Вид работы'): skip;
+  JobNat  ('Характер работы'): skip;
+  shr_fld ('Признак создания через по ШР/вне ШР'): skip;
+
+  [PrakTab1] GetStrTabN(Persons1.TabNmb, Persons1.StrTabN): protect, pickbutton;
+  Persons1.FIO: skip;
+
+  [PrakTab4] GetStrTabN(Persons4.TabNmb, Persons4.StrTabN): protect, pickbutton;
+  Persons4.FIO: skip;
+
+  [PrakTab2] GetStrTabN(Persons2.TabNmb, Persons2.StrTabN): protect, pickbutton;
+  Persons2.FIO: skip;
+
+  [PrakTab5] GetStrTabN(Persons5.TabNmb, Persons5.StrTabN): protect, pickbutton;
+  Persons5.FIO: skip;
+
+  [PrakTab3] GetStrTabN(Persons3.TabNmb, Persons3.StrTabN): protect, pickbutton;
+  Persons3.FIO: skip;
+
+  s1: protect, pickbutton;
+//  s2: protect, pickbutton;
+  s3: protect, pickbutton;
+  s4: protect, pickbutton;
+  s5: protect, pickbutton;
+  s6: protect, pickbutton;
+
+  bRast1: noprotect, noframe;
+  bRast2: noprotect, noframe;
+  bRast3: noprotect, noframe;
+  bRast4: noprotect, noframe;
+  bRast5: noprotect, noframe;
+
+//   Срок расторжения сотрудником   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+<<
+   Сотрудник
+    Ф.И.О.    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    Должность .@@@@@@@@@@@@@@@@@@@@@@@  Таб.№  .@@@@@@@@@@@@@@@@@@@@@
+
+   Параметры доп. соглашения
+   Договор .@@@@@@@@@@@ Статус ТД .@@@@@@@@@@ Ссылка на ТД Directum .@@@@@@@@
+   Номер приказа   .@@@@@@@@@@ Дата приказа .@@@@@@@@@@@@
+   Вид договора        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Вид доп. соглашения .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Номер доп. соглашения .@@@@@@@@@@@@@@@@ Ссылка на ДС Directum .@@@@@@@@@@@
+   Действует с     .@@@@@@@@@@@@ по .@@@@@@@@@@@@ Заключен  .@@@@@@@@@@@@@@@@
+   Статус доп. соглашения .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Вид работы      .@@@@@@@@@@@@@@@@@@@@@@@@@
+   Характер работы .@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@
+
+   Практиканты
+                 Таб.№       Ф.И.О.                    Таб.№       Ф.И.О.
+   Практикант 1 .@@@@@@@ .@@@@@@@@@@@@@@ Практикант 4 .@@@@@@@ .@@@@@@@@@@@@@@
+   Практикант 2 .@@@@@@@ .@@@@@@@@@@@@@@ Практикант 5 .@@@@@@@ .@@@@@@@@@@@@@@
+   Практикант 3 .@@@@@@@ .@@@@@@@@@@@@@@
+
+   Дополнительные атрибуты доп. соглашения
+   Срок расторжения работодателем .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Место проведения работ         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Пункт сбора                    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Как добирается                 .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Буферная зона                  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+   Надбавка за время пути к месту работы
+     [:] 30-60 км` [:] 60-100 км` [:] 100-180 км` [:] 180-250 км` [:] свыше 250 км`
+
+>>
+end;
+end;
+
+windowevent wnAgreement;
+cmInit:
+{
+  // Фон делаем серым для полей, которые всегда недоступны для изменения
+  SetFontColor(scrAgreement, #PersonsPrik.FIO, ColorSys06, 0);
+  SetFontColor(scrAgreement, #PostPers2, ColorSys06, 0);
+  SetFontColor(scrAgreement, #TabN_fld, ColorSys06, 0);
+  SetFontColor(scrAgreement, #ContractString, ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExternalASMTrudDog.Numbers[1], ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExternalASMTrudDog.Numbers[2], ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExternalASMDopSogl2.Numbers[1], ColorSys06, 0);
+  SetFontColor(scrAgreement, #TitleDoc.DOCNMB, ColorSys06, 0);
+  SetFontColor(scrAgreement, #TitleDoc.DOCDATE, ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExtNum, ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExtDateAccept, ColorSys06, 0);
+  SetFontColor(scrAgreement, #ExternalASMDopSogl2.Numbers[2], ColorSys06, 0);
+  SetFontColor(scrAgreement, #KlSovmPers.NSovm, ColorSys06, 0);
+  SetFontColor(scrAgreement, #JobNat, ColorSys06, 0);
+  SetFontColor(scrAgreement, #shr_fld, ColorSys06, 0);
+  SetFontColor(scrAgreement, #Persons1.FIO, ColorSys06, 0);
+  SetFontColor(scrAgreement, #Persons2.FIO, ColorSys06, 0);
+  SetFontColor(scrAgreement, #Persons3.FIO, ColorSys06, 0);
+  SetFontColor(scrAgreement, #Persons4.FIO, ColorSys06, 0);
+  SetFontColor(scrAgreement, #Persons5.FIO, ColorSys06, 0);
+
+
+  cfsGetProp('i_SCRAGREEMENT_dAGBeg', cfpProtect, bProtected);
+
+  if bProtected
+  {
+    SetFontColor(scrAgreement, #s1, ColorSys06, 0);
+//    SetFontColor(scrAgreement, #s2, ColorSys06, 0);
+    SetFontColor(scrAgreement, #s3, ColorSys06, 0);
+    SetFontColor(scrAgreement, #s4, ColorSys06, 0);
+    SetFontColor(scrAgreement, #s5, ColorSys06, 0);
+    SetFontColor(scrAgreement, #s6, ColorSys06, 0);
+    SetFontColor(scrAgreement, #PrakTab1, ColorSys06, 0);
+    SetFontColor(scrAgreement, #PrakTab2, ColorSys06, 0);
+    SetFontColor(scrAgreement, #PrakTab3, ColorSys06, 0);
+    SetFontColor(scrAgreement, #PrakTab4, ColorSys06, 0);
+    SetFontColor(scrAgreement, #PrakTab5, ColorSys06, 0);
+    SetFontColor(scrAgreement, #VidDS, ColorSys06, 0);
+    SetFontColor(scrAgreement, #VidTD, ColorSys06, 0);
+    SetFontColor(scrAgreement, #dAGBeg, ColorSys06, 0);
+    SetFontColor(scrAgreement, #dAGEnd, ColorSys06, 0);
+  }
+
+  RereadRecord(#ContDoc);
+  RereadRecord(#AppHistOfContDoc);
+}
+
+cmHyperlink:
+{
+  case CurField of
+    #ExternalASMTrudDog.Numbers[1]:
+    {
+       #RunHyperLinkFull(ExternalASMTrudDog)
+    }
+    #ExternalASMDopSogl2.Numbers[1]:
+    {
+       #RunHyperLinkFull(ExternalASMDopSogl2)
+    }
+  end;
+}
+
+cmDone:
+{
+  Inherited::HandleEvent(cmDone);
+   var lv_attr  : double;                                         //{koreneva_ea HR-497
+   var lv_ch    : double = 0;
+   lv_attr := doGetAttr(25031, SpAllStaff_Exp.ResComp[7],'Признак временной привязки для ДС');
+   if lv_attr = 2
+   {
+    _loop SpAllStaffLoop  where (( 6 == SpAllStaffLoop.WNOCON                   and
+                                Setted_SpAllStaff.nrec == SpAllStaffLoop.CBASET and
+                                dAGBeg == SpAllStaffLoop.RESDATE[2] (NOINDEX) ))
+      {
+        _loop SpAllStaff_2 where (( SpAllStaffLoop.nrec == SpAllStaff_2.cBaseT and 
+                                    16 == SpAllStaff_2.WNOCON and 
+                                    SpAllStaff_Exp.ResComp[7] == SpAllStaff_2.ResComp[7] (NOINDEX) ))
+          {
+            if SpAllStaff_Exp.nrec = SpAllStaff_2.nrec
+              continue;
+            lv_ch := lv_ch + 1;
+            if  Message('У работника уже есть запись с таким же видом ДС и датой начала действия. Сохранение невозможно! '  , cancelButton ) = cmCancel
+              break;
+          }
+      }
+  }
+
+  if lv_ch > 0
+    Abort;                                                        //koreneva_ea HR-497}
+
+  if not bProtected
+    if (dAGBeg = ZeroDate) or (VidDS = '')
+    {
+      if Message('Обязательные поля не заполнены! Закрыть окно?', yesNo + Warning) = cmNo
+        Abort;
+    }
+}
+end;
+
+// тут замещение browse
+window wnContractAgreements (,, sci14EnEsc);
+
+browse brwContractAgreement;
+  table InMem_AddAgreements;
+fields
+  InMem_AddAgreements.sAgreement 'Номер','доп.','соглашения': [20], protect;
+  InMem_AddAgreements.dAgreement 'Дата','доп. соглашения': [10], protect;
+  InMem_AddAgreements.dBeg 'Действует','с': [10], protect;
+  InMem_AddAgreements.dEnd 'Действует','по': [10], protect;
+  ExternalASMDopSogl.Numbers[1] 'ИД ДС': [10], protect, {hyperlink = true};
+  VidDS_browse 'Вид доп.', 'соглашения': [10], protect;
+  ExternalASMDopSogl.Numbers[2] 'Статус ДС': [10], protect;
+  VidTD_browse 'Вид ТД': [10], protect;
+  JobNat_browse 'Характер','работы': [10], protect;
+  s3_browse 'Место','проведения','работ': [10], protect;
+  s4_browse 'Пункт','сбора': [10], protect;
+  s5_browse 'Как','добирается': [10], protect;
+  s6_browse 'Буферная', 'зона': [10], protect;
+  strRast 'Надбавка за', 'время пути', 'к месту работы': [10], protect;
+  Syn_Persons1.FIO 'Практикант 1': [15], protect;
+  Syn_Persons2.FIO 'Практикант 2': [15], protect;
+  Syn_Persons3.FIO 'Практикант 3': [15], protect;
+  Syn_Persons4.FIO 'Практикант 4': [15], protect;
+  Syn_Persons5.FIO 'Практикант 5': [15], protect;
+  [ImageOnArchive2] oArchiveFuncs.GetImageState(cgDoc_1803, InMem_AddAgreements.cAgreement, m_sCurrentBarKod) 'А' ('Состояние документа в архиве',,) : [2], image;
+end;
+
+end;
+
+
+windowevent wnContractAgreements;
+cmValue2:
+{
+  ReadOnlyMode(true);
+
+  if IsValid(#SpAllStaff_AgrLink_CD)
+    ShowAgreementWin(coContDoc, SpAllStaff_AgrLink_CD.cLinkT, ZeroDate, 0, PersonsPrik.nrec);
+
+  else
+    if IsValid(#SpAllStaff_AgrLink_AH)
+      ShowAgreementWin(coAppHist, SpAllStaff_AgrLink_AH.cLinkT, ZeroDate, 0, PersonsPrik.nrec);
+
+  ReadOnlyMode(false);
+}
+cmHyperlink:
+{
+  case CurField of
+    #ExternalASMDopSogl.Numbers[1]:
+    {
+       #RunHyperLinkFull(ExternalASMDopSogl)
+    }
+  end;
+}
+end;
+
+// ищет последнее ДС по дате начала действия
+function GetLastAgreementByDateFrom(_cContract: comp): comp;
+{
+  var lastDate: date = ZeroDate;
+  result := 0;
+
+  _loop SpAllStaffLoop where ((cgAllStaffAddAgreement == SpAllStaffLoop.wNoCon and
+                                           _cContract == SpAllStaffLoop.cBaseT))
+  {
+    if (lastDate < SpAllStaffLoop.ResDate[2])
+    {
+      lastDate := SpAllStaffLoop.ResDate[2];
+      result := SpAllStaffLoop.nrec;
+    }
+  }
+}
+
+procedure DeleteAgLi(_wLink: word; _cLink: comp; _cDopLink: comp = 0);
+var
+  cAgrNRec: comp;
+{
+  while PosOnAgreementLink_CurrSpAllStaff(_wLink, _cLink, _cDopLink)
+  {
+    cAgrNRec := CurrSpAllStaff.cBaseT;
+
+    // удаляем расширение доп. соглашения
+    delete SpAllStaff where (( cgAllStaffExp == SpAllStaff.wNoCon and
+                               cAgrNRec      == SpAllStaff.cBaseT ));
+
+
+    // удаляем связи доп согл <-> сущности
+    var tmpLink: comp = CurrSpAllStaff.NRec;
+    if (delete current CurrSpAllStaff = tsOk)
+      DeleteLinkBarCode(tmpLink);
+
+    if getfirst SpAllStaff where ((cAgrNRec == SpAllStaff.cBaseT and cgAllStaffAgreementLink == SpAllStaff.wNoCon)) <> tsOk
+    {
+      // удаляем доп соглашение
+      if (delete SpAllStaff where ((cAgrNRec == SpAllStaff.NRec)) = tsOk)
+        DeleteLinkBarCode(cAgrNRec);
+    }
+  }
+}
+
+function CreateAgreementWithNum(_cContract: comp; _dateAgreement, _dateBeg, _dateEnd: date; _nmbAgreement: string; _wLink: word; _cLink: comp; _cDopLink: comp = 0): comp;
+var
+  cAgrNRec, cLastAgr: comp;
+{
+  result := 0;
+
+  if (_cContract = 0) or (_wLink = 0) or (_cLink = 0)
+    exit;
+
+  if getfirst SpAllStaff where ((cgAllStaffAddAgreement == SpAllStaff.wNoCon and
+                                 _cContract == SpAllStaff.cBaseT  and
+                                 (_nmbAgreement = SpAllStaff.ResString[1] and
+                                  _dateAgreement = SpAllStaff.ResDate[1]) )) = tsOk
+    exit;
+
+  cLastAgr := GetLastAgreementByDateFrom(_cContract);
+
+  // создание ДС
+  ClearBuffer(#SpAllStaff);
+  SpAllStaff.cBaseT := _cContract;
+  SpAllStaff.wNoCon := cgAllStaffAddAgreement;
+  SpAllStaff.ResString[1] := _nmbAgreement;
+  SpAllStaff.ResDate[1] := _dateAgreement;
+  SpAllStaff.ResDate[2] := _dateBeg;
+  SpAllStaff.ResDate[3] := _dateEnd;
+  insert current SpAllStaff;
+
+  result := SpAllStaff.NRec;
+
+  cAgrNRec := SpAllStaff.NRec;
+
+  // создание записи с доп. полями ДС
+  ClearBuffer(#SpAllStaff);
+  SpAllStaff.wNoCon := cgAllStaffExp;
+  SpAllStaff.cBaseT := cAgrNRec;
+
+  // наследуем поля из предыдущего ДС или если нету, то из ТД
+  if (cLastAgr = 0)
+  {  // из ТД
+    if (getfirst SpAllStaff_TD_Exp2 where (( _cContract == SpAllStaff_TD_Exp2.nrec )) = tsOk)
+      SpAllStaff.ResComp[8] := SpAllStaff_TD_Exp2.ResComp[1];  // Вид ТД
+
+    if (getfirst SpAllStaff_TD_Exp2 where (( cgAllStaffExp == SpAllStaff_TD_Exp2.wNoCon and
+                                                _cContract == SpAllStaff_TD_Exp2.cBaseT )) = tsOk)
+    {
+      SpAllStaff.ResComp[3] := SpAllStaff_TD_Exp2.ResComp[3];  // Место проведения работ
+      SpAllStaff.ResComp[4] := SpAllStaff_TD_Exp2.ResComp[4];  // Пункт сбора
+      SpAllStaff.ResComp[5] := SpAllStaff_TD_Exp2.ResComp[5];  // Как добирается
+      SpAllStaff.ResWord[1] := SpAllStaff_TD_Exp2.ResWord[1];  // Надбавка за время пути к месту работы
+    }
+  }
+  else
+    if (getfirst SpAllStaffLoop where (( cgAllStaffExp == SpAllStaffLoop.wNoCon and
+                                              cLastAgr == SpAllStaffLoop.cBaseT )) = tsOk)
+    {  // из ДС
+      SpAllStaff.ResComp[8] := SpAllStaffLoop.ResComp[8];  // Вид ТД
+      SpAllStaff.ResComp[3] := SpAllStaffLoop.ResComp[3];  // Место проведения работ
+      SpAllStaff.ResComp[4] := SpAllStaffLoop.ResComp[4];  // Пункт сбора
+      SpAllStaff.ResComp[5] := SpAllStaffLoop.ResComp[5];  // Как добирается
+      SpAllStaff.ResWord[1] := SpAllStaffLoop.ResWord[1];  // Надбавка за время пути к месту работы
+    }
+
+  insert current SpAllStaff;
+
+  // создание связи ДС с сущностью
+  ClearBuffer(#SpAllStaff);
+  SpAllStaff.cBaseT := cAgrNRec;
+  SpAllStaff.wNoCon := cgAllStaffAgreementLink;
+  SpAllStaff.cLinkT := _cLink;
+  SpAllStaff.wChoise := _wLink;
+  SpAllStaff.ResComp[2] := _cDopLink;
+  insert current SpAllStaff;
+}
+
+procedure ShowAgrWin(_wLink: word; _cLink: comp; _dateAgreement: date; _cContract: comp; _cPsn: comp = 0; _cApp: comp = 0);
+{
+  var cAgreement: comp;
+  var cDopLink: comp;
+  cDopLink := if(_wLink = coCatHist,_cApp,0);
+
+  if (_wLink = coContDoc)
+    set ContDocNrec := _cLink;
+
+  // для определения номера и даты приказа ДС, созданных в РП 45,46,50,60,61,62,65
+  if (_wLink = coAppHist)
+    if (getfirst AppHistForDS where (( _cLink == AppHistForDS.nrec)) = tsOk )
+      set ContDocNrec := AppHistForDS.cContDoc;
+
+  set PersNrec := _cPsn;
+
+  if PosOnAgreement_CurrSpAllStaff(_wLink, _cLink, cDopLink)
+  { //соглашение уже есть, работаем с ним
+    _cContract := CurrSpAllStaff.cBaseT;
+    cAgreement := CurrSpAllStaff.NRec;
+  }
+  else
+  { //выберем договор и создадим к нему соглашение
+    if _cContract = 0
+    {
+      if _cPsn = 0
+      {
+        if getfirst Appointments where ((_cApp == Appointments.NRec)) = tsOk
+          _cPsn := Appointments.Person;
+
+        if _cPsn = 0
+        {
+          Message('Ошибка ввода доп. соглашения: не найдена карточка сотрудника!', Error);
+          exit;
+        }
+        else
+          set PersNrec := _cPsn;
+      }
+
+      var cTmp: comp;
+      cTmp := WWC.GetContractOnDate(_cPsn, _dateAgreement);
+      _cContract := WWC.PickPsnContract(_cPsn, cTmp);
+    }
+
+    if _cContract = 0
+      exit;
+
+    cAgreement := CreateAgreement(_cContract, _dateAgreement, _wLink, _cLink, cDopLink);
+  }
+
+  set SettedContract := _cContract;
+  set cAgreementLT := cAgreement;
+
+  // если у ДС нету расширяющей записи, то создаем её
+  if not IsValid(tnSpAllStaff_Exp)
+  {
+    ClearBuffer(#SpAllStaff_Exp);
+    SpAllStaff_Exp.wNoCon := cgAllStaffExp;
+    SpAllStaff_Exp.cBaseT := cAgreement;
+    SpAllStaff_Exp.ResComp[8] := Setted_SpAllStaff.ResComp[1];
+    insert current SpAllStaff_Exp;
+  }
+
+  // данные доп. соглашения запоминаем перед редактированием
+  cContract_gl := _cContract;
+  cAgreement_gl := cAgreement;
+  sAgreement_old_gl := sAgreement_gl := GetAgreementNmb(cAgreement);
+  dAgreement_old_gl := dAgreement_gl := GetAgreementDate(cAgreement);
+  dAGBeg_old := dAGBeg := GetAgreementBeg(cAgreement);
+  dAGEnd_old := dAGEnd := GetAgreementEnd(cAgreement);
+
+  // данные записи, расширяющая доп. соглашение, запоминаем перед редактированием
+  old_comp[1] := SpAllStaff_Exp.ResComp[1];
+  old_comp[2] := SpAllStaff_Exp.ResComp[2];
+  old_comp[3] := SpAllStaff_Exp.ResComp[3];
+  old_comp[4] := SpAllStaff_Exp.ResComp[4];
+  old_comp[5] := SpAllStaff_Exp.ResComp[5];
+  old_comp[6] := SpAllStaff_Exp.ResComp[6];
+  old_comp[7] := SpAllStaff_Exp.ResComp[7];
+  old_comp[8] := SpAllStaff_Exp.ResComp[8];
+  old_string[1] := SpAllStaff_Exp.ResString[1];
+  old_string[2] := SpAllStaff_Exp.ResString[2];
+  old_string[3] := SpAllStaff_Exp.ResString[3];
+  old_string[4] := SpAllStaff_Exp.ResString[4];
+  old_string[5] := SpAllStaff_Exp.ResString[5];
+  old_word := SpAllStaff_Exp.ResWord[1];
+
+  RunWindowModal(wnAgreement);
+
+//================== Не актуально для СНГ ('Номер' и 'Заключен' не доступны для редактирования, запол. автомат-ки )
+//======= Позже можно удалить этот код ==================
+/*  if (sAgreement_gl = '') and (dAgreement_gl = ZeroDate)
+  {
+    if Message('Не заполнены Номер и дата доп. соглашения! '#13#10 +
+               'Удалить связь с доп. соглашением?', Confirmation + cancelButton + yesButton) = Yes
+      DeleteAgreementLinks(_wLink, _cLink, cDopLink);
+
+    exit;
+  }*/
+
+  var boModifAgr, boModifExp, boModifVidDog: boolean = false;
+
+  // если что-то поменяли в ДС (поля из коробки: номер и дата ДС, Дата начала и Дата окончания), то флагуем
+  // ! Так как в доработке для СНГ поля "номер ДС" и "Дата заключения" всегда не доступны для редактирования,
+  // то оставляем только проверку дат "с" и "по"
+  if //(sAgreement_gl <> sAgreement_old_gl) or
+     //(dAgreement_gl <> dAgreement_old_gl) or
+     (dAGBeg <> dAGBeg_old) or
+     (dAGEnd <> dAGEnd_old)
+    boModifAgr := true;
+
+  // если что-то поменяли в расширении ДС, то флагуем
+  if old_comp[1] <> SpAllStaff_Exp.ResComp[1] or
+     old_comp[2] <> SpAllStaff_Exp.ResComp[2] or
+     old_comp[3] <> SpAllStaff_Exp.ResComp[3] or
+     old_comp[4] <> SpAllStaff_Exp.ResComp[4] or
+     old_comp[5] <> SpAllStaff_Exp.ResComp[5] or
+     old_comp[6] <> SpAllStaff_Exp.ResComp[6] or
+     old_comp[7] <> SpAllStaff_Exp.ResComp[7] or
+     old_comp[8] <> SpAllStaff_Exp.ResComp[8] or
+     old_string[1] <> SpAllStaff_Exp.ResString[1] or
+     old_string[2] <> SpAllStaff_Exp.ResString[2] or
+     old_string[3] <> SpAllStaff_Exp.ResString[3] or
+     old_string[4] <> SpAllStaff_Exp.ResString[4] or
+     old_string[5] <> SpAllStaff_Exp.ResString[5] or
+     old_word <> SpAllStaff_Exp.ResWord[1]
+    boModifExp := true;
+
+  // вид договора
+  if ( old_comp[8] <> SpAllStaff_Exp.ResComp[8] )
+    boModifVidDog := true;
+
+  // запоминаем изменения доп. полей
+  old_comp[1] := SpAllStaff_Exp.ResComp[1];
+  old_comp[2] := SpAllStaff_Exp.ResComp[2];
+  old_comp[3] := SpAllStaff_Exp.ResComp[3];
+  old_comp[4] := SpAllStaff_Exp.ResComp[4];
+  old_comp[5] := SpAllStaff_Exp.ResComp[5];
+  old_comp[6] := SpAllStaff_Exp.ResComp[6];
+  old_comp[7] := SpAllStaff_Exp.ResComp[7];
+  old_comp[8] := SpAllStaff_Exp.ResComp[8];
+  old_string[1] := SpAllStaff_Exp.ResString[1];
+  old_string[2] := SpAllStaff_Exp.ResString[2];
+  old_string[3] := SpAllStaff_Exp.ResString[3];
+  old_string[4] := SpAllStaff_Exp.ResString[4];
+  old_string[5] := SpAllStaff_Exp.ResString[5];
+  old_word := SpAllStaff_Exp.ResWord[1];
+
+
+  if boModifAgr
+  {
+
+// ============    Этот код не актуален для СНГ, так как поля "Номер ДС" и "Заключен" недоступны для редактирования  =============================
+/*    var bExistOtherLinks, bChangeOnlyDate: boolean = false;
+
+    // флагуем, если номер ДС не меняли, а дату ДС "от" поменяли
+    bChangeOnlyDate := ((sAgreement_gl = sAgreement_old_gl) and (dAgreement_gl <> dAgreement_old_gl));
+
+    // флагуем, есть ли более, чем одна связь с ДС
+    if getfirst SpAllStaff where ((cgAllStaffAgreementLink == SpAllStaff.wNoCon and cAgreement_gl == SpAllStaff.cBaseT)) = tsOk
+      if getnext SpAllStaff where ((cgAllStaffAgreementLink == SpAllStaff.wNoCon and cAgreement_gl == SpAllStaff.cBaseT)) = tsOk
+        bExistOtherLinks := true;
+
+    // если есть у ТД есть ДС с другим нреком и номер ДС такой же
+    // или нет, но есть связи ДС и поменяли только дату
+    // то спрашиваем завести ли новое с аналогичным номером
+
+    if (getfirst SpAllStaff where ((cgAllStaffAddAgreement == SpAllStaff.wNoCon and cContract_gl == SpAllStaff.cBaseT
+          and (cAgreement_gl <> SpAllStaff.NRec and sAgreement_gl = SpAllStaff.ResString[1]) )) = tsOk)
+        or (bExistOtherLinks and bChangeOnlyDate) //есть другие ссылки на соглашение и меняем только дату, значит
+                                                  //текущее удалить не получится, нужно спросить и создавать новое
+
+    {
+      if Message('К трудовому договору уже заведено доп. соглашение № ' + sAgreement_gl + '.'#13
+              + 'Завести соглашение от ' + string(dAgreement_gl) + ' с аналогичным номером?', Confirmation + cancelButton + yesButton) = cmCancel
+        exit;
+      DeleteAgreementLinks(_wLink, _cLink, cDopLink);
+      cAgreement_gl := CreateAgreementWithNum(cContract_gl, dAgreement_gl, dAGBeg, dAGEnd, sAgreement_gl, _wLink, _cLink, cDopLink);
+    } */
+
+    if (dAGBeg <> dAGBeg_old) or
+       (dAGEnd <> dAGEnd_old)
+    {
+      if (cAgreement_gl <> 0)
+      {
+        if GetFirst SpAllStaff where (( cAgreement_gl == SpAllStaff.Nrec )) = TsOk
+//        update SpAllStaff where (( cAgreement_gl == SpAllStaff.Nrec ))
+        update current SpAllStaff
+        set SpAllStaff.ResDate[2] := dAGBeg,
+            SpAllStaff.ResDate[3] := dAGEnd;
+      }
+    }
+
+  }
+
+  if boModifExp or boModifAgr
+  {
+    // если для ДС нет расширяющей записи, то надо создать её.
+    var bExpExist: boolean =
+     (getfirst SpAllStaff where ((cgAllStaffExp == SpAllStaff.wNoCon and
+                                  cAgreement_gl == SpAllStaff.cBaseT)) = tsOk );
+
+    if not bExpExist
+    {
+      ClearBuffer(#SpAllStaff);
+      SpAllStaff.wNoCon := cgAllStaffExp;
+      SpAllStaff.cBaseT := cAgreement_gl;
+    }
+
+    SpAllStaff.ResComp[1] := old_comp[1];
+    SpAllStaff.ResComp[2] := old_comp[2];
+    SpAllStaff.ResComp[3] := old_comp[3];
+    SpAllStaff.ResComp[4] := old_comp[4];
+    SpAllStaff.ResComp[5] := old_comp[5];
+    SpAllStaff.ResComp[6] := old_comp[6];
+    SpAllStaff.ResComp[7] := old_comp[7];
+    SpAllStaff.ResComp[8] := old_comp[8];
+    SpAllStaff.ResString[1] := old_string[1];
+    SpAllStaff.ResString[2] := old_string[2];
+    SpAllStaff.ResString[3] := old_string[3];
+    SpAllStaff.ResString[4] := old_string[4];
+    SpAllStaff.ResString[5] := old_string[5];
+    SpAllStaff.ResWord[1] := old_word;
+
+    if bExpExist
+      update current SpAllStaff;
+    else
+      insert current SpAllStaff;
+
+    // меняем в Appointments и AppHist вид договора (SNG-240)
+    if boModifVidDog
+    {
+      if (_cApp <> 0)
+        if ContDoc.TypeOper = 5
+        {
+          NewAppoint.CDOG := SpAllStaff_Exp.ResComp[8];
+          update current NewAppoint;
+        }
+        else
+          update Appointments where ((_cApp == Appointments.nrec))
+          set CDOG := SpAllStaff_Exp.ResComp[8];
+
+      if ContDoc.TypeOper = 5
+      {
+        NewAppHist.CSPR5 := SpAllStaff_Exp.ResComp[8];
+        update current NewAppHist;
+      }
+      else
+        if IsValid(#AppHistOfContDoc)
+        {
+          AppHistOfContDoc.CSPR5 := SpAllStaff_Exp.ResComp[8];
+          update current AppHistOfContDoc;
+        }
+    }
+  }
+}
+
+function GetStrAgVid(_cAgreement: comp): string;
+{
+  var cVar: comp;
+  result := '';
+
+  if (getfirst SpAllStaff where ((_cAgreement == SpAllStaff.NRec)) = tsOk)
+  {
+    cVar := SpAllStaff.NRec;
+
+    if (getfirst SpAllStaff where (( cgAllStaffExp == SpAllStaff.wNoCon and
+                                     cVar          == SpAllStaff.cBaseT )) = tsOk)
+
+      result := iCatFunc.GetCatalogsName(SpAllStaff.ResComp[7]);
+  }
+}
+
+function GetCompAgVid(_cAgreement: comp): comp;
+{
+  var cVar: comp;
+  result := 0;
+
+  if (getfirst SpAllStaff where ((_cAgreement == SpAllStaff.NRec)) = tsOk)
+  {
+    cVar := SpAllStaff.NRec;
+
+    if (getfirst SpAllStaff where (( cgAllStaffExp == SpAllStaff.wNoCon and
+                                     cVar          == SpAllStaff.cBaseT )) = tsOk)
+
+      result := SpAllStaff.ResComp[7];
+  }
+}
+
+handleEvent  // interface
+
+cmOnvipLoad:
+{
+  case Inherited::HandleEvent(cmOnvipLoad) of
+    heAbort :  Abort;
+    heStop  :  Exit;
+  end;
+
+  if (not oArchiveFuncs.IsExistArchive)
+  {
+    SetFieldAndLabelVisible(#ImageOnArchive2, false);
+  }
+}
+
+cmPick:
+{
+  case Inherited::HandleEvent(cmPick) of
+    heAbort :  Abort;
+    heStop  :  Exit;
+  end;
+
+  case CurField of
+//    #s1, #s2, #s3, #s4, #s5, #s6, #VidDS, #VidTD:
+    #s1, #s3, #s4, #s5, #s6, #VidDS, #VidTD:
+    {
+      var SCod: integer;
+      ParentSav := 0;
+
+      case CurField of
+//        #s1, #s2: SCod := -31687;
+        #s1: SCod := -31687;
+        #s3: SCod := -31686;
+        #s4: SCod := -31685;
+        #s5: SCod := -31684;
+        #s6: SCod := -31683;
+        #VidDS: SCod := -31681;
+        #VidTD: SCod := -133;
+      end;
+
+      if (RunInterface(Z_StaffCat::PickCatalog2, SCod, ParentSav, comp(0)) = cmDefault)
+      {
+        case CurField of
+          #s1:    set SpAllStaff_Exp.ResComp[1] := ParentSav;
+//          #s2:    set SpAllStaff_Exp.ResComp[2] := ParentSav;
+          #s3:    set SpAllStaff_Exp.ResComp[3] := ParentSav;
+          #s4:    set SpAllStaff_Exp.ResComp[4] := ParentSav;
+          #s5:    set SpAllStaff_Exp.ResComp[5] := ParentSav;
+          #s6:    set SpAllStaff_Exp.ResComp[6] := ParentSav;
+          #VidDS: set SpAllStaff_Exp.ResComp[7] := ParentSav;
+          #VidTD: set SpAllStaff_Exp.ResComp[8] := ParentSav;
+        end;
+      }
+    }
+
+    #PrakTab1, #PrakTab2, #PrakTab3, #PrakTab4, #PrakTab5:
+    {
+      var cChoice: comp = 0;
+      var wK: word = 0;
+      var DummyMarker1, DummyMarker2: TPtr;
+      var NameBossPred, PostBossPred: string;
+
+      DummyMarker1 := InitMarker('', 8, 1, 1);
+      DummyMarker2 := InitMarker('', 8, 1, 1);
+
+      case CurField of
+        #PrakTab1: cChoice := comp(SpAllStaff_Exp.ResString[1]);
+        #PrakTab2: cChoice := comp(SpAllStaff_Exp.ResString[2]);
+        #PrakTab3: cChoice := comp(SpAllStaff_Exp.ResString[3]);
+        #PrakTab4: cChoice := comp(SpAllStaff_Exp.ResString[4]);
+        #PrakTab5: cChoice := comp(SpAllStaff_Exp.ResString[5]);
+      end;
+
+      if viCYPersons.Choice(DummyMarker1, 1, vfCanSelect, wK, cChoice, DummyMarker2)
+      {
+        cChoice := viCYPersons.GetPsnByKindChoice(wK, cChoice);
+
+        case CurField of
+          #PrakTab1: set SpAllStaff_Exp.ResString[1] := string(cChoice);
+          #PrakTab2: set SpAllStaff_Exp.ResString[2] := string(cChoice);
+          #PrakTab3: set SpAllStaff_Exp.ResString[3] := string(cChoice);
+          #PrakTab4: set SpAllStaff_Exp.ResString[4] := string(cChoice);
+          #PrakTab5: set SpAllStaff_Exp.ResString[5] := string(cChoice);
+        end;
+      }
+
+      DoneMarker(DummyMarker1, '');
+      DoneMarker(DummyMarker2, '');
+    }
+  end;
+
+}
+
+cmCheckField:
+{
+  var Rast: word = SpAllStaff_Exp.ResWord[1];
+
+  case CurField of
+    #bRast1: set SpAllStaff_Exp.ResWord[1] := if(Rast = 1, 0, 1);
+    #bRast2: set SpAllStaff_Exp.ResWord[1] := if(Rast = 2, 0, 2);
+    #bRast3: set SpAllStaff_Exp.ResWord[1] := if(Rast = 4, 0, 4);
+    #bRast4: set SpAllStaff_Exp.ResWord[1] := if(Rast = 8, 0, 8);
+    #bRast5: set SpAllStaff_Exp.ResWord[1] := if(Rast = 16, 0, 16);
+  end;
+}
+
+cmDelOnProtect:
+{
+  case CurField of
+    #s1:  set SpAllStaff_Exp.ResComp[1] := 0;
+//    #s2:  set SpAllStaff_Exp.ResComp[2] := 0;
+    #s3:  set SpAllStaff_Exp.ResComp[3] := 0;
+    #s4:  set SpAllStaff_Exp.ResComp[4] := 0;
+    #s5:  set SpAllStaff_Exp.ResComp[5] := 0;
+    #s6:  set SpAllStaff_Exp.ResComp[6] := 0;
+    #VidDS: set SpAllStaff_Exp.ResComp[7] := 0;
+    #VidTD: set SpAllStaff_Exp.ResComp[8] := 0;
+    #PrakTab1: set SpAllStaff_Exp.ResString[1] := '';
+    #PrakTab2: set SpAllStaff_Exp.ResString[2] := '';
+    #PrakTab3: set SpAllStaff_Exp.ResString[3] := '';
+    #PrakTab4: set SpAllStaff_Exp.ResString[4] := '';
+    #PrakTab5: set SpAllStaff_Exp.ResString[5] := '';
+  end;
+}
+end;    // handleEvent
+end.
+
+// перегруженное меню в списке доп соглашений
+AddAgreementsListMenu menu
+{
+ - 'Посмотреть соглашение', cmValue2, 'Открывает доп. соглашение на просмотр';
+ - 'Печать соглашения в FastReport', cmPrintDoc, 'Печать доп. соглашения к трудовому договору';
+ -----------;
+ - 'Внешние атрибуты'     ,cmPickAttr ,'Заполнение внешних атрибутов по данной позиции',
+          hcGkatalM1Attr    ,'Alt+A',kbAltA,sci1Esc,,,, bmpAttribute;
+}

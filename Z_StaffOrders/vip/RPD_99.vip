@@ -1,0 +1,424 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_99;
+
+overload
+  procedure HideFullDayAbsence();
+  procedure IRPD_Base_CauseOfAction.SetCauseOfAction(_cCauset: comp);
+  procedure SetFulldayAbsence();
+  procedure GetCanceledOrder();
+  Procedure GetPersonOrAppointments;
+end;
+
+procedure HideFullDayAbsence();
+{
+  bHideFDAbsence := true;
+}
+
+procedure IRPD_Base_CauseOfAction.SetCauseOfAction(_cCauset: comp);
+{
+  if ( getfirst ContDoc = tsOk )
+  {
+    if ( getfirst Catalogs where (( _cCauset == Catalogs.NRec )) = tsOk )
+    {
+      var tmpCode: word = word(Catalogs.Code);
+
+      if ( (tmpCode = 11) or (tmpCode = 68) or (tmpCode = 90) )
+      {
+        set ContDoc.wAttrDoc1 := tmpCode;
+        ClearFields();
+      }
+      else
+        Message('Константа [' + string(tmpCode) + '] не допустима при оформлении данного приказа!' + 
+          Chr(10) + Chr(13) + 'Доступны константы (11, 68, 90).', Warning + okButton);
+    }
+  }
+}
+
+Procedure GetPersonOrAppointments; // выбор человека или совмещения
+{
+  var DummyMarker1, DummyMarker2: TPtr;
+  DummyMarker1 := InitMarker('', 8, 10, 10);
+  DummyMarker2 := InitMarker('', 8, 1, 1);
+
+  ReReadRecord(tnTitleDoc); // поскольку могла поменяться дата
+
+  case ContDoc.wAttrDoc2 of
+    0: // по основному месту работы - по старой схеме
+    {
+      if ContDoc.cDopRef <> 0
+        InsertMarker(DummyMarker1, ContDoc.cDopRef);
+
+      var wK: word = 0;
+
+      if viCYPersons.Choice(DummyMarker1, if(ContDoc.wAttrDoc1 = 68, 3, 4), vfCanSelect, wK, ParentSav, DummyMarker2)
+        CheckAndFindCorrectRecordByPick(wK, ParentSav);
+    }
+    1: // совмещение
+    {
+      ParentSav := ContDoc.cStr;
+
+      CopyMarker(DummyMarker1, FO.GetRefMarkerPodr);
+
+      if ContDoc.cDopRef <> 0
+        InsertMarker(DummyMarker1, ContDoc.cDopRef);
+
+      if RunInterface('GetAllApp', integer(3), ParentSav, DummyMarker1, TitleDoc.DocDate) = cmDefault
+      {
+        if GetFirst FastFirstRow AppointmentsRab
+          where ((ParentSav == AppointmentsRab.nRec)) = tsOk
+        {
+          set ContDoc.Person := AppointmentsRab.Person;
+          set ContDoc.cDopRef := AppointmentsRab.Department;
+          set ContDoc.cStr := ParentSav;
+        }
+      } //if RunInterface('GetAllApp'
+    } // совмещение
+  end;
+
+  DoneMarker(DummyMarker1, '');
+  DoneMarker(DummyMarker2, '');
+  ClearFields();
+} //Procedure GetPersonOrAppointments; // выбор человека или совмещения    
+
+//******************************************************************************
+//  Процедура установки целодневных неявок для отмены РПД-8 (90)
+//******************************************************************************
+procedure SetFulldayAbsence();
+{
+  var cFactOtp : comp = 0;
+
+  ContDoc.dat1 := InfPsn1.DBeg;
+  ContDoc.StTabN := InfPsn1.Str1;
+  update current ContDoc;
+
+  if ( getfirst Vacations = tsOk )
+  {
+    if ( getfirst AppointmentsSelect = tsOk )
+    {
+      Vacations.Duration := OtpKolDn(KlOtpusk.IsRabDn, Vacations.FactYearBeg, Vacations.FactYearEnd, Appointments.cAddNrec2);
+
+      if ( Vacations.Duration <= 0 )
+        exit;
+
+      update current Vacations;
+
+      if ( getfirst LSchetSelect = tsOk )
+      {
+        if ( getfirst FactOtpuskConfirm where (( ContDocSelect.nRec == FactOtpuskConfirm.cContDoc )) <> tsOk )
+        {
+          ClearBuffer(#FactOtpuskConfirm);
+          FactOtpuskConfirm.Appoint     := Appointments.Nrec;
+          FactOtpuskConfirm.cPrikaz     := TitleDoc.Nrec;
+          FactOtpuskConfirm.cContDoc    := ContDoc.nRec;
+          FactOtpuskConfirm.FactYearBeg := Vacations.FactYearBeg;
+          FactOtpuskConfirm.FactYearEnd := Vacations.FactYearEnd;
+          FactOtpuskConfirm.Tabn        := Persons.TabNmb;
+          FactOtpuskConfirm.strTabn     := Persons.strTabn;
+          FactOtpuskConfirm.Cex         := LSchetSelect.Cex;
+          FactOtpuskConfirm.Choice      := vltAbsenceFactOtpusk;
+          FactOtpuskConfirm.Person      := Persons.Nrec;
+          FactOtpuskConfirm.KolDnGr     := Ad_Month(FactOtpuskConfirm.FactYearBeg);
+          FactOtpuskConfirm.PeriodYear  := Ad_Year(FactOtpuskConfirm.FactYearBeg);
+          FactOtpuskConfirm.Year_Vac    := Year(Vacations.FactYearBeg);
+          FactOtpuskConfirm.MaxKolDn    := KlOtpusk.MaxKolDn;
+          FactOtpuskConfirm.VacType     := KlOtpusk.Kotpus;
+          FactOtpuskConfirm.LastDate    := Cur_Date();
+          FactOtpuskConfirm.cLsch       := LSchetSelect.Nrec;
+          FactOtpuskConfirm.Duration    := Vacations.Duration;
+          FactOtpuskConfirm.dDateBegOld := ZERODATE;
+
+          if ( insert current FactOtpuskConfirm = tsOk )
+            cFactOtp := FactOtpuskConfirm.NRec;
+        }
+        else
+        {
+          FactOtpuskConfirm.Appoint     := Appointments.Nrec;
+          FactOtpuskConfirm.FactYearBeg := Vacations.FactYearBeg;
+          FactOtpuskConfirm.FactYearEnd := Vacations.FactYearEnd;
+          FactOtpuskConfirm.Tabn        := Persons.TabNmb;
+          FactOtpuskConfirm.strTabn     := Persons.strTabn;
+          FactOtpuskConfirm.Cex         := LSchetSelect.Cex;
+          FactOtpuskConfirm.Choice      := vltAbsenceFactOtpusk;
+          FactOtpuskConfirm.Person      := Persons.Nrec;
+          FactOtpuskConfirm.KolDnGr     := Ad_Month(FactOtpuskConfirm.FactYearBeg);
+          FactOtpuskConfirm.PeriodYear  := Ad_Year(FactOtpuskConfirm.FactYearBeg);
+          FactOtpuskConfirm.Year_Vac    := Year(Vacations.FactYearBeg);
+          FactOtpuskConfirm.MaxKolDn    := KlOtpusk.MaxKolDn;
+          FactOtpuskConfirm.VacType     := KlOtpusk.Kotpus;
+          FactOtpuskConfirm.LastDate    := Cur_Date();
+          FactOtpuskConfirm.cLsch       := LSchetSelect.Nrec;
+          FactOtpuskConfirm.Duration    := Vacations.Duration;
+          FactOtpuskConfirm.dDateBegOld := ZERODATE;
+
+          update current FactOtpuskConfirm;
+
+          cFactOtp := FactOtpuskConfirm.NRec;
+        }
+
+        Vacations.Year_Vac    := Year(Vacations.FactYearBeg);
+        Vacations.Status      := 1;    // hard: present record
+        Vacations.Person      := Persons.Nrec;
+        Vacations.DocDate     := TitleDoc.DocDate;
+        Vacations.Foundation  := TitleDoc.DocNmb;
+        Vacations.wState2     := 2;
+        Vacations.cFactOtpusk := cFactOtp;
+        update current Vacations;
+        RereadRecord(#Vacations);
+
+        if ( getfirst OtpuskConfirm where (( Vacations.Nrec == OtpuskConfirm.cVacations )) <> tsOK )
+        {
+          ClearBuffer(#OtpuskConfirm); //Дублируем запись в Зарплату
+          OtpuskConfirm.TabN        := LSchetSelect.TabN;
+          OtpuskConfirm.StrTabN     := LSchetSelect.StrTabN;
+          OtpuskConfirm.Cex         := LSchetSelect.CEX;
+          OtpuskConfirm.KotPus      := KlOtpusk.KOTPUS;
+          OtpuskConfirm.DataN       := Vacations.FactYearBeg;
+          OtpuskConfirm.DatOk       := Vacations.FactYearEnd;
+          OtpuskConfirm.KolDn       := Vacations.Duration;
+          OtpuskConfirm.cVacations  := Vacations.Nrec;
+          OtpuskConfirm.Year_Vac    := Year(OtpuskConfirm.DataN);
+          OtpuskConfirm.tPerson     := Persons.Nrec;
+          OtpuskConfirm.cLsch       := LSchetSelect.Nrec;
+          OtpuskConfirm.cPrikaz     := TitleDoc.Nrec;
+          OtpuskConfirm.Choice      := vltForced; // признак вынужденного отпуска
+          OtpuskConfirm.Chasf       := double(Vacations.LastUser);
+          OtpuskConfirm.cFactOtpusk := cFactOtp;
+          OtpuskConfirm.KoldnGr     := Month(Vacations.FactYearBeg);
+
+//          if ( word((KlOtpusk.FilialNo shr koshift_NeyavChildInv) and 1) > 0)
+//            Otpusk.cLSOwner  := ContDoc.cAddInf; // ERP-9738 // ?????????????????
+
+          if (LSchetSelect.Summa27 = 1)   // Вид удержания
+            OtpuskConfirm.vidud := word(coGetTune('UP.ZAR.Otp.Vidudb'))
+          else
+            OtpuskConfirm.vidud := word(coGetTune('UP.ZAR.Otp.Vidud'));
+
+          insert current OtpuskConfirm;
+
+            if  oArchiveFuncs.IsExistArchive and oArchiveFuncs.GetExistTidkGal(cgDoc_2008)
+              // статические методы зарегистрированы методом RegisterGlobalIfc('C_Common::RepBarCode')
+              GenerateBarCode(cgDoc_2008, OtpuskConfirm.NRec);
+        }
+        else
+        {
+          OtpuskConfirm.tPerson := Persons.Nrec;
+          OtpuskConfirm.TabN    := LSchetSelect.TabN;
+          OtpuskConfirm.StrTabN := LSchetSelect.StrTabN;
+          OtpuskConfirm.Cex     := LSchetSelect.CEX;
+          OtpuskConfirm.cLsch   := LSchetSelect.Nrec;
+          OtpuskConfirm.Chasf   := double(Vacations.LastUser);
+          update current OtpuskConfirm;
+        }
+
+        //проверка на пересечение
+        VF.CheckIntersections(TOtpusk(OtpuskConfirm.BUFFER), true);
+        ShowErrors;
+
+        if boGetTune('UP.ZAR.WORKINGTABLEAUTOREFORM')// автоматически переформировать табель
+        {
+          var WTR: IWorkingTableReformer;
+
+          if GetVipRef(WTR, 'WorkingTableReformer')
+          {
+            WTR.QueuePeriod(LSchetSelect.nRec, OtpuskConfirm.DataN, OtpuskConfirm.DatOk);
+            WTR.Run;
+            WTR.Clear;
+          }
+        }  //if boGetTune('UP.ZAR.WORKINGTABLEAUTOREFORM')
+      }
+    }
+  }
+}
+
+//******************************************************************************
+// Процедура выбора приказа для отмены
+//******************************************************************************
+procedure GetCanceledOrder();
+{
+  delete all tpSelectRPD;
+
+  _loop ContDocSelect where (( ContDoc.Person                        == ContDocSelect.Person   and
+                               GetTypeOperByConst(ContDoc.wAttrDoc1) == ContDocSelect.TypeOper     ))
+  {
+    if ( getfirst fastfirstrow PartDocSelect where (( ContDocSelect.cPart == PartDocSelect.Nrec )) = tsOk )
+      if ( getfirst fastfirstrow TitleDocSelect where (( PartDocSelect.cDoc == TitleDocSelect.Nrec )) = tsOk )
+        if ( (TitleDocSelect.wStatus = word(1)) or // утвержден
+             (boUsePartOrders and (ContDocSelect.wYearPr = 1 or ContDocSelect.wYearPr = 2)) )
+        {
+          tpSelectRPD.TitleNRec := TitleDocSelect.Nrec;
+          tpSelectRPD.PartNRec  := PartDocSelect.Nrec;
+          tpSelectRPD.ContNrec  := ContDocSelect.Nrec;
+          tpSelectRPD.wTypeOper := GetTypeOperByConst(ContDoc.wAttrDoc1);
+          tpSelectRPD.wAttrDoc2 := ContDocSelect.wAttrDoc2;
+          tpSelectRPD.DocNmb    := TitleDocSelect.DocNmb;
+          tpSelectRPD.DocDate   := TitleDocSelect.DocDate;
+          tpSelectRPD.DocText   := TitleDocSelect.DocText;
+
+          case ContDoc.wAttrDoc1 of
+            68:
+            {
+              tpSelectRPD.Date2 := ContDocSelect.dPrik;
+            }
+            11,90:
+            {
+              if (ContDocSelect.wAttrDoc2 = 0)
+                if ( getfirst fastfirstrow AppointmentsSelect = tsOk )
+                  tpSelectRPD.Date1 := AppointmentsSelect.dOrderDisDate;
+              else
+                tpSelectRPD.Date1 := ContDocSelect.dat1;
+            }
+          end;
+
+          insert current tpSelectRPD;
+        }
+  }
+
+  RereadRecord(#tpSelectRPD);
+
+  if ( ContDoc.cNew2 <> 0 )
+    if ( getfirst tpSelectRPD where (( ContDoc.cNew2 == tpSelectRPD.ContNRec)) = tsOk ) {}
+
+  if (RunWindowModal(wndSelectRPD) = cmDefault)
+    if IsValid(#tpSelectRPD)
+    {
+      set ContDoc.cNew1 := tpSelectRPD.TitleNRec;
+      set ContDoc.cNew2 := tpSelectRPD.ContNrec;
+      set ContDoc.dRezerve := Add_Day(tpSelectRPD.Date1, 1);
+
+      case ContDoc.wAttrDoc1 of
+        68:
+        {
+          set ContDoc.DPrik := tpSelectRPD.Date2;
+        }
+        11:
+        {
+          set ContDoc.DPrik := tpSelectRPD.Date1;
+          ContDoc.Dat2 := Add_Day(ContDoc.DPrik, -1);
+        }
+        90:
+        {
+          set ContDoc.DPrik := TitleDoc.DocDate; //tpSelectRPD.Date1;
+          ContDoc.Dat2 := Add_Day(ContDoc.DPrik, -1);
+
+          if ( (ContDoc.wAttrDoc1 = 90) and (IsValid(#Vacations)) )
+          {
+            Vacations.FactYearBeg := ContDoc.dRezerve;
+            Vacations.FactYearEnd := ContDoc.Dat2;
+            update current Vacations;
+          }
+        }
+      end;
+
+      SetModified(true);
+    }
+}
+
+tableEvent Table ContDoc;
+
+cmSetDefault:
+{
+  ClearBuffer(tnContDoc);
+  ContDoc.cPart := PartDoc.Nrec;
+  ContDoc.ObjType := 1;    // to table Persons
+  ContDoc.SeqNmb := 1;
+  ContDoc.TypeOper := PartDoc.TypeOper;
+  ContDoc.NumPart := PartDoc.NRazd;
+
+  if ( getfirst Catalogs where (( PartDoc.cPRef == Catalogs.NRec )) = tsOk )
+  {
+    var tmpCode: word = word(Catalogs.Code);
+    
+    if ( (tmpCode = 11) or (tmpCode = 68) or (tmpCode = 90) )
+    {
+      ContDoc.wAttrDoc1 := tmpCode;
+    }
+    else
+    {
+      Message('Константа [' + string(tmpCode) + '] не допустима при оформлении данного приказа!' + 
+        Chr(10) + Chr(13) + 'Доступны константы (11, 68, 90).' + 
+        Chr(10) + Chr(13) + 'Установлено значение причины действия по умолчанию - 90!', Warning + okButton);
+      ContDoc.wAttrDoc1 := 90;
+    }
+  }
+  else
+    ContDoc.wAttrDoc1 := 90;
+
+  ContDoc.nRec := GetNextnRec(tnContDoc, 0);
+  ContDoc.DPrik := ZERODATE;
+  ContDoc.Dat1 := ZERODATE;
+  ContDoc.Dat2 := ZERODATE;
+  ContDoc.dRezerve := ZERODATE;
+  ContDoc.cAddInf := cFDAbsence;
+
+  SetFormatOrder();
+
+  if (GetLast ContDocNmb where (( PartDoc.nRec == ContDocNmb.cPart    and
+                                  PartDoc.TypeOper == ContDocNmb.TypeOper and
+                                  1 == ContDocNmb.SeqNmb)) = tsOk)
+    ContDoc.wRec := ContDocNmb.wRec + 1
+  else
+    ContDoc.wRec := 1;
+
+  ClearBuffer(#InfPsn1);
+  InfPsn1.nRec := 0;
+  InfPsn1.cPers := ContDoc.nRec;
+  InfPsn1.cRef2 := comp(skkRPD99);
+  InfPsn1.str1  := '';
+  InfPsn1.str2  := '';
+  InfPsn1.str3  := '';
+  InfPsn1.DBeg  := ZeroDate;
+
+  CreateDefaultVacations();
+
+  /* необходим для случая, когда спозиционированы на утвержденной позиции частично утвержденного группового
+  приказа */
+  if boUsePartOrders
+  {
+    SetHelpAndStatusContext(brPsn, -1, sci1378Esc, 'StaffWinPr');
+    EnableDisable;
+  }
+
+    SetModified(true);
+    UpdateTable;
+}
+
+cmCheckField:
+{
+  case CurField of
+    #InfPsn1.str1,
+    #InfPsn1.str2,
+    #InfPsn1.DBeg:
+    {
+      SetModified(true);
+      GenerateSBottom;
+    }
+
+    #InfPsn1.str3,
+    #ContDoc.SBottom,
+    #sCanceledOrder:
+    {
+      SetModified(true);
+    }
+
+    #ContDoc.DPrik:
+    {
+      ContDoc.Dat2 := Add_Day(ContDoc.DPrik, -1);
+
+      if ( (ContDoc.wAttrDoc1 = 90) and (IsValid(#Vacations)) )
+      {
+        Vacations.FactYearEnd := ContDoc.Dat2;
+        update current Vacations;
+      }
+    }
+
+    #ContDoc.wAttrDoc2:
+    {
+      ChangeTypeApp;
+      SetModified(true);
+    }
+  end; //case
+}
+
+end;
+end.

@@ -1,0 +1,61 @@
+#include PAXRefs.vih
+
+#component "Z_StaffOrders"
+
+alter interface ConfirmRpd_1;
+
+overload
+  procedure GetFirstBodyForLinkingLs;
+end;
+
+procedure GetFirstBodyForLinkingLs;
+{
+  if (Day(LSCHET.DATUV) > 0)
+  {
+    var PAXR: PersonalAccountXRefs;
+    var MPAI: MainPersonalAccountsIterator;
+    
+    if not PAXR.Exists(Appointments.cAddnRec2, LSCHET.NREC)
+    {
+      var cHasMainID: tNrec = 0;
+
+      if MPAI.First(LSCHET.NREC)
+        cHasMainID := MPAI.GetAdjacent;
+
+      var bGPH: boolean = false;
+      var cLink1, cLink2: comp = 0;
+
+      if (ContDoc.cNew2 = 2)
+        if (getfirst LSchetTmp where (( cHasMainID == LSchetTmp.nRec )) = tsOk)
+          if (LSchetTmp.sovm <> 2)
+          {
+            bGPH := true;
+            cLink1 := LSchetTmp.nRec;
+            cLink2 := Appointments.cAddnRec2;
+          }
+
+      if (not bGPH)
+      {
+        cLink1 := Appointments.cAddnRec2;
+        cLink2 := LSCHET.NREC;
+      }
+
+      var PAXR2: PersonalAccountXRefs;
+      if PAXR2.InsDatedLink(cLink1, cLink2, _CurDateTime)//CURrLSCHET.DATPOS)
+      {
+        FS.PARefsAdditionalProcessing(0, Appointments.cAddnRec2, LSCHET.NREC, cHasMainID);  // перенос сквозных постоянных удержаний
+
+        LSCHET.CHAR4 := '-';
+
+        if (update current LSCHET = tsOk)
+          Displ('Проведена привязка старого и нового лицевых счетов сотрудника: '
+                + Persons.FIO);
+      }
+    }
+  }
+  else
+    Displ('Нельзя связать старый и новый л\с ' + Persons.FIO +
+          ''#13' т.к. в модуле "зарплата" сотрудник не уволен.');
+} //Procedure GetFirstBodyForLinkingLs;
+
+end.

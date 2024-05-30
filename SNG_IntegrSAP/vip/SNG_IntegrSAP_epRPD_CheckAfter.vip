@@ -12,9 +12,11 @@ create view
 as select
 Titledoc.nrec
 from
-Titledoc,
-PartDoc,
-ContDoc
+  Titledoc
+, PartDoc
+, ContDoc
+, vacations
+, klotpusk
 where ((
       TitleDoc.nRec == PartDoc.cDoc
   and PartDoc.nRec == ContDoc.cPart 
@@ -24,12 +26,12 @@ where ((
 function generateJson(NrecTitleDoc: comp): boolean; {
 
   result := false;
-
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 31');
   if getfirst TitleDoc where ((NrecTitleDoc == Titledoc.nrec)) <> tsOK then exit;
-
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 32');
   if TitleDoc.wSTATUS <> 1 then exit;   //тут пишем все проверки приказа, например, статус приказа должен быть таким то
   //может какой то определенный статус надо, например "согласовано в директуме"
-
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 33');
 
  // если проверки ок, то генерируем JSON
   Var _fQRY_INST_CODE : string = 'Сюда вставляем код экземпляра запроса по которому генерируем JSON';
@@ -63,8 +65,15 @@ function generateJson(NrecTitleDoc: comp): boolean; {
     30:{
       _fQRY_INST_CODE := 'RPD_30_INSTANCE';
     }
+    31:{
+      _fQRY_INST_CODE := 'RPD_31_32_INSTANCE';
+    }
+    32:{
+      _fQRY_INST_CODE := 'RPD_31_32_INSTANCE';
+    }
     41: {
-      _fQRY_INST_CODE := 'RPD_41_INSTANCE';
+       // _fQRY_INST_CODE := 'RPD_41_INSTANCE';
+       _fQRY_INST_CODE := ''; // все будет ниже
     }
     50: {
       _fQRY_INST_CODE := 'RPD_50_INSTANCE';
@@ -72,11 +81,18 @@ function generateJson(NrecTitleDoc: comp): boolean; {
     60: {
       _fQRY_INST_CODE := 'RPD_PA0007_INSTANCE';
     }
+    66: {
+      _fQRY_INST_CODE := 'RPD_66_INSTANCE';
+    }
+    67: {
+      _fQRY_INST_CODE := 'RPD_67_INSTANCE';
+    }
     70: {
       _fQRY_INST_CODE := 'RPD_PA0007_INSTANCE';
     }
     71 : {
-      _fQRY_INST_CODE := 'RPD_71_TO_SAP';
+      //_fQRY_INST_CODE := 'RPD_71_TO_SAP_PA2001';
+      _fQRY_INST_CODE := 'RPD_71_TO_SAP_PA2001|PA0298|PA0302';
     }
     81: {
       _fQRY_INST_CODE := 'RPD_81_INSTANCE';
@@ -84,10 +100,17 @@ function generateJson(NrecTitleDoc: comp): boolean; {
     88: {
       _fQRY_INST_CODE := 'RPD_88_INSTANCE';
     }
-  	99: {
+  	99: { /*
       if (isValid(#ContDoc) and ContDoc.wAttrDoc1 = 90) {
         _fQRY_INST_CODE := 'RPD_99_90_INSTANCE';
-      }
+      } */
+      if (isValid(#ContDoc)) {
+        case ContDoc.wAttrDoc1 of
+          11: _fQRY_INST_CODE := 'RPD_99_11_INSTANCE';
+          68: _fQRY_INST_CODE := 'RPD_99_68_INSTANCE';
+          90: _fQRY_INST_CODE := 'RPD_99_90_INSTANCE';
+        end;
+       }
     }
     101: {
       _fQRY_INST_CODE := 'RPD_101_PA9916';
@@ -112,6 +135,8 @@ function generateJson(NrecTitleDoc: comp): boolean; {
   } else {
     result := true;
   }
+  
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 34, ' + _fQRY_INST_CODE + ', ' + string(result));
 
   //Докидываем дополнительные JSON после основного - не важно, успешно принят основной или нет. Пусть SAP разбирается
   case PartDoc.typeOper of
@@ -120,17 +145,19 @@ function generateJson(NrecTitleDoc: comp): boolean; {
                        and createJsonAndSend(Titledoc.nrec, 'RPD_1_ADDRESS')
                        and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE')
                        and createJsonAndSend(Titledoc.nrec, 'RPD_1_PA9010')
-                       and createJsonAndSend(Titledoc.nrec, 'RPD_1_PA0008');
+                       and createJsonAndSend(Titledoc.nrec, 'RPD_PA0008_INSTANCE')
+                       and createJsonAndSend(Titledoc.nrec, 'RPD_1_PA0004_DOCS');
     }
-   2: {
-     result := result and createJsonAndSend(Titledoc.nrec, 'RPD_2_DOCUMENTS');
-   }
+  	2: {
+  	  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_2_DOCUMENTS');
+  	}
     5: {
       result := result and createJsonAndSend(Titledoc.nrec, 'RPD_5_CONTRACTS')
-                       and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE');
+                       and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE')
+                       and createJsonAndSend(Titledoc.nrec, 'RPD_PA0008_INSTANCE');
     }
     8: {
-      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE')
+      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_FIRED')
                        and createJsonAndSend(Titledoc.nrec, 'PA0416_FIRE');
     }
     41: {
@@ -138,51 +165,43 @@ function generateJson(NrecTitleDoc: comp): boolean; {
          if getfirst vacations where ((contdoc.objnrec == vacations.nrec)) = tsOK
           if getfirst klotpusk where ((vacations.vactype == klotpusk.nrec)) = tsOK {
              case klotpusk.kotpus of
-                 22
-                ,105
-                ,106
-                ,23
-                ,21
-                ,114
-                ,24
-                ,174
-                ,176
-                ,9507
-                ,152 : {
-                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2001')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0298');
+                 21  , 23 , 22 ,  24, 105, 106
+               , 112 , 114, 152, 174, 176, 9507 : {
+                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302|PA2001|PA0298');
                 }
                 2 :{
-                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0000')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0001')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2001')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0298');
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0082');
+                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0000|PA0001|PA0302|PA2001|PA0082|PA0298');
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0082');
                 }
                 41 :{
-                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0416')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PTQUODED')
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0298');
-                                   and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2006');
+                  result := result and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0302|PA0416|PA2006|PTQUOTED|PA0298');
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2006');
                 }
              end;
        }
     }
+/*
+    71: {
+      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_71_TO_SAP_PA0298')
+                       and createJsonAndSend(Titledoc.nrec, 'RPD_71_TO_SAP_PA0302');
+    }
+*/
     81: {
       result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE')
                        and createJsonAndSend(Titledoc.nrec, 'RPD_81_DOCUMENTS');
     }
+    105: {
+      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_105_PA0016');
+    }
     108: {
-      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE')
+      result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_FIRED')
                        and createJsonAndSend(Titledoc.nrec, 'PA0416_FIRE');
     }
     188: {
       result := result and createJsonAndSend(Titledoc.nrec, 'RPD_PA0007_INSTANCE');
     }
   end; //case
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 35, ' + string(result));
 }
 
 function createJsonAndSend(_nRec: comp; _instance: string): boolean; {
@@ -191,23 +210,27 @@ function createJsonAndSend(_nRec: comp; _instance: string): boolean; {
   var FNservice, _JSON: tptr;
   var _err : string = '';
   var iSAP_Provider: oSNG_HTTP_Provider(SNG_HTTP_Provider_SAP);
-
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 41');
   if iQRY_OUT.GenerateJSONFromQueryInstanceByNrecRootTable(_instance,
                                                            _nRec,
                                                            FNservice,
                                                            _JSON,
                                                            _err) {
+    if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 42');
     if (_err <> '') {
       message(_err);
       result := case(PartDoc.typeOper; 1: false; true);
+      if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 43');
       exit;
     }
     if (not iSAP_Provider.sendJson(_JSON)) {
+      if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 44');
       result := case(PartDoc.typeOper; 1: false; true);
     }
-
+    if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 45');
     var __log : string = iQRY_OUT.GetLogFile;
     PutFileToClient(__log,false);
+    if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 46');
   }
 }
 
@@ -216,8 +239,9 @@ end.
 handler with replace SNG_Fill_QUE_EntriesForReview_RPD_CHECK_AFTER on ExtensionPoint epConfirmOrder (NrecTitleDoc: Comp)
 
 action {
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 21');
   var iSNG_IntegrSAP_epRPD_CheckAfter: oSNG_IntegrSAP_epRPD_CheckAfter(SNG_IntegrSAP_epRPD_CheckAfter);
   result := iSNG_IntegrSAP_epRPD_CheckAfter.generateJson(NrecTitleDoc);   // тут в очередь будем ставить
-
+  if (UpCase(UserName) = 'FILIPPOV_IM') Message('ENTRY 22');
   //  result := true; //вне зависимости от того, что произошло, всегда продолжаем работу
 }

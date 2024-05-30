@@ -1,0 +1,385 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+alter interface RPD_4;
+
+#include OWFunc.vpp
+#declare OverworkCalculationF2(_Tbl)
+  if(#_Tbl.OWMode = ocmDaily, 'поденный',
+    if(#_Tbl.OWMode = ocmSummed, 'суммированный',
+      if(#_Tbl.OWMode = ocmNone, 'несуммированный', '')))
+#end
+
+overload
+  procedure IRPD_Base.EnableDisable;
+  Procedure OpenLSFields;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+create view
+as select
+  #OverworkCalculationF2(NewAppoint)
+  (fieldname = OverworkCalculation2)
+;
+
+OverloadFormats scrDet4;
+
+screen scrDet4 (,hcStaffWinPr, sci1Esc);     //Изменение фамилии
+show at (, 5,,);
+table NewAppoint;
+  fields
+    fullNamePodr: protect;
+    CatPost.Name: protect;
+    KlRejim.NRejim: protect;
+    GetStrTabN(Persons.TabNmb, Persons.StrTabN) ('Основной табельный номер'): skip;
+    ClockNumber('Табельный номер совместителя'): noprotect;
+//совместительство
+  Buttons
+    cmStaffDoEduStatus, [singleline],,,
+      'Получить список свободных табельных номеров.';
+  fields
+    NewAppoint.AppointDate ('С указанной даты',
+             hcStaffAppAppointDate, sci13esc): [10,'DD/MM/YYYY'], {Font = {BackColor = if(NewAppoint.AppointDate = ZeroDate, ColorNeed, 0)}}, noprotect;
+    NewAppoint.DateEnd ('По указанную дату',
+             hcStaffAppEndDate, sci13esc): [10,'DD/MM/YYYY'], noprotect;
+    fChPerson ('ФИО сотрудника, на период отсутствия которого производится прием'): protect, pickbutton;
+    NewAppoint.wAddWord1 ('По штатному расписанию/вне штатного расписания',
+             hcNoContext): [list ' ', 'по ШР', 'вне ШР' ], protect;
+    JobNatureCat.Name ('Характер работы',, sci13esc): protect;
+    OldFullNamePodr ('Подразделение. ',
+             hcStaffAppDepartment, sci13esc): {Font = {BackColor = if(OldFullNamePodr = '', ColorNeed, 0)}}, protect;
+    NewAppoint.sWorkPlace ('Рабочее место',, sci13esc): protect;
+    NewPostCat.Name ('Профессия, должность. ',
+             hcStaffAppPost, sci13esc): {Font = {BackColor = if(not IsValid(#NewPostCat), ColorNeed, 0)}}, protect;
+    NewKlKatego.NaiKat ('Категория. ',
+             hcStaffAppEmpCategory, sci13esc): protect;
+    [SNG_osob_usl] AKps.GetKpsSTR(ContDoc.cNew3)(,,sci13esc): protect, pickbutton;
+    NewKlSisOpl.NaSisOpl ('Система оплаты труда. ',
+             hcStaffAppPayModel, sci13esc): Protect;
+    NewFormOpl  ('Форма оплаты труда.', hcStaffAppPayModel): skip;
+    NewAppoint.TaxRate ('Оклад, ставка, тариф',
+             hcStaffAppTaxRate): [11.3], noprotect;
+    AppKlVal.SimvolV ('Валюта',, sci13esc): protect;
+    [SNG_scdLastUser2] vTSFuncs.GetRealCorrCoeff(NewAppoint.Tariff, NewAppoint.LastUser)
+           ('Корректирующий коэффициент', hcStaffAppTaxRate): [10.3], noprotect;
+    NewTarStav.Naitar: Skip;
+    NewAppoint.Category: Skip;
+    [SNG_i_sKategory]
+      longInt(NewAppoint.cCat2) ('Квалификационный разряд (категория)'): NoProtect;
+    NewAppoint.Rate    ('Количество занимаемых ставок', hcStaffPrikazRate): [5.3], noprotect;
+    FullIf ('Источники финансирования',, sci13esc): protect;
+    NewWorkCondCat.Name ('Условия труда. ',
+             hcStaffAppWorkCond, sci13esc): Protect;
+    fRejimStr ('Режим труда и продолжительность рабочего дня (недели), ч',
+             hcStaffAppHours, sci13esc): Protect;
+    OverworkCalculation2  ('Способ учета сверхурочных работ',,sci13esc): protect;
+    NewAppoint.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+    NewAppDopInfoCat.Name ('Дополнительные сведения.',
+             hcStaffReceptionT2ComPick, sci13esc):  protect;
+    ContractStr(,, sci13esc): protect, pickbutton;
+    sContractLink ('Идентификатор договора',, sciStaffTypical1Esc): protect, {hyperlink = (sContractLink <> '')};
+    // доп. соглашение
+    fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+    sExternalLink ('Идентификатор доп.соглашения',, sciStaffTypical1Esc): protect, {hyperlink = (sExternalLink <> '')};
+    // обработка лицевого счета
+    ContDoc.wDopAttr ('Выбор лицевого счета'):
+      [list SOVM_LS_NONE       'не открывать'
+          , SOVM_LS_USE        'открыть новый'
+          , SOVM_LS_USEOLD     'из назначения'
+          , SOVM_LS_USEOLDARCH 'из архивного назначения'], protect;
+    [SNG_TabNOldAppoint]
+      GetStrTabN(OldAppoint.Apptabnmb, OldAppoint.StrTabN)
+        ('Выбор совместительства, на которое оформляется повторный прием',, sci13esc),
+          protect;
+    NewAppoint.dDop1  ('Дата начала первого рабочего периода', hcStaffPrikazRate): noprotect;
+    NewAppNatCat.Name ('Характер назначения', , sci13esc): protect;
+    ContDoc.wAttrDoc1 ('Создавать доплату используя указанный ШПЗ', hcStaffPrikazRate):
+      [list  0 'В соответствии с настройкой классификатора доплат',
+             1 'Использовать ШПЗ совмещаемой должности'], noProtect;
+    // причина
+    NewTypeMove.Name  ('Причина перевода. ',
+             hcStaffprikazt5, sci13Esc) :  protect;
+    // основание
+    ContDoc.SBottom ('Основание', hcStaffAppFoundation): [40], noprotect;
+    sWF_APP: protect,
+    {Font = {Color = if(funIsOrderConfirm, ColorSysGray, 0);
+             BackColor = if(funIsOrderConfirm, ColorSys06, 0)}};
+  Buttons
+    cmValue12,[singleline],,,
+     'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+    cmValue25, [SingleLine],,, 'Штрих-код';
+    cmStaffT2Raise,,,'Доплаты, надбавки', hcNoContext;
+    cmViewAdvance1,,,'Просмотр примечания к приказу', hcStaffWinPr;
+    cmValue21,,, 'Дополнительные условия по приказу';
+<<
+ Осн.назначение:.@@@@@@@@@@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Осн.таб.номер .@@@@@@@@@@@@Таб.номер совм..@@@@@@@@@@@              <.Свободные номера.>
+ Совмещение  с .@@@@@@@@@@@@       по      .@@@@@@@@@@@
+ на пер. отсут..@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Соот-вие ШР   .@@@@@@@@@@@@@@@@@@@@               `Характер работы` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Подразделение .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Раб. место .@@@@@@@@@@@@
+ Должность     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  Категория   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Условия труда на рабочем месте .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Сист.оплаты   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  Ф-ма оплаты .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Оклад         .@@@@@@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@  Корр.коэф.  .@@@@@@@<.>>.>
+ Тариф         .@@@@@@@@@@@@@@@@@@@@@      Разряд.@@@@@            Квал.разряд/категория.@@@@@@@@@
+ Кол-во ставок .@@@@@ `ИФ`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Условия труда .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  Режим труда .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Учет сверхурочных`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@   `Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Доп.сведения  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Договор       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ТД в Directum`.@@@@@@@@@@@@@
+               `Доп. соглашение`.@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ДС в Directum`.@@@@@@@@@@@@@
+                                                                                   <. Штрих-код .>
+ Лицевой счет  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+               `Дата начала РП`.@@@@@@@@@@               Хар-р назн-я.@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ ШПЗ доплат    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Причина       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Основание     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Трудовая функция`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+              <.  Доплаты  .>        <. Примечание .>        <. Доп. условия .>
+>>
+end; // screen scrDet2
+
+Procedure OpenLSFields;
+{
+  inherited::OpenLSFields;
+
+  if (ContDoc.wDopAttr and SOVM_LS_USEOLD) = SOVM_LS_USEOLD // повторный прием
+    SetFieldAndLabelVisible(#SNG_TabNOldAppoint, true);
+  else
+    SetFieldAndLabelVisible(#SNG_TabNOldAppoint, false);
+}
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+  {
+    SetFieldAndLabelVisible(#NewAppoint.TaxRate, false);
+    cfsSetProp('T_SCRDET4_Оклад', cfpVisible, false);
+  }
+
+  if fnFieldsOpen
+  {
+    SetFieldOption(#SNG_osob_usl , ofSelectable);
+    SetFieldOption(#SNG_i_sKategory, ofSelectable);
+    SetFieldOption(#SNG_TabNOldAppoint, ofSelectable);
+  }
+  else //утвержден
+  {
+    ClearFieldOption(#SNG_osob_usl, ofSelectable);
+    ClearFieldOption(#SNG_i_sKategory, ofSelectable);
+    ClearFieldOption(#SNG_TabNOldAppoint, ofSelectable);
+  } // утвержден
+
+  if (not isMultiCorrCoef)
+  {
+    if not isCorrCoef
+      ClearFieldOption(#SNG_scdLastUser2, sfVisible); // нельзя отредактировать
+    else
+      if funIsOrderConfirm
+        ClearFieldOption(#SNG_scdLastUser2, ofSelectable);
+      else
+        SetFieldOption(#SNG_scdLastUser2, ofSelectable);
+
+  }
+  else // всегда даем на просмотр кнопочку СКК
+  {
+    ClearFieldOption(#SNG_scdLastUser2, sfVisible);
+  }
+}
+
+TableEvent table NewAppoint;
+
+cmExprFieldChanged:
+{
+  case CurField of
+
+    #SNG_scdLastUser2:
+      set NewAppoint.LastUser := vTSFuncs.GetModCorrCoeff(NewAppoint.Tariff, ExprFieldValue);
+
+    #SNG_i_sKategory:
+      set NewAppoint.cCat2 := comp(ExprFieldValue);
+
+  else
+    inherited::handleevent(cmExprFieldChanged);
+
+  end; //case
+}
+
+cmCheckField:
+{
+  case CurField of
+
+    #SNG_scdLastUser2:
+    {
+      _try
+      {
+        if Double(NewAppoint.LastUser) = 0
+          set NewAppoint.LastUser := '1';
+      }
+      _except
+        on ExNumberConvert:
+          set NewAppoint.LastUser := '1';
+      // это поле открыто только, когда настройка "использовать кор.
+      // коэффициент" так что можно сразу же анализировать на возможность учета
+      if (NewKlSisOpl.filialNo = 11) // учитывать ли кол-во ставок
+        set NewAppoint.TaxRate := vTSFuncs.RoundStaffTarif(NewAppoint.PayModel, GetTarByTarif(NewAppoint.TaxRate, true, 0) * NewAppoint.Rate)
+      else
+        set NewAppoint.TaxRate := vTSFuncs.RoundStaffTarif(NewAppoint.PayModel, GetTarByTarif(NewAppoint.TaxRate, true, 0));
+    }
+
+  else
+    inherited::handleevent(cmCheckField);
+
+  end;
+}
+
+  cmInit:
+  {
+    cfsSetProp('T_SCRDET4_ИД_доп.соглашения_к_ТД','Title','Ссылка на ДС Directum');
+    cfsSetProp('T_SCRDET4_ИД_трудового_договора','Title','Ссылка на ТД Directum');
+  }
+end;
+
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  inherited::handleEvent(cmOnVipLoad);
+  IsSummedOWH := false;
+  cfsSetProp('i_SCRDET4_SNG_Osob_USL', cfpHelpLine, Akps.GetKpsHelpContext);
+}
+
+cmPick:
+{
+  case CurField of
+
+    #OldFullNamePodr:
+    {
+      ParentSav := NewAppoint.Department;
+
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-11), ParentSav, 0) = cmDefault)
+      {
+        if NewAppoint.wAddWord1 = 2
+          set NewAppoint.Department := ParentSav;
+        else
+        {
+          var sBackButton: string = 'RPD_BACK_PV_'+string(UserID);
+          SaveMyDsk(true, sBackButton);
+          SetAppInside(ParentSav, NewAppoint.AppointDate);
+          SaveMyDsk(false, sBackButton);
+        }
+
+        FillCompetenceByOrder;
+
+        set ContDoc.cNew3 := AKps.GetMainKps(NewAppoint.nRec);
+        update current ContDoc;
+      }
+    }
+    #OverworkCalculation2:
+    {
+      case runmenu('CaseOWModeSNG4') of //Выбор для способа учета сверхурочных
+        cmValue61:
+          set NewAppoint.OWMode := ocmDaily;
+        cmValue62:
+          set NewAppoint.OWMode := ocmSummed;
+        cmValue63:
+          set NewAppoint.OWMode := ocmNone;
+      end;  //case
+
+      SetModified(true);
+      UpdateTable;
+      #SetVisibleOWPeriod(NewAppoint, #NewAppoint.PeriodOW)
+    }
+
+    #SNG_osob_usl:
+    {
+      UpdateTableWithInserted;
+
+      if (NewAppoint.NRec > 0)
+      {
+        var nRecKps: comp;
+        nRecKps := AKps.PickNRecKPS(NewAppoint.nrec,ContDoc.cNew3);
+
+        if (nRecKps <> comp(0))
+        {
+          set ContDoc.cNew3 := nRecKps;
+          update current ContDoc;
+        }
+      }
+      else
+        message('Не заполнена запись о назначении.');
+
+      ReReadRecord(#NewAppoint);
+    }
+
+    #SNG_TabNOldAppoint:
+    {
+      var iTmp: integer;
+
+      iTmp := if((ContDoc.wDopAttr and SOVM_LS_USEOLDARCH) = SOVM_LS_USEOLDARCH, 31, 3);
+      ParentSav := ContDoc.cInf;
+      // поскольку нужны все совмещения, то сделаем на фиктивную дату
+      if RunInterface('Z_Staff::GetApp', Persons.Nrec, ParentSav, iTmp, date(1, 1, 1900)) = cmDefault
+      {
+        if getfirst tAppointments where ((ParentSav == tAppointments.NRec)) = tsOk
+          if getfirst tLschet where ((tAppointments.cAddNrec2 == tLSchet.NRec)) = tsOk
+          {
+            set ContDoc.cInf := ParentSav;
+            setModified(true);
+          }
+
+        if ContDoc.cInf <> ParentSav
+          Message('Выбранное назначение не связано с лицевым счетом!', Error);
+      }
+    }
+
+    else
+      inherited::handleevent(cmPick);
+
+  end;
+}
+
+cmDelOnProtect:
+{
+  case CurField of
+
+    #SNG_osob_usl:
+    {
+      // если КПС заполнен, тогда запоминаем, что удаляем его.
+      if (ContDoc.cNew3 <> 0)
+      {
+        set ContDoc.cNew3 := 0;
+        update current ContDoc;
+
+        RescanPanel(#NewAppoint);
+      }
+    }
+
+    #SNG_TabNOldAppoint:
+    {
+      abort;
+      exit;
+    }
+
+    else
+      inherited::handleevent(cmDelOnProtect);
+
+  end;
+}
+
+end;
+
+end.
+
+CaseOWModeSNG4 menu   //Выбор для поля способ учета сверхурочных
+{
+  - 'Поденный',cmValue61,'Способ учета сверхурочных поденный';
+  - 'Суммированный',cmValue62,'Способ учета сверхурочных суммированный';
+  - 'Несуммированный',cmValue63,'Способ учета сверхурочных несуммированный';
+}

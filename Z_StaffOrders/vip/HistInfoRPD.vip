@@ -1,0 +1,58 @@
+#component 'Z_STAFFORDERS'
+
+#include HistInfoRPD.vih
+
+alter interface HistInfoRPD 'Информация из истории назначений и истории ШР';
+
+OverloadFormats scInfTabApp;
+screen scInfTabApp 'История назначений';
+  table AppHistApp;
+fields
+  dtInfApp             ('Дата просмотра истории назначений'):  [10,'DD/MM/YYYY'], noprotect;
+  /*
+  KlSisOplApp.NaSisOpl ('Система оплаты труда.' ): skip;
+  FullIfApp            ('Источники финансирования'): skip;
+  AppHistApp.TaxRate   ('Оклад, ставка, тариф'): [11.3], skip;
+  KlValApp.SimvolV     ('Валюта'): skip;
+  scdLastUserApp       ('Корректирующий коэффициент'): [10.3], skip;
+  TarStavApp.Naitar:   skip;
+  AppHistApp.Category: skip;
+  AppHistApp.coef1     ('Количество занимаемых ставок'): [5.3], skip;
+  */
+  KlRejimApp.NRejim    ('Режим работы'), skip;
+  KlKategoApp.NaiKat   ('Категория'), skip;
+  WorkCondCatApp.Name  ('Условия труда'): skip;
+  osob_uslApp:         skip;
+<<
+  На дату          .@@@@@@@@@@@
+  Режим работы     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Категория    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Условия          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Условия труда.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; //screen scInfTabApp
+
+OverloadFormats scInfTabShr;
+screen scInfTabShr 'История штатного расписания';
+  table HistoryStrShr;
+fields
+  dtInfShr                 ('Дата просмотра истории назначений'):  [10,'DD/MM/YYYY'], noprotect;
+  /*
+  KlSisOplShr.NaSisOpl     ('Система оплаты труда.' ): skip;
+  FullIfShr                ('Источники финансирования'): skip;
+  HistoryStrShr.HTaxRate   ('Оклад, ставка, тариф'): [11.3], skip;
+  KlValShr.SimvolV         ('Валюта'): skip;
+  scdLastUserShr           ('Корректирующий коэффициент'): [10.3], skip;
+  TarStavShr.Naitar:       skip;
+  HistoryStrShr.wCategory: skip;
+  */
+  KlRejimShr.NRejim        ('Режим работы'), skip;
+  KlKategoShr.NaiKat       ('Категория'), skip;
+  WorkCondCatShr.Name      ('Условия труда'): skip;
+  osob_uslShr:             skip;
+<<
+  На дату          .@@@@@@@@@@@
+  Режим работы     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Категория    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Условия          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Условия труда.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; //screen scInfTabShr
+
+end.

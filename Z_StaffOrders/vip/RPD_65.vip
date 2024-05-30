@@ -1,0 +1,146 @@
+#include PerAcces.VIH
+#include WorkWithContract.vih
+
+#component "Z_StaffOrders"
+
+alter interface RPD_65;
+
+#include OWFunc.vpp
+#declare OverworkCalculationF2(_Tbl)
+  if(#_Tbl.OWMode = ocmDaily, 'поденный',
+    if(#_Tbl.OWMode = ocmSummed, 'суммированный',
+      if(#_Tbl.OWMode = ocmNone, 'несуммированный', '')))
+#end
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+create view
+as select
+  #OverworkCalculationF2(AppHist)
+  (fieldname = OverworkCalculation2)
+;
+
+OverloadFormats scrDet65;
+
+screen scrDet65 (, hcStaffWinPr, scStaffMyPnl);
+show at (, 5,,14);
+table AppHist;
+  fields
+    AppHist.wFld      ('Новый трудовой договор/продление старого')
+                          : [list CONTRACT_NEW 'заключение'
+                                , CONTRACT_LONG 'продление'
+                                , CONTRACT_NEW_EX 'заключение (договор уже оформлен)'], protect;
+    ContractStr:  {Font = {BackColor = if(AppHist.cSpr3 = 0, ColorNeed, 0)}}, noprotect, protect, pickbutton;
+    sContractLink ('Идентификатор договора',, sciStaffTypical1Esc): protect, {hyperlink = (sContractLink <> '')};
+    AppHist.dRec      ('С даты', hcStaffWinPr, scStaffMyPnlPick): [10,'DD/MM/YYYY'], {Font = {BackColor = if(AppHist.dRec = ZeroDate, ColorNeed, 0)}}, noprotect;
+    AppHist.dEnd      ('По дату', hcStaffWinPr, scStaffMyPnlPick): [10,'DD/MM/YYYY'], noprotect;
+    wValue13: noprotect;
+    fullNamePodr      ('Подразделение'): skip;
+    wValue14: noprotect;
+    PostCat.Name      ('Должность (из основного назначения или совмещения - для увольнения совместителей)'): skip;
+    wValue4: noprotect;
+    KlSisOpl.NaSisOpl ('Система оплаты труда.', hcStaffAppPayModel, scStaffMyPnlPick):  protect;
+    AppHist.TaxRate   ('Оклад, ставка, тариф', hcStaffAppTaxRate): [11.3], noprotect;
+    KlVal.SimvolV     ('Валюта', hcNoContext, scStaffMyPnlPick): protect;
+    scdLastUser04     ('Корректирующий коэффициент', hcStaffAppTaxRate): [10.3], noprotect;
+    TarStav.Naitar   : skip;
+    AppHist.Category : skip;
+    AppHist.coef1     ('Количество занимаемых ставок'): [5.3], skip;
+    FullIF: skip;
+    wValue8: noprotect;
+    i_Kategory: noprotect;
+    wValue5: noprotect;
+    KlRejim.NRejim    ('Режим работы', hcStaffWinPr, scStaffMyPnlPick):  protect;
+    OverworkCalculation2  ('Способ учета сверхурочных работ',,scStaffMyPnlPick): protect;
+    AppHist.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+    wValue9: noprotect;
+    JobNatureCat.Name ('Характер работы'): protect, pickbutton;
+    wValue6: noprotect;
+    AppWorkCondCat.Name ('Условия труда'): protect, pickbutton;
+    wValue7: noprotect;
+    osob_usl ('Условия труда на рабочем месте'): protect, pickbutton;
+    wValue10: noprotect;
+    KlKatego.NaiKat ('Категория'): protect, pickbutton;
+    fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+    sExternalLink ('Идентификатор доп.соглашения',, sciStaffTypical1Esc): protect, {hyperlink = (sExternalLink <> '')};
+    ContDoc.SBottom    ('Основание', hcStaffWinPr): noprotect;
+  buttons
+    cmValue12, [singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+    cmValue25, [SingleLine],,, 'Штрих-код';
+    cmStaffT2Raise, [singleline],,, 'Доплаты, надбавки';
+    cmValue21,      [singleline],,, 'Дополнительные условия по приказу';
+    cmValue13,[singleline],,, 'Привязка персональных отпусков';
+
+<<
+     Режим операции       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     Договор              .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ТД в Directum` .@@@@@@@@@@@@@
+     Заключить/продлить с .@@@@@@@@@@     по .@@@@@@@@@@
+   [:] Подразделение (РК)`.@@@@@@@@@@@@@@@@@@@@@@@@@ [:] Должность (РК)`.@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Система оплаты`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     Тар.ставка/оклад     .@@@@@@@@@@@@@@@@@@.@@@@@@@@@@@@@@ Корр.коэф..@@@@@@@<.>>.>
+     Тариф                .@@@@@@@@@@@@@@@@                   `Разряд` .@@@@
+     Кол-во ставок        .@@@@@ `ИФ `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                                 [:] Квалификационный разряд/категория`.@@@@@@@@@@
+   [:] Режим`             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Учет сверхурочных`   .@@@@@@@@@@@@@@@@@@@@@@@@@   `Период` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Характер работы`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Условия`           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Условия труда на рабочем месте`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Категория`         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Доп. соглашение`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ДС в Directum`.@@@@@@@@@@
+                                                                                   <. Штрих-код .>
+     Основание            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+            <.   Доплаты  .>    <. Доп. условия .>    <.  Привязка отпусков .>
+>>
+end; //screen scrDet65
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) = 0)
+  {
+    SetFieldAndLabelVisible(#AppHist.TaxRate, false);
+    cfsSetProp('T_SCRDET65_Тар.ставка/оклад', cfpVisible, false);
+  }
+}
+
+HandleEvent
+
+  cmPick:
+  {
+    if CurField = #OverworkCalculation2
+    {
+      case runmenu('CaseOWModeSNG65') of //Выбор для способа учета сверхурочных
+        cmValue61:
+          set AppHist.OWMode := ocmDaily;
+        cmValue62:
+          set AppHist.OWMode := ocmSummed;
+        cmValue63:
+          set AppHist.OWMode := ocmNone;
+      end;  //case
+
+      SetModified(true);
+      UpdateTable;
+      #SetVisibleOWPeriod(AppHist, #AppHist.PeriodOW)
+    }
+    else
+    {
+      inherited::handleevent(cmPick);
+    }
+  }
+
+end; //HandleEvent
+
+end.
+
+CaseOWModeSNG65 menu   //Выбор для поля способ учета сверхурочных
+{
+  - 'Поденный',cmValue61,'Способ учета сверхурочных поденный';
+  - 'Суммированный',cmValue62,'Способ учета сверхурочных суммированный';
+  - 'Несуммированный',cmValue63,'Способ учета сверхурочных несуммированный';
+}

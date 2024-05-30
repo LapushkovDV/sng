@@ -1,0 +1,619 @@
+#include ActionJsonCreate.vih
+#include GeneralFuncSNG.vih
+
+#component "Z_StaffOrders"
+
+alter Interface RPD_8;
+
+overload
+   function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+   procedure IRPD_Base.MyDel;
+   Procedure IRPD_Base.EnableDisable;
+end;
+var iGeneralFuncSNG : GeneralFuncSNG;
+    vc_MainLink : Comp;
+    oExtAttrTEK    : iExtAttr; // атрибут 
+
+const EndDate = date(31,12,9999);
+end;
+function getCatNrec(fnrec: comp):comp;forward;
+function getCatName(fnrec_: comp):string;forward;
+function getSpallstaff(fnrec: comp):string; forward;
+
+create view
+  as select
+    (StaffStruct.sCodeST + ' ' + StaffStruct.sNameST)
+      (fieldname = fPlans)
+    ,oExtAttrTEK.sGetAttr(coPartDoc, PartDoc.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina),
+
+    (getSpAllStaff(Persons.Nrec))
+    (FieldName = NameDogovor)       
+ from
+    StaffStruct,
+    SpAllStaff MySpAllStaff5,
+    SpAllStaff MySpAllStaff6,
+    SpAllStaff MySpAllStaff16,
+    Catalogs MyCatalogs,
+    Catalogs Catalogs_prichina,
+    // , Catalogs Catalogs_Yprichina 
+    catalogs catalogs1,  
+    catalogs catalogs11  
+  where
+    ((Appointments.StaffStr  == StaffStruct.Nrec and 
+      PartDoc.cPRef == Catalogs_prichina.nrec and
+      persons.department == catalogs11.nrec and
+      catalogs11.cparent == catalogs1.nrec
+    ))
+
+; //view
+
+function getSpAllStaff(fnrec: comp): string; // HR-863 для заполнения Трудового договора
+{ var ContrVid: string;
+  var ContrNomer: string;
+  var ContrDate: date;
+  
+  result := '';
+
+  if (IsValid(#Persons))
+  {
+    if (( GetFirst FastFirstRow MySpAllStaff5 where (( 5 == MySpAllStaff5.wNocon and fnrec == MySpAllStaff5.cBaset)) 
+                                                     and (MySpAllStaff5.Resdate[3] = EndDate or MySpAllStaff5.Resdate[3] = zerodate ))  = TsOk )   
+    {
+      set ContDoc.cNew7 := MySpAllStaff5.nRec;
+      ContrNomer := MySpAllStaff5.ResString[1];      
+      ContrDate := MySpAllStaff5.ResDate[1];     
+
+      if ( GetLast FastFirstRow MySpAllStaff6 where ((Word(6) == MySpAllStaff6.wNocon and MySpAllStaff5.nRec == MySpAllStaff6.cBaset)) = TsOk )  
+        {                                             
+          if ( GetLast FastFirstRow MySpAllStaff16 where ((Word(16) == MySpAllStaff16.wNocon and MySpAllStaff6.nRec == MySpAllStaff16.cBaset)) = TsOk ) 
+            {                
+            if (Getfirst FastFirstRow MyCatalogs where ((MySpAllStaff16.Rescomp[8] == MyCatalogs.Nrec))) = tsOk 
+              ContrVid := MyCatalogs.Name
+            }           
+        } 
+
+      else
+      {
+        if (Getfirst FastFirstRow MyCatalogs where (( MySpAllStaff5.ReScomp[1] == MyCatalogs.nRec)) = TsOk) 
+          ContrVid := MyCatalogs.Name;
+          ContrNomer := MySpAllStaff5.ResString[1];
+          ContrDate := MySpAllStaff5.ResDate[1];
+      }   
+    } 
+
+    result := ContrVid;
+    if ContrNomer <> '' 
+      result := result + ' № ' + ContrNomer;
+
+    if ContrDate <> zerodate   
+      result := result + string(' от ' + DateToStr(ContrDate,'DD/MM/YYYY'));
+  }  
+}
+
+Procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+  ClearFieldOption(#KlOtpuskComp.NOtpus, ofSelectable);
+
+  // HR-863
+  if fnFieldsOpen // не утвержден
+    SetFieldOption(#NameDogovor, ofSelectable);
+  else //утвержден
+    ClearFieldOption(#NameDogovor, ofSelectable);   
+}
+
+//Получаем имя верхнего каталога в ПАО
+ function getCatNrec(fnrec: comp) : comp;
+{
+    var nrec_tmp : comp;
+    var n : integer;
+
+    Result := 0;
+    nrec_tmp := fnrec;
+
+    if ((fnrec <> 0) and getFirst catalogs where ((nrec_tmp == catalogs.nrec)) = tsOk)
+    do
+    {
+        if(vc_MainLink = catalogs.cParent)
+          exit;
+
+        Result := catalogs.Nrec;
+
+        if(LengTh(catalogs.code) <=4 )
+         exit;
+
+        nrec_tmp := catalogs.cparent;
+    }
+    While(getFirst catalogs where ((nrec_tmp == catalogs.nrec)) = tsOk)
+}
+ //Код + имя раздела
+ function getCatName(fnrec_: comp) : string;
+{
+  result:='';
+  if(fnrec_) <> 0
+    if (getFirst catalogs where ((fnrec_ == catalogs.nrec)) = tsOk)
+      result := catalogs.code + ' ' + catalogs.name;
+}
+
+OverloadFormats brPsn;
+
+#include RPD_DOPFIELDS_MACRO.vpp
+//******************************************************************************
+// Люди по данному РПД
+//******************************************************************************
+browse brPsn  (, hcStaffWinPr, sciStaffTypical1378Esc);
+show at (,,,4) fixed_y;
+table ContDoc;
+  fields
+    ContDoc.wAttrDoc2 'Вид назначения'('Основное назначение или совмещение',, sci178Esc):
+      [list 'основное назначение', 'совмещение'], [15], noautosize, protect;
+    fullNamePodr         'Подразделение' ('Подразделение', hcStaffWinPr, ): [28], protect;
+    Persons.FIO          'ФИО' ('Фамилия имя отчество', hcStaffWinPr, ): [25], protect, {Font = {BackColor = if(not IsValid(#Persons), ColorNeed, 0)}};
+    sTabNmb : [10], skip;
+
+    AppPostCat.Name 'Профессия, должность'  ('Должность (из основного назначения или совмещения - для увольнения совместителей)' , hcStaffWinPr): [16], skip;
+    fPlans 'Штатная единица' ('Штатная должность'): [25], skip;
+    PersOrderStateCanc   'Исполнение'  ('Исполнение', hcStaffWinPr): [12], skip,
+      { font = {Color = if ( isValid(#ContDoc) and (TitleDoc.wStatus <> 1) and (ContDoc.wYearPr = 0 or ContDoc.wYearPr = 3) and isValid(#AllMemo), ColorSysRed, 0)} };
+    #fContDopFieldsBR
+end; //browse brPsn
+
+OverloadFormats scrDoc;
+//******************************************************************************
+// Окно содержимого приказа на увольнение
+//******************************************************************************
+Screen scrDoc (, hcStaffprikazt8, sciStaffTypical1Esc);
+Show at (, 5,,20) fixed_y;
+table Persons;
+  Fields
+    ContDoc.wAttrDoc2 ('Основное назначение или совмещение'):
+      [list 'основное назначение', 'совмещение'], protect;
+// основное назначение
+    fullNamePodr ('Подразделение. '): protect;
+    CatPost.Name ('Профессия, должность.'): Protect;
+    fPlans ('Штатная единица'): Skip;
+    KlKatego.NaiKat ('Категория.'): protect;
+    getCatName(getcatnrec(ContDoc.cDopRef)) ('Раздел персонала'), skip, protect; //HR-188
+    Appointments.TaxRate ('Оклад, ставка, тариф'): [11.3], protect;
+    AppWorkCondCat.Name ('Условия труда. '): skip;
+
+    PersMotiveCatCode  ('Основание увольнения (номер статьи Трудового кодекса).',
+             hcStaffprikazt8, sciStaffTypical13Esc): protect;
+    PersMotiveCatName  ('Основание увольнения.',
+             hcStaffprikazt8, sciStaffTypical13Esc): protect;
+    PersMotiveCatsDopInf('Основание увольнения. '): protect;
+    VDisDate ('Дата увольнения'): [10, 'DD/MM/YYYY'], {Font = {BackColor = if(VDisDate = ZeroDate, ColorNeed, 0)}}, noprotect;
+    fDisWPDates ('Рабочий период увольнения'): skip;
+    PersDisReasonCatName ('Основание.',, sciStaffTypical13Esc ):  protect;
+    ContDoc.SBottom('Основание.'):  noprotect;
+    Appointments.sResolutionNmb
+      ('Согласование увольнения с профсоюзным органом. Номер постановления.',
+              hcStaffprikazt8): [20], noprotect;
+    Appointments.dResolutionDate
+     ('Согласование увольнения с профсоюзным органом. Дата постановления.',
+               hcStaffprikazt8): [10, 'DD/MM/YYYY'], noprotect;
+    ContDoc.FilialNo
+        ('Номер записки-расчета для данного сотрудника', hcStaffprikazt8), Noprotect;
+    ContDoc.Dat2
+        ('Дата записки-расчета для данного сотрудника', hcStaffprikazt8, sciStaffTypical13Esc):
+          [10, 'DD/MM/YYYY'], noprotect;
+
+    NameDogovor ('Трудовой договор',, sciStaffTypical13Esc): protect; // HR-863
+    //fContr ('Трудовой договор',, sciStaffTypical13Esc): protect;
+    sContractLink ('Идентификатор договора'): protect, {hyperlink = (sContractLink <> '')};
+    fContrDate ('Дата завершения трудового договора'): noprotect;
+
+    OrgCat.Name ('Наименование организации, предприятия.',
+                               , sciStaffTypical13Esc):  protect;
+    CompensationLastUser ('Количество дней для компенсации'): [4.2], skip;
+    KlOtpuskComp.NOtpus ('Наименование отпуска из классификатора, который нужно использовать для компенсации.'
+                        ,, sciStaffTypical13Esc):  protect;
+     buttons
+       cmFullOrg, [SingleLine],,, 'Полное наименование';
+       cmValue4, [singleLine] ,,, 'Перейти к списку рабочих периодов';
+       cmValue10,              ,,'Рассчитать количество дней компенсации';
+       cmViewAdvance1,         ,,'Просмотр примечания к приказу';
+       cmValue21,,, 'Дополнительные условия по приказу';
+       cmValue22,,, 'Документы';
+// Дата увольнения      .@@@@@@@@@@@      Период увольнения.@@@@@@@@@@@@@@@@@@<. Рабочие периоды .>
+
+<<
+ `Вид назначения`     .@@@@@@@@@@@@@@@@@@@@
+ Структ.подразд./организационная единица  Профессия,должность   Штатная единица     Категория
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@
+                                                               <.Полное наименование.>
+ Раздел персонала     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Тар.ставка, оклад`  .@@@@@@@@@@@@@@@@@@@ `Условия труда` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Основание увольнения
+ .@@@@@@@@@@@@@@@@@@@@@  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Дата увольнения      .@@@@@@@@@@@                        .@@@@@@@@@@@@@@@@@@<.Рабочие периоды.>
+ Основание            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Номер постановления` .@@@@@@@@@@@@@@@@@@@@ `Дата` .@@@@@@@@@@@@
+ Номер записки-расчета.@@@@@@@@@@@@@@@@@@@@ `Дата` .@@@@@@@@@@@@
+`Трудовой договор`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ТД в Directum` .@@@@@@@@@@@@@
+`Дата завершения` .@@@@@@@@@@@@
+ В порядке перевода в .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Количество дней для компенсации:` .@@@@@@  `Компенсация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+        <. Рассчитать .>     <. Примечание .>     <. Доп. условия .>     <. Документы .>
+>>
+end; // scrDoc
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{
+  result:=inherited::ChildCheckOneOrder(cNrec);
+  
+   if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+
+/*  if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if ( getfirst FastFirstRow Catalogs_Yprichina <> tsOk ) or (Ypricina = '')
+    {
+        SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+        //result := false; 
+    }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+      //result := false
+    }  */
+
+  var tInstances: JsonQueryArray;
+  setLimit(tInstances, 2);
+  tInstances[0].instance := 'RPD_PA0007_INSTANCE';
+  tInstances[0].nRec := TitleDoc.nRec;
+  tInstances[1].instance := 'PA0416_FIRE';
+  tInstances[1].nRec := TitleDoc.nRec;
+
+  var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+  if (oJsonSender.createChainedJson(tInstances, 'X')) {
+    if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+      SetErrorOrder(oJsonSender.getErrorMessage(), Warning);
+    }
+  }
+
+}   // Function ChildCheckOneOrder: boolean;
+
+//******************************************************************************
+// Процедура удаления одного чела из данного РПД
+//******************************************************************************
+Procedure IRPD_Base.MyDel;
+{
+  ProcessCommand(cmVal3); // запуск алгоритма
+
+  if GetFirst Persons = tsOk
+  {
+    // теперь откатим компенсацию, если она была...
+    if (TitleDoc.wStatus = 1 or (TitleDoc.wStatus = 3 and boUsePartOrders and
+        (ContDoc.wYearPr = 1 or ContDoc.wYearPr = 2)))
+    {
+      DelCompensation;
+      SH.Update_DateEnd(ContDoc.Person, ZeroDate);
+    }
+  }
+
+  // откат изменений
+  MyUnConfirm;
+
+  // удаление дополнительных записей для хранения неиспользованных дней отпуска
+  while GetFirst ContDocDopVac = tsOk
+    delete current ContDocDopVac;
+  while GetFirst PickRep = tsOk
+    delete current PickRep;
+
+  // удаление списка компенсаций
+  delete PutVacCon where (( coContDoc    == PutVacCon.wTable and
+                            ContDoc.NRec == PutVacCon.cTable ));
+
+  //удаление записей в AllMemo
+  Delete All AllMemo where ((coContDoc == AllMemo.wTable
+                         and ContDoc.Nrec == AllMemo.cRec));
+
+  if IsValid(#ContDoc2)
+    if (delete current ContDoc2 <> tsOk) {};
+
+  if (delete current SpAllStaff <> tsOk) {}; // удаление запрета
+
+  cContDocDeleted := ContDoc.NRec;
+
+  if (not fnFieldsOpen)
+    prSetVacDate(MobilizedVacDate(ContDoc.cNew5));
+
+  update ContDoc_6 where (( ContDoc.Person == ContDoc_6.Person and
+                            6 == ContDoc_6.TypeOper and
+                            ContDoc.NRec == ContDoc_6.cNew7 (NoIndex) ))
+  set ContDoc_6.cNew7 := 0;
+
+  if (delete current ContDoc <> tsOk)  {};
+
+  ProcessCommand(cmVal4); // запуск алгоритма
+} //Procedure MyDel;
+
+TableEvent table Persons;
+cmHyperlink:
+{
+    case CurField of
+    #sContractLink:
+    {
+      if (sContractLink <> '')
+      {
+
+        var aErrorCode: integer;
+        var sPagePath: string = '';
+
+        if getfirst ExternalASM where ((byte(101)  == ExternalASM.ASM_Type
+                                 and coSpAllStaff  == ExternalASM.wTable
+                                 and ContDoc.cNew7 == ExternalASM.cRec )) = tsOk
+          sPagePath :=  ExternalASM.Numbers[5]+ExternalASM.Numbers[6];
+        
+        ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+      }
+    }
+    end;
+}
+end;
+
+
+// function GetFullStr(_cNrec: comp; _cParent: comp):WideString;
+// {
+//    var nrec_tmp : comp;
+//    nrec_tmp := _cParent;
+
+//    if (getfirst staffstruct where(( Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+//    {
+//       var lv_nrec:string;
+//       lv_nrec := SubStr(string(StaffStruct.nRec),Length(string(StaffStruct.nRec))-4,5);
+//       result := '(Системный код ' + lv_nrec + ') ' + StaffStruct.longname + ''#13#10; // HR-1214
+//       // result := StaffStruct.longname + ''#13#10;
+//       nrec_tmp:= StaffStruct.Department;
+//    }
+
+//    do
+//    {
+//       if (getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) 
+//           = tsOk)
+//       {
+//          if(LengTh(catalogs1.code) <=4)
+//               exit;
+
+//          result += catalogs1.longname +''#13#10;
+//          nrec_tmp := catalogs1.cparent;
+//       }
+//    }
+//    While(getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+// }
+
+window winFullOrg 'Полное наименование орг. присвоения' EscClose;
+  show at (,,50,7);
+screen scFullOrg (,,sci1Esc);
+fields
+  iGeneralFuncSNG.GetFullStr(catalogs11.nrec, catalogs11.cparent, Appointments.StaffStr):Protect, WordWrap;
+
+<<
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+end; //window winFullOrg
+
+HandleEvent
+cmFullOrg:    //HR-953
+{
+ RunWindowModal(winFullOrg);
+}
+cmOnVipLoad:
+{
+  inherited::handleEvent(cmOnVipLoad);
+    
+  cfsSetProp('i_SCRDOC_APPOINTMENTS.SRESOLUTIONNMB',  cfpVisible,   false );
+  cfsSetProp('L_SCRDOC_Номер_постановления',          cfpVisible,   false );
+
+  cfsSetProp('i_SCRDOC_APPOINTMENTS.DRESOLUTIONDATE', cfpVisible,   false );
+  cfsSetProp('L_SCRDOC_Дата',                         cfpVisible,   false );
+
+  cfsSetProp('i_SCRDOC_ORGCAT.NAME',           cfpVisible,   false );
+  cfsSetProp('T_SCRDOC_В_порядке_перевода_в',  cfpVisible,   false );
+
+  cfsSetProp('i_SCRDOC_CONTDOC.FILIALNO',      cfpVisible,   false );
+  cfsSetProp('T_SCRDOC_Номер_записки-расчета', cfpVisible,   false );
+
+  cfsSetProp('i_SCRDOC_CONTDOC.DAT2',      cfpVisible,   false );
+  cfsSetProp('L_SCRDOC_Дата#1', cfpVisible,   false );
+
+  // HR-828
+  SetFieldAndLabelVisible(#Appointments.Taxrate, false); 
+  SetFieldAndLabelVisible(#Appworkcondcat.Name, false);
+  cfsSetProp('i_SCRDOC_APPOINTMENTS.TAXRATE', cfpVisible,   false );
+  cfsSetProp('T_SCRDOC_Тар.ставка,_оклад',    cfpVisible,   false );
+
+  cfsSetProp('i_SCRDOC_APPWORKCONDCAT.NAME',  cfpVisible,   false );
+  cfsSetProp('T_SCRDOC_Условия_труда',        cfpVisible,   false );
+
+  vc_MainLink := if(GetFirst Catalogs Where(( -11 == Catalogs.SysCode))=tsOk, Catalogs.Nrec,0);
+}
+
+cmValue10: //расчет компенсации
+{
+  if UpdateTableWithInserted
+  {
+    // проверка даты увольнения
+    if (Day(VDisDate) = 0)
+    {
+      Message('Внимание! Дата увольнения не задана', Warning + OKButton);
+      abort;
+      exit;
+    }
+
+    // удаление устаревших дополнительных записей для хранения неиспользованных дней отпуска
+    while GetFirst ContDocDopVac = tsOk
+      delete current ContDocDopVac;
+    while GetFirst PickRep = tsOk
+      delete current PickRep;
+
+    iCC.CreateCompensationList_2(coContDoc, ContDoc.NRec, VDisDate, PersMotiveCat.bMulti);
+
+    var bMinus: boolean = false;
+
+    _loop PartDoc_6 where (( 6 == PartDoc_6.TypeOper and
+                             PartDoc.cDoc == PartDoc_6.cDoc))
+      _loop ContDoc_6 where (( PartDoc_6.NRec == ContDoc_6.cPart and
+                               6 == ContDoc_6.TypeOper and
+                               ContDoc.Person == ContDoc_6.Person ))
+        _loop nocache PutVacCon (Del_PutVacCon)
+        {
+          if (GetFirst PutVacation <> tsOk)
+            continue;
+
+            _loop FIND_PutVacCon where ((  coContDoc == FIND_PutVacCon.wTable and
+                                           ContDoc_6.NRec == FIND_PutVacCon.cTable and
+                                           PutVacCon.cPutVacation == FIND_PutVacCon.cPutVacation ))
+            {
+              PutVacCon.ResDouble[1] := PutVacCon.ResDouble[1] - FIND_PutVacCon.wDayCount;
+              update current PutVacCon;
+              bMinus := true;;
+            }
+        }
+
+    GetRightOtpuskForCompensation;
+
+    if (bMinus)
+      message('Количество дней компенсации было уменьшено разделом предоставления очередного отпуска в данном приказе');
+
+    if (cTuneMinusCompens <> 0) and (CompensationLastUser < -0.0001)
+    {
+      mtClear(#tmpVac, mfNormal);
+
+      _loop nocache PutVacCon (Del_PutVacCon)
+      {
+        if (GetFirst PutVacation <> tsOk)
+          continue;
+
+        if (trim(PutVacCon.sNote) <> '')
+          continue;
+
+        var wNoAvans: word = 0;
+
+        if (GetFirst KlOtpusk where (( PutVacation.cKlOtpusk == KlOtpusk.NRec )) = tsOk)
+          wNoAvans := word((KlOtpusk.FilialNo shr koshift_NoAvans) and 1);
+
+        if (PersMotiveCatwKod = 0) and (wNoAvans = 0)
+        {
+          _loop nocache tmpVacations where (( PutVacation.NRec == tmpVacations.cPutVac ))
+          {
+            ClearBuffer(#tmpVac);
+            tmpVac.cPutVac := tmpVacations.cPutVac;
+            tmpVac.dDur := tmpVacations.Duration;
+            tmpVac.dBeg := tmpVacations.FactYearBeg;
+            tmpVac.cFact := tmpVacations.cFactOtpusk;
+            insert current tmpVac;
+          }
+
+          _loop backward nocache tmpVac where (( PutVacation.NRec == tmpVac.cPutVac ))
+          {
+            tmpPutVacCon.Buffer := PutVacCon.Buffer;
+            tmpPutVacCon.NRec := 0;
+
+            if (abs(PutVacCon.ResDouble[1]) > tmpVac.dDur)
+              tmpPutVacCon.ResDouble[1] := 0 - tmpVac.dDur;
+            else
+              tmpPutVacCon.ResDouble[1] := PutVacCon.ResDouble[1];
+
+            PutVacCon.ResDouble[1] -= tmpPutVacCon.ResDouble[1];
+            tmpPutVacCon.sNote := DateToStr(tmpVac.dBeg, 'DD/MM/YYYY');
+            tmpPutVacCon.ResComp[10] := tmpVac.cFact;
+            tmpPutVacCon.ResComp[1] := cTuneMinusCompens;
+
+            insert current tmpPutVacCon;
+          }
+        }
+
+        delete current Del_PutVacCon;
+      }
+    }
+
+    if GetFirst PutVacCon = tsOk
+    {
+      ClearFieldOption(#PutVacCon.ResDouble[1], ofProtected);
+
+      if ( PutVacCon.ResDouble[1] <> 0 )
+        SetFieldOption(#fCompensName, ofSelectable);
+      else
+        ClearFieldOption(#fCompensName, ofSelectable);
+    }
+    else
+    {
+      SetFieldOption(#PutVacCon.ResDouble[1], ofProtected);
+      ClearFieldOption(#fCompensName, ofSelectable);
+    }
+
+    // после запуска расчета отображаем новый вид списка
+    SetFormat(brCompensList);
+
+    // теперь подсканим и выведем лог
+    ReScanPanel(CurTable);
+    ReReadRecord(#PutVacCon);
+  }
+}  //cmValue10: расчет компенсации
+
+cmHotKeys:
+{
+  var idMenu: longInt = LoadMenu('RPD_Menu');
+
+  prFillMenu(idMenu); // метод из базового интерйеса
+
+  if (IsValid(#PutVacCon))
+  {
+    AddMenuItem(idMenu, 'separator', 1);
+    AddMenuItem(idMenu, 'Печать индивидуальной формы приказа с расшифровкой компенсаций в FastRport', cmSortMC);
+  }
+
+  AddMenuItemWithFont(idMenu, 'Документы при увольнении', 'Документы при увольнении', hcFunMLocLicShet, cmDocBas, kbAltD, 'Alt+D', 'Z_LSChet::bmUnEmpl16', 0, '');
+
+  PutHotCommand(RunLoadMenu(idMenu));
+}
+
+cmPick:
+{
+  case CurField of
+    #Persons.FIO: // выбираем чела
+    {
+      GetPersonOrAppointments; // выбор человека или совмещения
+      SetModified(true);
+      UpdateTable;
+    }
+  else
+    inherited::handleEvent(cmPick);
+  end;
+}
+
+end;
+
+End.

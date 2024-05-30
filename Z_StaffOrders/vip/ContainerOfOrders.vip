@@ -1,0 +1,236 @@
+#ifndef _AlterContainer_vih_
+#define _AlterContainer_vih_
+
+#include RPD.vih // встроенный интерфейс по работе с РПД-1
+
+#component "Z_STAFFORDERS"
+
+Alter InterFace ContainerOfOrders;
+overload
+  procedure OnIdle(Sender: comp);
+end;
+
+create view
+var
+  cRef3 : comp;  //Переменная содержит выбор пользователя для добавления в БД.
+  oExtAttrTEK : iExtAttr; // атрибут
+  cNrec : integer;
+as select
+  if(oExtAttrTEK.ValueExists(coPartdoc, Partdoc.nrec, 'Уточнение причины мероприятий'),
+     oExtAttrTEK.sGetAttr(coPartdoc, Partdoc.nrec, 'Уточнение причины мероприятий'),
+     ''
+    ) (fieldname = Ypricina)
+from
+  catalogs,
+  catalogs catalogs_prichina,
+  catalogs catalogs_Yprichina,    //catalogs_prichina синоним catalogs.
+  AttrNam, AttrVal
+where
+((PartDoc.cPRef == catalogs_prichina.nrec  //сравниваем поле partdoc.cref3 со справочниками из каталога
+  and coPartdoc           == AttrNam.wTable and
+    'Уточнение причины мероприятий' == AttrNam.Name and
+    AttrNam.wTable == AttrVal.wTable and
+    Partdoc.nRec  == AttrVal.cRec and
+    AttrNam.nRec   == AttrVal.cAttrNam
+));
+
+
+create view vCheck from PartDoc;
+
+Procedure OnIdle(Sender: comp);
+{
+  if (PartDoc.TypeOper = 41 or PartDoc.TypeOper = 71)
+    InsideReScan(Sender);
+  else InsideReScan(PartDoc.nRec);
+
+  ReReadRecord(tnPartDoc);
+  ReReadRecord(tnTitleDoc);
+}
+
+Function CheckIsRPD_105(cOrder : comp) : boolean;
+{
+  result := false;
+
+  if(PartDoc.TypeOper = 105)
+  {
+    if (vCheck.GetFirst PartDoc where ((cOrder == PartDoc.cDoc and (105 <> PartDoc.TypeOper))) = TsOK)
+    {
+      result := true;
+      message('В РПД-105 можно добавлять только РПД-105');
+      if (delete current PartDoc <> tsOk){}
+    }
+  }
+  else
+    if (vCheck.GetFirst PartDoc where ((cOrder == PartDoc.cDoc and 105 == PartDoc.TypeOper )) = TsOK)
+    {
+      result := true;
+      message('В РПД-105 можно добавлять только со с РПД-105');
+      if (delete current PartDoc <> tsOk){}
+    }
+}
+
+//Добавляем поле
+//OverloadFormats brPart; - это затирает все поля
+ExtendFormats brPart; // - добавляет в конец таблицы
+browse brPart 'Разделы'; //(, hcStaffWinPr); // заголовок таблицы
+ // show at (,,, 5) fixed_y;  // размеры
+  table PartDoc; // сама таблица
+  fields
+    catalogs_prichina.name 'Причина', 'мероприятий'
+    ('Причина мероприятий', hcStaffWinPr, sci1378Esc): {Font = {BackColor = if( (PartDoc.cPRef=0 and ( PartDoc.TypeOper = 1 or
+        PartDoc.TypeOper = 2 or PartDoc.TypeOper = 5 or PartDoc.TypeOper = 6 or PartDoc.TypeOper = 8 or PartDoc.TypeOper = 41 or
+        PartDoc.TypeOper = 66 or PartDoc.TypeOper = 71 or PartDoc.TypeOper = 105 or PartDoc.TypeOper = 108 )
+        ), ColorNeed, 0)}}, [20], protect, pickbutton; // новый столбец, выгрузка имени из бд. protect, pickbutton - защищена от изменений, вывод меню выбора.
+    Ypricina 'Уточнение причины мероприятий': {Font = {BackColor = if(not IsValid(#AttrVal) and ( PartDoc.TypeOper = 1 or PartDoc.TypeOper = 8 ) , ColorNeed, 0)}}, [65], protect, pickbutton;
+end;
+
+TableEvent Table PartDoc;
+
+cmPositionChanged:
+{
+  if (inherited::handleEvent(cmPositionChanged) = heAbort)
+    abort;
+  ToggleFieldSelectable(#catalogs_prichina.name, (PartDoc.TypeOper <> 81));
+  ToggleFieldSelectable(#Ypricina, (PartDoc.TypeOper <> 81));
+}
+
+cmInsertRecord:
+{
+  if (inherited::handleEvent(cmInsertRecord) = heAbort)
+    abort;
+
+  if (CheckIsRPD_105(nRecOrder))
+    if (delete current PartDoc <> tsOk){}
+}
+
+cmDelOnProtect:
+{
+  case CurField of
+  #catalogs_prichina.name:
+  {
+    oExtAttrTEK.DeleteValue(coPartdoc, partdoc.nrec, 'Уточнение причины мероприятий');
+  }
+  end;
+}
+end;
+
+	 handleEvent
+		cmOnVipLoad:
+    {
+      inherited::handleEvent(cmOnVipLoad);
+      ToggleFieldVisible(#NoteCat.Name, false);
+      oExtAttrTEK.CreateAttrComp( coPartdoc, 'Уточнение причины мероприятий', cgAttrType_Comp, cgKatKau_System, coCatalogs);
+      ClearFieldOption(#Ypricina, ofSelectable);
+    }
+    cmpick: //обработка выбора(вывод справочника по нажатию)
+    {
+      var catparent: Comp;
+      var subSysCode, cRec:  Comp = 0;
+      inherited::handleEvent(cmpick); // Не затирает другие cmpick
+
+      case CurField of  //Функция возвращает порядковый номер текущего активного поля в интерфейсе.
+        #catalogs_prichina.name: //переменная поля с которой работаем
+        {
+          var codeRPD: integer; //переменные где хранятся системные коды
+          codeRPD := partdoc.typeoper; //берем код РПД из каталога partdoc (выбранное пользователем окно)
+          oExtAttrTEK.coSetAttr(coPartdoc, partdoc.nrec, 'Уточнение причины мероприятий', 0, '');
+          if GetFirst catalogs where ((
+                                        -32000 == catalogs.syscode )) = tsOk //находим нужный каталог по системному коду
+            {
+               subSysCode:=0;   //системный код записи что будет найдена
+               cRec := catalogs.nrec;   // берем ключевое поле nrec найденного каталога
+               if getfirst catalogs where ((cRec==catalogs.cparent and trim(string(codeRPD))==catalogs.code))=tsOk  //короче смотрим все записи каталога (где нрек указываем нужного каталога) и выбираем те у которых codeRPD соответсвуют code. trim( - убирает лишние пробелы по бокам.
+               {
+                 subSysCode:=catalogs.syscode;
+                 catparent := catalogs.nrec;
+                  //сохраняем системный код выбранного каталога
+               }
+
+               var cNrec: comp = 0;
+               if RunInterface('Z_STAFFCAT::PICKCATALOG2', subSysCode, cNrec, comp(0), comp(0))=cmDefault //выводим окно с выбором, указывается системный код выбора. Переменная куда записывается выбранное значение.
+               {
+                 if getfirst catalogs where ((cNrec ==catalogs.nrec))=tsOk  //короче смотрим все записи каталога (где нрек указываем нужного каталога) и выбираем те у которых codeRPD соответсвуют code. trim( - убирает лишние пробелы по бокам.
+                 {
+                     if (catalogs.cparent = catparent)
+                     {
+                       set PartDoc.cPRef := cNrec; //записываем в бд
+                       UpdateTable;
+
+                       if ( getfirst ContDoc2 where (( PartDoc.Nrec     == ContDoc2.cPart    and
+                                                       PartDoc.TypeOper == ContDoc2.TypeOper  and
+                                                                      1 == ContDoc2.SeqNmb    and
+                                                                      0 == ContDoc2.cNew4 (noindex) )) ) = tsOK
+                       {
+                         // установка причины действия для реализации РПД
+                         var RPDOR: IRPD;
+
+                         LoadVipRef(RPDOR, 'Z_StaffOrders::RPD_' + trim(string(PartDoc.TypeOper)));
+                         RPDOR.SetRelation(PartDoc.NRec);
+
+                         var RPDCA: IRPD_Base_CauseOfAction = IRPD_Base_CauseOfAction(RPDOR);
+                         var RPDBS: IRPD_Base = IRPD_Base(RPD);
+
+                         _loop ContDoc2 where (( PartDoc.Nrec     == ContDoc2.cPart    and
+                                                  PartDoc.TypeOper == ContDoc2.TypeOper  and
+                                                                1 == ContDoc2.SeqNmb    and
+                                                                0 == ContDoc2.cNew4 (noindex) ))
+                         {
+                           RPDBS.SetPosition(ContDoc2.NRec);
+                           RPDCA.SetCauseOfAction(cNrec);
+                         }
+                       }
+                     }
+                     else
+                     {
+                        message('Выберите причину мероприятия', error)
+                   //     break;
+                     }
+
+                 }
+               }
+
+               if getfirst catalogs where ((cNrec==catalogs.cparent))=tsOk  //короче смотрим все записи каталога (где нрек указываем нужного каталога) и выбираем те у которых codeRPD соответсвуют code. trim( - убирает лишние пробелы по бокам.
+               {
+                  SetFieldOption(#Ypricina, ofSelectable);
+               }else
+               {
+                  ClearFieldOption(#Ypricina, ofSelectable);
+               }
+
+            }
+        }
+        #Ypricina: //переменная поля с которой работаем
+        {
+          var codeSys: integer;
+
+          if(partdoc.cpRef = 0)   //Если выбрана причина, то проверить есть ли у нее уточнения
+          {
+           message('Укажите причину мероприятий', error);
+           abort;
+           exit;
+          }
+          var codeYRPD, subSysYCode : integer; //переменные где хранятся системные коды
+          subSysYCode:=0;   //системный код записи что будет найдена
+          subSysYCode:=catalogs_prichina.syscode;
+
+               var prichinaC : comp;
+
+               if RunInterface('Z_STAFFCAT::PICKCATALOG2', subSysYCode, prichinaC, comp(0), comp(0))=cmDefault //выводим окно с выбором, указывается системный код выбора. Переменная куда записывается выбранное значение.
+               {
+                 if GetFirst catalogs_Yprichina where ((prichinaC == catalogs_Yprichina.nrec)) = tsOK
+                 {
+                    oExtAttrTEK.coSetAttr(coPartdoc, partdoc.nrec, 'Уточнение причины мероприятий', prichinaC, catalogs_Yprichina.name);
+                    UpdateTable;
+                 }
+
+
+               }
+        }
+        end;
+		}
+	end;
+
+
+end. // interface
+
+#end

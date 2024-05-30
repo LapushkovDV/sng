@@ -1,0 +1,470 @@
+#include ActionJsonCreate.vih
+#include SNG_RPD_PickInterface.vih
+
+
+#component 'Z_StaffOrders'
+
+#doc
+Докомпиляция интерфейса РПД-41
+#end
+
+alter interface RPD_41;
+
+overload
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+  function IRPD_Base.ChildConfirmOneOrder(cNrec : comp = 0): boolean;
+  procedure IRPD_Base.EnableDisable;
+end;  
+
+const 
+  NameRese1 : string := '№ курса';
+  NameFlag1 : string := 'Гос.итоговая аттестация';
+  NameFlag2 : string := 'Обучение после ВУЗа';
+  NameUnfal : string := 'Оплата вахтовых дней';
+  NameQual  : string := 'Прохождение независ.оценки квал-ции';
+end;
+
+var oExtAttr  : iExtAttr;
+
+create view
+
+as select uowrktabel.colnum
+from uowrktabel
+where (( OsnKlOtpusk.notationko == uowrktabel.nrec )) ;
+
+create view
+as select
+  Catalogs_prichina.nrec,
+  oExtAttr.sGetAttr(coContDoc, ContDoc.nRec, NameRese1) (fieldname = Rese1),
+  oExtAttr.sGetAttr(coContDoc, ContDoc.nRec, NameFlag1) (fieldname = Flag1),
+  oExtAttr.sGetAttr(coContDoc, ContDoc.nRec, NameFlag2) (fieldname = Flag2),
+  oExtAttr.sGetAttr(coContDoc, ContDoc.nRec, NameUnfal) (fieldname = Unfal),
+  oExtAttr.sGetAttr(coContDoc, ContDoc.nRec, NameQual ) (fieldname = Qual)
+
+from
+  Catalogs Catalogs_prichina,
+  SNG_Vacations SngVac
+  , vacations vacations_check
+  , klotpusk klotpusk_check
+
+where
+((
+   PartDoc.cPRef == Catalogs_prichina.nrec and
+   
+   ContDoc.ObjNrec == SngVac.Crec
+))
+; 
+
+overloadFormats scrDet41;
+
+function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+{
+  result:=inherited::ChildCheckOneOrder(cNrec);
+  
+   if GetFirst FastFirstRow PartDoc where ((ContDoc.cPart == PartDoc.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+    var _qryInstance : string = '';
+         if getfirst vacations_check where ((contdoc.objnrec == vacations_check.nrec)) = tsOK
+          if getfirst klotpusk_check where ((vacations_check.vactype == klotpusk_check.nrec)) = tsOK {
+             case klotpusk_check.kotpus of
+                 21  , 23 , 22 ,  24, 105, 106
+               , 112 , 114, 152, 174, 176, 9507 : {
+                  _qryInstance := 'RPD_41_TO_SAP_PA0302|PA2001|PA0298';
+                }
+                2 :{
+                  _qryInstance := 'RPD_41_TO_SAP_PA0000|PA0001|PA0302|PA2001|PA0082|PA0298';
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA0082');
+                }
+                41 :{
+                  _qryInstance := 'RPD_41_TO_SAP_PA0302|PA0416|PA2006|PTQUOTED|PA0298';
+                   // такого нет, т.к. не дали описание and createJsonAndSend(Titledoc.nrec, 'RPD_41_TO_SAP_PA2006');
+                }
+             end;
+
+      var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+      if (oJsonSender.createJson(_qryInstance, TitleDoc.nRec, 'X')) {
+        if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+          SetErrorOrder(oJsonSender.getErrorMessage());
+        }
+      }
+     }
+
+  } //Function ChildCheckOneOrder: boolean;
+
+// Окно содержимого приказа на оформление отпуска
+screen scrDet41 (, hcStaffWinPr, sciStaffTypical1Esc);
+  show at (, 5, , 16);
+  table ContDoc;
+Fields
+  ContDoc.wAttrDoc2     ('Основное назначение или совмещение'):
+                        [list 'основное назначение', 'совмещение'], protect;
+
+  OsnKlOtpusk.Notpus    ('Вид отпуска. ', hcStaffVacationsClass, sciStaffTypical13Esc): protect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if (funIsPrimSecVacation(ContDoc.cNew1),
+                                               ColorError,
+                                               if ( funIsOrderConfirm,
+                                                 ColorSys06,
+                                                 if ( not IsValid(#OsnKlOtpusk), ColorNeed, 0 ) )) }};
+												 
+  uowrktabel.colnum        ('Вид отсутствия (код неявки)'):protect;
+
+  ContDoc.wAttrDoc1     ('Признак долгосрочного отпуска'): noprotect;
+
+  fRabDnName            ('Признак отпуска для расчета'): protect,
+                        {Font = {Color     = ColorSysGray;
+                                 BackColor = ColorSys06}};
+
+  fBornDateTitle         skip;
+  PsnLinks.rBornDate    ('Дата рождения ребенка, по уходу за которым предоставляется отпуск', hcStaffVacationsClass, sciStaffTypical13Esc): skip;
+
+  PsnLinks.rFIO         ('ФИО ребенка, по уходу за которым предоставляется отпуск', hcStaffVacationsClass, sciStaffTypical1Esc): protect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, 0 ) }};
+
+  fBlisNet              skip;
+  BlisNet.NONLIST       ('Номер больничного листа по беременности и родам', hcStaffVacationsClass, sciStaffTypical13Esc): protect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, 0 ) }};
+
+  fBlisNetDetails       ('Информация о больничном листе по беременности и родам', hcStaffVacationsClass, sciStaffTypical1Esc): protect,
+                        {Font = {Color     = if ( BlisNet.Datan = ZeroDate or  BlisNet.DatOk = ZeroDate,
+                                               ColorSysRed,
+                                               ColorSysGray);
+                                 BackColor = ColorSys06}};
+
+  ContDoc.Dat1 ('Дата начала отпуска (начисления компенсации)', hcStaffVacationsFactYearBeg): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, if ( ContDoc.Dat1 = ZeroDate, ColorNeed, 0 ) ) }};
+
+
+  ContDoc.Dat2 ('Дата окончания отпуска', hcStaffVacationsFactYearEnd): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {Color     = if ( funIsOrderConfirm,
+                                               ColorSysGray, 0 );
+                                 BackColor = if ( funIsOrderConfirm,
+                                               ColorSys06, if ( ContDoc.Dat2 = ZeroDate, ColorNeed, 0 ) )}};
+
+  fDuration    ('Продолжительность отпуска, дней (количество дней компенсации)', hcStaffVacationsDuration): [7.2], noprotect,
+                        {Font = {Color     = if ( funIsOrderConfirm,
+                                               ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm,
+                                               ColorSys06, 0)}};
+
+  fRabDnTitle           ('рабочих'): skip;
+
+  fDayCount             ('Продолжительность отпуска, дней (количество дней компенсации) в календарных днях'):
+                        [18.2], protect,
+                        {Font = {Color     = ColorSysGray;
+                                 BackColor = ColorSys06}};
+
+  fAllDnTitle           ('календарных'): skip;
+
+  sWorkPeriod           skip;
+
+  fWorkPeriod           ('Рабочий период', hcStaffVacationsClass, sciStaffTypical13Esc): Protect, PickButton;
+
+  ContDoc.DPrik ('Учебный год - начало', hcStaffVacationsWorkYearBeg): [10,'DD/MM/YYYY'], noprotect;
+  ContDoc.DRezerve ('Учебный год - окончание', hcStaffVacationsWorkYearEnd): [10,'DD/MM/YYYY'], noprotect;
+
+  PutKlOtpusk.NOtpus    ('Полагающийся отпуск за который предоставляется компенсация', hcStaffVacationsClass, sciStaffTypical13Esc): skip;
+
+  ContDoc.SBottom       ('Основание', hcStaffWinPr), noprotect,
+                        {Font = {Color     = if ( funIsOrderConfirm, ColorSysGray, 0);
+                                 BackColor = if ( funIsOrderConfirm, ColorSys06, 0 ) }};
+
+  Rese1    ('Номер курса'): noprotect;
+  Flag1    ('Гос.итог. аттестация'): noprotect;
+  Flag2    ('Обучение после ВУЗа'): noprotect;
+  Unfal    ('Оплата вахтовых дней'): noprotect;
+  Qual     ('Прохождение независимой оценки'): noprotect;
+  
+Buttons
+  cmViewAdvance1,,,'Просмотр примечания к приказу', hcStaffWinPr;
+  cmValue21,,, 'Дополнительные условия по приказу';
+
+<<
+ `Вид назначения`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Вид отпуска`       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@  [.] Долгосрочный отпуск с освобождением ставки`
+ `Призн. для расчета`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Предоставить     с`.@@@@@@@@@@ `по`.@@@@@@@@@@    `Кол-во дней`.@@@@@@@@@ .@@@@@@@@@@@@@@@@@
+                                                                 .@@@@@@@@@ .@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@@@     .@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учебный год      с`.@@@@@@@@@@ `по`.@@@@@@@@@@
+ `Компенс. отпуск   `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Основание`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `№ курса`  .@@
+    [:] Гос.итоговая аттестация`
+    [:] Обучение после ВУЗа`
+    [:] Оплата вахтовых дней`
+    [:] Прохождение независимой оценки квалификации`
+
+                     <. Примечание .>         <. Доп. условия .>
+>>
+end; // screen scrDet41
+
+function ChildConfirmOneOrder(cNrec : comp = 0): boolean;
+{
+  result := inherited::ChildConfirmOneOrder;
+  
+  if result = true
+  {
+    ClearBuffer(#SngVac);
+    SngVac.Nrec  := 0;
+    SngVac.Crec  := ContDoc.ObjNrec;
+    SngVac.Rese1 := Rese1;
+    SngVac.Flag1 := Flag1;
+    SngVac.Flag2 := Flag2;
+    SngVac.Unfal := word(Unfal);
+    SngVac.Qual  := Qual;
+    
+    insert current SngVac;
+  }
+}
+
+procedure SwitchCheckboxes;
+{
+  case OsnKlOtpusk.Kotpus of
+    22:
+    {
+      SetFieldAndLabelVisible(#Rese1, true);
+      SetFieldAndLabelVisible(#Flag1, true);
+      SetFieldAndLabelVisible(#Flag2, true);
+      SetFieldAndLabelVisible(#Unfal, false);
+      SetFieldAndLabelVisible(#Qual , false);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameUnfal)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameUnfal);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameQual)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameQual);
+    }
+    24:
+    {
+      SetFieldAndLabelVisible(#Rese1, false);
+      SetFieldAndLabelVisible(#Flag1, false);
+      SetFieldAndLabelVisible(#Flag2, false);
+      SetFieldAndLabelVisible(#Unfal, true);
+      SetFieldAndLabelVisible(#Qual , true);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameRese1)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameRese1);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameFlag1)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameFlag1);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameFlag2)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameFlag2);
+    }
+    else
+    {
+      SetFieldAndLabelVisible(#Rese1, false);
+      SetFieldAndLabelVisible(#Flag1, false);
+      SetFieldAndLabelVisible(#Flag2, false);
+      SetFieldAndLabelVisible(#Unfal, false);
+      SetFieldAndLabelVisible(#Qual , false);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameRese1)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameRese1);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameFlag1)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameFlag1);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameFlag2)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameFlag2);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameUnfal)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameUnfal);
+      if oExtAttr.ValueExists(coContDoc, ContDoc.nRec, NameQual)
+        oExtAttr.DeleteValue(coContDoc, ContDoc.nRec , NameQual);
+    }
+  end; //case
+}
+
+procedure EnableDisable;
+{
+  inherited::EnableDisable;
+  if fnFieldsOpen  // не утвержден
+  {
+    ClearFieldOption(#Rese1, ofProtected);
+    SetFieldOption(#Flag1, ofSelectable);
+    SetFieldOption(#Flag2, ofSelectable);
+    SetFieldOption(#Unfal, ofSelectable);
+    SetFieldOption(#Qual , ofSelectable);
+  }
+  else
+  {
+    SetFieldOption(#Rese1, ofProtected);
+    ClearFieldOption(#Flag1, ofSelectable);
+    ClearFieldOption(#Flag2, ofSelectable);
+    ClearFieldOption(#Unfal, ofSelectable);
+    ClearFieldOption(#Qual , ofSelectable);
+  }
+  SwitchCheckboxes();
+}
+
+HandleEvent
+
+  cmCheckField:
+  {
+    inherited::handleevent(cmCheckField);
+    case CurField of
+      #Rese1:
+        oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, NameRese1, string(ExprFieldValue) );
+      #Flag1:
+        oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, NameFlag1, string(ExprFieldValue) );
+      #Flag2:
+        oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, NameFlag2, string(ExprFieldValue) );
+      #Unfal:
+        oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, NameUnfal, string(ExprFieldValue) );
+      #Qual:
+        oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, NameQual,  string(ExprFieldValue) );
+    end; //case
+      }
+
+  cmClusterChanged:
+  {
+    inherited::handleevent(cmClusterChanged);
+    case CurField of
+      #Flag1:
+        if Flag2 = 1
+          oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, 'Гос.итоговая аттестация', string(0) );
+      #Flag2:
+        if Flag1 = 1
+          oExtAttr.sSetAttr(coContDoc, ContDoc.nRec, 'Обучение после ВУЗа', string(0) );
+    end; //case
+    redrawPanel(CurTable);
+  }
+
+end; //HandleEvent
+
+
+TableEvent Table ContDoc;
+
+cmPick:
+{
+  case CurField of
+    #OsnKlOtpusk.Notpus:
+      PutCommand(cmValue1);
+
+    #PsnLinks.rFIO:
+    {
+      var cTemp: comp;
+
+      cTemp := if ( ContDoc.cAddInf <> comp(0), ContDoc.cAddInf, comp(0));
+
+      if ( RunInterface('SNG_RPD_PickInterface::SNG_PickChildForPers', cTemp, ContDoc.Person) <> cmCancel )
+        set ContDoc.cAddInf := cTemp;
+
+      set ContDoc.Dat2 := funGetEndDate;
+
+      if (ContDoc.Dat2 < ContDoc.Dat1)
+        if (Message('Возраст ребенка превышает допустимый!' + chr(13) + 'Все равно продолжить?', Warning + YesNo) <> Yes)
+        {
+          set ContDoc.Dat2 := ZeroDate;
+          set ContDoc.cAddInf := 0;
+        }
+
+      CheckNeedInsDelAllVac(ContDoc.Dat2, 1);
+
+      if ( update current ContDoc <> tsOk ) {}// потому что базовая таблица не ContDoc
+    }
+
+    #BlisNet.NONLIST:
+      {
+var cTemp: comp;
+
+        cTemp := if ( ContDoc.cInf <> comp(0), ContDoc.cInf, comp(0) );
+
+        if ( RunInterface(iGetBL4Pers, ContDoc.Person, cTemp) <> cmCancel )
+          set ContDoc.cInf := cTemp;
+
+        set ContDoc.Dat1 := BlisNet.Datan;
+        set ContDoc.Dat2 := BlisNet.DatOk;
+
+        if (BlisNet.Datan <> ZeroDate) and (BlisNet.DatOk <> ZeroDate)
+        {
+          if ( ContDoc.Dat2 <> ZeroDate )
+          {
+            iCalc := integer(OtpKolDn(if (wCountry = ccKaz, OsnKlOtpusk.wFlag1, OsnKlOtpusk.IsRabDn)
+                                      , ContDoc.Dat1
+                                      , ContDoc.Dat2
+                                      , Appointments.cAddNrec2)
+                              );
+
+            DopKoldn := vOtpFunc.GetDurationVacForPlan(funGetDetPlanOtpByType(OsnKlOtpusk.TypeOtp),
+                                                         0,
+                                                         iCalc,
+                                                         _Action,
+                                                         OsnKlOtpusk.KotPus,
+                                                         Persons.Nrec,
+                                                         Year(ContDoc.Dat1),
+                                                         true
+                                                        );
+            iCalc := integer(DopKoldn);
+
+            if ( iCalc <> 0 )
+            {
+              if wCountry = ccUkr
+                set ContDoc.Dat2 := OtpDatOK(OsnKlOtpusk.IsRabDn
+                                           , ContDoc.Dat1
+                                           , Trunc(Abs(fDuration))
+                                           , Appointments.cAddNrec2)
+              else
+                set ContDoc.Dat2 := OtpDatOK(if (wCountry = ccKaz, OsnKlOtpusk.wFlag1, OsnKlOtpusk.IsRabDn)
+                                           , ContDoc.Dat1
+                                           , Trunc(Abs(fDuration) +  0.99999)
+                                           , Appointments.cAddNrec2);
+            }
+            else
+              ContDoc.Dat2 := ZeroDate;
+
+            if ContDoc.Dat2 = ZeroDate
+            {
+              SetErrorOrder('Ошибка расчета даты окончания отпуска! Проверьте связь назначения с лицевым счетом!');
+              ShowErrors;
+            }
+          }
+        }
+
+        if ( message(''#3'Добавить к полю "Основание" номер и дату выбранного больничного листа?', YesNo) = cmYes )
+          set ContDoc.sBottom := ContDoc.sBottom + if (length(trim(ContDoc.sBottom)) = 0, '', ' ')
+                                                 + 'б/л' + if (length(trim(string(BlisNet.NONLIST))) = 0,
+                                                             '',
+                                                             ' № ' + string(BlisNet.NONLIST) + ',')
+                                                 + if ( Disease.LastDate = ZeroDate,
+                                                     '.',
+                                                     ' от ' + string(Disease.LastDate) + '.');
+
+        if ( update current ContDoc <> tsOk ) // потому что базовая таблица не ContDoc
+          {
+          }
+
+      }
+
+  end;
+}
+
+end;
+HandleEvent
+  cmValue1:
+  {
+    inherited::handleEvent(cmValue1);
+    OnIdle(OsnKlOtpusk.nRec);  
+    
+    SwitchCheckboxes()
+  }
+end;
+end.

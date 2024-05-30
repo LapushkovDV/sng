@@ -25,6 +25,7 @@ create view
  where ((       root == QUE_IN_BR.nrec
      and QUE_IN_BR.nrec == QUE_IN_ANSWR_BR.cQUE_INCOME
  ))
+ order by QUE_IN_BR.DateTime_in
 ;
 function GetImageStatusQueue: string; {
   Result:=iQUE_INCOME_BASE.GetImageStatusQueue(QUE_IN_BR.Status);

@@ -394,7 +394,7 @@ case _Status of
 
 
 Function GenerateNewFile: string; {
- result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\QUE_'+olegenerateguid+'_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
 }
 
 function GetLogFile : string; {
@@ -825,6 +825,7 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
 
           var ww_num:word=0;
           if Getfirst tRefSendMessToExtSys where (( _interfaceName == tRefSendMessToExtSys.Name )) <> tsOk {
+
             Insert into tRefSendMessToExtSys set tRefSendMessToExtSys.Name:= _interfaceName;
           }
           else  {
@@ -833,8 +834,8 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
 
           do
           { if ww_num=0
-            { ww_num:=count(_arrQUE_SendMessToExtSys)+1;
-              SetLimit(_arrQUE_SendMessToExtSys,ww_num);
+            { ww_num:=getlimit(_arrQUE_SendMessToExtSys)+1;
+              SetLimit(_arrQUE_SendMessToExtSys, ww_num);
               if LoadvipRef(_arrQUE_SendMessToExtSys[ww_num], 'SNG_QUE::QUE_SENDMESSTOEXTSYS_'+_interfaceName){
                update current tRefSendMessToExtSys set tRefSendMessToExtSys.Num:=ww_num;
               }
@@ -843,6 +844,7 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
                 exit;
               }
             }
+
             result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  QUE_OUT_SNDMSG.nrec
                                                                   , _longValue // JSON_Object
                                                                   , QUE_OUT_SNDMSG.QRY_Instance_code
@@ -883,6 +885,7 @@ Procedure FreetRefSendMessToExtSys;
     FreeVipInterface(_arrQUE_SendMessToExtSys[_i]);
     }
   } //for(kk:=1;kk<count(RPD_A);kk:= kk+1)
+  delete all tRefSendMessToExtSys;
   SetLimit(_arrQUE_SendMessToExtSys,0)
 } //Procedure tRefSendMessToExtSys;
 
@@ -1025,7 +1028,7 @@ procedure CopyEntriesForReviewToQueue; {
 }
 
 procedure ProcessQueueOut; {
- mylog('CopyEntriesForReviewToQueue');
+// mylog('CopyEntriesForReviewToQueue');
  delete all tEntrForReviewToQue;
  _try
     {
@@ -1039,7 +1042,7 @@ procedure ProcessQueueOut; {
               )
          and QUE_OUT.cParent = :(0h)
       order by QUE_OUT.DateTime_in
-      into tQueueOut
+      into tQueueOut;
     }
     _except
     else {

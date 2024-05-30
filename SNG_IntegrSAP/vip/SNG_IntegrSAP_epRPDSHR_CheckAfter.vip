@@ -77,6 +77,12 @@ function generateJsonSHR(NrecTitleDoc: comp):boolean ; {
       if historystr.wpaymodel = 30
         result := result and createJsonAndSend(StrTitle.nrec, 'HRP1015');
     	}
+    21: {
+      result := result and createJsonAndSend(StrTitle.nrec, 'SHR_RPD_21_HRP1005');
+
+      if historystr.wpaymodel = 30
+        result := result and createJsonAndSend(StrTitle.nrec, 'SHR_RPD_21_HRP1015');
+      }
     23: {
       if historystr.wpaymodel = 30
         result := result and createJsonAndSend(StrTitle.nrec, 'HRP1015');

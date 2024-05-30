@@ -1,0 +1,198 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+alter interface OrderRaises;
+
+ExtendTabbedSheets OrderRaises, YourChoise;
+
+var VPerAccess: SetPersonsAccess;
+
+create view OrderRaises
+var
+  bSNG_TaxRate: boolean;
+as select
+  if(not bSNG_TaxRate, '***', DoubleToStr(Raise.Sum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate),
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseZam.Sum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRateZam),
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseKontract.Sum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRateKontract),
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseOld.Sum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRateOld)
+;
+
+OverloadFormats ChoiseB, ChoiseZam, Choise, ChoiseKontract, ChoiseOld;
+
+TabbedSheet TabsRaisesZam;
+
+browse ChoiseB 'Доплаты по приказу'('Доплаты, которые будут у сотрудника после утверждения приказа',, sci1378Esc);
+  table Raise;
+  fields
+    [SNG_PriznakB] if (Raise.cStRaise <> 0, 'ШР', if(Raise.cCat1 <> 0,'Р',''))
+            'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+    RaiseCat.Name 'Вид доплаты/надбавки',
+      ('Вид доплаты/надбавки.', hcStaffRaiseType, ): [20], protect, pickbutton;
+    fSNG_TaxRate 'Сумма/процент доплаты/надбавки',
+      ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum, sci178Esc): [13], noprotect;
+    CurrName 'Валюта',
+      ('Валюта оплаты.', hcStaffRaiseCurr, ): [10] , protect, pickbutton;
+    Raise.FromDate 'С даты',
+      ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, ):
+        [10,'DD/MM/YYYY'], noprotect, centered;
+    Raise.ToDate   'По дату',
+      ('Дата, по которую установлена доплата', hcStaffRaiseToDate, ):
+        [10,'DD/MM/YYYY'], noprotect, centered;
+end; // screen Choise
+
+browse ChoiseZam 'Доплаты замещения'
+  ('Текущие доплаты сотрудника (доплаты замещаемого назначения))',, sci1Esc);
+  table RaiseZam;
+  fields
+    [SNG_PriznakZam] if (RaiseZam.cStRaise <> 0, 'ШР', if(RaiseZam.cCat1 <> 0,'Р',''))
+            'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+    RaiseCatZam.Name 'Вид доплаты/надбавки',
+      ('Вид доплаты/надбавки.', hcStaffRaiseType, ): [20], protect;
+    fSNG_TaxRateZam 'Сумма/процент доплаты/надбавки',
+      ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum, ): [13], protect;
+    CurrNameZam      'Валюта',
+      ('Валюта оплаты.', hcStaffRaiseCurr, ): [10] , protect;
+    RaiseZam.FromDate 'С даты',
+      ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, ):
+        [10,'DD/MM/YYYY'], protect, centered;
+    RaiseZam.ToDate   'По дату',
+      ('Дата, по которую установлена доплата', hcStaffRaiseToDate, ):
+        [10,'DD/MM/YYYY'], protect, centered;
+end; // screen Choise
+
+end;  //TabbedSheet top TabsRaises
+
+window YourChoise 'Доплаты по текущему сотруднику из приказа';
+  show at (5,5,100,22);
+  TabbedSheet TabsRaises;
+    // основные доплаты
+    browse Choise 'Доплаты по приказу'('Доплаты, которые будут у сотрудника после утверждения приказа',, sci1378Esc);
+      table Raise;
+      fields
+        [SNG_Priznak] if (Raise.cStRaise <> 0, 'ШР', if(Raise.cCat1 <> 0,'Р',''))
+                'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+        RaiseCat.Name 'Вид доплаты/надбавки',
+          ('Вид доплаты/надбавки.', hcStaffRaiseType, ): [20], protect, pickbutton;
+        fSNG_TaxRate 'Сумма/процент доплаты/надбавки',
+          ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum, sci178Esc): [13], noprotect;
+        CurrName      'Валюта',
+          ('Валюта оплаты.', hcStaffRaiseCurr, ): [10] , protect, pickbutton;
+        Raise.FromDate 'С даты',
+          ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, ):
+            [10,'DD/MM/YYYY'], noprotect, centered;
+        Raise.ToDate   'По дату',
+          ('Дата, по которую установлена доплата', hcStaffRaiseToDate, ):
+            [10,'DD/MM/YYYY'], noprotect, centered;
+    end; // screen Choise
+
+    browse ChoiseKontract 'Доплаты предыдущего\действующего контракта'('Доплаты, которые были у сотрудника на последний день предыдущего контракта',, sci1Esc);
+      table RaiseKontract;
+      fields
+       {font = {color  = if ( ( isUsedRaise(RaiseKontract.NRec) ), ColorSysGray, 0 ) }};
+        [SNG_PriznakKontract] if (RaiseKontract.cStRaise <> 0, 'ШР', if(RaiseKontract.cCat1 <> 0,'Р',''))
+                'Признак' ('Признак', hcStaffRaiseType): [2], skip;
+        RaiseCatKontract.Name 'Вид доплаты/надбавки',
+          ('Вид доплаты/надбавки.', hcStaffRaiseType, ): [20], protect;
+        fSNG_TaxRateKontract 'Сумма/процент доплаты/надбавки',
+          ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum): [13], protect;
+        CurrNameKontract      'Валюта',
+          ('Валюта оплаты.', hcStaffRaiseCurr, ): [10] , protect;
+        RaiseKontract.FromDate 'С даты',
+          ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, ):
+            [10,'DD/MM/YYYY'], protect, centered;
+        RaiseKontract.ToDate   'По дату',
+          ('Дата, по которую установлена доплата', hcStaffRaiseToDate, ):
+            [10,'DD/MM/YYYY'], protect, centered;
+    end; // screen Choise
+
+   browse ChoiseOld 'Индивидуальные по предыдущему назначению'
+      ('Текущие доплаты сотрудника (для "Перемещения" только индивидуальные))',, sci1Esc);
+      table RaiseOld;
+      fields
+        [SNG_PriznakOld] if (RaiseOld.cStRaise <> 0, 'ШР', if(RaiseOld.cCat1 <> 0,'Р',''))
+                'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+        RaiseCatOld.Name 'Вид доплаты/надбавки',
+          ('Вид доплаты/надбавки.', hcStaffRaiseType, ): [20], protect;
+        fSNG_TaxRateOld 'Сумма/процент доплаты/надбавки',
+          ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum, ): [13], protect;
+        CurrNameOld      'Валюта',
+          ('Валюта оплаты.', hcStaffRaiseCurr, ): [10] , protect;
+        RaiseOld.FromDate 'С даты',
+          ('Дата, с которой установлена доплата', hcStaffRaiseFromDate, ):
+            [10,'DD/MM/YYYY'], protect, centered;
+        RaiseOld.ToDate   'По дату',
+          ('Дата, по которую установлена доплата', hcStaffRaiseToDate, ):
+            [10,'DD/MM/YYYY'], noprotect, centered;
+    end; // screen Choise
+  end;  //TabbedSheet top TabsRaises
+
+  HandleEvent
+  cmInit:
+  {
+    inherited::handleEvent(cmInit);
+
+    case ContDoc.TypeOper of
+
+      5:
+      {
+        ClearFieldState(#SNG_PriznakOld, sfVisible);
+      }
+      65:
+      {
+        SetFieldState(#SNG_PriznakOld, sfVisible);
+      }
+
+    end;
+  } // cmInit
+
+  end;
+
+end;
+
+TableEvent Table Raise;
+
+cmExprFieldChanged:
+{
+  case CurField of
+
+    #fSNG_TaxRate:
+    {
+      _try
+        set Raise.Sum := Double(ExprFieldValue);
+      _except
+        on ExNumberConvert:
+        {
+          message('Неверное значение!', Warning);
+          set Raise.Sum := double(OldFieldValue);
+        }
+
+      UpdateTable;
+    }
+    else
+      inherited::handleEvent(cmExprFieldChanged);
+
+  end;
+}
+
+end;
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  inherited::handleEvent(cmOnVipLoad);
+  bSNG_TaxRate := ((VPerAccess.GetAccessMask(6) and 32768) <> 0);
+  ToggleFieldSelectable(#fSNG_TaxRate, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRate, bSNG_TaxRate);
+  ToggleFieldSelectable(#fSNG_TaxRateZam, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRateZam, bSNG_TaxRate);
+  ToggleFieldSelectable(#fSNG_TaxRateKontract, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRateKontract, bSNG_TaxRate);
+  ToggleFieldSelectable(#fSNG_TaxRateOld, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRateOld, bSNG_TaxRate);
+}
+
+end;
+
+end.

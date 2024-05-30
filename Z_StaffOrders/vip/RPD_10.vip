@@ -1,0 +1,100 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+Alter interface RPD_10;
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+create view
+var
+  bSNG_TaxRate: boolean;
+as select
+  if(not bSNG_TaxRate, '***', DoubleToStr(DelRaise.dSum1, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate)
+;
+
+OverloadFormats brwRaise10;
+
+Browse brwRaise10 'Снятие доплат' (,, sci178Esc);
+  show at (, 11,,);
+  table DelRaise;
+  Fields
+    [SNG_Priznak] if (DelRaise.cRaiseSTS <> 0, 'ШР', if(DelRaise.cCat1 <> 0,'Р',''))
+      'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+    RaiseCat.Name 'Вид доплаты/надбавки',
+      ('Вид доплаты/надбавки.', hcStaffRaiseType, sci1378Esc): [20],  protect, {Font = {BackColor = if(not IsValid(#RaiseCat), ColorNeed, 0)}};
+    [SNG_StatRaise]
+      if (DelRaise.wPrizn2 = word(0) , 'полностью', 'частично' )
+        'Вид снятия' ('Вид снятия: полностью/частично',,): [10], protect, pickbutton;
+    fSNG_TaxRate      'Сумма/процент доплаты/надбавки', ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum): [10], skip;
+    CurrName 'Валюта',
+      ('Валюта оплаты.', hcStaffRaiseCurr): [8] , skip;
+    DelRaise.dFromDate 'С даты',
+      ('Дата, с которой установлена доплата', hcStaffRaiseFromDate):
+        [10,'DD/MM/YYYY'], skip, centered;
+    DelRaise.dToDate 'По дату',
+      ('Дата, по которую установлена доплата', hcStaffRaiseToDate):
+        [10,'DD/MM/YYYY'], skip, centered;
+    DelRaise.dRaiseAbort 'Дата снятия'
+      ('Дата, с которой снимается доплата', hcStaffRaiseToDate):
+        [10,'DD/MM/YYYY'], noprotect, centered, {Font = {BackColor = if(DelRaise.dRaiseAbort = ZeroDate, ColorNeed, 0)}};
+    DelRaise.dSum3 '% снижения' ('Процент снижения доплаты',,): [10.2], noprotect;
+    DelRaise.dDopDate 'Снизить', 'по дату' ('Дата окончания частичного снятия доплаты',,):
+      [10,'DD/MM/YYYY'], noprotect;
+end;   //  brwRaise
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  bSNG_TaxRate := ((VPerAccess.GetAccessMask(6) and 32768) <> 0);
+  SetFieldAndLabelVisible(#fSNG_TaxRate, bSNG_TaxRate);
+
+  if fnFieldsOpen
+    SetFieldOption(#SNG_StatRaise, ofSelectable);
+  else
+    ClearFieldOption(#SNG_StatRaise, ofSelectable);
+}
+
+HandleEvent
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+  cfsSetProp('L_SCRRAISE10_ИД_доп.соглашения','Title','Ссылка на ДС в Directum'); // HR-1143 
+}
+cmPick:
+{
+  case CurField of
+
+    #SNG_StatRaise:
+    {
+      if ( IsValid(#DelRaise) )
+      {
+        if ( DelRaise.wPrizn2 = 1 )
+        { // полностью
+          set DelRaise.wPrizn2 := 0;
+          set DelRaise.dSum3 := 0;
+          set DelRaise.dDopDate := Date(0, 0, 0);
+        }
+        else
+         // частично
+          set DelRaise.wPrizn2 := 1;
+
+        DisEnTwoFields; // закрыть или открыть нужные поля
+      }
+    }//#StatRaise:
+
+  else
+    inherited::handleevent(cmPick);
+
+  end;
+}
+
+end;
+
+end.

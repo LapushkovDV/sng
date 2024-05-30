@@ -1,0 +1,104 @@
+#component 'Z_StaffOrders'
+
+#include CatFunc.vih
+
+#doc
+Докомпиляция интерфейса РПД-42
+#end
+
+alter interface RPD_42;
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var
+  oExtAttr: iextAttr;
+  oCatFunc: CatalogsFunctions;
+
+  extAttrID_VacType: comp;
+  cRec:              comp = 0;
+
+OverloadFormats scrDet42;
+// -----------------------------------------------------------------------------
+screen scrDet42 (,hcStaffWinPr, scStaffMyPnl);   //перенос отпуска
+show at (,5,,14);
+  table ContDoc;
+fields
+  [VacationType]
+    (oCatFunc.GetCatalogsName(oExtAttr.coGetAttrID(coPartdoc, Partdoc.nrec, extAttrID_VacType))) ('Вид мероприятия'): noprotect, pickbutton;
+  fNOtpus          ('Наименование переносимого отпуска '):
+  {Font = {BackColor = if(ContDoc.wAttrDoc3 = 0,
+                       if(not IsValid(#NoKlVac), ColorNeed, 0),
+                       if(not IsValid(#KlFact), ColorNeed, 0))}}, noprotect, PickButton;
+  ContDoc.wDopAttr ('Обычный перенос отпуска либо перенос целого рассчитанного отпуска'):
+                         [list 'Обычный перенос отпуска',
+                               'Перенос рассчитанного пакета отпусков полностью'],
+                         {Font = {Color = if(ContDoc.wDopAttr = 1, ColorFPCritical, 0)}}, protect, skip;
+  fWorkPeriod      ('Рабочий период переносимого отпуска'): protect;
+  ContDoc.dat1     ('Отзыв из отпуска с', hcStaffWinPr, scStaffMyPnlPick): [10,'DD/MM/YYYY'],  skip;
+  ContDoc.dat2     ('Отзыв из отпуска по', hcStaffWinPr, scStaffMyPnlPick): [10,'DD/MM/YYYY'], skip;
+  ContDoc.wOrder   ('Количество дней отзыва', hcStaffWinPr), skip;
+  NoMyType: skip;
+  ContDoc.dPrik    ('Перенесен(продлен) отпуск: с даты',, scStaffMyPnlPick): [10,'DD/MM/YYYY'], {Font = {BackColor = if(ContDoc.dPrik = ZeroDate, ColorNeed, 0)}}, noprotect;
+  PlanYearEnd      ('Перенесен отпуск: по дату',, scStaffMyPnlPick): [10,'DD/MM/YYYY'], skip;
+  ContDoc.wOrder   ('Перенесен отпуск: количество дней', hcStaffVacationsDuration):  skip;
+  NoMyType: skip;
+  ContDoc.SBottom  ('Основание', hcStaffWinPr), noprotect;
+Buttons
+  cmViewAdvance1,,,'Просмотр примечания к приказу', hcStaffWinPr;
+  cmValue21,,, 'Дополнительные условия по приказу';
+<<
+ `Вид мероприятия`.@@@@@@@@@@@@@@@@@@
+ `Перенести отпуск`       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Режим переноса`         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `за рабочий период`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `                      с`.@@@@@@@@@@@@   `по`.@@@@@@@@@@@@ .@@@ дней .@@@@@@@@@@@@
+
+ `Предоставить отпуск`
+ `                      с`.@@@@@@@@@@@@   `по` .@@@@@@@@@@@ .@@@ дней .@@@@@@@@@@@@
+ `Основание`
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+               <.  Примечание  .>       <. Доп. условия .>
+>>
+end; // screen scrDet42
+
+// Процедура открытия\закрытия полей для редактирования
+procedure EnableDisable;
+{
+  inherited::EnableDisable;
+
+  if fnFieldsOpen // приказ не утвержден
+    SetFieldOption(#VacationType, ofSelectable);
+  else // приказ утвержден
+    ClearFieldOption(#VacationType, ofSelectable);
+
+} //procedure EnableDisable;
+
+HandleEvent
+
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+
+  extAttrID_VacType := oExtAttr.CreateAttrComp(coPartdoc, 'Вид', cgAttrType_Comp, cgKatKau_System, coPartdoc);
+}
+
+cmPick:
+{
+  if inherited::handleEvent(cmPick) = heAbort
+    abort;
+
+  case CurField of
+    #VacationType:
+    { // вызов каталога "Вид мероприятий (для отпусков)"
+      if (RunInterface('Z_StaffCat::PickCatalog2', integer(-31699), cRec, 0, 0) = cmDefault ) {
+        oExtAttr.coSetAttrID(coPartdoc, Partdoc.nrec, extAttrID_VacType, cRec, '');
+      }
+    }
+  end;
+}
+
+end;
+end.

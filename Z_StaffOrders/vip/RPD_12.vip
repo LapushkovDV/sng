@@ -1,0 +1,113 @@
+#include PerAcces.VIH
+
+#component "Z_StaffOrders"
+
+Alter interface RPD_12;
+
+overload
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var VPerAccess: SetPersonsAccess;
+
+create view
+var
+  bSNG_TaxRate: boolean;
+as select
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseHist.rHSum2, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate),
+  if(not bSNG_TaxRate, '***', DoubleToStr(Raise.Sum, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate_Old1),
+  if(not bSNG_TaxRate, '***', DoubleToStr(RaiseHist.rHSum3, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate_Old2)
+;
+
+OverloadFormats brwRaise12;
+
+Browse brwRaise12 'Изменение характеристик доплат' (,, sci178Esc);
+  show at (, 7,,) ;
+  table RaiseHist;
+  Fields
+    [SNG_Priznak] if (Raise.cStRaise <> 0, 'ШР', if(Raise.cCat1 <> 0,'Р',''))
+      'Признак' ('Признак', hcStaffRaiseType, sci1Esc): [2], skip;
+    RaiseCat.Name 'Вид доплаты/надбавки',
+      ('Вид доплаты/надбавки.', hcStaffRaiseType, scStaffPr1Pick): [20],  protect,
+      {Font = {BackColor = if(not IsValid(#RaiseCat), ColorNeed, 0)}};
+    fSNG_TaxRate_Old1 'Сумма/', 'процент', '(старые)',
+      ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum): [10], skip;
+    fSNG_TaxRate_Old2 'Сумма/', 'процент', '(старые)',
+      ('Сумма/процент доплаты/надбавки', hcStaffRaiseSum): [10], skip;
+    CurrName 'Валюта', '(старая)',
+      ('Валюта оплаты.', hcStaffRaiseCurr): [8] , skip;
+    CurrNameOld 'Валюта', '(старая)',
+      ('Валюта оплаты.', hcStaffRaiseCurr): [8] , skip;
+    fSNG_TaxRate 'Сумма/', 'процент', '(новые)',
+      ('Новая сумма/процент доплаты/надбавки', hcStaffRaiseSum): [10];
+    CurrNameNew 'Валюта', '(новая)',
+      ('Новая валюта оплаты.', hcStaffRaiseCurr, scStaffPr1Pick): [8];
+    Raise.FromDate 'Дата', 'назначения',
+      ('Дата, с которой установлена доплата', hcStaffRaiseFromDate):
+        [8,'DD/MM/YYYY'], skip, centered;
+    RaisedIzm    'Дата', 'изменения', '(старая)',
+      ('Дата предыдущего изменения доплаты', hcStaffRaiseFromDate):
+        [8,'DD/MM/YYYY'], skip, centered;
+    Raise.ToDate 'По дату', '(старая)',
+      ('Дата, по которую установлена доплата', hcStaffRaiseFromDate):
+        [8,'DD/MM/YYYY'], skip, centered;
+    RaiseHist.dDat1 'По дату', '(старая)',
+      ('Дата, по которую установлена доплата', hcStaffRaiseFromDate):
+        [8,'DD/MM/YYYY'], skip, centered;
+    RaiseHist.LastDate 'Дата', 'изменения', '(новая)',
+      ('Дата, с которой начнут действовать внесенные изменения', hcStaffRaiseFromDate):
+        [10,'DD/MM/YYYY'],
+          {Font = {BackColor = if(RaiseHist.LastDate = date(0, 0, 0), ColorNeed, 0)}},
+            noprotect, centered;
+    RaiseHist.dDat2 'Новая дата', 'закрытия', 'доплаты',
+      ('Новая дата, по которую будет установлена доплата', hcStaffRaiseFromDate):
+        [10,'DD/MM/YYYY'], noprotect, centered;
+end;   //  brwRaise
+
+procedure IRPD_Base.EnableDisable;
+{
+  inherited::EnableDisable;
+
+  bSNG_TaxRate := ((VPerAccess.GetAccessMask(6) and 32768) <> 0);
+  ToggleFieldSelectable(#fSNG_TaxRate, bSNG_TaxRate and fnFieldsOpen);
+  SetFieldAndLabelVisible(#fSNG_TaxRate, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRate_Old1, bSNG_TaxRate);
+  SetFieldAndLabelVisible(#fSNG_TaxRate_Old2, bSNG_TaxRate);
+}
+
+TableEvent table RaiseHist;
+
+cmExprFieldChanged:
+{
+  case CurField of
+
+    #fSNG_TaxRate:
+    {
+      _try
+        set RaiseHist.rHSum2 := Double(ExprFieldValue);
+      _except
+        on ExNumberConvert:
+        {
+          message('Неверное значение!', Warning);
+          set RaiseHist.rHSum2 := double(OldFieldValue);
+        }
+
+      UpdateTable;
+    }
+
+  end;
+}
+
+end;
+
+HandleEvent
+
+  cmOnVipLoad:
+  {
+    if inherited::handleEvent(cmOnVipLoad) = heAbort
+      abort;
+    cfsSetProp('L_SCRRAISE12_ИД_доп.соглашения','Title','Ссылка на ДС в Directum'); // HR-1143 
+  }
+end;
+
+end.

@@ -1,0 +1,603 @@
+#include ActionJsonCreate.vih
+#include SNG_RPD_PickInterface.vih
+
+#component  'Z_STAFFORDERS'
+#include CatFunc.vih
+
+alter interface RPD_71;
+#declare GetAttr        //HR-983
+      lCheckboxState := SNG_Vacations.FLAG_DONOR;
+      set CheckDonorDay := if ( ( lCheckboxState and 1 ) = 0 ,  false, true);
+      set CheckAnotherDay := if ( ( lCheckboxState and 2 ) = 0 ,  false, true);
+      set CheckDopDay := if ( ( lCheckboxState and 4 ) = 0 ,  false, true);
+
+#end   //HR-983
+
+overload
+  function IRPD_Base.ChildCheckOneOrder(cNrec : comp = 0): boolean;
+  procedure IRPD_Base.EnableDisable;
+end;
+
+var cPRef : comp;
+CheckDonorDay,CheckAnotherDay,CheckDopDay: boolean; //HR-983
+lCheckboxState : longint;   //HR-983
+
+var oExtAttr: iExtAttr;             //HR-156
+    oCatFunc: CatalogsFunctions;
+    //oExtAttrTEK : iExtAttr; // атрибут 
+
+create view
+var
+  Yr, Mn: word;
+as select
+   CatReason.nRec
+ , if( IsValidAll(tnContDoc), oCatFunc.GetCatalogsName(oExtAttr.coGetAttr(coContDoc, ContDoc.nrec, 'Периодичность диспансеризации')), '')  (fieldname = MedExemPeriod)
+// , oExtAttrTEK.sGetAttr(coPartDoc, PartDoc.nrec, 'Уточнение причины мероприятий') (fieldname = Ypricina)  
+from
+  PartDoc PartSyn,
+  Catalogs CatReason,
+  Vacations VacationsDisp,  //hr-156
+  LsTab,
+  Catalogs Catalogs_prichina,
+  SNG_Vacations  //hr-983
+ // Catalogs Catalogs_Yprichina 
+where
+    ((ContDoc.cPart == PartSyn.nRec
+  and PartSyn.cPRef == CatReason.nRec
+  and LSchet.Nrec   == LsTab.cLschet
+  and Mn            == LsTab.mesN
+  and Yr            == LsTab.yearN
+  and LsTab.cLschet == Variance.cLschet
+  and Variance.Cuo  == UoWrkTabel.nRec
+  and PartSyn.cPRef == Catalogs_prichina.nrec
+ ))
+;
+
+create view vDonorCheck
+var
+  dDat1, dDatYear: date;
+  cPsn: comp;
+as select Vacations.nRec
+from
+  ContDoc,
+  Vacations,
+  KlOtpusk
+where
+   (( 71                == ContDoc.TypeOper
+  and cPsn              == ContDoc.Person
+  and dDat1             == ContDoc.Dat1 (noIndex)
+//  and PartDoc.cDoc      == TitleDoc.NRec
+  and ContDoc.ObjNrec   == Vacations.nRec
+  and Vacations.Person  == Persons.nRec
+  and Vacations.VacType == KlOtpusk.nRec
+  //and 111               == KlOtpusk.Kotpus (noIndex)
+  and ContDoc.cPart     == PartDoc.nRec
+  and PartDoc.cPRef     == Catalogs.nRec
+  ))
+;
+
+
+ overloadFormats scrDet71;
+
+function GetLabel(): string;
+{
+  result:='Дата документа основания';
+  if  OsnKlOtpusk.Kotpus = 111  then
+    result := 'Дата сдачи крови';
+}
+
+// -----------------------------------------------------------------------------
+screen scrDet71 (, hcStaffWinPr, scStaffMyPnl);
+  show at (,5,,);
+  table Vacations;
+fields
+  OsnKlOtpusk.Notpus    ('Вид отпуска. ', hcStaffVacationsClass, scStaffMyPnlPick):  protect;
+
+  Vacations.FactYearBeg ('Дата начала отпуска', hcStaffVacationsFactYearBeg, scStaffMyPnlPick): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {BackColor = if(not IsValid(#Vacations) or Vacations.FactYearBeg = ZeroDate, ColorNeed, 0)}};
+  Vacations.FactYearEnd ('Дата окончания отпуска', hcStaffVacationsFactYearEnd, scStaffMyPnlPick): [10,'DD/MM/YYYY'], noprotect,
+                        {Font = {BackColor = if(not IsValid(#Vacations) or Vacations.FactYearEnd = ZeroDate, ColorNeed, 0)}};
+  CountHours
+                        ('Количество часов', hcStaffVacationsDuration): [7.2], noprotect;
+  Vacations.Duration    ('Продолжительность отпуска, дней', hcStaffVacationsDuration): [7.2], noprotect;
+  //GetLabelME()           skip;
+  [LabelME]                'Периодичность диспансеризации' (''),skip;
+  MedExemPeriod         : noprotect, pickbutton;
+//        (oCatFunc.GetCatalogsName(oExtAttr.coGetAttrID(coVacations, Vacations.nrec, ExtAttrMedExemID))) ('Периодичность диспансеризации') : noprotect, pickbutton;
+   ///   (oCatFunc.GetCatalogsName(oExtAttr.coGetAttr(coVacations, Vacations.nrec, 'Периодичность диспансеризации'))) : noprotect, pickbutton;
+    //   oExtAttr.sGetAttr(coVacations, Vacations.nrec, 'Периодичность диспансеризации')) : noprotect, pickbutton;
+  fBornDateTitle         skip;
+
+  PsnLinks.rBornDate    ('Дата рождения ребенка, по уходу за которым предоставляется отпуск', hcStaffVacationsClass, sciStaffTypical13Esc): skip;
+  PsnLinks.rFIO         ('ФИО ребенка, по уходу за которым предоставляется отпуск', hcStaffVacationsClass, scStaffMyPnlPick): protect;
+
+  CheckDonorDay: noprotect;           //hr-983
+  CheckAnotherDay: noprotect;         //hr-983
+  CheckDopDay: noprotect;             //hr-983
+  ContDoc.stTabN        ('Номер документа основания'), noprotect;
+  GetLabel()                 skip;
+  ContDoc.dat1          ('Дата документа основания'), noprotect;
+
+  ContDoc.SBottom       ('Основание', hcStaffWinPr), noprotect;
+Buttons
+  cmViewAdvance1,,, 'Просмотр примечания к приказу', hcStaffWinPr;
+  cmValue21,,, 'Дополнительные условия по приказу';
+<<
+ `Вид отпуска   `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Предоставить с`.@@@@@@@@@@@@  `по`.@@@@@@@@@@@@
+ `Кол-во часов  `.@@@@@@@ `Кол-во дней`.@@@@@@@@
+ .@@@@@@@@@@@@   .@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@    .@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ [:] Освобождение от работы в день сдачи крови (ч.1 ст.186 ТК РФ)`
+ [:] Другой день отдыха (ч.2, 3 ст.186 ТК РФ)`
+ [:] Дополнительный день отдыха ч.4 ст. 186)`
+ `Номер документа основания`.@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@
+ `Основание`
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+           <. Примечание .>        <. Доп. условия .>
+>>
+end; // screen scrDet71
+
+function ChildCheckOneOrder(cNrec : comp = 0): boolean;
+var
+Cnt: integer = 0;
+
+kolD :integer;              //<<HR-156
+cNrecAttr: comp;
+dBegDisp,dEndDisp,dDateDisp :date;
+yearVac :word;
+
+{
+  result := true;
+
+  if (Vacations.Duration < 1)
+  {
+     SetErrorOrder('Нельзя предоставить менее 1 дня!');
+     result := false;
+     exit;
+  }
+
+  vDonorCheck.cPsn := ContDoc.Person;
+  vDonorCheck.dDat1 := ContDoc.dat1;
+
+  if not isValidAll(#OsnKlOtpusk) and ( OsnKlOtpusk.Kotpus <> 111 or OsnKlOtpusk.Kotpus <> 1010 )
+    {
+      result := inherited::ChildCheckOneOrder(cNrec);
+      exit;
+    }
+ //<<hR-156 nnt
+  if OsnKlOtpusk.Kotpus = 1010
+    {
+       cNrecAttr := oExtAttr.coGetAttr(coContDoc, ContDoc.nrec,'Периодичность диспансеризации');
+
+       if getfirst VacationsDisp where ((ContDoc.Person == VacationsDisp.Person and OsnKlOtpusk.nrec == VacationsDisp.vactype)) = tsOK
+       {
+           kolD := 0;
+           _loop VacationsDisp where ((ContDoc.Person == VacationsDisp.Person and OsnKlOtpusk.nrec == VacationsDisp.vactype))
+            {
+               if oCatFunc.GetCatalogsCode(cNrecAttr) = 1
+               {
+                  if VacationsDisp.Year_vac >= (year(Vacations.FactYearBeg) - 2) and  VacationsDisp.Year_vac <= year(Vacations.FactYearBeg)
+                  {
+                    kolD := kolD + VacationsDisp.Duration;
+                    continue;
+                  }
+               }
+               if oCatFunc.GetCatalogsCode(cNrecAttr) = 2 or oCatFunc.GetCatalogsCode(cNrecAttr) = 3
+               {
+
+                  if VacationsDisp.Year_vac = year(Vacations.FactYearBeg)
+                  {
+                   yearVac :=  year(Vacations.FactYearBeg);
+                   kolD := kolD + VacationsDisp.Duration;
+                   continue;
+                  }
+               }
+            }
+       }
+
+       case oCatFunc.GetCatalogsCode(cNrecAttr) of
+       1:  //1 день в три года
+       {
+          if getlast VacationsDisp where ((ContDoc.Person == VacationsDisp.Person and OsnKlOtpusk.nrec == VacationsDisp.vactype)) = tsOK
+            dDateDisp := VacationsDisp.FactYearBeg;
+
+          if kolD >= 1
+          {
+             SetErrorOrder('С момента последней диспансеризации ' + DateToStr(dDateDisp, 'DD.MM.YYYY') + ' не прошло 3-х лет>');
+             result := false;
+             exit;
+          }
+          if Vacations.Duration > 1
+          {
+             SetErrorOrder('Можно предоставить только 1 день!');
+             result := false;
+             exit;
+          }
+       }
+
+       2:  //1 день раз в год
+       {
+  //        message ('2 yearVac = ' + yearVac);
+          if getlast VacationsDisp where ((ContDoc.Person == VacationsDisp.Person and OsnKlOtpusk.nrec == VacationsDisp.vactype and yearVac== VacationsDisp.Year_vac (noindex) )) = tsOk
+          {
+            dDateDisp := VacationsDisp.FactYearBeg;
+           // message ('Количество дней в ' + yearVac + ' году = ' + kolD);
+            if kolD >= 1  //
+            {
+               SetErrorOrder('С момента последней диспансеризации ' + DateToStr(VacationsDisp.FactYearBeg, 'DD.MM.YYYY') + ' не прошло 1 год');
+               result := false;
+               exit;
+            }
+          }
+
+          if Vacations.Duration > 1
+          {
+             SetErrorOrder('Можно предоставить только 1 день!');
+             result := false;
+             exit;
+          }
+       }
+
+       3:    //2 дня раз в год
+        {
+           if getlast VacationsDisp where ((ContDoc.Person == VacationsDisp.Person and OsnKlOtpusk.nrec == VacationsDisp.vactype and /*Vacations.Year_vac */yearVac == VacationsDisp.Year_vac (noindex) )) = tsOk
+           {
+             dDateDisp := VacationsDisp.FactYearBeg;
+             if kolD >= 2  //
+             {
+                SetErrorOrder('С момента последней диспансеризации ' + DateToStr(VacationsDisp.FactYearBeg, 'DD.MM.YYYY') + ' не прошло 1 год');
+                result := false;
+                exit;
+             }
+
+              if Vacations.Duration > 1 and kolD = 1
+             {
+                SetErrorOrder('Нельзя предоставить больше 1 дня. В диспансеризации ' + DateToStr(VacationsDisp.FactYearBeg, 'DD.MM.YYYY') + ' был использован 1 день');
+                result := false;
+                exit;
+             }
+
+           }
+            if Vacations.Duration > 2
+            {
+               SetErrorOrder('Можно предоставить максимум 2 дня!');
+               result := false;
+               exit;
+            }
+       }
+       end;
+    }//if  Kotpus = 1010
+ //>>hR-156 nnt
+
+  // HR-839 Прошу из РПД-71 убрать проверку, выполненную по HR-53 ТЗ Разработка алгоритма по ФТТ "Ведение отсутствий" (Батуева)
+  // if OsnKlOtpusk.Kotpus = 111
+  //   {
+  //     if Persons.AppDate > ContDoc.Dat1
+  //       {
+  //         SetErrorOrder('В день сдачи крови работник не работал в ПАО "Сургутнефтегаз"');
+  //         result := false;
+  //         exit;
+  //       }
+
+  //     if CatReason.Code = 8 and Vacations.FactYearBeg <> ContDoc.Dat1
+  //       {
+  //         SetErrorOrder('Начало отсутствия должно совпадать с датой сдачи крови');
+  //         result := false;
+  //       }
+
+  //     if CatReason.Code = 9 or CatReason.Code = 12
+  //       {
+  //         if not isValidAll(tnLsTab)
+  //           {
+  //             SetErrorOrder('На дату сдачи крови не найден табель работника');
+  //             result := false;
+  //             exit;
+  //           }
+  //         if LsTab.days[Day(ContDoc.dat1)] = 'В'
+  //           {
+  //             if CatReason.Code = 12
+  //               {
+  //                 SetErrorOrder('День не отработан, может быть предоставлена причина 9 "ДонорДеньОтдыха/3чСт186ТК"');
+  //                 result := false;
+  //                 exit;
+  //               }
+  //             if isValidAll(tnUoWrkTabel) and UoWrkTabel.Num = 'В' and UoWrkTabel.Name = 'Доп.выходной день (по приказу)'
+  //               {
+  //                 SetErrorOrder('Указанный день сдачи крови является доп. выходным днем (по приказу), может быть предоставлен только дополнительный день отдыха');
+  //                 result := false;
+  //                 exit;
+  //               }
+  //           }
+  //         else
+  //           {
+  //             if CatReason.Code = 9
+  //               {
+  //                 SetErrorOrder('День отработан, может быть предоставлена причина 12 "ДонорДеньОтдыха/2чСт186ТК"');
+  //                 result := false;
+  //                 exit;
+  //               }
+  //           }
+  //       }
+
+  //     Yr := Year(ContDoc.dat1);
+  //     Mn := Month(ContDoc.dat1);
+
+  //     vDonorCheck._loop ContDoc
+  //       {
+  //         if vDonorCheck.ContDoc.nRec = ContDoc.nRec continue;
+
+  //         if not vDonorCheck.isValidAll(vDonorCheck.tnKlOtpusk) continue;
+  //         if not vDonorCheck.isValidAll(vDonorCheck.tnCatalogs) continue;
+
+  //         if vDonorCheck.KlOtpusk.Kotpus = 111 continue;
+
+  //         Cnt++;
+  //         if vDonorCheck.Catalogs.Code = 8 and CatReason.Code <> 10
+  //           {
+  //             SetErrorOrder('У работника на дату сдачи крови уже был предоставлен ДонорДеньСдачи/1,5чСт186ТК');
+  //             result := false;
+  //             exit;
+  //           }
+  //         if vDonorCheck.Catalogs.Code = 10 and CatReason.Code = 10
+  //           {
+  //             SetErrorOrder('Ранее предоставлен дополнительный день отдыха за указанный день сдачи крови');
+  //             result := false;
+  //             exit;
+  //           }
+  //         if vDonorCheck.Catalogs.Code = 9 and CatReason.Code = 9
+  //           {
+  //             SetErrorOrder('У работника на дату сдачи крови уже был предоставлен ДонорДеньОтдыха/3чСт186ТК');
+  //             result := false;
+  //             exit;
+  //           }
+  //         if vDonorCheck.Catalogs.Code = 12 and CatReason.Code = 12
+  //           {
+  //             SetErrorOrder('У работника на дату сдачи крови уже был предоставлен ДонорДеньОтдыха/2чСт186ТК');
+  //             result := false;
+  //             exit;
+  //           }
+  //       }
+
+  //     if Cnt >= 2
+  //       {
+  //         SetErrorOrder('Ранее предоставлено 2 дня отдыха за указанный день сдачи крови');
+  //         result := false;
+  //       }
+  // /*было тут
+  //     result := result and inherited::ChildCheckOneOrder(cNrec);
+
+  //      //<<hR-156 nnt
+  //     oExtAttr.coSetAttr(coVacations, Vacations.nrec,'Периодичность диспансеризации',
+  //     oExtAttr.coGetAttr(coContDoc, ContDoc.nrec,'Периодичность диспансеризации'), '');   //используем еще один аттрибут за получения nRec записи
+  //      //>>                 */
+  //   }  //if  Kotpus = 111
+
+      result := result and inherited::ChildCheckOneOrder(cNrec);
+
+       //<<hR-156 nnt
+      oExtAttr.coSetAttr(coVacations, Vacations.nrec,'Периодичность диспансеризации',
+      oExtAttr.coGetAttr(coContDoc, ContDoc.nrec,'Периодичность диспансеризации'), '');   //используем еще один аттрибут за получения nRec записи
+       //>>
+
+
+ if GetFirst FastFirstRow PartSyn where ((ContDoc.cPart == PartSyn.nRec)) = tsOk
+  {
+    if getfirst FastFirstRow Catalogs_prichina = tsOk 
+    {
+      if (Catalogs_prichina.name = '')
+      {
+        SetErrorOrder('Не заполнена причина мероприятия!');
+        result := false; 
+      }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнена причина мероприятия!');
+      result := false
+    }
+  }
+  else
+  {
+    SetErrorOrder('Не заполнена причина мероприятия!');
+    result := false;
+  }
+
+/*
+ if GetFirst FastFirstRow PartSyn where ((ContDoc.cPart == PartSyn.nRec)) = tsOk
+  {
+    if ( getfirst FastFirstRow Catalogs_Yprichina <> tsOk ) or (Ypricina = '')
+    {
+        SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+        //result := false; 
+    }
+    }
+    else
+    {
+      SetErrorOrder('Не заполнено уточнение причины мероприятия!');
+      //result := false
+    }
+*/
+
+      var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+      if (oJsonSender.createJson('RPD_71_TO_SAP_PA2001|PA0298|PA0302', TitleDoc.nRec, 'X')) {
+        if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+          SetErrorOrder(oJsonSender.getErrorMessage());
+        }
+      }
+
+
+}//function ChildCheckOneOrder
+
+//<<< HR-156
+Procedure EnableDisable;
+{
+  inherited::EnableDisable;
+  if OsnKlOtpusk.Kotpus = 1010
+    {SetFieldState(#MedExemPeriod, sfVisible);
+    SetFieldAndLabelVisible(#LabelME, true);}
+  else
+    {ClearFieldState(#MedExemPeriod, sfVisible);
+    SetFieldAndLabelVisible(#LabelME, false); }
+
+}
+TableEvent table Vacations;
+ cmPick:
+{
+  var wTmp: word;
+  case CurField of
+    #OsnKlOtpusk.NOtpus:
+    {
+      wTmp := if ( IsValid(tnOsnKlOtpusk), OsnKlOtpusk.KOTPUS, 0 );
+
+      if ( RunInterface('PickOtp', wTmp, 40, 0, false, ZeroDate) = cmDefault )
+      {
+        if ( GetFirst fastfirstrow OsnKlOtpusk where (( wTmp == OsnKlOtpusk.KOTPUS )) = tsOk )
+        {
+          if OsnKlOtpusk.TypeOtp = 4
+          {
+            set Vacations.VacType     := OsnKlOtpusk.Nrec;
+            set Vacations.Duration    := OsnKlOtpusk.KolDn;
+            set Vacations.FactYearBeg := if ( Vacations.FactYearBeg = Date(0,0,0), Cur_Date, Vacations.FactYearBeg );
+
+            if ( Vacations.Duration <> 0 )
+            {
+              set Vacations.FactYearEnd := OtpDatOk(OsnKlOtpusk.IsRabDn, Vacations.FactYearBeg, Vacations.Duration, Appointments.cAddNrec2);
+
+              SetCurrentDays();
+
+              // высчитываем количество часов между датами
+              CalculateHourBetweenDates;
+            }
+
+            if (word((OsnKlOtpusk.FilialNo shr koshift_NeyavChildInv) and 1) = 0)
+              ContDoc.cAddInf := comp(0);
+
+            EnableDisable;
+          }
+          else
+          {
+            Message(chr(3) + 'Выберите отпуск с типом "Целодневная неявка".', Warning + OkButton);
+            ReReadRecord(#Vacations);
+            EnableDisable;
+            abort;
+            exit;
+          }
+        }
+      }
+      OnIdle(OsnKlOtpusk.nRec);  
+    }
+    #PsnLinks.rFIO:
+    {
+      var cTemp: comp;
+
+      cTemp := if (ContDoc.cAddInf <> comp(0), ContDoc.cAddInf, comp(0));
+
+      if (RunInterface('SNG_RPD_PickInterface::SNG_PickChildForPers', cTemp, ContDoc.Person, 0, 0, 1) <> cmCancel)
+      {
+        set ContDoc.cAddInf := cTemp;
+
+        if (word((OsnKlOtpusk.FilialNo shr koshift_NeyavChildInv) and 1) > 0)
+        {
+          var bFindDoc: boolean = false;
+
+          _loop nocache Sys_Uder
+            if (GetFirst Psn_Link_Catalogs = tsOk)
+              if (Psn_Link_Catalogs.SysCode = 560)
+                if (iStrFunc.isHitPeriod(Sys_Uder.DATAN, Sys_Uder.DATOK, Vacations.FactYearBeg))
+                {
+                  ContDoc.stTabN := Sys_Uder.LastUser;
+                  ContDoc.dat1 := Sys_Uder.LastDate;
+                  bFindDoc := true;
+                  break;
+                }
+
+          if (not bFindDoc)
+          {
+            ContDoc.stTabN := '';
+            set ContDoc.dat1 = ZeroDate;
+            message('На период целодневной неявки не найден "Документ, подтверждающий инвалидность"', Warning);
+          }
+        }
+      }
+
+      SetModified(true);
+
+      ReReadRecord(#PsnLinks);
+    }
+
+    #MedExemPeriod:
+    {
+      var cRec: comp = 0;
+
+       if (RunInterface('Z_StaffCat::PickCatalog2', integer(-31666), cRec, 0, 0) = cmDefault )
+       {
+          oExtAttr.coSetAttr(coContDoc, ContDoc.nrec,'Периодичность диспансеризации', cRec, '');   //исп. Condoc чтобы получить nRec записи, продублировали аттрибут для табл ConDOc
+          ReScanPanel(#Vacations);
+          ReScanPanel(#ContDoc);
+       }
+    }
+
+    else
+
+      inherited::handleEvent(cmPick);
+
+  end;
+}
+
+end;
+
+HandleEvent
+
+ cmOnVipLoad:
+ {
+    if inherited::handleEvent(cmOnVipLoad) = heAbort
+     abort;
+
+   //ExtAttrMedExemID := oExtAttr.CreateAttrComp( coVacations, 'Периодичность диспансеризации', cgAttrType_Comp, cgKatKau_System, coCatalogs);
+   oExtAttr.CreateAttrComp( coVacations, 'Периодичность диспансеризации', cgAttrType_Comp, cgKatKau_System, coCatalogs);
+   oExtAttr.CreateAttrComp( coContDoc, 'Периодичность диспансеризации', cgAttrType_Comp, cgKatKau_System, coCatalogs);
+   EnableDisable;
+ }
+ cmInit:       //HR-983 чек-боксы для для FLAG_DONOR
+  {
+      inherited::handleEvent(cmInit);
+      #GetAttr;
+  }
+  cmCheckField:
+  {
+    case CurField of
+      #CheckDonorDay:
+        if (CheckDonorDay)lCheckboxState+=1; else lCheckboxState-=1
+      #CheckAnotherDay:
+        if (CheckAnotherDay)lCheckboxState+=2; else lCheckboxState-=2
+      #CheckDopDay:
+        if (CheckDopDay) lCheckboxState+=4;  else lCheckboxState-=4
+  end;
+
+ if (ContDoc.TypeOper = 71)
+  {if (getfirst FastFirstRow SNG_Vacations Where ((Vacations.Nrec == SNG_Vacations.cRec ))= tsOk )
+    { Set SNG_Vacations.FLAG_DONOR := lCheckboxState;
+      update current SNG_Vacations;
+    }
+   else if (lCheckboxState <>0)
+    { SNG_Vacations.cRec := Vacations.Nrec;
+      SNG_Vacations.FLAG_DONOR := lCheckboxState;
+      insert current  SNG_Vacations  ;
+    }
+  }
+
+ }
+end;
+
+tableEvent table SNG_Vacations;  //HR-983
+  cmPositionChanged:
+  {
+    inherited::handleEvent(cmPositionChanged);
+    #GetAttr;
+
+  }
+end;
+
+
+end.

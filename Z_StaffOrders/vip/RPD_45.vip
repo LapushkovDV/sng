@@ -1,0 +1,51 @@
+#component 'Z_STAFFORDERS'
+
+#include CatFunc.vih
+
+#doc
+Докомпиляция интерфейса РПД-45
+#end
+
+alter interface RPD_45;
+
+function GetDopStatLink56: string; forward;    //HR-709, nnt ссылка на ИД ДС  для RX
+
+create view
+as select
+  (GetDopStatLink56)
+    (fieldname = sExternalLink56)
+;
+
+function GetDopStatLink56: string;
+{
+  result := '';
+  var tmpLink: comp = NOAA.GetFirstAgreementByLink(GetCo4Agreement(), GetNRec4Agreement());
+  if (getFirst fastfirstrow ExternalASM where ((byte(101)   == ExternalASM.ASM_Type
+                                  and coSpAllStaff == ExternalASM.wTable
+                                  and tmpLink      == ExternalASM.cRec)) =  tsOk)
+     result := ExternalASM.Numbers[5] + string(ExternalASM.Numbers[6]);
+}
+
+HandleEvent
+cmHyperlink:            //HR-709, nnt ссылка на ИД ДС  для RX
+  {
+    case CurField of
+      #sExternalLink:
+      {
+        if (sExternalLink <> '')
+        {
+          var aErrorCode: integer;
+          var sPagePath: string = GetDopStatLink56;
+          ExecProgram('start' , sPagePath, 'Переход', 0, aErrorCode);
+        }
+      }
+    end;
+  }
+cmOnVipLoad:
+{
+  if inherited::handleEvent(cmOnVipLoad) = heAbort
+    abort;
+  cfsSetProp('L_SCRDET45_ИД_доп.соглашения','Title','Ссылка на ДС в Directum'); // HR-1143 
+}
+end;
+end.

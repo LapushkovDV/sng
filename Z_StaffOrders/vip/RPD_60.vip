@@ -1,0 +1,88 @@
+#component "Z_StaffOrders"
+
+alter interface RPD_60; // HR-816 GKS
+
+#include OWFunc.vpp;
+#declare OverworkCalculationF2(_Tbl)
+  if(#_Tbl.OWMode = ocmDaily, 'поденный',
+    if(#_Tbl.OWMode = ocmSummed, 'суммированный',
+      if(#_Tbl.OWMode = ocmNone, 'несуммированный', '')))
+#end
+
+create view
+as select
+  #OverworkCalculationF2(AppHist)
+  (fieldname = OverworkCalculation2)
+;
+
+OverloadFormats scrDet60;
+//******************************************************************************
+// Окно содержимого приказа на изменение режима работы
+//******************************************************************************
+screen scrDet60 (, hcStaffWinPr, sci1Esc);   //изменение оклада
+show at (, 5,,14);
+table AppHist;
+  fields
+    AppHist.dRec ('С даты', hcStaffWinPr): [10,'DD/MM/YYYY'], {Font = {BackColor = if(AppHist.dRec = ZeroDate, ColorNeed, 0)}}, noprotect;
+    AppHist.dEnd ('По дату', hcStaffWinPr): [10,'DD/MM/YYYY'], noprotect;
+    KlRejim.NRejim ('Режим работы', hcStaffWinPr, sci13Esc),  protect;
+    OverworkCalculation2  ('Способ учета сверхурочных работ',,sci13Esc): protect;
+    AppHist.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+    fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+    sExternalLink ('Идентификатор доп.соглашения',, sciStaffTypical1Esc): protect, {hyperlink = (sExternalLink <> '')};
+    ContDoc.SBottom    ('Основание', hcStaffWinPr), noprotect;
+  buttons
+    cmValue25, [SingleLine],,, 'Штрих-код';
+<<
+ Установить c      .@@@@@@@@@@@@   по .@@@@@@@@@@@@@
+ Новый режим       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@   `Период` .@@@@@@@@@@@@@@@@@@@@@@@@@
+`Доп. соглашение`  .@@@@@@@@@@@@@@@@@@@@@@`Ссылка на ДС в Directum`.@@@@@@@@@@
+                                                             <. Штрих-код .>
+ Основание
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+>>
+end; // screen scrDet50
+
+HandleEvent
+
+  cmOnVipLoad:
+  {
+    inherited::handleEvent(cmOnVipLoad);
+    IsSummedOWH := false;
+  }
+
+  cmPick:
+  {
+    if CurField = #OverworkCalculation2
+    {
+      case runmenu('CaseOWModeSNG60') of //Выбор для способа учета сверхурочных
+        cmValue61:
+          set AppHist.OWMode := ocmDaily;
+        cmValue62:
+          set AppHist.OWMode := ocmSummed;
+        cmValue63:
+          set AppHist.OWMode := ocmNone;
+      end;  //case
+
+      SetModified(true);
+      UpdateTable;
+      #SetVisibleOWPeriod(AppHist, #AppHist.PeriodOW)
+    }
+    else
+    {
+      inherited::handleevent(cmPick);
+    }
+  }
+
+end; //HandleEvent
+
+end.
+
+CaseOWModeSNG60 menu   //Выбор для поля способ учета сверхурочных
+{
+  - 'Поденный',cmValue61,'Способ учета сверхурочных поденный';
+  - 'Суммированный',cmValue62,'Способ учета сверхурочных суммированный';
+  - 'Несуммированный',cmValue63,'Способ учета сверхурочных несуммированный';
+}
