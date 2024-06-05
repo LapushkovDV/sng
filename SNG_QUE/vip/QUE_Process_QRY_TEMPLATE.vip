@@ -170,9 +170,10 @@ function SynchQRY_Template(var _answer : string) : boolean; {
        var _FilePath : string = GenerateNewFile+'_QUE_INCOME_Template_Memo.txt';
        if ExportMemoToFile(QRY_Template.WhereTerms, _FilePath, false) {
         _WideStr2000 := FillWideStringFromFile2000(_FilePath);
+        deletefile(_FilePath);
        }
 
-     if           QRY_Template.NAME <> tQRY_Template.NAME1
+     if          QRY_Template.NAME <> tQRY_Template.NAME1
         or  QRY_Template.tablecode <> tQRY_Template.tablecode1
         or _WideStr2000 <> tQRY_Template.WHERETERMS {
          update current QRY_Template set
