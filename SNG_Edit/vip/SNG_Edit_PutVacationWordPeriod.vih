@@ -1,6 +1,6 @@
 /*************************************************************************************************\
-* Наименование: Базовый объект формирования запросов и JSON произвольной структуры                *
-* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Наименование:                                                                                   *
+* Контур/Модуль:                                                                                  *
 * Примечание:                                                                                     *
 *                                                                                                 *
 * Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
@@ -8,11 +8,11 @@
 
 \*************************************************************************************************/
 
-#ifnDef _SNG_EDIT_INCLUDED_
-#define _SNG_EDIT_INCLUDED_
+#ifnDef _SNG_EDIT_PUTVACATIONWORDPERIOD_INCLUDED_
+#define _SNG_EDIT_PUTVACATIONWORDPERIOD_INCLUDED_
 #component "SNG_EDIT"
 
-ObjInterface oQRY_Edit;
+ObjInterface oSNG_Edit_PutVacationWordPeriod;
 public:
 #doc
 #end
@@ -20,10 +20,10 @@ public:
 #doc
 Запустить окно редактирования
 #end
-Procedure RunEditWindow(_interfaceName : string; _cRec : comp);
+Procedure RunEditWindow(__cPutVac, __cWorkPeriod : comp);
 
 end;
 
-VipInterface SNG_Edit Implements oSNG_Edit #Licensed_Free;
+VipInterface SNG_Edit_PutVacationWordPeriod Implements oSNG_Edit_PutVacationWordPeriod #Licensed_Free;
 
 #end

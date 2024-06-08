@@ -92,8 +92,10 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_Edit.prj" PosX="29" PosY="16" OpenEditor="True"/>
-			<File Name="..\..\erp91\CompSrc\Z\Z_Staff\vip\WorkPeriods.vip" PosX="66" PosY="5038" OpenEditor="True" Active="True"/>
+			<File Name="SNG_Edit.prj" PosX="37" PosY="23" OpenEditor="True"/>
+			<File Name="..\..\erp91\CompSrc\Z\Z_Staff\vip\WorkPeriods.vip" PosX="1" PosY="28" OpenEditor="True"/>
+			<File Name="vip\SNG_Edit_PutVacationWordPeriod.vip" PosX="34" PosY="104" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_Edit_PutVacationWordPeriod.vih" PosX="41" PosY="14" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -148,6 +150,8 @@
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="863" NumIndex="1" MarkerType="mtNumBookmark" Comment="Функция склоняет наименование записи справочника (Catalogs) с попутной проверкой на наличие"/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="564" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
 			<Marker FileName="vip\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="343" NumIndex="1" MarkerType="mtNumBookmark" Comment="set _needlog := true;"/>
+			<Marker FileName="..\..\erp91\CompSrc\Z\Z_Staff\vip\WorkPeriods.vip" Caption="Нумерованная закладка 1" Line="5016" NumIndex="1" MarkerType="mtNumBookmark" Comment="browse brPutVacationWithEdit (,hcStaff_KartVkladkaWorkPeriod,sci178EnEsc);"/>
+			<Marker FileName="..\..\erp91\CompSrc\Z\Z_Staff\vip\WorkPeriods.vip" Caption="Нумерованная закладка 2" Line="4201" NumIndex="2" MarkerType="mtNumBookmark" Comment="PutVacation.cPerson := WorkPeriod.cPerson;"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

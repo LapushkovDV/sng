@@ -20,4 +20,5 @@
 LicenseControlInclude=""
 #end
 
-#make "vip\SNG_Edit.vip"
+#make "vip\SNG_Edit_PutVacationWordPeriod.vip"
+#make "vip\WorkPeriods.vip"

@@ -1,0 +1,28 @@
+/*
+13580-13589
+*/
+alter dictionary;
+Create Table SNG_EDIT "Анкетный редактор для списочных интерфейсов"
+  With Table_CODE = 13590
+  With Replace
+  With TableOptions Branched
+(
+  NRec       : comp "Номер записи"
+, cSNG_EDIT  : comp "Ссылка на родителя"
+, vDouble    : array[1..10] of double   "double значение"
+, vString    : array[1..10] of String   "String значение"
+, vBoolean   : array[1..10] of Boolean  "double значение"
+, vDate      : array[1..10] of Date     "Date значение"
+, vTime      : array[1..10] of Time     "Time значение"
+, vDateTime  : array[1..10] of DateTime "DateTime значение"
+, vLongint   : array[1..10] of Longint  "Longint значение"
+, vComp      : array[1..10] of Comp     "Comp значение"
+, vMemo      : lVar
+)
+with Index
+(
+  QRY_Template01 = NRec (unique, surrogate, journal)
+ ,QRY_Template02 = cSNG_EDIT
+);
+
+

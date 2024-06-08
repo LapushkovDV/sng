@@ -1,0 +1,575 @@
+#include SNG_Edit_PutVacationWordPeriod.vih
+#include WorkPeriods.vih
+
+#component "Z_Staff"
+
+alter interface WorkPeriods;
+
+overload
+  public procedure IWorkPeriods.ChangeSovnAppointForWP(cOldPers, cNewPers, cOldApp, cNewApp : comp; bWasDel: boolean);
+  function funAddNewBalance (cParam_KlOtpusk, cParam_PutVacation, cParam_Vacations, cParam_DetPlan: comp; wParamTypeVac: word; cNode_Param: comp; doProportion : double = 0; choice : word = 0): comp;
+  public procedure IWorkPeriods12.SortPutVacation(cWorkPeriod : comp);
+  procedure LoadInterface;
+end;
+
+create view WorkPeriods
+as select
+  SNG_WorkPeriodSort.NRec
+from
+  WorkPeriod SNG_WorkPeriodSort
+;
+
+public procedure IWorkPeriods12.SortPutVacation(cWorkPeriod : comp);
+var
+  wNumOtp : word;
+{
+  //--------------------------------------------------------------------------------------------------------------
+  // теперь расположим по порядку: остатки по коду и периоду; отпуска по коду;
+  _loop PutVacSort where (( cWorkPeriod == PutVacSort.cWorkPeriod ))
+    if GetFirst KlOtpuskSort where ((PutVacSort.cKlOtpusk == KlOtpuskSort.NRec)) = tsOk
+    {
+      if( PutVacSort.wTypeVac = 0 )
+      {
+        //отпуска
+        update current PutVacSort set PutVacSort.wNum := KlOtpuskSort.KotPus + 50000;
+      }
+      else
+      {
+        //остатки
+        if GetFirst SNG_WorkPeriodSort where ((PutVacSort.cWPRemain == SNG_WorkPeriodSort.nRec)) = TsOk
+         update current PutVacSort set PutVacSort.wNum := KlOtpuskSort.KotPus + (Year(SNG_WorkPeriodSort.dPerEnd) * 10);
+      }
+    }
+  // теперь проставим порядковые номера, начиная с единицы
+  wNumOtp := 1;
+  _loop PutVacSort where (( cWorkPeriod == PutVacSort.cWorkPeriod ))
+  {
+    update current PutVacSort set PutVacSort.wNum := wNumOtp;
+    wNumOtp++;
+  }
+}
+
+private procedure SNG_prInsPutVacPrevFilial(wNumPut: word; cWP: comp);
+var
+  wTmpDayCount : word;
+{
+  if GetFirst PrevFilInsPV_WorkPeriod where (( cWP == PrevFilInsPV_WorkPeriod.NRec )) <> tsOk
+    exit;
+
+  // посчитаем сколько дней по данному отпуску осталось
+  wTmpDayCount := PutVacDop.wDayCount - integer(iFV.GetDurationFactVacation(PutVacDop.NRec, comp(0), ZeroDate, TPtr(0)));
+
+  // если все выдали, копировать нет смысла
+  if ( wTmpDayCount = 0 )
+    exit;
+
+  ClearBuffer(#PutVacNew);
+  PutVacNew.wNum         := wNumPut;
+  PutVacNew.cWorkPeriod  := PrevFilInsPV_WorkPeriod.NRec;
+  PutVacNew.cPerson      := PrevFilInsPV_WorkPeriod.cPerson;
+  PutVacNew.wTypeVac     := 0;
+  PutVacNew.cKlOtpusk    := PutVacDop.cKlOtpusk;
+  PutVacNew.wDayCount    := wTmpDayCount;
+  PutVacNew.ResDouble[1] := PutVacDop.ResDouble[1];
+  PutVacNew.ResDouble[2] := PutVacDop.ResDouble[2];
+  PutVacNew.cWPRemain    := 0;
+  PutVacNew.cPutVacation := PutVacDop.NRec;
+
+  insert current PutVacNew;
+}
+
+procedure SNG_CorrectWPSovn(cPers, cApp, cNewPers, cNewApp: comp; dDisDate : date);
+var
+  cCurWP: comp;
+{
+  if GetFirst Persons where (( cPers == Persons.NRec )) <> tsOk
+    exit;
+
+  if GetFirst Appointments where (( cApp == Appointments.NRec )) <> tsOk
+    exit;
+
+  cCurWP := comp(0);
+  _loop WorkPeriodDop where ((  cPers      == WorkPeriodDop.cPerson
+                             and cnWP_Work == WorkPeriodDop.wTypePEriod
+                             and cApp      == WorkPeriodDop.cAppointment  //(WorkPeriod08)
+                             ))
+  {
+    if ( WorkPeriodDop.dPerBeg > dDisDate )  // РП, начинающиеся после перевода
+    {
+      WorkPeriodDop.wStatus    := word(1);
+      WorkPeriodDop.ResWord[2] := word(1);
+      WorkPeriodDop.sNote      := string(Add_Day(dDisDate, 1)) + ' переведен в др.филиал';
+      update current WorkPeriodDop;
+    }
+    else  // РП на дату перевода
+      if ( WorkPeriodDop.dPerEnd > dDisDate )
+      {
+        // обработка "скрытых внутренних" РП
+        _loop WorkPeriodShift where ((  WorkPeriodDop.NRec == WorkPeriodShift.cWorkPeriod
+                                    and cnWP_Hidden        == WorkPeriodShift.wTypePEriod ))
+        {
+          if ( WorkPeriodShift.dPerBeg > dDisDate )
+          {
+            CheckAndDeleteProtocol(WorkPeriodShift.NRec);
+
+            delete current WorkPeriodShift;
+          }
+          else
+            if ( WorkPeriodShift.dPerEnd = WorkPeriodDop.dPerEnd )
+              update current WorkPeriodShift set WorkPeriodShift.dPerEnd := dDisDate;
+        }
+
+        WorkPeriodDop.sNote := string(Add_Day(dDisDate, 1)) + ' переведен в др.филиал';
+        WorkPeriodDop.dPerEnd := dDisDate;
+        update current WorkPeriodDop;
+      }
+  }
+}
+
+private procedure SNG_MakeNewOtpForOneWP2(cWorkPeriod : comp);
+var
+    NumOtp
+  , wAllYearDayKol: word;
+
+    dKolDay
+  , dblKoef     : double;
+
+    dRschStj    : date;
+    sWorkPeriod : string;
+
+    bIsFirstPersonWP : boolean;
+{
+  dRschStj := ZeroDate;
+
+  if ( GetFirst WorkPeriodDop where (( cWorkPeriod == WorkPeriodDop.NRec )) <> tsOk )
+    exit;
+
+  if ( WorkPeriodDop.wStatus = word(1) )
+    exit;
+
+  dRschStj := WorkPeriodDop.dPerBeg;
+
+  // формировать отпуска для сдвигов нельзя!
+  if WorkPeriodDop.wTypePeriod <> cnWP_Work
+    exit;
+
+  if GetFirst Persons where (( WorkPeriodDop.cPerson == Persons.NRec )) <> tsOk
+    exit;
+
+  // назначение невалидное или же оно УО/УС - полагающиеся не формируем
+  if GetFirst Appointments where (( WorkPeriodDop.cAppointment == Appointments.NRec )) <> tsOk
+    exit;
+
+  if (funCheckSecRecep(Appointments.lPrizn, WorkPeriodDop.ResWord[2]) = false)
+    exit;
+
+  bIsFirstPersonWP := ( GetFirst PrevFilInsPV_WorkPeriod where (( WorkPeriodDop.cPerson      == PrevFilInsPV_WorkPeriod.cPerson      and
+                                                                  WorkPeriodDop.cAppointment == PrevFilInsPV_WorkPeriod.cAppointment and
+                                                                  cnWP_Work                  == PrevFilInsPV_WorkPeriod.wTypePeriod  and
+                                                                  WorkPeriodDop.dPerBeg      >> PrevFilInsPV_WorkPeriod.dPerBeg      )) <> tsOk );
+
+  // запомним строковое значение интервала РП, для многочисленных выводов в протокол
+  sWorkPeriod := string(WorkPeriodDop.dPerBeg) + ' - ' + string(WorkPeriodDop.dPerEnd);
+
+  NumOtp := InsOtpOst(cWorkPeriod, 1025, sWorkPeriod, Persons.FIO, Appointments.lPrizn);
+
+  // чистим временные таблицы для расчета отпусков
+  delete all mt_AllVac;
+  delete all mt_ValidPerVac;
+  delete all mt_AppointForVac;
+  delete all mt_PeriodCalcVac;
+  wAllYearDayKol := 0;
+
+  // рассчитаем сдвиги чтобы заполнилась таблица в памяти mt_Shifts, по которой будем формировать кусочки назначений
+  if ( Appointments.cAddNrec2 <> comp(0) )
+    if (MySetDefParam = 0 or MySetDefParam = 1)  and UseShift //Если Россия или Беларусь
+      VShedul.AnnualLeaveShift( Appointments.cAddNRec2, WorkPeriodDop.dPerBeg, WorkPeriodDop.dPerEnd);
+  ReReadRecord(#WorkPeriodDop);
+
+  var cPrev_Pers: comp;
+  cPrev_Pers := IPsnFuncs.funGetPrevFilialPers(Persons.nRec);
+  cTmpWP      := GetWPByDateAndApp(cPrev_Pers
+                                 , IPsnFuncs.funGetLastAppoint(cPrev_Pers)
+                                 , Sub_Day(Appointments.AppointDate, 1)
+                                 , false);
+
+  if ( cTmpWp <> comp(0) )
+  {
+    _loop PutVacDop where ((cTmpWP == PutVacDop.cWorkPeriod))
+    {
+      if ( GetFirst Find_PutVacation where ((cWorkPeriod    == Find_PutVacation.cWorkPeriod and
+                                             PutVacDop.nRec == Find_PutVacation.cPutVacation (NoIndex) )) = tsOk )
+        continue;
+
+      SNG_prInsPutVacPrevFilial(NumOtp++, cWorkPeriod);
+    }
+
+    var BegPer   : date = ZeroDate;
+    var EndPer   : date = ZeroDate;
+    var cPutTime : comp = 0;
+
+    cTmpWP := funNextWP_byAppAndDate(cTmpWP, BegPer, EndPer);
+    if ( cTmpWP <> comp(0) )
+      do
+      {
+        _loop PutVacDop where ((cTmpWP == PutVacDop.cWorkPeriod))
+        {
+          if ( GetFirst Find_Vacation where ((PutVacDop.nRec == Find_Vacation.cPutVac)) <> tsOk )
+            continue;
+
+          if ( GetFirst Find_PutVacation where (( cWorkPeriod    == Find_PutVacation.cWorkPeriod and
+                                                  PutVacDop.nRec == Find_PutVacation.cPutVacation (NoIndex) )) = tsOk )
+            continue;
+
+          if ( PutVacDop.cPutVacation <> comp(0) )
+          {
+            cPutTime := PutVacDop.cPutVacation;
+            if ( GetFirst PutVacPrevWP where ((cPutTime == PutVacPrevWP.nRec)) =  tsOk )
+              do
+              {
+                if ( PutVacPrevWP.cPutVacation = comp(0) )  // нужен предпоследний в иерархии остатков полагающихся
+                  break;
+
+                cPutTime := PutVacPrevWP.cPutVacation;
+              }
+              while ( GetFirst PutVacPrevWP where ((cPutTime == PutVacPrevWP.nRec)) =  tsOk )
+
+            if ( GetFirst Find_PutVacation where ((cWorkPeriod == Find_PutVacation.cWorkPeriod and
+                                                   cPutTime    == Find_PutVacation.cPutVacation (NoIndex) )) = tsOk )
+              continue;
+          }
+
+          SNG_prInsPutVacPrevFilial(NumOtp++, cWorkPeriod);
+        }
+
+        cTmpWP := funNextWP_byAppAndDate(cTmpWP, BegPer, EndPer);
+      }
+      while ( cTmpWP <> comp(0) )
+  }
+
+  _loop mt_DelPutVac
+  {
+    if GetFirst KlOtpuskAll where (( mt_DelPutVac.cKlOtpusk == KlOtpuskAll.NRec )) <> tsOk
+        continue;
+
+    if GetFirst Vacations where (( mt_DelPutVac.cPutVacation == Vacations.cPutVac )) <> tsOk
+      CheckAndDelPutVacation(mt_DelPutVac.cPutVacation, true);
+    else
+      PutMessToProtocol( Persons.FIO,
+                         Persons.FIO + ': не удалось удалить полагающийся отпуск "' + KlOtpuskAll.NOtpus +
+                         '" за рабочий период ' + sWorkPeriod + ', т.к. на его основании сформирован трудовой отпуск!');
+  }
+
+  // отсортируем полагающиеся остатки и отпуска
+  SortPutVacation(cWorkPeriod);
+
+  // если переменная в порядковым номером больше 1, значит хоть раз в цикл по полагающимся зашли
+  // значит они есть и надо закрыть РП
+  if ( NumOtp > 1 )
+    update current WorkPeriodDop set WorkPeriodDop.wStatus := word(1);
+}
+
+public procedure IWorkPeriods.ChangeSovnAppointForWP(cOldPers, cNewPers, cOldApp, cNewApp : comp; bWasDel: boolean);
+  var
+    cWPPrevFilial: comp;
+    AppDate
+ ,  DisDate:        date;
+{
+  if GetFirst Persons where (( cNewPers == Persons.NRec )) <> tsOk
+    exit;
+
+  if GetFirst Appointments where (( cNewApp == Appointments.NRec )) <> tsOk
+    exit;
+
+  // процедура только для основных назначений (перевод в другой филиал) и совместительств (перемещение)
+  if ( Appointments.lPrizn <> 0 )
+    exit;
+
+  AppDate := Appointments.AppointDate;
+  DisDate := Appointments.DismissDate;
+
+  cWPPrevFilial := GetWPByDateAndApp(cOldPers, cOldApp, Sub_Day(AppDate, 1), false);
+
+  if ( not bWasDel ) // добавление перевода
+  {
+    var iCountRedShift: integer = 0;
+
+    if ( GetFirst PrevFilial_WorkPeriod where ((cWPPrevFilial == PrevFilial_WorkPeriod.nRec)) = tsOk )
+    {
+      // если дата перевода относится к РП, сосчитать был ли КРАСНЫЙ сдвиг руками до перевода из филиала в филиал с раздельной отчетностью
+      if ( AppDate <= PrevFilial_WorkPeriod.dPerEnd )
+        if ( GetFirst WorkPeriodShift where (( cWPPrevFilial == WorkPeriodShift.cWorkPeriod and
+                                               cnWP_Shift    == WorkPeriodShift.wTypePeriod and
+                                               ( Day(WorkPeriodShift.dPerBeg) = 0 )         )) = tsOk )
+          iCountRedShift := integer(WorkPeriodShift.ResDouble[1]);
+
+      // обнулить все полагающиеся в предыдущем филиале, WorkPeriod.ResWord[2] = word(1) - есть перевод в филиал в этом РП остаток = 0
+      update current PrevFilial_WorkPeriod set PrevFilial_WorkPeriod.ResWord[2] := word(1);
+    }
+
+    // закрыть РП старого назначения
+    SNG_CorrectWPSovn(cOldPers, cOldApp, cNewPers, cNewApp, Sub_Day(AppDate, 1));  // ОСТОРОЖНО МИНЫ!!!!!!! те же persons и appointments
+    // создать один РП для нового совместительства или при переводе между филиалами
+    MakeNewWPForPersUseFlag(cNewPers
+                          , cNewApp
+                          , Year(AppDate)
+                          , if ( iCountRedShift > 0, 0, 2 )); // если был красный сдвиг, то не нужно грузить табель и считать системные т.к. красный поглощает системные
+
+    if ( GetFirst WorkPeriodDop where ((cNewWP_NotTouch == WorkPeriodDop.nRec)) = tsOk ) // тут мы точно поняли, что создали новый РП, тогда-то стоит его обработать
+    {
+      WorkPeriodDop.sNote   := string(AppDate) + ' переведен из др.филиала';
+      // если в предыдущем филиале был красный сдвиг, то его нужно создать и в новом филиале
+      if ( iCountRedShift > 0 ) // безусловно не запускать процедуру, т.к. влияет на скорость
+      {
+        CalcAndCreateRedShift(WorkPeriodDop.dPerBeg, Add_Day(WorkPeriodDop.dPerEnd, iCountRedShift), WorkPeriodDop.cPerson, WorkPeriodDop.cAppointment, WorkPeriodDop.nRec);
+        WorkPeriodDop.dPerEnd := Add_Day(WorkPeriodDop.dPerEnd, iCountRedShift);
+      }
+
+      update current WorkPeriodDop;
+
+      // после перевода сразу создать полагающиеся
+      SNG_MakeNewOtpForOneWP2(WorkPeriodDop.nRec);
+    }
+  }
+  else  // удаление перевода
+  {
+    // удаление полагающихся отпусков перед удалением РП
+    _loop WorkPeriodDop where ((  cOldPers == WorkPeriodDop.cPerson
+                              and cOldApp  == WorkPeriodDop.cAppointment ))
+      delete PutVacDop where (( WorkPeriodDop.NRec == PutVacDop.cWorkPeriod ));
+
+    delete all WorkPeriodDop where ((  cOldPers == WorkPeriodDop.cPerson
+                                   and cOldApp  == WorkPeriodDop.cAppointment ));
+// очистить все признаки перевода в др.филиал
+var cFirst: comp;
+    cFirst := comp(0);
+    _loop WorkPeriodDop where ((cNewPers  == WorkPeriodDop.cPerson
+                            and cnWP_Work == WorkPeriodDop.wTypePeriod
+                            and cNewApp   == WorkPeriodDop.cAppointment)) ordered by index WorkPeriod08
+    {
+      if ( WorkPeriodDop.ResWord[2] = word(1) )
+      {
+        if ( cFirst = comp(0) )
+          cFirst := WorkPeriodDop.nRec;
+
+        WorkPeriodDop.sNote      := '';
+        WorkPeriodDop.ResWord[2] := word(0);
+        update current WorkPeriodDop;
+      }
+    }
+
+    CorrectWPByShifts(cFirst, false);
+  }
+}
+
+#doc
+Добавление 1 записи в ТП mt_BalanceVac
+choice :
+1 - заголовок папки
+2 - полагается
+3 - предоставлено
+4 - остаток
+5 - компенсация
+#end
+function funAddNewBalance (cParam_KlOtpusk, cParam_PutVacation, cParam_Vacations, cParam_DetPlan: comp; wParamTypeVac: word; cNode_Param: comp; doProportion : double = 0; choice : word = 0): comp;
+  var
+    cParam_Plan: comp;
+    wCountDetPl: word;
+    liUnUsedMrk: TPtr;
+{
+  cParam_Plan := comp(0);
+  wCountDetPl := word(0);
+  liUnUsedMrk := 0;
+
+  if (cParam_DetPlan <> comp(0))
+    {
+      cCurBalance_DetPlan := cParam_DetPlan;
+      if ( GetFirst Balance_DetPlanOtpusk = tsOk )
+        {
+          cParam_Plan := Balance_DetPlanOtpusk.cPlanOtpus;
+          if (cParam_Vacations = comp(0))
+            wCountDetPl := word(Balance_DetPlanOtpusk.Duration);
+        }
+    }
+
+  if ( GetFirst mt_BalanceVac where ((cNode_Param        == mt_BalanceVac.cNode          and
+                                      cParam_KlOtpusk    == mt_BalanceVac.cKlOtpusk      and
+                                      wParamTypeVac      == mt_BalanceVac.wTypeVac       and
+                                      cParam_Plan        == mt_BalanceVac.cPlanOtpusk    and
+                                      cParam_Vacations   == mt_BalanceVac.cVacation      and
+                                      cParam_PutVacation == mt_BalanceVac.cPutVacation   and
+                                      choice             == mt_BalanceVac.choice
+                                      )) <> tsOk )
+    {
+      ClearBuffer(#mt_BalanceVac);
+
+      mt_BalanceVac.cNode        := cNode_Param;
+      mt_BalanceVac.cKlOtpusk    := cParam_KlOtpusk;
+      mt_BalanceVac.wTypeVac     := wParamTypeVac;
+      mt_BalanceVac.cVacation    := cParam_Vacations;
+      mt_BalanceVac.cPutVacation := cParam_PutVacation;
+
+      mt_BalanceVac.cDetPlOtpusk := cParam_DetPlan;
+      mt_BalanceVac.cPlanOtpusk  := cParam_Plan;
+      mt_BalanceVac.choice       := choice;
+
+      mt_BalanceVac.wDayPlan     := wCountDetPl;
+      if ( GetFirst ViewBalance_DetPlanOtpusk = tsOk )
+        {
+          mt_BalanceVac.dBeg     := ViewBalance_DetPlanOtpusk.PlanYearBeg;
+          mt_BalanceVac.dEnd     := ViewBalance_DetPlanOtpusk.PlanYearEnd;
+          mt_BalanceVac.dYearBeg := ViewBalance_DetPlanOtpusk.WorkYearBeg;
+          mt_BalanceVac.dYearEnd := ViewBalance_DetPlanOtpusk.WorkYearEnd;
+        }
+
+      if ( cParam_PutVacation <> comp(0) and
+           cParam_Vacations   <> comp(0) )
+        if ( GetFirst Balance_Vacation = tsOk )
+          {
+            mt_BalanceVac.dBeg        := Balance_Vacation.FactYearBeg;
+            mt_BalanceVac.dEnd        := Balance_Vacation.FactYearEnd;
+            mt_BalanceVac.dYearBeg    := Balance_Vacation.WorkYearBeg;
+            mt_BalanceVac.dYearEnd    := Balance_Vacation.WorkYearEnd;
+            mt_BalanceVac.doDayFactWP := Balance_Vacation.Duration;
+            if (Balance_Vacation.cDetPlanOtp = (rvMaxComp - 1)) //компенсация
+            {
+              mt_BalanceVac.choice   := 5;
+              mt_BalanceVac.bCompens := true;
+            }
+            else
+              mt_BalanceVac.bCompens := false;
+          }
+
+      if ( cParam_DetPlan   <> comp(0) and
+           cParam_Vacations <> comp(0) )
+        if ( GetFirst Balance_Vacation = tsOk )
+          {
+            mt_BalanceVac.dBeg         := Balance_Vacation.FactYearBeg;
+            mt_BalanceVac.dEnd         := Balance_Vacation.FactYearEnd;
+            mt_BalanceVac.dYearBeg     := Balance_Vacation.WorkYearBeg;
+            mt_BalanceVac.dYearEnd     := Balance_Vacation.WorkYearEnd;
+            mt_BalanceVac.wDayFactYear := word(Balance_Vacation.Duration);
+          }
+
+      if ( cParam_DetPlan    = comp(0) and
+           cParam_Vacations <> comp(0) )
+        if ( GetFirst Balance_Vacation = tsOk )
+          {
+            mt_BalanceVac.dBeg         := Balance_Vacation.FactYearBeg;
+            mt_BalanceVac.dEnd         := Balance_Vacation.FactYearEnd;
+            mt_BalanceVac.dYearBeg     := Balance_Vacation.WorkYearBeg;
+            mt_BalanceVac.dYearEnd     := Balance_Vacation.WorkYearEnd;
+            mt_BalanceVac.wDayFactYear := word(Balance_Vacation.Duration);
+          }
+
+      if choice = 2
+        if ( GetFirst Balance_PutVacation = tsOk )
+        {
+          mt_BalanceVac.bCompens := (doProportion <> -1);
+          mt_BalanceVac.doDayPut := if( not mt_BalanceVac.bCompens,
+                                        Balance_PutVacation.wDayCount,
+                                        CalcCompens.CalcCountDaysLikeCompensWithFactDate( Balance_PutVacation.NRec,
+                                                                                          WorkPeriod.dPerEnd,
+                                                                                          date(1,1,1900),   // такая дата специально для того, чтобы не учитывать факт вообще
+                                                                                          doProportion,
+                                                                                          liUnUsedMrk,
+                                                                                          0));
+
+         if (mt_BalanceVac.wTypeVac = 1)
+           if (IsValid(tnBalance_PutVacation))
+            if (IsValid(tnRemBal_WorkPeriod))
+            {
+              if ( WP_Persons.DisDate <> ZeroDate and RemBal_WorkPeriod.dPerBeg > WP_Persons.DisDate)
+                mt_BalanceVac.doDayPut := 0;
+            }
+        }
+
+      if choice = 4
+      {
+        // Для РП увольнения остаток считаем: полагается - весь факт по этому ПолОтп
+        if ( doProportion <> -1 ) and (GetFirst mt_BalanceVac_All where (( cNode_Param == mt_BalanceVac_All.cNode        and
+                                                                           comp(0)     << mt_BalanceVac_All.cPutVacation )) = tsOk)
+        {
+         if (mt_BalanceVac.wTypeVac = 1)
+         {
+           if (IsValid(tnBalance_PutVacation))
+            if (IsValid(tnRemBal_WorkPeriod))
+            {
+              if ( WP_Persons.DisDate <> ZeroDate and RemBal_WorkPeriod.dPerBeg > WP_Persons.DisDate)
+                mt_BalanceVac.iDayost := 0;
+            }
+         }
+          else
+            mt_BalanceVac.iDayost := integer(mt_BalanceVac_All.doDayPut - iFV.GetDurationFactVacation(mt_BalanceVac_All.cPutVacation, cParam_Vacations, ZeroDate, liUnUsedMrk));
+        }
+        else
+          mt_BalanceVac.iDayost := CalcRemaindPutVac(ZeroDate, WorkPeriod.dPerBeg, WorkPeriod.dPerEnd, PutVacDop.nRec, PutVacDop.wProvidWay);
+
+        mt_BalanceVac.iIsOst := integer(1);
+      }
+      else
+      {
+        mt_BalanceVac.iIsOst := integer(0);
+      }
+      insert current mt_BalanceVac;
+    }
+  result := mt_BalanceVac.nRec;
+}
+
+
+TableEvent table PutVacation;  // browse brEditPutVac
+cmSetDefault:
+{
+  exit;
+}
+
+cmEdit:
+{
+  case WorkPeriod.wTypePEriod of
+    cnWP_Work: {
+      var iSNG_Edit_PutVacationWordPeriod : SNG_Edit_PutVacationWordPeriod;
+      iSNG_Edit_PutVacationWordPeriod.RunEditWindow(PutVacation.nrec, WorkPeriod.nrec);
+    }
+  end;
+  rereadrecord;
+}
+cmInsertRecord: {
+   exit;
+ }
+cmInsert: {
+
+  var iSNG_Edit_PutVacationWordPeriod : SNG_Edit_PutVacationWordPeriod;
+  iSNG_Edit_PutVacationWordPeriod.RunEditWindow(0h, WorkPeriod.nrec);
+  rereadrecord;
+  stop; abort; exit;
+ }
+
+
+end;
+procedure LoadInterface;{
+  inherited::LoadInterface;
+//    message('procedure ShowHideFields');
+
+  SetHelpAndStatusContext(brPutVacationWithEdit, -1, sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.wNum        , sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.wDayCount   , sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.wTypeVac    , sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.wSumWay     , sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.wProvidWay  , sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.dBegValidity, sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #PutVacation.dEndValidity, sci1478Esc, hcKeepCurrent);
+  SetHelpAndStatusContext(brPutVacationWithEdit, #KlOtpusk.NOtpus         , sci1478Esc, hcKeepCurrent);
+  SetFieldOption(#PutVacation.wNum, ofProtected);
+  SetFieldOption(#PutVacation.wDayCount, ofProtected);
+  SetFieldOption(#PutVacation.wTypeVac, ofSelectable);
+  SetFieldOption(#PutVacation.wSumWay, ofSelectable);
+  SetFieldOption(#PutVacation.wProvidWay, ofSelectable);
+  SetFieldOption(#PutVacation.dBegValidity, ofSelectable);
+  SetFieldOption(#PutVacation.dEndValidity, ofSelectable);
+  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WTYPEVAC_Тип','SKIP',TRUE);
+  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WDAYCOUNT_Полагающееся_кол-во_дней','SKIP',TRUE);
+  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WSUMWAY_Способ_суммирования','SKIP',TRUE);
+  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WPROVIDWAY_Способ_предоставления','SKIP',TRUE);
+}
+
+end.

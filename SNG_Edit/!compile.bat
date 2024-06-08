@@ -10,7 +10,7 @@ del *.fnc
 del *.log
 del Atlantis*.res
 
-@set exedir=C:\Galaktika\ATL6\Update_10.1.2230\support
+@set exedir=C:\Galaktika\ATL6\Update_11400\support\exe
 
 @%exedir%\vip.EXE SNG_Edit.prj /r:SNG_Edit.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
 
