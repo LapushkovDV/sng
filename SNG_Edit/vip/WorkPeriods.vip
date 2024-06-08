@@ -9,7 +9,7 @@ overload
   public procedure IWorkPeriods.ChangeSovnAppointForWP(cOldPers, cNewPers, cOldApp, cNewApp : comp; bWasDel: boolean);
   function funAddNewBalance (cParam_KlOtpusk, cParam_PutVacation, cParam_Vacations, cParam_DetPlan: comp; wParamTypeVac: word; cNode_Param: comp; doProportion : double = 0; choice : word = 0): comp;
   public procedure IWorkPeriods12.SortPutVacation(cWorkPeriod : comp);
-  procedure LoadInterface;
+  procedure prSetClearSelectPutVacation(bOnlyRead, bFromCheck : boolean);
 end;
 
 create view WorkPeriods
@@ -546,8 +546,8 @@ cmInsert: {
 
 
 end;
-procedure LoadInterface;{
-  inherited::LoadInterface;
+procedure prSetClearSelectPutVacation(bOnlyRead, bFromCheck : boolean); {
+  inherited::prSetClearSelectPutVacation(bOnlyRead, bFromCheck);
 //    message('procedure ShowHideFields');
 
   SetHelpAndStatusContext(brPutVacationWithEdit, -1, sci1478Esc, hcKeepCurrent);
@@ -561,15 +561,16 @@ procedure LoadInterface;{
   SetHelpAndStatusContext(brPutVacationWithEdit, #KlOtpusk.NOtpus         , sci1478Esc, hcKeepCurrent);
   SetFieldOption(#PutVacation.wNum, ofProtected);
   SetFieldOption(#PutVacation.wDayCount, ofProtected);
-  SetFieldOption(#PutVacation.wTypeVac, ofSelectable);
-  SetFieldOption(#PutVacation.wSumWay, ofSelectable);
-  SetFieldOption(#PutVacation.wProvidWay, ofSelectable);
-  SetFieldOption(#PutVacation.dBegValidity, ofSelectable);
-  SetFieldOption(#PutVacation.dEndValidity, ofSelectable);
-  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WTYPEVAC_Тип','SKIP',TRUE);
+  ClearFieldOption(#PutVacation.wTypeVac, ofSelectable);
+  ClearFieldOption(#PutVacation.wSumWay, ofSelectable);
+  ClearFieldOption(#PutVacation.wProvidWay, ofSelectable);
+  ClearFieldOption(#PutVacation.dBegValidity, ofSelectable);
+  ClearFieldOption(#PutVacation.dEndValidity, ofSelectable);
+/*  cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WTYPEVAC_Тип','SKIP',TRUE);
   cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WDAYCOUNT_Полагающееся_кол-во_дней','SKIP',TRUE);
   cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WSUMWAY_Способ_суммирования','SKIP',TRUE);
   cfsSetProp('c_BRPUTVACATIONWITHEDIT_PUTVACATION.WPROVIDWAY_Способ_предоставления','SKIP',TRUE);
+*/
 }
 
 end.

@@ -482,10 +482,10 @@ cmPick:
       else
         if (RunInterface('Z_SREDN::PickOtp', wTmp, integer(4), 0, true, ZeroDate) = cmDefault)
         {
-            message('RunInterface(Z_SREDN::PickOtp, wTmp, integer(4), 0, true, ZeroDate) = cmDefault');
+//            message('RunInterface(Z_SREDN::PickOtp, wTmp, integer(4), 0, true, ZeroDate) = cmDefault');
           if GetFirst KlOtpuskAll where ((wTmp == KlOtpuskAll.KOTPUS)) = tsOk
           {
-            message('if GetFirst KlOtpuskAll where ((wTmp == KlOtpuskAll.KOTPUS)) = tsOk');
+//            message('if GetFirst KlOtpuskAll where ((wTmp == KlOtpuskAll.KOTPUS)) = tsOk');
             if (KlOtpuskAll.TypeOtp = 0) or ( KlOtpuskAll.TypeOtp = 1)
             {
               // если значение одного из полей при выборе отпуска изменилось - отпуск становится "ручным"
