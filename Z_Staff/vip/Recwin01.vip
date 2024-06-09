@@ -1,0 +1,717 @@
+#component "Z_Staff"
+ 
+alter Interface Recwin01;
+
+overload
+  procedure LoadInterface;
+  procedure Idle;
+  procedure Double_Addr;
+  function WriteAccess(wWindNum: word): boolean;
+end;
+//<Iva HR-985
+function GetSngRec(c: comp): string;
+var i: byte;
+{
+  result := upcase(substr(to_char(c, 0, 0), 5, 12));
+  for  (i := 1; i < 12; i++)
+  {
+    if substr(result, 1, 1) = '0' then
+      result := substr(result, 2, 12-i);
+    else
+      break;
+  }
+}
+//>Iva HR-985
+
+table struct tpWorkTable = Persons;
+//{HR-70
+create view
+ Var
+#info PLV
+  vc_MainLink : Comp;
+As Select
+  if(not IsValid(#Claimant),
+     //для вновь принимаемых
+     iCatFunc.GetCatalogsName(StaffStructN.Department) + ' (' + iCatFunc.GetCatalogsName(StaffStructN.Post) + ')',
+     //для работающих
+     iCatFunc.GetCatalogsName(StaffStructW.Department) + ' (' + iCatFunc.GetCatalogsName(StaffStructW.Post) + ')')
+  (FieldName = PodrPostN),
+  (iCatFunc.GetCatalogsName(Persons.cPrizn3))
+  (FieldName = SourceCandidat)
+From
+    catalogs catalogs1
+  , Claimant
+  , staffstruct
+  , StaffStruct StaffStructW
+  , StaffStruct StaffStructN
+  , Catalogs NextPostCat
+  , Catalogs DeptCat
+  , Catalogs MainPostCat1
+  
+  , GroupMembers GrpMems4Serv //HR303, FIM
+  , ServStav ServStavPhoto    //HR303, FIM
+  , ServStav ServStavPhotoGrp //HR303, FIM
+
+  , KlKatego SNG_AppEmpCategoryCat
+where
+((
+      persons.department == catalogs.nrec
+  and catalogs.cparent == catalogs1.nrec
+  and tmpPersons.Nrec == Claimant.cPersons
+  and word(100) == Claimant.Status(NoIndex) // кандидаты из работающих
+  and Claimant.cNewRef == StaffStructW.nRec
+  and Persons.cAddProf == NextPostCat.Nrec
+  and Persons.Department == DeptCat.Nrec
+  and Persons.cBaseProf == MainPostCat1.Nrec
+  and Persons.AppointCur == StaffStructN.nRec
+
+  and UserId  == ServStavPhoto.cUnit                   //HR303, FIM
+  and 16      == ServStavPhoto.wTblCode                //HR303, FIM
+  and UserId  == GrpMems4Serv.ObjCode                  //HR303, FIM
+  and GrpMems4Serv.GroupCode == ServStavPhotoGrp.cUnit //HR303, FIM
+  and 16      == ServStavPhotoGrp.wTblCode             //HR303, FIM
+
+  and LSCHET.KATEG == SNG_AppEmpCategoryCat.KOD
+));
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+function CheckRight2ViewPhotos : boolean; //HR303, FIM
+{
+  result := false;
+  if IsValidAll(#ServStavPhoto)
+    result := true;
+  else
+    _loop GrpMems4Serv
+      if IsValidAll(#ServStavPhotoGrp)
+      {
+        result := true;
+        break;
+      }
+}
+
+//Получаем имя верхнего каталога в ПАО
+ function getCatName(fnrec: comp) : string;
+{
+#info PLV Инициализация
+    Result := '';
+
+    var nrec_tmp : comp;
+    var n : integer;
+    nrec_tmp := fnrec;
+
+#info PLV Изменил подцепку и добавил проверку на главный каталог. Из-за этого в desctop зависает на web выкидывает по таймауту
+    if (getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+    do
+    {
+        if(vc_MainLink = catalogs1.cParent)
+          exit;
+
+        Result := catalogs1.code + ' ' + catalogs1.name;
+
+        if(LengTh(catalogs1.code) <=4 )
+         exit;
+
+        nrec_tmp := catalogs1.cparent;
+    }
+    While(getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+}
+
+//Штатная должность
+function getCodeNameSt(/*fnrec: comp*/) : string;
+{
+    Result := '';
+//    var nrec_tmp : comp;
+//    var n : integer;
+//    nrec_tmp := fnrec;
+//    if (getfirst staffstruct where(( nrec_tmp == Appointments.nRec and
+//                                Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+#info PLV Appointments уже подцеплен во view
+    if (getfirst staffstruct where(( Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+      result := StaffStruct.sCodeSt + ' ' + StaffStruct.sNameSt
+}
+
+overloadformats scrPers1;
+screen scrPers1;
+  show at (,,82,19);
+  table tmpPersons;
+  bevel a {0, 14, 82, 14, bsRaised, bsHorizontal};
+Fields
+  Persons.AppDate ('Дата приема на работу'): [10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Persons.AppDate) = 0,ColorNeed,0)}}, protect;
+  Persons.PENSIONERSTATUS('Пенсионер'):[list 0 'Нет', 1 'Да'], Left, protect, skip;
+  Persons.DisDate ('Дата увольнения'): [10,'DD/MM/YYYY'], left, protect;
+  Student  : Skip;
+  Persons.FIO    ('Фамилия, Имя, Отчество'),  {Font={BackColor=if(trim(Persons.FIO) = '',ColorNeed,0)}}, protect;
+  Persons.Sex        ('Пол сотрудника',, scStaffReceptionT2CDPick): ,['М','Ж'],
+  {Font={BackColor=if((Persons.Sex <> 'М' and Persons.Sex <> 'Ж'),ColorNeed,0)}};
+Buttons
+  cmNal, [singleline],,,
+  'История изменения фамилии.', hcStaff_InfoFIO;
+    cmStaffFIODecl, [singleline],,,
+  'Склонение ФИО', hcStaff_InfoFIO;
+    cmStaffDoEduStatus, [singleline],,,
+  'Список свободных табельных номеров.', hcStaff_InfoTabNumb;
+Fields
+  ClockNumber ('Табельный номер'), protect;
+  Persons.PassNmb ('Пропуск - до 20 букв и цифр'), noprotect;
+  string(BRIGAD.NBRIG) + ', ' + BRIGAD.NMBRIG
+    ('Номер и наименование бригады'): Skip;
+  getCatName(persons.department) ('Раздел персонала'), protect;//HR-70
+  PersKatPodrFull ('Структурное подразделение. Выбор из каталога по F3.',,scStaffReceptionT2CDPick) : pickbutton, protect,
+  {Font={BackColor=if(Persons.Department = 0, ColorNeed,0)}};
+#info PLV У уволенных в данном случае не видна будет последняя должность
+//  getCodeNameSt(persons.appointcur) ('Штатная должность') : [25], protect;//HR-70
+  getCodeNameSt() ('Штатная должность') : [25], protect;//HR-70
+  GetSngRec(Appointments.Staffstr) ('СистИД'): [10], protect;  //Iva HR-985
+Buttons
+  cmFullOrg, [singleline],,, 'Полное наименование';   //HR-431
+Fields
+  MainPostCatName : Skip;
+  AppEmpCategoryCat.NaiKat : Skip;
+  ClassRankCatName ('Классность/звание',, scStaffReceptionT2CDPick) : pickbutton, protect;
+
+  JobNatureCatName ('Характер работы. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : pickbutton, protect;
+  KlSovm.NSovm     ('Вид работы. Выбор из каталога по F3.', hcStaffEmplJobNature, scStaffReceptionT2CDPick) : pickbutton, protect;
+
+  wTypeDog ('Тип договора'): [LIST 200 'гражд/пр.',
+                                   400 'авторский'], Protect, centered;
+
+  FieldBaseProf  ('Основная профессия. Выбор из каталога по F3.', , scStaffReceptionT2CDPick) : pickbutton, protect;
+  FieldAddProf   ('Смежная профессия. Выбор из каталога по F3.', , scStaffReceptionT2CDPick) : pickbutton, protect;
+
+  Persons.BornDate   ('Дата рождения' ): [10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Persons.BornDate) = 0,ColorNeed,0)}}, protect;
+  GrCatName ('Гражданство. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : pickbutton, protect;
+  NationalityCatName ('Национальность. Выбор из каталога по F3.',
+      , scStaffReceptionT2CDPick) : pickbutton, protect;
+  BornName ('Место рождения. Корректировать-F3. Копировать в буфер-Ctrl+F2. Вставить-Ctrl+F3.',, scStaffReceptionT2CDEdit): pickbutton, protect;
+  PasName ('Место регистрации. Корректировать-F3. Копировать в буфер-Ctrl+F2. Вставить-Ctrl+F3.',, scStaffReceptionT2CDEdit): pickbutton, protect;
+  LivName ('Место проживания. Корректировать-F3. Копировать в буфер-Ctrl+F2. Вставить-Ctrl+F3.',, scStaffReceptionT2CDEdit):  pickbutton, protect;
+  RegName ('Ввод/корректировка адреса временной регистрации',, scStaffReceptionT2CDEdit) :  pickbutton, protect;
+
+<<   'Персональные данные сотрудника'
+ Принят на работу:.@@@@@@@@@@@  Пенсионер:.@@@ Дата увольнения:.@@@@@@@@@@@        .@@@@@@@@
+ Ф.И.О.           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@<.   История   ФИО    .>
+ Пол              .@@@                                <.   Склонение ФИО    .>
+ Таб.номер        .@@@@@@@@@@@                        <.Свободные таб.номера.>
+ Пропуск          .@@@@@@@@@@@@@@@@@@@@ Бригада.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Раздел персонала .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Подразделение    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@<.Полное наименование.>
+ Штатная должность.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ СистИД .@@@@@
+ Должность        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Категория        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Классность/звание.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Хар-р работы     .@@@@@@@@@@@@@@@@ Вид paботы.@@@@@@@@@@@@@@@`Тип`.@@@@@@@@@
+ Осн. профессия   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Смежная профессия.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+`Дата рождения`    .@@@@@@@@@@@
+`Гражданство`      .@@@@@@@@@@@@@@@@@@@@@@@@@@`Национальность`.@@@@@@@@@@@@@@
+`Место рождения`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Место регистрации .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Место проживания` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Врем. регистрация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // scrPersonsPasAddr
+// HR-70}
+
+//HR-324, скрываем экран с паспорт. данными
+OverloadFormats scrPassportsRF;
+screen scrPassportsRF;
+  show at (, 20, 82,);
+Fields
+<<
+>>
+end; //scrPassportsRF
+
+screen scrPers1_1;
+  show at (,, 82, 19);
+  table tmpPersons;
+Fields
+  Persons.FIO     ('Фамилия, Имя, Отчество')  : [43],
+    {Font={BackColor=if(trim(Persons.FIO) = '',ColorNeed,0)}}, noProtect;
+  Persons.Sex     ('Пол - выбор по F3, очистить поле - DEL',, scStaffReceptionT2CDPick): ,['М','Ж'],
+    {Font={BackColor=if((Persons.Sex <> 'М' and Persons.Sex <> 'Ж'),ColorNeed,0)}}, noprotect;
+  Persons.TabNmb ('Табельный номер'): noprotect, lessNull;
+  Persons.StrTabN ('Табельный номер'): noprotect;
+  Persons.AppDate ('Дата регистрации кандидата'): [13], noprotect;
+  Persons.dDat2   ('Предполагаемая дата выхода'): [13], noprotect;
+  Persons.DisDate   ('Дата увольнения'): [13], noprotect;
+  MainPostCat1.Name('Основная профессия',, scStaffReceptionT2CDPick) :[15],  protect;
+  PodrPostN       ('Связь кандидата со ставкой, на которую хотим принять', hcStaff_MPodborKandidat, sci1378InsPM): [30], pickButton;
+  NextPostCat.Name('Смежная профессия',, scStaffReceptionT2CDPick) :[15],  protect;
+  DeptCat.Name ('Планируемое подразделение',, scStaffReceptionT2CDPick) :[15],  protect;
+  SourceCandidat ('Источник появления кандидата',, scStaffReceptionT2CDPick): protect;
+  SNG_AppEmpCategoryCat.NaiKat : Skip;
+  KlSovm.NSovm     ('Вид работы. Выбор из каталога по F3.', hcStaffEmplJobNature, scStaffReceptionT2CDPick) : pickbutton, protect;
+  Persons.BornDate ('Дата рождения', hcStaffPersonsBornDate): [13], protect;
+Buttons
+    cmStaffFIODecl, [singleline],,, 'Склонение ФИО';
+    cmValue4,  [singleline],,,'Распечатать список свободных табельных номеров',,;
+<<   'Персональные данные сотрудника'
+
+ `Фамилия И.О.`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Пол`               .@@@
+ `Табельный номер`   .@@@@@@@.@@@@@@@                 <.    Склонение ФИО    .>
+ `Дата регистрации кандидата`.@@@@@@@@@@@             <. Свободные табельные .>
+ `Предполагаемая дата выхода`.@@@@@@@@@@@        `Дата увольнения `.@@@@@@@@@@@
+ `Основная профессия`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Ставка`            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Смежная профессия` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Подразделение`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Источник появления`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Категория`         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Вид paботы`        .@@@@@@@@@@@@@@@
+
+ `Дата рождения`     .@@@@@@@@@@@
+>>
+end; // scrPersonsPasAddr
+
+screen scrPers1_2;
+  show at (,, 82, 19);
+  table tmpPersons;
+Fields
+  Persons.AppDate ('Дата приема'): [13], protect;
+  Persons.DisDate ('Дата увольнения'): [13], protect;
+  Persons.FIO     ('Фамилия, Имя, Отчество')  : [43],
+    {Font={BackColor=if(trim(Persons.FIO) = '',ColorNeed,0)}}, protect;
+  Persons.Sex     ('Пол - выбор по F3, очистить поле - DEL',, scStaffReceptionT2CDPick): ,['М','Ж'],
+    {Font={BackColor=if((Persons.Sex <> 'М' and Persons.Sex <> 'Ж'),ColorNeed,0)}}, protect;
+  Persons.TabNmb ('Табельный номер'): protect, lessNull;
+  Persons.StrTabN ('Табельный номер'): protect;
+
+  DeptCat.Name ('Планируемое подразделение',, scStaffReceptionT2CDPick) :[15], protect;
+  SNG_AppEmpCategoryCat.NaiKat : Skip;
+  JobNatureCatName ('Характер работы. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : pickbutton, protect;
+  KlSovm.NSovm     ('Вид работы. Выбор из каталога по F3.', hcStaffEmplJobNature, scStaffReceptionT2CDPick) : pickbutton, protect;
+  Persons.BornDate   ('Дата рождения', hcStaffPersonsBornDate): [13], protect;
+<<
+ `Принят на работу`  .@@@@@@@@@@@ `Уволен`  .@@@@@@@@@@@
+ `Фамилия И.О.`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Пол`               .@@@
+ `Табельный номер`   .@@@@@@@.@@@@@@@
+
+ `Подразделение`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Категория`         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Хар-р работы`      .@@@@@@@@@@@@@@@@             `Вид paботы`.@@@@@@@@@@@@@@@
+
+ `Дата рождения`     .@@@@@@@@@@@
+>>
+end; // scrPersonsPasAddr
+
+OverloadFormats scrButtons;
+
+screen scrButtons;
+  show at (83, 8,,);
+  table tmpPersons;
+Buttons
+  cmStaffT2Tel, [singleline],,, 'Телефоны сотрудника',
+        hcStaffcomname, scStaffReceptionT2Butt;
+
+  cmStaffT2Docs, [singleline],,, 'Документы сотрудника',
+        hcStaffT2DocsHelp, scStaffReceptionT2Butt;
+
+  cmStaffDoCard, [singleline],,, 'Открыть раздел с дополнительной информацией',
+        hcStaffT2AddInfMenu, scStaffReceptionT2Butt;
+
+  cmValue8, [singleline],,, 'Пенсии сотрудника',
+        hcStaffT2AddInfMenu, scStaffReceptionT2Butt;
+
+  cmStaffSeeDopInfo, [singleline],,, 'Приложения к карточке',
+        hcStaffT2AddInfMenu, scStaffReceptionT2Butt;
+
+  cmStaffT2Archive, [singleline],,,'Перевести личное дело сотрудника в архив и обратно',
+        hcStaffT2Archive, scStaffReceptionT2Butt;
+
+  cmStaffT2Att, [singleline],,, 'Аттестация',
+        hcStaffT2Att, scStaffReceptionT2Butt;
+
+  cmStaffT2Prof, [singleline],,, 'Медосмотр',
+        hcStaff_ProfosmotrWork, scStaffReceptionT2Butt;
+
+  cmValue70, [singleline],,, 'Микроповреждения',
+        hcNoContex, scStaffReceptionT2Butt;
+
+  cmStaffDoConscr, [singleline],,, 'Смежные профессии',
+        hcStaff_moreProfession, scStaffReceptionT2Butt;
+
+  cmStaffSocLgots, [singleline],,, 'Социальные льготы',
+        hcNoContex, scStaffReceptionT2Butt;
+<<
+<.  Контакты  .>
+<.  Документы .>
+<. Доп.информ .>
+<.  Пенсия    .>
+<. Приложения .>
+<.   Архив    .>
+<. Аттестация .>
+<. Медосмотр  .>
+<.Микроповреж..>
+<. Профессии  .>
+<. Соц.льготы .>
+>>
+end; // screen scrButtons
+
+screen scrButtons1_1;
+  show at (83, 8,,);
+  table tmpPersons;
+Buttons
+  cmStaffT2Tel, [singleline],,, 'Телефоны сотрудника',
+        hcStaffcomname, scStaffReceptionT2Butt;
+
+  cmStaffT2Docs, [singleline],,, 'Документы сотрудника',
+        hcStaffT2DocsHelp, scStaffReceptionT2Butt;
+
+  cmStaffSeeDopInfo, [singleline],,, 'Просмотреть приложения к карточке сотрудника',
+        hcStaffT2AddInfMenu, scStaffReceptionT2Butt;
+
+  cmStaffT2Prof, [singleline],,, 'Медосмотр',
+        hcStaff_ProfosmotrWork, scStaffReceptionT2Butt;
+<<
+<.  Телефоны  .>
+<.  Документы .>
+<. Приложения .>
+<.  Медосмотр .>
+>>
+end; // screen scrButtons
+
+screen scrButtons1_2;
+  show at (83, 8,,);
+  table tmpPersons;
+Buttons
+  cmStaffT2Docs, [singleline],,, 'Документы сотрудника',
+        hcStaffT2DocsHelp, scStaffReceptionT2Butt;
+<<
+<.  Документы .>
+>>
+end; // screen scrButtons
+
+procedure LoadInterface;
+{
+  inherited::LoadInterface;
+
+  if (not isValid(#Persons))
+    exit;
+
+  case Persons.IsEmployee of
+
+    'К':
+    {
+      SetFormat(scrPers1_1);
+      SetFormat(scrButtons1_1);
+    }
+
+    'Ф':
+    {
+      SetFormat(scrPers1_2);
+      SetFormat(scrButtons1_2);
+    }
+
+  else
+  {
+    SetFormat(scrPers1);
+    SetFormat(scrButtons);
+  }
+
+  end;
+
+  ToggleFieldVisible(#Appendix.Contents, CheckRight2ViewPhotos);  //HR303, FIM
+}
+
+procedure Idle;
+{
+  inherited::Idle;
+
+  //HR-324
+  ClearFieldOption(#Persons.AppDate, ofSelectable);
+  ClearFieldOption(#Persons.DisDate, ofSelectable);
+  ClearFieldOption(#Persons.FIO, ofSelectable);
+  ClearFieldOption(#Persons.Sex, ofSelectable);
+  ClearFieldOption(#ClockNumber, ofSelectable);
+  ClearFieldOption(#Persons.TabNmb, ofSelectable);
+  ClearFieldOption(#Persons.StrTabN, ofSelectable);
+  ClearFieldOption(#PersKatPodrFull, ofSelectable);
+  ClearFieldOption(#KlSovm.NSovm, ofSelectable);
+  ClearFieldOption(#Persons.BornDate, ofSelectable);
+}
+
+procedure Double_Addr;
+{
+  var DoCopy: boolean = false;
+
+  if ((not IsValid(#LivAddress)) and (IsValid(#PasAddress))) or ((IsValid(#LivAddress)) and (IsValid(#PasAddress))
+      and (iAdrFunc.GetFullAddressInd(LivAddress.NRec) <> iAdrFunc.GetFullAddressInd(PasAddress.NRec)))
+    DoCopy := true;
+
+  if DoCopy
+  {
+    if Message('Адрес регистрации не совпадает с адресом проживания. Скопировать адрес регистрации в адрес проживания?', YesNo + Confirmation ) = cmYes
+    {
+      LivAddress.Nrec := iAdrFunc.CopyAddress(PasAddress.NRec, Persons.NRec, WORD(2));
+      set Persons.LiveAddr := LivAddress.Nrec;
+      LivName := iAdrFunc.GetFullAddressInd(LivAddress.NRec);
+      ReDrawPanel(CurTable);
+    }
+  }
+} // procedure Double_Addr
+
+/* HR-253. Трудоус-во -> SafetyRecwin
+extendformats scrButtons;
+screen scrButtons;
+Buttons
+  cmStaffTrud,,,'Трудоустройство',
+        hcNoContex, scStaffReceptionT2Butt;
+  cmStaffT2Vac,,,'Вакцинация', //HR-8
+        hcStaffcomname, scStaffReceptionT2Butt;
+<<
+>>
+end; // screen scrButtons
+  */
+
+//<<HR-431  NNT
+function GetFullStr(_cNrec: comp; _cParent: comp):WideString;
+{
+   var nrec_tmp : comp;
+   nrec_tmp := _cParent;
+
+   if (getfirst staffstruct where(( Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+   {
+//      result := StaffStruct.longname + ''#13#10;
+      result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-895
+      nrec_tmp:= StaffStruct.Department;
+   }
+
+   do
+   {
+      if (getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+      {
+         if(LengTh(catalogs1.code) <=4)
+              exit;
+
+         result += catalogs1.longname +''#13#10;
+         nrec_tmp := catalogs1.cparent;
+      }
+   }
+   While(getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+}
+
+window winFullOrg 'Полное наименование орг. присвоения' EscClose;
+  show at (,,50,6);
+
+screen scFullOrg (,,sci1Esc);
+fields
+  GetFullStr(catalogs.nrec, catalogs.cparent):Protect, WordWrap;
+
+<<
+  `Примечание:`
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+end; //window winFullOrg
+//>>HR-431
+
+HandleEvent
+
+cmPick:
+{
+  if inherited::handleEvent(cmPick) = heAbort
+    abort;
+
+  case CurField of
+
+    #MainPostCat1.Name:
+    {
+      ParentSav := Persons.cBaseProf;
+      if (RunInterface('Z_StaffCat::PickCatalog2',integer(-22),ParentSav,comp(0))=cmDefault)
+      {
+        update current Persons
+        Set Persons.cBaseProf := ParentSav;
+        ReReadRecord(#tmpPersons);
+      }
+    }
+
+    #PodrPostN: // ставка для новых кандидатов
+    {
+      if not isValid(#tmpPersons)and not isNew
+      {
+        message('Заполнить можно только для существующих кандидатов.', Information);
+        abort;
+        exit;
+      }
+
+      ParentSav := Persons.AppointCur;
+      var DummyMarker: TPtr = InitMarker('', 8, 1, 1);
+      var DateOk: date = Persons.dDat2;
+
+      if ( DateOk = date(0, 0, 0) )
+        DateOk := Cur_Date;
+
+      if RunInterface('Z_StaffRecruiting::PickVacancyOnDate', DateOk, ParentSav, DummyMarker, vfCanSelect) = cmDefault
+      {
+        if (IsValid(#Claimant))
+        {
+          update current Claimant
+          set Claimant.cNewRef := ParentSav;
+        }
+        else
+        {
+          update current Persons
+          set Persons.AppointCur := ParentSav;
+        }
+
+        ReReadRecord(#tmpPersons);
+      }
+
+      DoneMarker(DummyMarker, '');
+    } //#PodrPostN
+
+    #NextPostCat.Name:
+    {
+      ParentSav := Persons.cAddProf;
+      if (RunInterface('Z_StaffCat::PickCatalog2',integer(-22),ParentSav,comp(0))=cmDefault)
+      {
+        update current Persons
+        Set Persons.cAddProf := ParentSav;
+        ReReadRecord(#tmpPersons);
+      }
+    }
+
+    #DeptCat.Name:
+    {
+      ParentSav := Persons.Department;
+      if (RunInterface('Z_StaffCat::PickCatalog2',integer(-11),ParentSav,comp(0))=cmDefault)
+      {
+        update current Persons
+        Set Persons.Department := ParentSav;
+        ReReadRecord(#tmpPersons);
+      }
+    }
+
+    #SourceCandidat:
+    {
+      ParentSav := Persons.cPrizn3;
+
+      if ( RunInterface('Z_StaffCat::PickCatalog2', integer(-401), ParentSav, comp(0)) = cmDefault )
+      {
+        update current Persons
+        set Persons.cPrizn3 := ParentSav;
+        ReReadRecord(#tmpPersons);
+      }
+    }
+
+  end;
+}
+
+cmDelOnProtect:
+{
+  if inherited::handleEvent(cmDelOnProtect) = heAbort
+    abort;
+
+  case CurField of
+
+    #MainPostCat1.Name:
+    {
+      update current Persons
+      set Persons.cBaseProf := 0;
+      ReReadRecord(#tmpPersons);
+    }
+
+    #PodrPostN: // ставка для новых кандидатов
+    {
+      if (IsValid(#Claimant))
+      {
+        update current Claimant
+          set Claimant.cNewRef := 0;
+      }
+      else
+      {
+        update current Persons
+        set Persons.AppointCur := 0;
+      }
+
+      ReReadRecord(#tmpPersons);
+    } //#PodrPostN
+
+    #NextPostCat.Name:
+    {
+      update current Persons
+      set Persons.cAddProf := 0;
+      ReReadRecord(#tmpPersons);
+    }
+
+    #DeptCat.Name:
+    {
+      update current Persons
+      set Persons.Department := 0;
+      ReReadRecord(#tmpPersons);
+    }
+
+    #SourceCandidat:
+    {
+      update current Persons
+      set Persons.cPrizn3 := 0;
+      ReReadRecord(#tmpPersons);
+    }
+
+  end;
+}
+
+cmFullOrg:    //HR-431
+{
+ RunWindowModal(winFullOrg);
+}
+/*
+cmStaffTrud:
+{
+  RunInterface(Employment, Persons.Nrec);
+}
+
+cmOnVipLoad:
+{
+  inherited::handleEvent(cmOnVipLoad);
+
+  #info PLV Структурные единицы ШР
+  vc_MainLink := if(GetFirst Catalogs Where(( -11 == Catalogs.SysCode))=tsOk, Catalogs.Nrec,0);
+
+  //читаем настройку о запрете ручного ввода таб.номера
+  var bLockTabnmb : boolean = boGetTune('UP.STAFF.LOCK_TABNMB');
+  //ToggleFieldProtected(#ClockNumber, bLockTabnmb);
+  ToggleFieldSelectable(#ClockNumber, bLockTabnmb);
+  //SetFieldOption(#ClockNumber, ofProtected)
+}
+
+cmStaffT2Vac:
+{
+  if (not UpdateTableWithInserted)
+  {
+    abort;
+    exit;
+  };
+
+  RunInterface(PersonAddVaccine, tmpPersons.NRec);
+}   */
+end;
+
+
+end.

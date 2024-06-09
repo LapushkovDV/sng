@@ -1,0 +1,204 @@
+#component 'Z_Staff'
+#include ActionJsonCreate.vih //HR-617 PA0004 - Инвалидность
+
+alter interface PersonDocWinUpperBrowse;
+
+var newRec:comp=0;
+
+overload
+  function SetNewRec: boolean;
+  procedure PrivateInitObj(IsStudent : boolean);
+end;
+
+overloadFormats brwPassports;
+
+private function SetNewRec: boolean;
+{
+  result := false;
+
+   if (wNumFilter <> 0) //bMilDocPick в версии 11100 отсутствует
+  {
+    exit;
+  }
+
+  var iTmp: integer = 0;
+
+  if (GetLast Passports = tsOk)
+    iTmp := Passports.SeqNmb + 1;
+  else
+    iTmp := 1;
+
+  ClearBuffer(#Passports);
+
+  Passports.SeqNmb := iTmp;
+  Passports.Person := EntryPoint;
+
+  SelectField(#NameDocCat.Name);
+
+  if bUsePersAccess
+    if ((wUsPersAccess_1 and 2) = 0)
+      ProtectRecord(#Passports, true);
+
+  result := true;
+}
+
+private procedure PrivateInitObj(IsStudent : boolean);
+{
+  if (NrecDoc <> 0)//ссылка на документ
+  {
+    if (getfirst Passports where ((NrecDoc == Passports.Nrec)) <> tsOK){}
+  }
+  else
+    if (GetFirst Passports <> tsOk) {};
+
+  ReReadRecord(#Passports);
+
+  MySetDefParam := wGetTune('COUNTRY');
+
+  if ( IsStudent )
+  {
+    if not GetVipRef(VInterf, 'PersonsFunctions')
+      Message('Ошибка загрузки объектного интерфейса.' +
+        ''#13'Возможна некорректная работа с документами студента.', Information);
+  }
+
+  if (Notify(cmTableChanged, 100001) <> 0)
+  {
+    exit;
+  }
+
+  IfOneInterface := false;
+
+  bUsePersAccess := boGetTune('UP.Staff.Reception.Access');
+  wUsPersAccess_1 := VPerAccess.GetAccessMask(1);
+
+  if bUsePersAccess
+    if ((wUsPersAccess_1 and 2) = 0)
+    {
+      DisableCommand(cmInsert);
+      DisableCommand(cmDelete);
+      DisableCommand(cmPick);
+    }
+
+  PassportsAppend := Passports.Append;
+
+  if ( not IsStudent )
+  {
+    //интеграция с электронным архивом
+    GetVipInterface(oArchiveFuncs);
+    oArchiveFuncs.InitFuncData(0, false);
+    m_sCurrentBarKod := oArchiveFuncs.GetBarKodForNewDoc;
+    FreeVipInterface(oArchiveFuncs);
+    // далее запускаем через LoadVipInterface
+    LoadVipInterface(oArchiveFuncs);
+    oArchiveFuncs.InitFuncData(0, true);
+  }
+}
+
+browse brwPassports;
+  show();
+  table Passports;
+fields
+  { font = { bold = (fOsnDoc = '+') or (NrecDoc = Passports.nrec);}};
+  NameDocCat.Name     'Документ' ('Наименование документа', hcStaffPersDocName, sci1378EnEsc): [30], Protect;
+  Passports.Ser       'Серия', 'документа' ('Серия документа', hcStaffPersDocGivenDate, sci178EnEsc): [10], Protect, NoAutoSize;
+  Passports.Nmb       'Номер', 'документа' ('Номер документа', hcStaffPersDocGivenDate, sci178EnEsc): [10], Protect, NoAutoSize;
+  Passports.GivenDate 'Дата', 'выдачи' ('Когда выдан документ', hcStaffPersDocGivenDate, sci178EnEsc): [14], Protect, NoAutoSize;
+  Passports.ToDate    'Дата', 'окончания' ('Срок действия документа', hcStaffPersDocToDate, sci178EnEsc): [14], Protect, NoAutoSize;
+  fOsnDoc             'Осн.', 'док.' ('Является основным документом сотрудника',, sci1378EnEsc): [5], Protect, NoAutoSize;
+  fPredOsn            'Пред.','док.' ('Предыдущий (не актуальный) документ сотрудника',, sci1378EnEsc): [7], Protect, NoAutoSize;
+  [ImageOnArchive1] oArchiveFuncs.GetImageState(cgDoc_1802, Passports.nRec, m_sCurrentBarKod) 'А' ('Состояние документа в архиве',,) : [2], image;
+end;
+
+TableEvent
+  table Passports;
+
+cmEdit:
+{
+  if (getFirst Passports <> tsOk)
+  {
+    message('Для редактирования сначала нужно добавить документ - F7.', Warning);
+    exit;
+  }
+
+  if (Semaphore.IsValidForEditRecord(GetSemaphoreId()))
+  {
+    Semaphore.EnableSemaphore(GetSemaphoreId());
+    SetWindowTitle(winPassScreen, if ( IsStudent, 'Редактирование документов студента ','Редактирование документов сотрудника ') + TitleDoc);
+    RunWindowModal(winPassScreen);
+
+    ReReadRecord(#Passports);
+
+    if ( LowerScreen.GetPrizPredDoc() = '+' )
+    {
+      set Passports.FilialNo := 1;
+    }
+    else
+    {
+      set Passports.FilialNo := 0;
+    }
+
+    if (fOsnDoc <> LowerScreen.GetPrizOsnDoc())
+    {
+      if (isValid(#Passports) and (NameDocCat.bMulti = 1))
+      {
+        if (Persons.PasspRus <> Passports.NRec)
+          set Persons.PasspRus := Passports.NRec;
+        else
+          set Persons.PasspRus := 0;
+
+        BeforeUpdPersons;
+      }
+    }
+
+    update current Passports;
+
+    Semaphore.DisableSemaphore(GetSemaphoreId());
+  }
+}
+
+cmDeleteRecord://use
+  {
+  var cNRec : comp;
+  var oJson : PassportsSys560;
+    if (Passports.SysCode = 560)
+    {
+      if ( Message ('Удалить справку', Confirmation + YesNo) = Yes )
+      {
+         oJson.CreateJsonSyscode560(Passports.nRec, 'DEL');
+      }
+    }
+//-----------------------------------------------------------------------------HR-758
+   if NameDocCat.sdopinf <> ''           //Удаление любого документа кроме документов воинского учета
+     and NameDocCat.sdopinf <> '07'
+     and NameDocCat.sdopinf <> '08'
+     and NameDocCat.sdopinf <> '27'
+     and NameDocCat.sdopinf <> '908'
+   {
+     if ( Message ('Удалить документ', Confirmation + YesNo) = Yes )
+     {
+      var  _addWhereString:string = ' and passports.person = ' + passports.person + ' and catalogs.sdopinf = ' + chr(39) + string(NameDocCat.sdopinf) + chr(39)
+      oJson.CreateJsonSyscode(passports.person, _addWhereString, 'DEL')
+     }
+   }
+//-----------------------------------------------------------------------------HR-758
+  set cNRec := Passports.nRec;
+  if inherited::handleEvent(cmDeleteRecord) = heAbort abort;
+  if getFirst SNG_Passports where((cNRec == SNG_Passports.nRec)) = tsOk
+    delete current SNG_Passports;
+  else
+    {
+    abort;
+    exit;
+    }
+  } //cmDeleteRecord
+
+cmInsertRecord:
+  {
+     inherited::handleevent(cmInsertRecord);
+     newRec:=Passports.Nrec;
+     SaveMyDsk(newRec, 'ForCheckNewRecordToJson');
+  }
+end; // TableEvent Passports;
+
+end. // PersonDocWin

@@ -1,0 +1,19 @@
+#component "Z_Staff"
+
+#doc
+История изменений ФИО
+#end
+alter Interface CasePsn;
+
+
+Overload
+ Procedure CheckAndLock;
+end;
+
+Procedure CheckAndLock;
+{
+  inherited::CheckAndLock;
+  DisableCommand(cmDelete);
+  DisableCommand(cmEdit);
+}
+End.

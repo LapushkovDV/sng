@@ -1,0 +1,285 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface SelDisPers;
+
+overload
+  procedure ShowHideFields;
+  Function IsNewUvPerson: boolean;
+end;
+
+table struct SNG_tmpPersons
+(
+  Nrec  : comp,
+  FIO   : string,
+  TabN: longint,
+  StrTabN: string,
+  cDept: comp,
+  AppDate: date,
+  DisDate: date,
+  BornDate: date,
+  IsEmployee: s1
+)
+with index
+(
+  byFIO = FIO + DisDate (desc),
+  byTabNmb = TabN + StrTabN + FIO + DisDate (desc)
+);
+
+var
+  DepIer: DepartIer;
+
+create view ManyPSNS
+as select
+  (_CheckSovm(SNG_tmpPersons.Nrec))
+    (FieldName = SNG_sSovm),
+
+  if(SNG_tmpPersons.IsEmployee = 'С', 'Сотрудник',
+    if(SNG_tmpPersons.IsEmployee = 'У', 'Архив',
+      if(SNG_tmpPersons.IsEmployee = 'Ф', 'Физ.лицо',
+        if(SNG_tmpPersons.IsEmployee = 'К', 'Кандидат', ''))))
+    (FieldName = SNG_sType),
+
+  DepIer.GetFulDepNameEx(SNG_tmpPersons.cDept)
+    (fieldName = DeptNameIer)
+from
+  Persons SNG_Persons,
+  Appointments SNG_AppRab,
+  MoveLsc SNG_MoveLsc,
+  SNG_tmpPersons
+where
+((
+  SNG_tmpPersons.nRec == SNG_Persons.nRec
+  and SNG_Persons.nRec == SNG_MoveLsc.tPerson
+  and SNG_Persons.DisDate == SNG_MoveLsc.DatUv(Noindex)
+  and SNG_MoveLsc.cLschet == SNG_AppRab.cAddnRec2
+))
+
+order SNG_FIO = SNG_tmpPersons.FIO
+order SNG_TabNmb = SNG_tmpPersons.TabN
+;
+
+overloadformats brArhivePers, scrFields;
+
+procedure ShowHideFields;
+{
+  if ( ( wShowHideFields and 1 ) > 0 )
+    SetFieldState(#SNG_tmpPersons.AppDate, sfVisible);
+  else
+    ClearFieldState(#SNG_tmpPersons.AppDate, sfVisible);
+}
+
+window wShowHideField 'Настройка отображения полей' EscClose, gray, doAccept;
+  show at (,, 40, 7);
+
+screen scrFields;
+fields
+  wShowHideFields ('Поля для отображения',,): noprotect;
+
+buttons
+  cmValue11,,, 'ОК',, scStaff1Esc;
+  cmValue12,,, 'Отмена',, scStaff1Esc;
+<<
+
+   Дополнительные поля для отображения:
+        [.] Дата приема`
+
+   <.   ОК   .>          <. Отмена .>
+>>
+end; // screen scrFields
+
+end; // window wShowHideField
+
+
+browse brArhivePers;
+  table SNG_tmpPersons;
+fields
+  SNG_tmpPersons.TabN 'Таб. номер', ('Табельный номер',,): [10], protect;
+  SNG_tmpPersons.StrTabN 'Таб. номер', ('Табельный номер',,): [10], protect;
+  SNG_sSovm             'Таб. совм.' ('Табельный номер совмещения'): [10], protect;
+  SNG_tmpPersons.FIO    'Фамилия, имя, отчество', ('Фамилия Имя Отчество',,): [30], protect;
+  DeptNameIer  'Подразделение',('Подразделение',,): [30], protect;
+  SNG_tmpPersons.AppDate 'Дата приема', ('Дата приема',,): [10], protect;
+  SNG_tmpPersons.DisDate 'Дата увольнения', ('Дата увольнения',,): [10], protect;
+  SNG_tmpPersons.BornDate 'Дата рождения', ('Дата рождения',,): [10], protect;
+  SNG_sType             'Тип карточки' ('Тип карточки'): [10], protect;
+end; //browse brArhivePers
+
+Function IsNewUvPerson: boolean;
+{
+  Result := true;
+
+  var cLs: comp = 0;
+  if not MLFP.GetMainLschetWithNotFiz(SNG_Persons.nRec, cLs)
+  {
+    Message('Не найден старый лицевой счет.', Error);
+    Result := false;
+    exit;
+  }
+
+  _loop SNG_MoveLsc
+    _loop SNG_AppRab
+      if (SNG_AppRab.Person = SNG_Persons.nRec)
+      {
+        Message('Данная карточка не соответствует последнему трудоустройству повторно принимаемого сотрудника.'
+              + ''#13'Вероятно, она была выбрана в другом приказе о повторном приеме.'
+              + ''#13#13'См. историю увольнений по карточке. Дата увольнения '+string(Persons.DisDate)+'.', Information);
+        Result := false;
+        exit;
+      }
+} //Function IsNewUvPerson: boolean;
+
+HandleEvent
+
+cmInit:
+{
+  mtClear(#SNG_tmpPersons, mfNormal);
+  ReadMyDsk(wShowHideFields, 'SelDisPers_wShowHideFields', false);
+  StartNewVisual(vtRotateVisual, vfTimer + vfBreak, 'Инициализация', 1);
+
+  insert NoVisual into SNG_tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Persons.Department,
+      Persons.AppDate,
+      Persons.DisDate,
+      Persons.BornDate,
+      Persons.IsEmployee
+    From
+      Persons
+    where
+    ((
+            root == Persons.nrec       and
+            'С' /== Persons.IsEmployee and
+        ZeroDate << Persons.DisDate    and
+        0 == Persons.cNew_Person (NoIndex) and
+        (ManyPSNS.dateBounds >= Persons.DisDate)
+    ));
+
+  insert NoVisual into SNG_tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Persons.Department,
+      Persons.AppDate,
+      Persons.DisDate,
+      Persons.BornDate,
+      Persons.IsEmployee
+    From
+      Persons
+    where
+    ((
+            root == Persons.nrec       and
+            'У' /== Persons.IsEmployee and
+        ZeroDate << Persons.DisDate    and
+        0 == Persons.cNew_Person (NoIndex) and
+        (ManyPSNS.dateBounds >= Persons.DisDate)
+    ));
+
+  insert NoVisual into SNG_tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Persons.Department,
+      Persons.AppDate,
+      Persons.DisDate,
+      Persons.BornDate,
+      Persons.IsEmployee
+    From
+      Persons
+    where
+    ((
+            root == Persons.nrec       and
+            'К' /== Persons.IsEmployee and
+        ZeroDate << Persons.DisDate    and
+        0 == Persons.cNew_Person (NoIndex) and
+        (ManyPSNS.dateBounds >= Persons.DisDate)
+    ));
+
+  insert NoVisual into SNG_tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Persons.Department,
+      Persons.AppDate,
+      Persons.DisDate,
+      Persons.BornDate,
+      Persons.IsEmployee
+    From
+      Persons
+    where
+    ((
+            root == Persons.nrec       and
+            'Ф' /== Persons.IsEmployee and
+        ZeroDate << Persons.DisDate    and
+        0 == Persons.cNew_Person (NoIndex) and
+        (ManyPSNS.dateBounds >= Persons.DisDate)
+    ));
+
+  // в зависимости от типа табельного закрываем нужный от видимости
+  if (wGetTune('FormatClockNumber') = 0)
+    ClearFieldState(#SNG_tmpPersons.StrTabn, sfVisible)
+  else
+    ClearFieldState(#SNG_tmpPersons.Tabn, sfVisible);
+
+  StopVisual('', 0);
+
+  if ( RecordsInTable(tnSNG_tmpPersons) = 0 )
+  {
+    message('Нет уволенных сотрудников!', Warning);
+    abort;
+    exit;
+  }
+
+  SetWindowTitle(wnMainWindow, 'Уволенные сотрудники ( '
+                                + string(RecordsInTable(tnSNG_tmpPersons)) + ' )');
+  SetOrder(tiSNG_FIO);
+  SetColumnSorting(brArhivePers, #SNG_tmpPersons.FIO, 1);
+  ShowHideFields;
+}
+
+cmColumnClicked:
+
+  case Target of
+
+    #SNG_tmpPersons.FIO:
+    {
+      SetOrder(tiSNG_FIO);
+      SetColumnSorting(brArhivePers, #SNG_tmpPersons.FIO, 1);
+      ReScanPanel(CurTable);
+    }
+
+    #SNG_tmpPersons.TabN:
+    {
+      SetOrder(tiSNG_TabNmb);
+      SetColumnSorting(brArhivePers, #SNG_tmpPersons.TabN, 1);
+      ReScanPanel(CurTable);
+    }
+
+    #SNG_tmpPersons.StrTabN:
+    {
+      SetOrder(tiSNG_TabNmb);
+      SetColumnSorting(brArhivePers, #SNG_tmpPersons.StrTabN, 1);
+      ReScanPanel(CurTable);
+    }
+
+  end; //case
+
+cmDone:
+{
+  ResPsn := SNG_tmpPersons.NRec;
+}
+
+end;
+
+end.

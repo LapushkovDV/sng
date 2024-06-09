@@ -1,0 +1,553 @@
+#component "Z_Staff"
+
+const
+  cmViewMedkom = 20000;
+end;
+
+alter Interface ProfAtt;
+
+Table struct tbVredFakRab
+(
+  wNoCon     : word,
+  cBaseT     : comp,
+  cLinkT     : comp,
+  wChoise    : word,
+  ResDate    : array[1..2] of date,
+  ResDecimal : array[1..2] of decimal(31,15)
+)
+with index
+(
+  tbVredFakRab01 = ResDate[1] + ResDate[2]
+);
+
+Create view
+
+var
+  cVidkom: comp;
+  dAttdate: date;
+  sAttNmb: string
+  dNextdate: date;
+  cResult: comp;
+  cPolyc: comp;
+  sNamePolyc: string;
+  sFilialPolyc: string;
+  sAdrPolyc: string[250];
+  sMestoMed: string[100];
+  sFactor: string[150];
+  cAppointPar: comp;
+  dDateObsl: date;
+  bEdit: boolean;
+  bIns: boolean;
+  bIns2: boolean;
+
+as select
+  SNG_Att.Vidkom
+from
+  Attestation FindAtt,
+  Catalogs VidObsled,
+  Catalogs ResObsled,
+  Catalogs VidObsledWin,
+  Catalogs ResObsledWin,
+  Catalogs NamePolycWin,
+  Catalogs FindPolycWin,
+  SNG_ATTESTATIONEXT SNG_Att,
+  Catalogs Find_Catalogs,
+  Catalogs Vred_Catalogs,
+  SpAllStaff Vred_SpAllStaff,
+  tbVredFakRab
+where
+((
+  Attestation.nRec       == SNG_Att.Attestation and
+  SNG_Att.Vidkom         == VidObsled.nRec and
+  Attestation.Result     == ResObsled.nRec and
+  cVidkom                == VidObsledWin.nRec and
+  cResult                == ResObsledWin.nRec and
+  cPolyc                 == NamePolycWin.nRec and
+  NamePolycWin.cParent   == FindPolycWin.nRec and
+  cgAllStaffMedInspect   == Vred_SpAllStaff.wNoCon and
+  cAppointPar            == Vred_SpAllStaff.cBaseT and
+  tbVredFakRab.cLinkT    == Vred_Catalogs.nRec
+));
+
+OverloadFormats brwAtt;
+
+procedure GetFilial;
+{
+  if FindPolycWin.SysCode = -37
+  {
+    sNamePolyc := NamePolycWin.Name;
+    sFilialPolyc := '';
+    sMestoMed := NamePolycWin.Sdopinf;
+  }
+  else
+  {
+    sNamePolyc := FindPolycWin.Name;
+    sFilialPolyc := NamePolycWin.Name;
+    sMestoMed := NamePolycWin.Sdopinf;
+  }
+}
+
+procedure SetEditView;
+{
+  ToggleFieldSelectable(#VidObsledWin.Name, bEdit);
+  ToggleFieldSelectable(#sAttNmb, bEdit);
+  ToggleFieldSelectable(#dAttdate, bEdit);
+  ToggleFieldSelectable(#dNextdate, bEdit);
+  ToggleFieldSelectable(#ResObsledWin.Name, bEdit);
+  ToggleFieldSelectable(#sNamePolyc, bEdit);
+  ToggleFieldSelectable(#sFilialPolyc, bEdit);
+  ToggleFieldSelectable(#sAdrPolyc, bEdit);
+  ToggleFieldSelectable(#sMestoMed, bEdit);
+  ToggleFieldSelectable(#sFactor, bEdit);
+/*
+  if bEdit
+  {
+    SetFieldOption(#VidObsledWin.Name, ofSelectable);
+    SetFieldOption(#sAttNmb, ofSelectable);
+    SetFieldOption(#dAttdate, ofSelectable);
+    SetFieldOption(#dNextdate, ofSelectable);
+    SetFieldOption(#ResObsledWin.Name, ofSelectable);
+    SetFieldOption(#sNamePolyc, ofSelectable);
+    SetFieldOption(#sFilialPolyc, ofSelectable);
+    SetFieldOption(#sAdrPolyc, ofSelectable);
+    SetFieldOption(#sMestoMed, ofSelectable);
+    SetFieldOption(#sFactor, ofSelectable);
+  }
+  else
+  {
+    ClearFieldOption(#VidObsledWin.Name, ofSelectable);
+    ClearFieldOption(#sAttNmb, ofSelectable);
+    ClearFieldOption(#dAttdate, ofSelectable);
+    ClearFieldOption(#dNextdate, ofSelectable);
+    ClearFieldOption(#ResObsledWin.Name, ofSelectable);
+    ClearFieldOption(#sNamePolyc, ofSelectable);
+    ClearFieldOption(#sFilialPolyc, ofSelectable);
+    ClearFieldOption(#sAdrPolyc, ofSelectable);
+    ClearFieldOption(#sMestoMed, ofSelectable);
+    ClearFieldOption(#sFactor, ofSelectable);
+  }
+*/
+}
+
+procedure FillVredFak;
+{
+  delete all tbVredFakRab;
+  ClearBuffer(#tbVredFakRab);
+  _loop Vred_SpAllStaff
+  {
+    if Vred_SpAllStaff.ResDate[1] <= dDateObsl and
+       Vred_SpAllStaff.ResDate[2] >= dDateObsl
+    {
+      tbVredFakRab.wNoCon        := Vred_SpAllStaff.wNoCon;
+      tbVredFakRab.cBaseT        := Vred_SpAllStaff.cBaseT;
+      tbVredFakRab.cLinkT        := Vred_SpAllStaff.cLinkT;
+      tbVredFakRab.wChoise       := Vred_SpAllStaff.wChoise;
+      tbVredFakRab.ResDate[1]    := Vred_SpAllStaff.ResDate[1];
+      tbVredFakRab.ResDate[2]    := Vred_SpAllStaff.ResDate[2];
+      tbVredFakRab.ResDecimal[1] := Vred_SpAllStaff.ResDecimal[1];
+      insert current tbVredFakRab;
+    }
+  }
+}
+
+function WorkOrFactor(cCat: comp): word; cacheable;
+{
+  result := 0;
+  if (GetFirst Find_Catalogs where (( cCat == Find_Catalogs.NRec )) = tsOk)
+    if (Find_Catalogs.SysCode = 9039)
+      exit;
+    else
+      if (Pos('Проводимые работы', Find_Catalogs.Name) > 0)
+        result := 1;
+      else
+        if (Pos('Перечень вредных веществ', Find_Catalogs.Name) > 0)
+          result := 2;
+        else
+          result := WorkOrFactor(Find_Catalogs.cParent);
+}
+
+function funGetNameParrent: string;
+{
+  result := 'не определен';
+  if ( iCatFunc.isParenSysCode(9017, tbVredFakRab.cLinkT) )
+    result := 'вредный фактор. Приложение 1';
+  else
+    if ( iCatFunc.isParenSysCode(9018, tbVredFakRab.cLinkT) )
+      result := 'вредная работа. Приложение 2';
+    else
+      if ( iCatFunc.isParenSysCode(9019, tbVredFakRab.cLinkT) )
+        result := 'вредная работа. Приложение 3';
+      else
+        if ( iCatFunc.isParenSysCode(9020, tbVredFakRab.cLinkT) )
+          result := 'вредный фактор. Приложение 1';
+        else
+          if ( iCatFunc.isParenSysCode(9021, tbVredFakRab.cLinkT) )
+            result := 'вредная работа. Приложение 2';
+          else
+            if ( iCatFunc.isParenSysCode(9039, tbVredFakRab.cLinkT) )
+            {
+              case WorkOrFactor(tbVredFakRab.cLinkT) of
+
+                1: result := 'вредная работа. Психиатрическое освидетельствование.';
+
+                2: result := 'вредный фактор. Психиатрическое освидетельствование.';
+
+              end;
+            }
+            else
+              if ( iCatFunc.isParenSysCode(9040, tbVredFakRab.cLinkT) )
+                result := 'Психиатрическое освидетельствование.';
+              else
+                if (iCatFunc.isParenSysCode(9092, tbVredFakRab.cLinkT))
+                  result := 'вредная работа';
+                else
+                  if (iCatFunc.isParenSysCode(9087, tbVredFakRab.cLinkT))
+                    result := 'вредный фактор';
+                  else
+                    if (iCatFunc.isParenSysCode(9088, tbVredFakRab.cLinkT))
+                      result := 'вредный фактор';
+                    else
+                      if (iCatFunc.isParenSysCode(9089, tbVredFakRab.cLinkT))
+                        result := 'вредный фактор';
+                      else
+                        if (iCatFunc.isParenSysCode(9090, tbVredFakRab.cLinkT))
+                          result := 'вредный фактор';
+                        else
+                          if (iCatFunc.isParenSysCode(9091, tbVredFakRab.cLinkT))
+                            result := 'вредный фактор';
+}
+
+window winMedkom 'Просмотр медкомиссии' EscClose;
+  show (, , 90, 23);
+
+screen scrMedkom;
+  show at (,,, 11);
+  fields
+    VidObsledWin.Name ('Вид обследования',,sci1Esc), Protect, pickbutton;
+    sAttNmb           ('Номер документа',,sci1Esc), noProtect;
+    dAttdate          ('Дата обследования',,sci1Esc), noProtect;
+    dNextdate         ('Дата обследования по плану',,sci1Esc), noProtect;
+    ResObsledWin.Name ('Результат обследования',,sci1Esc), Protect, pickbutton;
+    sNamePolyc        ('Наименование поликлиники',,sci1Esc), Protect, pickbutton;
+    sFilialPolyc      ('Филиал поликлиники',,sci1Esc), Protect;
+    sAdrPolyc         ('Адрес поликлиники',,sci1Esc), Protect;
+    sMestoMed         ('Место медосмотра',,sci1Esc), Protect;
+    sFactor           ('Дополнительные факторы',,sci1Esc), noProtect;
+<<
+
+  Вид обследования           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Номер документа            .@@@@@@@@@@@@@@@@@@@
+  Дата обследования          .@@@@@@@@@@@
+  Дата обследования по плану .@@@@@@@@@@@
+  Результат обследования     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Наименование поликлиники   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Филиал поликлиники         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Адрес поликлиники          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Место медосмотра           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Дополнительные факторы     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+>>
+end;  // screen scrMedkom
+
+browse brVred 'Вредные факторы и работы' (,,sci1Esc);
+  show at (, 12,, 20);
+  table tbVredFakRab;
+  fields
+    {Font = { Color = if(tbVredFakRab.wChoise = 1 , ColorGray, 0) }};
+    Vred_Catalogs.Code 'Код', 'вредного', 'фактора', 'или работы'
+      ('Вредный фактор / вредная работа / работа с опасностью заражения'): [12], Protect, noautosize;
+    Vred_Catalogs.Name            'Наименование', 'вредного фактора', 'или работы'
+      ('Вредный фактор / вредная работа / работа с опасностью заражения'): [34], Protect;
+    [fTypeVred] funGetNameParrent 'Вид': [15], Protect;
+    tbVredFakRab.ResDate[1]    'Дата с': [10], Protect, noautosize;
+    tbVredFakRab.ResDate[2]    'Дата по': [10], Protect, noautosize;
+    tbVredFakRab.ResDecimal[1] 'Периодичность',  '(лет)': [5.3], Protect;
+End;
+
+screen scrMedkomBtn;
+  show at (, 21,, ) fixed_y;
+  buttons
+    cmEditMedkom,,,'Изменить',,sci1Esc;
+    cmOkMedkom,,,'Сохранить',,sci1Esc;
+    cmCancelMedkom,,,'Отмена',,sci1Esc;
+<<
+                                             <. Изменить .> <. Сохранить .> <. Отмена .>
+>>
+end; //screen scrMedkomBtn
+
+WindowEvent winMedkom;
+
+cmInit:
+{
+  if IsValid(#Attestation) and bIns = false
+  {
+    set sAttNmb := Attestation.AttNmb;
+    set dAttdate := Attestation.Attdate;
+    set dNextdate := Attestation.Nextdate;
+    set cResult := Attestation.Result;
+  }
+  else
+  {
+    set sAttNmb := '';
+    set dAttdate := to_date(0, 0, 0);
+    set dNextdate := to_date(0, 0, 0);
+    set cResult := comp(0);
+  }
+
+  if IsValid(#SNG_Att) and bIns = false
+  {
+    set cVidkom := SNG_Att.Vidkom;
+    set cPolyc := SNG_Att.Polyc;
+    GetFilial;
+    sAdrPolyc := iAdrFunc.GetFullAddressInd(NamePolycWin.cRef1);
+    sFactor := SNG_Att.Factor;
+  }
+  else
+  {
+    set cVidkom := comp(0);
+    set cPolyc := comp(0);
+    sNamePolyc := '';
+    sFilialPolyc := '';
+    sAdrPolyc := '';
+    sMestoMed := '';
+    sFactor := '';
+  }
+
+  case Persons.IsEmployee of
+    'С': cAppointPar := ShowAppointments.StaffStr;
+    'П': cAppointPar := PrikAppointments.StaffStr;
+    else
+      cAppointPar := Persons.AppointCur;
+  end;
+
+  if bIns
+    dDateObsl := to_date(0, 0, 0);
+  else
+    dDateObsl := Attestation.Attdate;
+
+  FillVredFak;
+  SetEditView;
+  SelectableButton(scrMedkomBtn, cmOkMedkom, bEdit);
+
+  if bEdit
+    cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Просмотр');
+  else
+    cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Изменить');
+  ReReadRecord(#Attestation);
+  ReScanPanel(tnNoTable);
+}
+
+cmEditMedkom:
+{
+  bEdit := if(bEdit, false, true);
+  SetEditView;
+  SelectableButton(scrMedkomBtn, cmOkMedkom, bEdit);
+
+  if bEdit
+    cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Просмотр');
+  else
+    cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Изменить');
+  ReReadRecord(#Attestation);
+  ReScanPanel(tnNoTable);
+}
+
+cmOkMedkom:
+{
+  if cVidkom = comp(0)
+  {
+    Message('Заполните вид обследования', Warning);
+    exit;
+  }
+  if dAttdate = to_date(0, 0, 0)
+  {
+    Message('Заполните дату обследования', Warning);
+    exit;
+  }
+  if dNextdate = to_date(0, 0, 0)
+  {
+    Message('Заполните дату обследования по плану', Warning);
+    exit;
+  }
+  if cResult = comp(0)
+  {
+    Message('Заполните результат обследования', Warning);
+    exit;
+  }
+  if cPolyc = comp(0)
+  {
+    Message('Заполните наименование поликлиники', Warning);
+    exit;
+  }
+  bIns2 := bIns;
+  CloseWindowEx(winMedkom, cmDefault);
+  bIns := bIns2;
+}
+
+cmCancel:
+{
+  bEdit := false;
+  bIns := false;
+}
+
+cmClose:
+{
+  bEdit := false;
+  bIns := false;
+}
+
+cmCancelMedkom:
+{
+  CloseWindowEx(winMedkom, cmCancel);
+}
+
+cmPick:
+{
+  case CurField of
+    #VidObsledWin.Name:
+    {
+      ParentSav := cVidkom;
+      iEntry := -31518;
+      cCurPart := 0;
+      if (RunInterface(PickCatalog2,iEntry,ParentSav,cCurPart)=cmDefault)
+        set cVidkom := ParentSav;
+    }
+    #ResObsledWin.Name:
+    {
+      ParentSav := cResult;
+      iEntry := 1448;
+      cCurPart := 0;
+      if (RunInterface(PickCatalog2,iEntry,ParentSav,cCurPart)=cmDefault)
+        set cResult := ParentSav;
+    }
+    #sNamePolyc:
+    {
+      ParentSav := cPolyc;
+      iEntry := -37;
+      cCurPart := 0;
+      if (RunInterface(PickCatalog2,iEntry,ParentSav,cCurPart)=cmDefault)
+      {
+        set cPolyc := ParentSav;
+        GetFilial;
+        sAdrPolyc := iAdrFunc.GetFullAddressInd(NamePolycWin.cRef1);
+      }
+    }
+  end;
+}
+
+end; // WindowEvent winMedkom
+end; // window winMedkom
+
+procedure SetMedkom;
+{
+  if (RunWindowModal(winMedkom) = cmDefault )
+  {
+    Attestation.AttNmb := sAttNmb;
+    Attestation.Attdate := dAttdate;
+    Attestation.Nextdate := dNextdate;
+    Attestation.Result := cResult;
+
+    if bIns
+    {
+      Attestation.Person := EntryPsn;
+      Attestation.wDop1 := attProfInspect;
+      insert current Attestation;
+      bIns := false;
+    }
+    else
+    {
+      if IsValid(#Attestation)
+        update current Attestation;
+    }
+//    RescanPanel(#Attestation);
+
+    SNG_Att.Attestation := Attestation.nRec;
+    SNG_Att.Vidkom := cVidkom;
+    SNG_Att.Polyc := cPolyc;
+    SNG_Att.Factor := sFactor;
+    if IsValid(#SNG_Att)
+      update current SNG_Att;
+    else
+    {
+      SNG_Att.nRec := 0;
+      insert current SNG_Att;
+    }
+    ReReadRecord(#Attestation);
+  }
+}
+
+browse brwAtt;
+  show (, , , );
+  table Attestation;
+  recMarker = pMarker {Attestation.NRec};
+Fields
+  { font = { Color = if(Persons.IsEmployee = 'К', ColorSysNavy, 0) }};
+  Attestation.Attdate 'Дата', 'обследования'      ('Дата обследования'): [11], Protect, NoPickButton, Skip;
+  Attestation.AttNmb  'Номер', 'документа'        ('Номер документа'): [10], Protect, NoPickButton;
+  VidObsled.Name      'Вид', 'обследования'       ('Вид обследования',, ): [17], Protect, NoPickButton;
+  ResObsled.Name      'Результат', 'обследования' ('Результат обследования',, ): [17], Protect, NoPickButton;
+End;
+
+TableEvent Table Attestation;
+cmHotKeys:
+{
+  var lMenu, tmpMenu: LongInt;
+  lMenu := LoadMenu('Z_Staff::ProfInspectMenu');
+  tmpMenu := LoadMenu('Z_Staff::ViewMedkomMenu');
+  ConcatMenu(lMenu, tmpMenu);
+  DelMenuItem(lMenu, 'Плановая дата медосмотра', cmValue1, '');
+  DelMenuItem(lMenu, 'Установка результатов медосмотра', cmValue2, '');
+  DelMenuItem(lMenu, 'Сведения о заключениях', cmValue7, '');
+  PutHotCommand(RunLoadMenu(lMenu));
+}
+
+cmViewMedkom:
+{
+  if IsValid(#Attestation)
+    SetMedkom;
+  else
+    message('Нет данных.', Warning);
+}
+
+cmSetDefault:
+{
+  SetMedkom;
+}
+
+cmDeleteRecord:
+{
+  var cFindRec: comp = Attestation.nRec;
+  inherited::handleEvent(cmDeleteRecord);
+
+  if getFirst fastfirstrow FindAtt where(( cFindRec == FindAtt.nRec )) <> tsOk
+    delete SNG_Att where (( cFindRec == SNG_Att.Attestation(noindex) ));
+}
+end;
+
+HandleEvent
+cmInsert:
+{
+  inherited::HandleEvent(cmInsert);
+  bEdit := true;
+  bIns := true;
+}
+
+cmCheckField:
+{
+  case CurField  of
+    #dAttdate:
+    {
+      dDateObsl := dAttdate;
+      FillVredFak;
+      RescanPanel(#tbVredFakRab);
+    }
+  end;
+}
+
+end;
+
+End.
+
+ViewMedkomMenu menu
+{
+  - 'Просмотр медкомиссии', cmViewMedkom, 'Просмотр медкомиссии',,,, sci1Esc;
+}

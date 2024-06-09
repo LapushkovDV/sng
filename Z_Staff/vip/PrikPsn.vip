@@ -1,0 +1,29 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface PrikPsn;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brwPsn;
+
+Create view Psn
+
+As select
+  if (bPrT1 = 2,
+    if (isValid(tnKatOrg), KatOrg.Name, ''),  DepIer.GetFulDepNameEx(Persons.Department))
+    ( FieldName = DeptNameIer )
+;
+
+browse brwPsn;
+Fields
+  Persons.TabNmb  'Таб. номер'  ('Табельный номер ') :[10], protect;
+  Persons.StrTabN 'Таб. номер'  ('Табельный номер ') :[10], protect;
+  sSovm           'Таб. совм.'  ('Табельный номер совмещения'): [10], protect;
+  Persons.FIO     'Фамилия, имя, отчество' ('Фамилия Имя Отчество')  :[30], protect;
+  DeptNameIer     'Подразделение' ('Подразделение')  :[30] , skip;
+end;
+
+end.

@@ -1,0 +1,40 @@
+#component "Z_STAFF"
+
+#doc
+Докомпиляция интерфейса "Дополнительные таблицы (для заполнения)"
+#end
+alter interface StaffViewDopTbls;
+
+HandleEvent
+
+  cmDefault:
+  {
+    case DopTables.NmbTbl of
+      // Вакцинация
+      2: {
+        RunInterface('SNG_Vaccine::PersonAddVaccine', ParPerson);
+      }
+      // Доп.таблица 4 "Согласие на ОПД"
+      4: {
+        RunInterface('SNG_OPD_Agreement::OPD_Agreement', ParPerson);
+        ReReadRecord(tnDopTables);
+      }
+      // Доп.таблица 5 "Ученический договор"
+      5: {
+        RunInterface('SNG_StudyContract::StudyContract', ParPerson);
+      }
+      // Доп.таблица 7 "Сведения ФКУ"
+      7: {
+        RunInterface('SNG_BannedJob::BannedJob', ParPerson);
+      }
+      //Остальные таблицы
+      else {
+        inherited::handleEvent(cmDefault);
+      }
+
+    end; // case
+  }
+
+end; //HandleEvent
+
+end. // interface

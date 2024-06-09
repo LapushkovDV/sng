@@ -1,0 +1,32 @@
+#component "Z_Staff"
+
+alter Interface SettingsEvSystem 'Настройка параметров механизма контроля событий системы' (,hcStaff_AdminSobSist) EscClose;
+
+overload
+  procedure FillUsers(ArchUser: TPtr);
+  function CheckPlugin(sName: string; ArchUser: TPtr): boolean;
+end;
+
+procedure FillUsers(ArchUser: TPtr);
+{
+  inherited::FillUsers(ArchUser);
+
+  if ( EvPers.IsExistsAndActivePlugin(0) or
+       EvStr.IsExistsAndActivePlugin(0) )
+    insert into mt_EventSrc (nRec, Department, TabNmb, StrTabN, FIO, EvntType, DepartStr)
+    select Persons.nRec, Persons.Department, Persons.TabNmb, Persons.StrTabN, Persons.FIO, 0, ''
+    from Persons where (('П' == Persons.IsEmployee));
+}
+
+function CheckPlugin(sName: string; ArchUser: TPtr): boolean;
+{
+  result := false;
+
+  if (GetFirst Persons where (( mt_EventSrc.NRec == Persons.NRec )) = tsOk)
+    if (Persons.IsEmployee = 'П') and (Pos('EVENT_PERS_CHECK105', sName) = 0)
+      exit;
+
+  result := inherited::CheckPlugin(sName, ArchUser);
+}
+
+end.

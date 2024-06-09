@@ -1,0 +1,5 @@
+#version z_Staff 0.31.1.1 '#CompTitle'
+  required
+    Z_Staff >= 9.1.294.0,
+
+#include GloRequired.ver

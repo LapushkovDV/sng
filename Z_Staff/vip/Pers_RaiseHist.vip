@@ -1,0 +1,44 @@
+#component "Z_Staff"
+
+#include CatFunc.vih
+
+alter interface Pers_RaiseHist;
+
+var
+ iCatFunc: CatalogsFunctions;
+
+create view
+as select
+  NOAA.GetStrAgreementVid(NOAA.GetFirstAgreementByLink(coRaiseHist, RaiseHist.nRec))
+    (fieldname = vidDopSogl) ;
+
+ExtendFormats scrAllFields;
+
+screen scrAllFields (, hcStaff_historyDoplat, );
+  show at (,9,,);
+  table RaiseHist;
+fields
+  vidDopSogl ('Вид доп. соглашения'): protect;
+<<
+
+
+
+
+
+
+
+
+
+
+
+ `Вид доп. соглашения`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrAllFields
+
+
+
+
+
+
+
+end.

@@ -1,0 +1,75 @@
+#include MenuManager.vih
+
+#component "Z_Staff"
+
+alter interface StrPersView;
+
+overload
+  procedure SelectPost;
+end;
+
+var oMenu  : IMenuManager(MenuManager);
+
+procedure SelectPost;
+{
+  var tmpComp: comp;
+
+  tmpComp := FltDept;
+  CopyDeptToCat; // копирую маркеры для вызова
+  if (RunInterface('Z_StaffCat::PickCatalog2', -22, tmpComp, 100, 262144) = cmDefault)
+  {
+    CopyCatToDept; // копирую выбранные должности
+    DeptCount := GetMarkerCount(DeptMarker);
+    if (DeptCount = 1)
+    {
+      GetMarker(DeptMarker, 0, tmpComp);
+      set FltDept := tmpComp;
+    }
+  }
+}
+
+TableEvent
+  Table tmpPersons;
+
+cmHotKeys:
+{
+  if (oMenu.Run('Z_Staff::SNG_StrPersView'))
+    PutCommand(oMenu.ResultCommand);
+}
+
+end;
+
+end.
+
+SNG_StrPersView Menu
+{
+ -' ~1~. Общие сведения', cmStaffDoWin1, 'Общие сведения',
+          hcStaffReceptionMenu, 'Alt+1', kbAlt1,,,,, bmpW1_16;
+ -' ~2~. Сведения об образовании', cmStaffDoWin2, 'Сведения об образовании',
+          hcStaffReceptionMenu, 'Alt+2', kbAlt2,,,,, bmpW2_16;
+ -' ~3~. Анкетные данные, стаж', cmStaffDoWin3, 'Анкетные данные, стаж',
+          hcStaffReceptionMenu, 'Alt+3', kbAlt3,,,,, bmpW3_16;
+ -' ~4~. Родственники', cmStaffDoWin4, 'Родственники',
+          hcStaffReceptionMenu, 'Alt+4', kbAlt4,,,,, bmpW4_16;
+ -' ~5~. Сведения о воинском учете', cmStaffDoWin5, 'Сведения о воинском учете',
+          hcStaffReceptionMenu, 'Alt+5', kbAlt5,,,,, bmpW5_16;
+ -' ~6~. Сведения о работе на предприятии', cmStaffDoWin6, 'Назначения и перемещения',
+          hcStaffReceptionMenu, 'Alt+6', kbAlt6,,,,, bmpW6_16;
+ -' ~7~. Сведения об отпусках и неявках', cmStaffDoWin7, 'Сведения об отпусках и неявках',
+          hcStaffReceptionMenu, 'Alt+7', kbAlt7,,,,, bmpW7_16;
+ -' ~8~. Сведения о трудовой деятельности', cmStaffDoWin8,
+        'Сведения о трудовой деятельности',
+          hcStaffReceptionMenu, 'Alt+8', kbAlt8,,,,, bmpW8_16;
+ -' ~9~. Сведения о заболеваемости', cmStaffDoWin9, 'Сведения о заболеваемости',
+          hcStaffReceptionMenu, 'Alt+9', kbAlt9,,,,, bmpW9_16;
+ -'1~0~. Дополнительная информация', cmStartDopTables, 'Дополнительные таблицы',
+          hcStaffReceptionMenu, 'Alt+I', kbAltI,,,,, bmpW10_16;
+ -'11. Пенсионный ~с~таж', cmStaffPens, 'Пенсионный стаж',
+          hcStaffReceptionMenu, 'Alt+P', kbAltP,,,,, bmpW11_16;
+ -'12. Компетенции', cmInsertEditKN, 'Компетенции',
+          hcStaffReceptionMenu, 'Alt+K', kbAltK,,,,, bmpW12_16;    ///  kbAltK
+ -'13. Банковские реквизиты', cmStaffDoWin13, 'Банковские реквизиты',
+          hcStaffReceptionMenu, 'Alt+L', kbAltL,,,,, bmpW13_16;
+ -'14. Приказы', cmStaffDoWin14, 'Приказы',
+          hcStaffReceptionMenu, 'Alt+T', kbAltT,,,,, bmpW14_16;
+}

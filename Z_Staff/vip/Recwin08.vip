@@ -1,0 +1,53 @@
+#component "Z_Staff"
+
+alter Interface Recwin08;
+
+overload
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+OverloadFormats scPersons;
+
+screen scPersons ('',,sci1Esc);
+  show at (,,, 5.5);
+  table tmpPersons;
+  bevel b1 {1, 2.5, 100, 2.5, bsRaised, bsHorizontal};
+  bevel b2 {1, 5.5, 100, 5.5, bsRaised, bsHorizontal};
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO              ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  { Font = { BackColor = if(trim(tmpPersons.FIO) = '', ColorNeed, 0); }}, protect;
+  Persons.BornDate            ('Дата рождения'), skip, {Font = {Bold = True; Color = 0}};
+  Passports.Nmb               ('СНИЛС'), skip, {Font = {Bold = True; Color = 0}};
+  dPrizn1                     ('Дата заявления'): noprotect;
+  wPrizn1                     ('Подано заявление о продолжении ведения трудовой книжки'): noprotect;
+  dPrizn2                     ('Дата заявления'): noprotect;
+  wPrizn2                     ('Подано заявление о представлении сведений о трудовой деятельности'): noprotect;
+  wFiltrType ('Отображать только мероприятия электронной трудовой книжки по текущему работодателю, либо все записи'): noprotect;
+<<
+ `Ф.И.О.`        .@@@@@@@@@@   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Дата рождения` .@@@@@@@@@@   СНИЛС .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Подано заявление о продолжении ведения трудовой книжки`           .@@@@@@@@@@  [:] Отмена`
+ `Подано заявление о представлении сведений о трудовой деятельности`.@@@@@@@@@@  [:] Отмена`
+
+  [:] Мероприятия электронной трудовой книжки`
+>>
+end;
+
+end.

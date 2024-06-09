@@ -1,0 +1,99 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface PrikPsnLs;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brwPsn;
+
+Create view Psn
+
+As select
+  DepIer.GetFulDepNameEx(PersonsCh.cDept)
+    (fieldName = DeptNameIer)
+;
+
+browse brwPsn;
+table PersonsCh;
+Fields
+  PersonsCh.TabNmb   'Таб. номер'             ('Табельный номер ') :     [10], protect;
+  PersonsCh.StrTabN  'Таб. номер'             ('Табельный номер ') :     [10], protect;
+  PersonsCh.FIO      'Фамилия, имя, отчество' ('Фамилия Имя Отчество') : [30], protect;
+  DeptNameIer        'Подразделение'          ('Подразделение')        : [30], skip;
+  PostName           'Должность'              ('Должность')            : [20], skip;
+  PersonsCh.dAppDate 'Принят'                 ('Дата приема на работу'): [08], skip, centered;
+  PersonsCh.dDisDate 'Уволен'                 ('Дата увольнения')      : [08], skip, centered;
+end;
+
+HandleEvent
+
+cmInit:
+{
+  if not GetVipRef(VuserAcs, 'Z_StaffCat::UserDepartmentsIterator')
+  {
+    Message('Не найден интерфейс разграничения прав доступа UserDepartmentsIterator.', Information);
+    abort;
+    exit;
+  }
+
+  var par1: comp = cVidRab;
+
+  if ( delete all PersonsCh = tsOk ) {}
+
+  var sTitle: string = 'Список сотрудников: ' + KlSovm.NSovm;
+
+  if ( isDismiss )
+  {
+    sTitle += ', уволенные';
+
+    insert into PersonsCh
+    select Persons.Nrec, Persons.TabNmb, Persons.StrTabN, FIO, Appointments.Department, Appointments.Post, Persons.AppDate, Persons.DisDate
+    from Persons
+    where (( Persons.AppointLast == Appointments.NRec and
+             'С'      == Persons.IsEmployee  and
+             par1     == Persons.cSovm       and
+             ZERODATE << Persons.DisDate
+    ));
+  }
+  else
+  {
+    sTitle += ', работающие';
+
+    ClearFieldState(#PersonsCh.dDisDate, sfVisible);
+
+    insert into PersonsCh
+    select Persons.Nrec, Persons.TabNmb, Persons.StrTabN, FIO, Appointments.Department, Appointments.Post, Persons.AppDate, Persons.DisDate
+    from Persons,
+         Appointments
+    where (( Persons.AppointCur == Appointments.NRec and
+             'С'      == Persons.IsEmployee  and
+             par1     == Persons.cSovm       and
+             ZERODATE == Persons.DisDate
+    ));
+  }
+
+  SetWindowTitle(wnMainWindow, sTitle);
+
+  var bNoLock: boolean = false;
+  ReadMyDsk(bNoLock, 'RPD_'+string(UserID), false);
+
+  //Если настройка (разграничение по подразделениям включена)
+  if (not bNoLock)
+    if boGetTune('UP.STAFF.LOCK')
+      PushConditionForLeave(tcFilterAn, #PersonsCh); // использование сложного фильтра
+
+   // скрыть не нужный табельный
+  if wGetTune('FormatClockNumber') = 0
+    ClearFieldState(#PersonsCh.StrTabN, sfVisible);
+  else
+    ClearFieldState(#PersonsCh.TabNmb, sfVisible);
+
+  ReReadRecord(#PersonsCh);
+}   // cmInit
+
+end;
+
+end.

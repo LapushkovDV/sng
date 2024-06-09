@@ -1,0 +1,30 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface GetPersonAppSovm;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brPersonAppSovm;
+
+Create view GetPersonAppSovm
+
+As select
+  DepIer.GetFulDepNameEx(Appointments.Department)
+    (fieldname = DeptNameIer)
+;
+
+browse brPersonAppSovm (,, sci1EnterEsc);
+  table Appointments;
+fields
+  DeptNameIer 'Подразделение' ('Подразделение',,): [30], Protect;
+  PostName 'Должность' ('Должность',,): [20], Protect;
+  Appointments.AppointDate 'Дата назначения' ('Дата назначения на должность'): [15], Protect;
+  Appointments.DateEnd 'Назначен по' ('Дата окончания назначения на должность'): [15], Protect;
+  Appointments.DismissDate 'Дата ухода' ('Дата ухода с должности'): [15], Protect;
+  Appointments.Rate 'Кол-во ставок' ('Количество ставок',,): [10.3], Protect;
+end;
+
+end.

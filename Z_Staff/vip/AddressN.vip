@@ -1,0 +1,321 @@
+#component "Z_Staff"
+
+#include ActionJsonCreate.vih   // Интеграция с SAP
+
+#doc
+Докомпиляция интерфейса "Формирование полного адреса"
+#end
+alter Interface AddressWinN;
+
+Create view VAddressN
+as select
+  Catalogs.Code,
+  ZRU7AB.KTERR
+from
+  Catalogs,
+  ZRU7AB
+where
+((
+    AddressN.CDOPFIELD1 == Catalogs.NRec
+));
+
+overload
+  procedure CheckScreenFormat;
+  procedure InitAdress(NRecTerr: comp; HouseNum, BuildNum, StrucNum: s10; EstStatus, StrStatus: word; PostalCode: s6 = '');
+end;
+
+function GetAddressN13Label: string; forward;
+
+OverloadFormats scrMain, scrGar, scrAddressN11, scrAddressN3;
+
+hideFormats scrMain;
+
+embedded scrGar '' interface;
+  show at (,, 90, );
+End;
+
+Screen scrAddressN11;
+  show at (,, 90, );
+Fields
+  Catalogs.Code ('Территориальные условия'): skip;
+  AddressN.sPostINd   ('Индекс'): anRight;
+  TerrName            ('Населенный пункт',, sci13EnEsc): Protect, anLeft, anRight, {font = {BackColor = if(AddressN.cSterr = 0, ColorNeed, 0);}};
+  AddressN.sAddress2  ('Улица'): anLeft, anRight, {font = {BackColor = if(AddressN.sAddress2 = ''
+                       and (wType = 2 or wType = 4 or wType = 6 or wType = 24), ColorNeed, 0);}};
+  AddressN.sHouse     ('Дом'), anLeft;
+  AddressN.wDopField1 ('Тип строения'): [LIST 0 'Корпус', 1 'Строение', 2 'Владение', 4 'Домовладение', 5 'Здание', 6 'Литера', 3 'Другое'], Protect;
+  AddressN.sBlock     ('Корпус/строение/владение или другое произвольное описание'): anLeft, anRight;
+  AddressN.wDopField2 ('Тип помещения'): [LIST 0 'Квартира', 1 'Офис', 2 'Помещение', 3 'Другое'], Protect;
+  AddressN.sFlat      ('Квартира/Офис/Помещение/Другое'): anRight;
+  AddressN.sAddress1  ('Полный адрес',, sci13EnEsc): Protect, anLeft, anRight, NoPickButton, {button={command=cmPick;picture='bmpSearch'}};
+  AddressN.Latitude   : [10.7], {font = {bold = true}}, skip;
+  AddressN.Longitude  : [10.7], {font = {bold = true}}, skip;
+  fqc_geo             : skip;
+  AddressN.HouseGUID  ('Уникальный идентификатор записи дома HOUSEGUID'): {label = GetHouseGUIDLabel}, Skip, anLeft, anRight;
+
+<<
+ `Территориальные условия`.@@@                                      `Индекс` .@@@@@@@@@@@@
+ `Населенный пункт`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Улица`           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Дом`             .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Тип`             .@@@@@@@@@@@@  .@@@@@@@@@@@@  .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Полный адрес`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Широта` .@@@@@@@@@@@@@@@@@@@  `Долгота` .@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `HOUSEGUID`       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+End;
+
+Screen scrAddressN3;
+  show at (,, 90, );
+  table AddressN;
+Fields
+  Catalogs.Code       ('Территориальные условия'): skip;
+  AddressN.sAddress1  ('Полный адрес',, sci13EnEsc): Protect, anLeft, anRight, NoPickButton,
+                      {button={command=cmPick;picture='bmpSearch'}}, {font = {BackColor = if(AddressN.sAddress1 = '', ColorNeed, 0);}};
+  AddressN.sDopField1 ('Дополнение к адресу'): anLeft, anRight;                   
+  TerrName            ('Населенный пункт',, sci1EnEsc): Protect, anLeft, anRight;
+  AddressN.sAddress2  ('Улица'): anLeft, anRight;
+  AddressN.sHouse     ('Дом'), anLeft;
+  AddressN.wDopField1 ('Тип строения'): [LIST 0 'Корпус', 1 'Строение', 2 'Владение', 4 'Домовладение', 5 'Здание', 6 'Литера', 3 'Другое'], Protect;
+  AddressN.sBlock     ('Корпус/строение/владение или другое произвольное описание'): anLeft, anRight;
+  AddressN.wDopField2 ('Тип помещения'): [LIST 0 'Квартира', 1 'Офис', 2 'Помещение', 3 'Другое'], Protect;
+  AddressN.sFlat      ('Квартира/Офис/Помещение/Другое'): anRight;
+  AddressN.sPostINd   ('Индекс'): anRight;
+  AddressN.Latitude   : [10.7], {font = {bold = true}}, skip;
+  AddressN.Longitude  : [10.7], {font = {bold = true}}, skip;
+  fqc_geo             : skip;
+  AddressN.HouseGUID  ('Уникальный идентификатор записи дома HOUSEGUID'): {label = GetHouseGUIDLabel}, Skip, anLeft, anRight;
+
+<<
+ `Территориальные условия`.@@@
+ `Полный адрес`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Дополнение к адресу` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Населенный пункт`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Улица`           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Дом`             .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Тип`             .@@@@@@@@@@@@  .@@@@@@@@@@@@  .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Индекс`          .@@@@@@@@@@@@
+ `Широта` .@@@@@@@@@@@@@@@@@@@  `Долгота` .@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `HOUSEGUID`       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+End;
+
+Screen scrAddressN13; // экран адреса места рождения
+show at (,, 90, );;
+Fields
+  TerrName            ('Населенный пункт',, sci13EnEsc): Protect, anLeft, anRight;//, {font = {BackColor = if(AddressN.cSterr = 0, ColorNeed, 0);}};
+  AddressN.sAddress2  ('Место рождения'): {label = GetAddressN13Label}, noprotect, anLeft, anRight;//, {font = {BackColor = if(AddressN.sAddress2 = '', ColorNeed, 0);}};
+<<
+
+ `Населенный пункт`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Место рождения`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+>>
+End;
+
+function GetAddressN13Label: string;
+{
+  result := if(cPers = 0 or InStr('Место рождения', Title) = 0, 'Полный адрес', 'Место рождения');
+}
+
+procedure CheckScreenFormat;
+{
+  inherited::CheckScreenFormat;
+  if wType = word(3) or wType = word(99)
+  {
+    Switching := 1;
+    wSetTune('UP.Staff.AddressEditMode', Switching);
+    SetFormat(scrAddressN13);
+  }
+  else
+  {
+    Switching := 2;
+    wSetTune('UP.Staff.AddressEditMode', Switching);
+    SetFormat(scrAddressN3);
+  }
+  ToggleFieldProtected(#AddressN.sAddress2, ((NoManual = 1) or (Switching = 2)));
+}
+
+function GetTerrConditions(cSTerr: comp; sRegion: string): comp;
+var
+  sCode, sORT1, sORT2: string;
+  cRec: comp;
+{
+  result := 0;
+
+  sCode := substr(Sterr.SGNI_Code, 3, 3); // район
+  if sCode = '000'
+    sCode := '';
+
+  cRec := sTerr.cParent;
+  while cRec <> 0
+  {
+    if sTerr.wType < 4
+        break;
+    case Sterr.wType of
+      4: sORT1 := Sterr.FormalName;
+      6: sORT2 := Sterr.FormalName;
+    end;
+    if getfirst sTerr where (( cRec == sTerr.nRec )) = tsOk
+      cRec := sTerr.cParent;
+  }
+  cRec := 0;
+  if getfirst fastfirstrow ZRU7AB where ((sRegion == ZRU7AB.REGIO and sCode == ZRU7AB.COUNC
+                                      and ( (sORT1 = ZRU7AB.ORT01 and sORT2 = ZRU7AB.ORT02)  or ('' = ZRU7AB.ORT01 and '' = ZRU7AB.ORT02) ) )) = tsOk
+  {
+    if getfirst fastfirstrow Catalogs where ((-31661 == Catalogs.SysCode)) <> tsOk
+      exit;
+    cRec := Catalogs.NRec;
+    if getfirst fastfirstrow Catalogs where ((cRec == Catalogs.cParent and ZRU7AB.KTERR == Catalogs.Code)) <> tsOk
+      exit;
+    result := Catalogs.NRec;
+  }
+}
+
+TableEvent
+  table AddressN;
+
+cmInsertRecord:
+{
+  if inherited::handleevent(cmInsertRecord) <> heOk
+  {
+    abort;
+    exit;
+  }
+  if AddressN.dRegBeg <> ZeroDate and
+     AddRessN.dRegEnd <> ZeroDate
+  {
+    case AddressN.ObjType of
+      2,4,55:
+      {
+        var oJson: JsonAddress new;
+        oJson.CreateJsonAddressn(AddressN.nRec, 'INS');
+      }
+    end;
+  }
+}
+
+cmUpdateRecord:
+{
+
+  if inherited::handleevent(cmUpdateRecord) <> heOK
+  {
+    abort;
+    exit;
+  }
+  if AddressN.dRegBeg <> ZeroDate and
+     AddRessN.dRegEnd <> ZeroDate
+  {
+    case AddressN.ObjType of
+      2,4,55:
+      {
+        var oJson: JsonAddress new;
+        oJson.CreateJsonAddressn(AddressN.nRec, 'MOD');
+      }
+    end;
+  }
+}
+
+cmDeleteRecord:
+{
+  case AddressN.ObjType of
+    2,4,55:
+    {
+      var oJson: JsonAddress new;
+      oJson.CreateJsonAddressn(AddressN.nRec, 'DEL');
+    }
+  end;
+  if inherited::handleevent(cmDeleteRecord) <> heOk
+  {
+    abort;
+    exit;
+  }
+}
+
+end;
+
+private procedure InitAdress(NRecTerr: comp; HouseNum, BuildNum, StrucNum: s10; EstStatus, StrStatus: word; PostalCode: s6 = '');
+{
+  var s_sAddress2:string=AddressN.sAddress2;
+  inherited::InitAdress(NRecTerr, HouseNum, BuildNum, StrucNum, EstStatus, StrStatus, PostalCode);
+  if wType = word(3) or wType = word(99)
+    set AddressN.sAddress2 := s_sAddress2;
+}
+
+HandleEvent
+cmPick:
+{
+  var sRegion, sRegFirst: string;
+
+  if (wType = word(3) or wType = word(99)) and CurField = #TerrName
+  {
+    var HouseNum, BuildNum, StrucNum: s10 = '';
+    var EstStatus, StrStatus: word = 0;
+    var PostalCode: s6 = '';
+    var NRecTerr, HouseNRec: comp = 0;
+
+    if (AddressN.cStreet <> 0)
+      NRecTerr := AddressN.cStreet;
+    else
+      NRecTerr := AddressN.cSterr;
+
+    case wGetTune('UP.Staff.Address_PICK') of
+      1:
+      {
+        if AddressN.Nrec=0
+        {
+          SetModified(true); // Нужно сделать вставку
+        }
+        UpdateTable;
+        if RunInterface(AddressGet,title,Addressn.nrec,wtype,cpers,NRecTerr) = cmDefault
+        {
+        }
+        RereadRecord(#Addressn) ;
+      }
+      else
+      { if (RunInterface('Z_STAFFCAT::TerrCatalog', 2300, NRecTerr, 0, '', '', '', 0, 0, HouseNRec) = cmDefault)
+        { set vHouse.pHouseNRec := HouseNRec;
+          vHouse._loop nocache House
+          {
+            HouseNum  := vHouse.House.HouseNum;
+            StrucNum  := vHouse.House.StrucNum;
+            BuildNum  := vHouse.House.BuildNum;
+            EstStatus := vHouse.House.EstStatus;
+            StrStatus := vHouse.House.StrStatus;
+            PostalCode:= vHouse.House.PostalCode;
+            AddressN.HOUSEGUID := vHouse.House.HouseGUID;
+            AddressN.HouseID := vHouse.House.HouseID;
+            break;
+          }
+          InitAdress(NRecTerr, HouseNum, BuildNum, StrucNum, EstStatus, StrStatus, PostalCode);
+        }
+      }
+    end;
+  }
+  else
+  {
+    if inherited::handleEvent(cmPick) = heOK and AddressN.cSTerr <> 0
+    {
+      if getfirst fastfirstrow Sterr where ((AddressN.cSTerr == Sterr.NRec)) = tsOk
+      {
+        sRegion := substr(Sterr.SGNI_Code, 1, 2); // страна/регион
+        sRegFirst := substr(sRegion, 1, 1);
+        if InStr(sRegFirst, '0123456789') <> 0
+        {
+          AddressN.CDOPFIELD1 := GetTerrConditions(cSterr, sRegion);
+          RedrawPanel(target);
+        }
+      }
+    }
+  }
+}
+
+cmHotkeys:
+{
+  if (FocusedFormat <> scrMain and FocusedFormat <> scrAddressN13)
+    PutHotCommand(RunMenu('mnuAddressN'));
+}
+End; // HandleEvent
+
+End.

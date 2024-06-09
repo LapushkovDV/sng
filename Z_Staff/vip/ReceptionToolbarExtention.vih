@@ -1,0 +1,28 @@
+//------------------------------------------------------------------------------
+//                                                     ПАО Сургутнефтегаз
+//------------------------------------------------------------------------------
+// Галактика 9.1 - Управление персоналом
+// ToolBar-ы для SNG интерфейсов картотеки сотрудников
+//------------------------------------------------------------------------------
+
+toolbar tlbrReceptionMainWinExtention {
+  tbnRecwin99 =
+  {
+    Command   = cmStaffDoWin99;
+    BitMap    = bmpSecData;
+    Help      = 'Безопасность';
+    BroadCast = true;
+  };
+
+};
+
+toolbar tlbrReceptionMainSearch
+{
+  tbnSearchPersons =
+  {
+    Command = cmStaffSearchPersons;
+    BitMap = bmpSearchPers;
+    Help = 'Поиск карточек физического лица';
+    BroadCast = false;
+  };
+};

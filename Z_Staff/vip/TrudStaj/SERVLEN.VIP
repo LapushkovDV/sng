@@ -1,0 +1,233 @@
+#component "Z_Staff"
+
+#include Pickcat.vih
+#include CatFunc.vih
+#include RunStaj.vih  // Функции расчета стажей
+#include PersCopyUser.VIH
+#include SNG_exRunStaj.vih
+
+
+#doc
+Редактирование записи о стаже
+#end
+Alter interface StaffServLenEdit;
+
+const
+  cs_lgotSn:string = 'Льготы для СН';
+  coSysCodeCatPriznak: integer = -31679; //системный код справочника "Признак стажа"
+end;
+
+Function add_upd_field : String; forward;
+Procedure HideFieldIfKategNotAvailable; forward;
+
+var Sprav : Comp = 0;
+var Datesprav : Date = Date(0,0,0);
+var ini_value : String;
+var oSNG_exRunStaj: iSNG_exRunStaj;
+
+create view vServLenEdit
+
+from
+
+   CONTDOC cont,
+   INFPSN1 infp,
+
+   Sng_ServlenExt,
+   Catalogs CatPriznak,
+   Catalogs CatExt,
+   Catalogs CatExtFnd,
+   Catalogs
+where
+((
+             cPerson == cont.person and
+           cont.Nrec == infp.cpers and
+
+        ServLen.nRec == Sng_ServlenExt.Servlen and
+        Sng_ServlenExt.Priznak == CatPriznak.nRec and
+               Sprav == CatExt.Nrec
+));
+
+
+ExtendFormats scrServLenEditFst;
+  panel panServLenEdit;
+    table ServLen;
+  screen scrServLenEditFst;
+   Fields
+
+     CatPriznak.name ('Признак стажа',hcnorth): [12], Protect, pickbutton;
+     CatExt.code( 'Предоставлена справка', hcnorth) :[1]  NoProtect, pickButton; //CatCode
+     CatExt.Name( 'Текст из справочника' , hcnorth) :[10] Protect, noFrame;  //CatText
+     Datesprav( 'Дата предоставления справки', hcnorth) : [10,'DD/MM/YYYY'], NoProtect, pickButton;
+
+<<
+
+
+
+
+
+
+
+`Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+ Предоставлена справка о проживании не менее 5 лет в районах .@@@@@  .@@@@@@@@@@
+`Дата предоставления справки`.@@@@@@@@@@
+>>
+    end; // scrServLenEditFst
+
+
+procedure HideFieldIfKategNotAvailable();{
+
+if ToDecimal(infp.cref1) = 9 or
+   ToDecimal(infp.cref1) = 10 exit;
+
+   SetFieldAndLabelVisible(#CatExt.code, false);
+   SetFieldAndLabelVisible(#CatExt.name, false);
+   SetFieldAndLabelVisible(#Datesprav, false);
+   cfsSetProp('T_SCRSERVLENEDITFST_Предоставлена_справка_о_проживании_не_менее_5_лет_в_районах', cfpHidden, true);
+
+}
+
+function add_upd_field(): String;{
+  var res : String = 'initial';
+
+      if Sprav = Comp(0) and
+         Datesprav <> Date(0,0,0) {
+      message('Сначала внесите данные по справке');
+      Set Datesprav := Date(0,0,0);
+      exit;
+    };
+
+
+     if isvalid( tnServLen ) = true {
+      if GetFirst Sng_ServlenExt where (( ServLen.Nrec == Sng_ServlenExt.Servlen )) <> tsOk {
+          Set Sng_ServlenExt.servlen := ServLen.NRec;
+          Set Sng_ServlenExt.Datesprav := Datesprav;
+          Set Sng_ServlenExt.Lgota := Sprav;
+          Set Sng_ServlenExt.Nrec := Comp(0);
+
+          insert current Sng_ServlenExt;
+        //res := 'insert Sng_ServlenExt '+ String(Sng_ServlenExt.servlen) + String(Sng_ServlenExt.Datesprav);
+
+      }else{
+          Set Sng_ServlenExt.Datesprav := Datesprav;
+          Set Sng_ServlenExt.Lgota := Sprav;
+          update current Sng_ServlenExt;
+       //res := 'update Sng_ServlenExt '+ String(Sng_ServlenExt.servlen) + String(Sng_ServlenExt.Datesprav);
+
+      };
+     };
+
+    result := res;
+
+}
+
+
+ HandleEvent
+
+
+ cmPick:{
+   inherited::handleevent(cmPick);
+
+   case CurField of
+     #CatExt.code: //CatCode
+     {
+        if GetFirst CatExtFnd where ((    0 == CatExtFnd.lpr and
+                                          0 == CatExtFnd.mainlink and
+                                  cs_lgotSn == CatExtFnd.name )) = tsOk
+           {
+
+               Sprav := CatExtFnd.nrec;
+               if(RunInterface( 'Z_STAFFCAT::PICKCATALOG2', comp(0), Sprav, comp(0), comp(0)) = cmDefault )
+                {
+
+                }
+           }
+     }
+     #CatPriznak.name:
+     {
+       RunInterface('Z_StaffCat::PickCatalog2', coSysCodeCatPriznak, Sng_ServlenExt.Priznak, comp(0), comp(0));
+     }
+
+   end; //Case
+
+   RescanPanel(#ServLen);
+ }; //cmPick
+
+
+cmCheckField:{
+  inherited::handleevent(cmCheckField);
+
+}
+
+ cmInsertRecord:{
+  var _CatPriznak:comp=Sng_ServlenExt.Priznak;
+  inherited::handleevent(cmInsertRecord);
+  Sng_ServlenExt.Priznak:=_CatPriznak;
+
+       if (GetFirst Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+        if(Catalogs.sysCode = 9132){
+         if(ServLen.FromDate = date(0,0,0)){
+           Sng_ServlenExt.DaysB := ServLen.DaysB;
+
+         }
+        }
+
+ add_upd_field();
+
+
+
+ }
+
+cmUpdateRecord:{
+  inherited::handleevent(cmUpdateRecord);
+
+  add_upd_field();
+
+}
+
+cmDeleteRecord:{
+  inherited::handleevent(cmDeleteRecord);
+  if GetFirst ServLen where (( Sng_ServlenExt.ServLen == ServLen.Nrec )) <> tsOk
+  {
+   delete current Sng_ServlenExt;
+  }
+}
+
+ end;// HandleEvent
+end; // panServLenEdit
+
+ HandleEvent
+
+ cmInit:{
+   inherited::handleevent(cmInit);
+   //SetFieldAndLabelVisible(#ServLen.Rate, false);
+
+   HideFieldIfKategNotAvailable( );
+
+   Set Sprav     := 0;
+   Set Datesprav := Date(0,0,0);
+
+    if Servlen.nRec <> Comp(0) {
+
+      Set Datesprav := Sng_ServlenExt.Datesprav;
+      Set Sprav := Sng_ServlenExt.Lgota;
+
+  };
+
+ }; //cmInit
+
+  cmCheckField:{
+   inherited::handleevent(cmCheckField);
+     case CurField of
+     #Datesprav:{
+
+     }
+
+     end; //Case
+
+}
+
+ end;
+
+end.// interface StaffServLenEdit

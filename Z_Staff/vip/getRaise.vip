@@ -1,0 +1,32 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface GetRaise;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats ChooseR;
+
+Create view aaa
+
+As select
+  DepIer.GetFulDepNameEx(Appointments.Department)
+    (fieldname = DeptNameIer)
+;
+
+browse ChooseR;
+  Show at (,2,,);
+fields
+  App_Raise         'Таб.н.': [10], skip;
+  DeptNameIer       'Подразделение', ('Подразделение',,scStaffSimpleChoose): [20], protect;
+  PostCat.Name      'Должность', ('Должность',,scStaffSimpleChoose): [20], protect;
+  PsnRaiseCat.Name  'Вид доплаты/надбавки', ('Вид доплаты/надбавки.',,scStaffSimpleChoose): [20], protect;
+  TR.Sum          'Сумма/процент доплаты/надбавки', ('Сумма/процент доплаты/надбавки',,scStaffSimpleChoose): [13.3], protect;
+  PsnCurrName       'Валюта', ('Валюта оплаты.',,scStaffSimpleChoose) :[10] , protect;
+  TR.FromDate     'С даты', ('Дата, с которой установлена доплата',,scStaffSimpleChoose): [10,'DD/MM/YYYY'], protect;
+  TR.ToDate     'По дату', ('Дата, по которую установлена доплата',,scStaffSimpleChoose): [10,'DD/MM/YYYY'], protect;
+end;
+
+end.

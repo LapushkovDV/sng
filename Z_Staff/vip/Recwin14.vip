@@ -1,0 +1,39 @@
+#component "Z_Staff"
+
+alter Interface Recwin14;
+
+overload
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+OverloadFormats scOrders;
+
+screen scOrders (,, scStaffReceptionT2Butt);
+  show at (,,, 2.5) fixed_y;
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO ('Фамилия, имя, отчество'),
+  {Font = {BackColor = if(tmpPersons.FIO = '', ColorNeed, 0)}}, protect;
+<<
+
+ `Ф.И.О.` .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scOrders
+
+end.

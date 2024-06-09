@@ -1,0 +1,379 @@
+#component "Z_STAFF"
+
+#include ServlenFunc.vih
+#include SNG_exRunStaj.vih
+
+const
+  cmRunStajCalc = 3500;
+end;
+
+alter interface Recwin03;
+var
+  oExtAttr  : iExtAttr;
+  oExtAttrDay: iExtAttr;
+  ExtAttrIDDay : comp;
+  ExtAttrIDChk : comp;
+  oServlenExt: iServlenExt;
+  cTmpRec: comp;
+  iExRunStajSNG : iSNG_exRunStaj;
+
+overload
+  procedure Idle;
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+procedure Idle;
+{
+  inherited::Idle;
+
+  //вкладка Награждения
+  ClearFieldState(#FortCatalog.Name, sfVisible);
+  ClearFieldState(#Fortune.DocSum, sfVisible);
+  ClearFieldState(#CurrNameFort, sfVisible);
+
+  //вкладка Взыскания
+  ClearFieldState(#Punishments.DocSum, sfVisible);
+  ClearFieldState(#CurrNamePun, sfVisible);
+
+  cfsSetProp('c_BRFORTUNEPLUS_FORTUNEDOCNAME.NAME_Документ_основание', cfpTitle, 'Вид док. о награждении');
+  cfsSetProp('c_BRFORTUNEPLUS_FORTUNEDOCNAME.NAME_Документ_основание', cfpHelpLine, 'Вид документа о награждении');
+  cfsSetProp('c_BRFORTUNEPLUS_FORTCATTYPE.NAME_Тип_награды', cfpTitle, 'Код награды');
+  cfsSetProp('c_BRFORTUNEPLUS_FORTCATTYPE.NAME_Тип_награды', cfpHelpLine, '');
+}
+
+table struct tmpServlenExt
+(
+  nRec: comp
+)
+with index
+(
+  tmpServlenExt01 = nRec
+);
+
+create view vServLen
+as select
+  extFortune.*,
+  osnovCat.name
+from
+  Sng_ServlenExt,
+  tmpServlenExt,
+  SNG_Punishments,
+  sng_fortune,
+  sng_fortune extFortune,
+  catalogs CatCauseAward,
+  catalogs osnovCatTop,
+  catalogs osnovCat
+where ((
+  fortune.nrec == extFortune.cfortune and
+  Servlen.nRec == Sng_ServlenExt.servlen and
+  coExImLogR == osnovCatTop.syscode and
+  osnovCatTop.nrec == osnovCat.cparent and
+  LPadCh(string(extFortune.osnov),'0',2) == osnovCat.code
+      ));
+
+OverloadFormats scPersons;
+
+screen scPersons;
+  show at (,,,1);
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO    ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  {Font={BackColor=if(trim(tmpPersons.FIO) = '',ColorNeed,0)}}, protect;
+buttons
+  cmRunStajCalc, [singleline];
+<<
+  Ф.И.О. .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   <. Рассчитать стаж .>
+>>
+end; // screen scPersons
+
+
+OverloadFormats brwServLen;
+browse brwServLen;
+show at (,13,,19);
+table ServLen;
+Fields
+  ServLenNonStop     ' '    : [1], Skip;
+  iExRunStajSNG.NGetStajYearsSng(Persons.Nrec, ServLen.Position, Cur_Date)       'лет'  : [4], Skip;
+  iExRunStajSNG.NGetStajMonthsSng(Persons.Nrec, ServLen.Position, Cur_Date)      'мес.' : [4], Skip;
+  iExRunStajSNG.NGetStajDaysSng(Persons.Nrec, ServLen.Position, Cur_Date)        'дней' : [4], Skip;
+  SLPositionCat.Name 'Наименование стажа' ('Текущее состояние стажа. Подробная информация по F4.',
+    hcStaffReceptionT2SL, scStaffReceptionT2SL) : [50], Protect;
+end;
+
+ExtendFormats brFortunePlus;
+ExtendFormats brPunishments;
+
+//tabbedsheet Bottom tabFortune;
+browse brFortunePlus;
+table Fortune;
+fields
+  osnovCat.name 'Основание', 'для награждения': [30], protect, pickbutton;
+  extFortune.z_num 'Номер документа', 'о награждении': [17], noprotect;
+  extFortune.z_datedsp 'Дата приказа СП': [10,'DD/MM/YYYY'], noprotect;
+  extFortune.z_numdsp 'Номер приказа СП': [10], noprotect;
+end;
+
+browse brPunishments 'Взыскания/наказания';
+table Punishments;
+fields
+  [PunReason]
+    iCatFunc.GetCatalogsName(SNG_Punishments.Reason) 'Причина снятия' ('Причина снятия'): [20], noprotect, pickbutton, centered;
+  [Chk_D]
+    (if (oExtAttrDay.lGetAttr(coPunishments, Punishments.nrec, 'Пребывание в вытрезвителе') != '0', 'Да', 'Нет' )) 'Преб.в вытрезв' ('Пребывание в вытрезвителе'): [14], noprotect, centered ;
+  [Col_Days]
+    oExtAttrDay.lGetAttr(coPunishments, Punishments.nrec, 'Кол-во потерянных дней') 'Кол-во пот.дней' ('Кол-во потерянных дней'): [15], noprotect, centered;
+end; //browse brPunishments
+
+handleEvent
+	cmOnVipLoad:
+	{
+		if(inherited::handleEvent(cmOnVipLoad)=heOk)
+    {
+		  ExtAttrIDDay := oExtAttrDay.CreateAttr(coPunishments, 'Кол-во потерянных дней', cgAttrType_LongInt);
+      ExtAttrIDChk := oExtAttrDay.CreateAttr(coPunishments, 'Пребывание в вытрезвителе', cgAttrType_LongInt);
+    }
+	}
+
+  cmCheckField:
+  {
+    case CurField of
+      #Chk_D:
+      {
+        if Punishments.cCont != '0'
+        {
+          rereadrecord(#Punishments);
+         // message ('Данные введены на основании приказа. Изменение запрещено');
+        }
+        else
+          oExtAttrDay.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDChk, LongInt(Chk_D));
+      }
+
+      #Col_Days:
+      {
+        if Punishments.cCont != '0'
+        {
+          rereadrecord(#Punishments);
+          //message ('Данные введены на основании приказа. Изменение запрещено');
+        }
+        else
+          oExtAttrDay.lSetAttrID(coPunishments, Punishments.nrec, ExtAttrIDDay, LongInt(ExprFieldValue));
+      }
+    end;
+  }
+end;  //handleEvent
+//end;  //tabbedsheet tabFortune
+
+panel pFortune
+  table Fortune;
+HandleEvent
+cmCheckField:
+{
+  case curfield of
+    #extFortune.z_num,
+    #extFortune.z_numdsp,
+    #extFortune.z_datedsp:
+    {
+      if IsValidAll(#extFortune)
+        update current extFortune;
+    }
+  end;
+}
+
+cmInsertRecord:
+{
+  var _z_datedsp: date = extFortune.z_datedsp;
+  var _z_numdsp : string = extFortune.z_numdsp;
+  var _z_num    : string = extFortune.z_num;
+  var _osnov    : byte = extFortune.osnov;
+
+  inherited::handleEvent(cmInsertRecord);
+
+  if Fortune.nrec != 0
+    insert sng_fortune set
+        cfortune := Fortune.nrec,
+        z_datedsp := _z_datedsp,
+        z_numdsp := _z_numdsp,
+        z_num := _z_num,
+        osnov := _osnov;
+}
+
+cmUpdateRecord:
+{
+  inherited::handleEvent(cmUpdateRecord);
+
+  if IsValidAll(#extFortune)
+    update current extFortune;
+}
+
+cmDeleteRecord:
+{
+  var cfortune: comp = fortune.nrec;
+
+  inherited:: handleEvent(cmDeleteRecord);
+
+  if getfirst fastfirstrow fortune where (( cfortune == fortune.nrec)) <> tsOk
+    if getfirst fastfirstrow sng_fortune where (( cfortune == sng_fortune.cfortune)) = tsOk
+      delete current sng_fortune;
+}
+end; //HandleEvent panel pFortune
+end; // pFortune
+
+panel pPunishments;
+  table Punishments;
+
+procedure CheckExistSngPunishments();
+{
+  if (not IsValidAll(#SNG_Punishments))
+  {
+    if (not IsValidAll(#Punishments))
+    {
+      insert current Punishments;
+      RereadRecord(#Punishments);
+    }
+    insert current SNG_Punishments set cRec := Punishments.nRec;
+  }
+}
+
+HandleEvent
+  cmDeleteRecord:
+  {
+    if inherited:: handleEvent(cmDeleteRecord) = heOk
+      if IsValidAll(#SNG_Punishments)
+        if GetFirst fastfirstrow Punishments where ((SNG_Punishments.cRec == Punishments.nRec)) <> tsOk
+          delete current SNG_Punishments;
+  }
+
+  cmPick:
+  {
+    case CurField of
+      #PunReason:
+      {
+        if RunInterface('Z_StaffCat::PickCatalog2', -31600, cTmpRec, comp(0)) = cmDefault
+        {
+          CheckExistSngPunishments();
+          set SNG_Punishments.Reason := cTmpRec;
+          update current SNG_Punishments;
+        }
+      }
+    end;
+  }
+end; //HandleEvent panel pPunishments
+end; // pPunisments
+
+panel panServLen;
+  table ServLen;
+
+handleEvent
+  cmDeleteRecord:
+  {
+    var person: comp = Servlen.Person;
+    var position: comp = Servlen.Position;
+
+    delete all tmpServlenExt;
+
+    // Сбор nRec-ов таблицы Sng_ServlenExt, которые нужно будет удалить
+    _loop Servlen where (( person == Servlen.Person and
+                              position == Servlen.Position ))
+    {
+      if GetFirst fastfirstrow Sng_ServlenExt = tsOk {
+        tmpServlenExt.nRec := Sng_ServlenExt.nRec;
+        insert current tmpServlenExt;
+      }
+    }
+
+    if inherited:: handleEvent(cmDeleteRecord) = heOk
+       // Удаление записей таблицы Sng_ServlenExt
+      _loop tmpServlenExt
+      {
+        oServlenExt.DeleteRecord(tmpServlenExt.nRec);
+      }
+  }
+
+end; // HandleEvent
+end; // panServLen
+
+HandleEvent
+  cmPick:
+  {
+    case CurField of
+      #FortCatType.Name:
+      {
+        cParentSav := FortCatType.Nrec;
+        if RunInterface('Z_StaffCat::PickCatalog2', integer(-31665), cParentSav, comp(0)) = cmDefault
+          set Fortune.cRef1 := cParentSav;
+      }
+
+      #osnovCat.name:
+      {
+        if RunInterface('Z_StaffCat::PickCatalog2', coExImLogR, cTmpRec, comp(0)) = cmDefault
+          if GetFirst fastfirstrow CatCauseAward where ((cTmpRec == CatCauseAward.nRec)) = tsOk
+          {
+            set extFortune.osnov := byte(CatCauseAward.code);
+            if IsValidAll(#extFortune)
+              update current extFortune;
+          }
+      }
+
+      #FortuneDocName.Name:
+      {
+         cParentSav := FortuneDocName.Nrec;
+         if RunInterface('Z_StaffCat::PickCatalog2', integer(-31516), cParentSav, comp(0)) = cmDefault
+           set Fortune.cRef2 := cParentSav;
+      }
+
+    else
+      inherited::handleEvent(cmPick)
+    end;
+  }
+
+  cmHotKeys:
+  {
+    if (Choice = 0 or Choice = 2) and FocusedFormat = brwServLen
+    {
+
+      // Добавление пунктов к контекстному меню для таблицы со стажами
+      var lMenu, tmpMenu: LongInt;
+      lMenu := LoadMenu('ReceptionMenuF2F3');
+
+      if (ServLen.Position <> iCatFunc.GetCatalogsNRec(64)) and (ServLen.Position <> iCatFunc.GetCatalogsNRec(9132))
+        SetMenuItemState(lMenu, 'Информация для начисления северной надбавки', cmValue24, mfHidden);
+
+      tmpMenu := LoadMenu('ReceptionMenuF2F3ServLen');
+      ConcatMenu(lMenu, tmpMenu);
+      PutHotCommand(RunLoadMenu(lMenu));
+
+    }
+    else
+      inherited::handleEvent(cmHotKeys);
+  }
+
+  cmRunStajCalc:
+  {
+    RunInterface('SNG_StajCreator::StajCreator', tmpPersons.nRec);
+    RereadRecord(tnServLen);
+  }
+end; // HandleEvent
+
+end.
+
+ReceptionMenuF2F3ServLen Menu
+{
+-----------;
+ - 'Рассчитать стаж', cmRunStajCalc, 'Рассчитать стаж', hcNoContext, '', kbNokey;
+}

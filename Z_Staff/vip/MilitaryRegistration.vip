@@ -1,0 +1,184 @@
+#component "Z_StaffCat"
+#include DepartmentsLimiter.vih  //Интерфейс разграничения прав доступа к подразделениям
+#component "Z_Staff"
+#include ComFiltr.vih            // Фильтр по персонам
+#include TotalOrganizationAttributes.vih
+
+#doc
+Интерфейс Воинский учет
+#end
+alter interface MilitaryRegistration;
+show at (,, 141, 35);
+
+Overload
+ procedure FillPersons(pNRec: comp; pFIO, psTabN: string; plTabN: longint; pType: word);
+end;
+
+OverloadFormats scPrizn;
+OverloadFormats trCat;
+OverloadFormats brPers;
+
+
+var
+flag1 : word;
+PODR_Filter : string;
+flag2 : word;
+kategory : string;
+flag3 : word;
+base : string;
+dates : string;
+
+ParPerson1    : word;
+ParPerson2    : word;
+
+VInter     : CommonFiltr new;
+Marker_TMP : TPtr;
+vUserAcs   : IDepartmentsLimiterIterator;
+
+create view vMilitaryRegistration
+as select
+  tmpConscription.*, Catalogs.*
+from
+  Conscription tmpConscription, Catalogs tmp1Catalogs, Catalogs tmp2Catalogs
+where
+((
+    Persons.NRec == tmpConscription.Person // Сведения ВУС
+    and
+     tmpConscription.milability == tmp1Catalogs.NRec
+    and
+     tmpConscription.specacc == tmp2Catalogs.NRec
+))
+;
+
+#include totalorganizationattributes.var // объявление и инициализация TOA
+
+embedded ComFiltrEmbedded interface VInter;
+  show (, , , 6);
+end;
+
+screen scPrizn ('',,sci1Esc);
+  show at (,7,,10);
+  table tmpType;
+fields
+  ParPerson1 ('Категория годности'): [LIST ' ', 'А', 'Б', 'В','Г','Д'], protect;
+  ParPerson2 ('Учет'): [LIST ' ', 'Общий', 'Специальный'], protect;
+  wPrizn ('Отобразить 5-й раздел'): noprotect;
+<<
+   `Категория годности`     .@@@@@@@@@@@@@@@@@@@@@@
+   `Учет`                   .@@@@@@@@@@@@@@@@@@@@@@
+  [.] Отобразить 5-й раздел`
+>>
+end
+
+
+Tree trCat (,hcNoContext, sci1TreeEnEsc);// дерево
+  show at (,11,70,);
+  Table tmpType;
+Fields
+  tmpType.Razdel 'Разделы картотеки': protect, nopickbutton;
+end; //tree
+
+
+browse brPers (,hcNoContext, sci14EnInsEsc);
+  show at (71,11,,);
+  Table tmpPersons;
+  recMarker = pMarker {tmpPersons.nrec};
+Fields
+  tmpPersons.FIO 'ФИО' ('ФИО'): [55], protect;
+  tmpPersons.sTabN 'Табельный', 'номер' ('Табельный номер'): [15], protect;
+  tmpPersons.lTabN 'Табельный', 'номер' ('Табельный номер'): [15], protect;
+  tmp1Catalogs.name 'Категория', 'годности' ('Категория годности'): [15], protect;
+  tmp2Catalogs.name 'Учет'('Учет'): [15], protect;
+end;
+
+private procedure FillPersons(pNRec: comp; pFIO, psTabN: string; plTabN: longint; pType: word);
+{
+  if (not FoundMarker(VInter.GetPersonsWOFlagMarker, pNRec))
+    exit;
+
+  if not VuserAcs.Exists(Persons.Department)
+    exit;
+
+  if (ParPerson1 <> 0)
+  {
+    if (Getfirst tmp1Catalogs != tsOk)
+    {
+      exit;
+    }
+    var lsvalue : string = '';
+    case ParPerson1 of
+     1 : lsvalue  := 'А' ;
+     2 : lsvalue  := 'Б' ;
+     3 : lsvalue  := 'В' ;
+     4 : lsvalue  := 'Г' ;
+     5 : lsvalue  := 'Д' ;
+    end;
+    if (lsvalue <> tmp1Catalogs.code)
+    {
+      exit;
+    }
+  };
+
+  if (ParPerson2 <> 0)
+  {
+    if (Getfirst tmp2Catalogs != tsOk)
+    {
+      exit;
+    }
+    var lsvalue : string = '';
+    case ParPerson2 of
+     1 : lsvalue  := 'Общий' ;
+     2 : lsvalue  := 'Специальный' ;
+    end;
+    if (lsvalue <> tmp2Catalogs.code)
+    {
+      exit;
+    }
+  };
+  inherited::FillPersons(pNRec, pFIO, psTabN, plTabN, pType);
+}
+
+HandleEvent
+cmInit:
+{
+  ParPerson1 := 0;//' ';
+  ParPerson2 := 0;
+  // Формирование списка
+  if ( VInter.GetPsnCount = 0 )
+  {
+    VInter.SetPersonsState(0);
+    VInter.SelectAllPsn;
+  }
+  BindEvent(FillData, VInter.OnUpdatePsnMarker);
+
+  if not GetVipRef(VuserAcs, 'UserDepartmentsIterator')
+  {
+    Message('Не найден интерфейс разграничения прав доступа UserDepartmentsIterator.', Information);
+    abort;
+    exit;
+  }
+  inherited::HandleEvent(cmInit);
+}
+cmDone:
+{
+  inherited::HandleEvent(cmDone);
+  UnBindEvent(FillData, VInter.OnUpdatePsnMarker);
+}
+cmCheckField:
+{
+  inherited::HandleEvent(cmCheckField);
+  case CurField of
+
+    #ParPerson1:
+    {
+      FillData;
+    }
+    #ParPerson2:
+    {
+      FillData;
+    }
+
+  end;
+}
+end;
+end.

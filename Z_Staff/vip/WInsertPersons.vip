@@ -1,0 +1,13 @@
+#component "Z_Staff"
+
+alter Interface wInsertPersons
+
+handleevent
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+  var bLockTabnmb : boolean = boGetTune('UP.STAFF.LOCK_TABNMB');
+  ToggleFieldSelectable(#ClockNumber, bLockTabnmb);
+}
+end;
+end.

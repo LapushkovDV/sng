@@ -1,0 +1,277 @@
+//------------------------------------------------------------------
+//
+//------------------------------------------------------------------
+#component "Z_Staff"
+
+Alter Interface PickVacancy;
+overload 
+  procedure FilltmpTable;
+end;
+//----------------------------------------------------------------------------HR-384
+  table struct
+  tmpStafStrSCodest
+  ( Nrec         : comp,
+    NamePost     : String[100],
+    CodePost     : string[20],
+    Kateg        : string[20],
+    SCodest      : String[100]
+  )
+  with index
+  (
+   tmpStafStrSCodest1 = Nrec
+  );
+
+  table struct tmpPersPr
+  (
+    NRec    : comp,
+    Prim    : string[100]
+  )
+  with index
+  (
+    ind = Nrec
+  );
+
+create view
+var
+  bHide: boolean;
+from
+ tmpStafStrSCodest,
+ Vacations VacSt,
+ KlOtpusk Klotp
+
+where (( 
+  tmpCurrStafStr.nrec  == tmpStafStrSCodest.NRec and
+  tmpPers.Nrec == tmpPersPr.Nrec
+  ));
+
+procedure inittab;
+var _Scodest: string[100];
+{
+  _loop tmpCurrStafStr
+
+    {
+      if getfirst StaffStruct where (( tmpCurrStafStr.nrec == StaffStruct.nrec )) = tsOk
+      {
+        _Scodest := StaffStruct.Scodest;
+
+        ClearBuffer(#tmpStafStrSCodest);
+        tmpStafStrSCodest.nrec := tmpCurrStafStr.Nrec ;
+        tmpStafStrSCodest.NamePost := tmpCurrStafStr.NamePost;
+        tmpStafStrSCodest.CodePost := tmpCurrStafStr.CodePost;
+        tmpStafStrSCodest.Kateg := tmpCurrStafStr.Kateg;
+        tmpStafStrSCodest.SCodest := _Scodest;
+        insert current tmpStafStrSCodest;
+
+      }
+    };
+}
+//----------------------------------------------------------------------------HR-384
+
+OverloadFormats scrStaffStruct;
+screen scrStaffStruct (,, scStaffVacancy);
+  show at (,,,10);
+  table StaffStruct;
+fields
+  tForHist.mWorkStations('Количество штатных единиц.') : [8.3], Skip; //Количество штатных единиц
+  tForHist.mWorkers     ('Количество вакантных рабочих мест.'): [8.3], Skip; //Вакансий
+  fPostName1            ('Должность по штатному расписанию. Длинное наименование'): Protect; //Должность
+
+  SSEmpCategoryCat.NaiKat   ('Категория.') : Skip; //Категория
+  NaSisOpl ('Система оплаты труда.') : Skip; //С-ма оплаты
+  SSPrivPensionCat.Name('Льготная пенсия.'):Skip; //Льг.пенсия
+
+  TarStav.NaiTar: Skip; //Тариф
+  tForHist.mTaxRate  ('Оклад, ставка, тариф'): [11.3], Skip; //Ставка
+  SSPayCurrencyCat.SimvolV  ('Валюта оплаты.'): Skip; //Валюта ставки
+  VREDCAT: Skip, {Label=VredLabel}; //`VREDCAT`
+
+  StaffStruct.Category: Skip; //Разряд
+  tForHist.mMinTaxRate  ('Минимальный оклад, ставка, тариф'): [11.3],Skip; //Мин.оклад
+  USLCAT: skip, {Label=UslLabel}; //USLCAT
+
+  SSWorkRegimeCat.NRejim   ('График работы.') : Skip; //Режим
+  tForHist.mMaxTaxRate  ('Максимальный оклад, ставка, тариф'): [11.3],Skip; //Макс.оклад
+
+  SSWorkCondCat.Name ('Условия труда.') : Skip; //Условия
+  scdUpCoeff : [10.3],Skip; //Корректирующий коэффициент
+  VacKolDn ('Продолжительность отпуска (дней)'):Skip; //Отпуск(дней)
+
+  scDopInfo('Дополнительная информация по ставке.'), skip; //Доп.сведения
+  scDopAttr('Дополнительная характеристика'), skip; //Доп.хар-ка
+  FullIf ('Источники финансирования',, sciStaffTypical13Esc): skip; //ИФ
+buttons
+  cmStaffNewDepartment, [SingleLine,websystem],,,'Назад',,sci1EnEsc;
+<<
+ Количество штатных единиц     .@@@@@@@@@ Вакансий                 .@@@@@@@@@@                                   <. Назад .>
+ Профессия,должность / Штатная единица.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Категория   .@@@@@@@@@@@@@@@@@@@@@@@@@@@ С-ма оплаты .@@@@@@@@@@@@@@@@@@@@@@@     Льг.пенсия       .@@@@@@@@@@@@@@@@@@@@@@@
+ Тариф       .@@@@@@@@@@@@@@@@@@@@@@@@@@@ Оклад/Ставка          .@@@@@@@@@@@@@.@@@`VREDCAT`         .@@@@@@@@@@@@@@@@@@@@@@@
+ Разряд      .@@@@@@@@@@@@@@@@@@@@@@@@@@@ Мин.оклад   .@@@@@@@@@@@@@@@@@@@@@@@    `USLCAT`          .@@@@@@@@@@@@@@@@@@@@@@@
+ Режим       .@@@@@@@@@@@@@@@@@@@@@@@@@@@ Макс.оклад  .@@@@@@@@@@@@@@@@@@@@@@@
+ Условия     .@@@@@@@@@@@@@@@@@@@@@@@@@@@ Корректирующий коэффициент   .@@@@@@     Отпуск(дней)     .@@@@@@@@@@@@@@@@@@@@@@@
+ Доп.сведения.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Доп.хар-ка  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`ИФ`         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+//----------------------------------------------------------------------------HR-384
+
+OverloadFormats brwVacancy;
+browse brwVacancy 'Сотрудники' (, hcStaffStructPers, scStaffVacancy);
+  table tmpPers;
+fields
+  {font = { color = if(tmpPers.vid = 'Отп' , ColorSysMaroon, 0)}};
+  tmpPers.TabNmb  'Таб. номер' : [10], Skip;
+  tmpPers.StrTabN 'Таб. номер' : [10], Skip;
+  tmpPers.FIO     'ФИО'('Таб.номер, ФИО и количество ставок, занимаемых сотрудником'):[58];
+  tmpPers.CountVac    'Занятость ШЕ' : [10.3], Skip;  // HR-741 GKS переименование графы
+  tmpPers.d1    'Назначен с'   : [10], Skip;
+  tmpPers.d2    'Назначен по'  : [10], Skip;
+  tmpPers.vid   'Тип'          : [4], Skip;
+  tmpPersPr.prim 'Примечание'  : [20], Skip;
+end;
+
+function GetSngRec(c: comp): string;
+var i: byte;
+{
+  result := upcase(substr(to_char(c, 0, 0), 5, 12));
+  for  (i := 1; i < 12; i++)
+  {
+    if substr(result, 1, 1) = '0' then
+      result := substr(result, 2, 12-i);
+    else
+      break;
+  }
+}
+OverloadFormats brwStaffStruct;
+browse brwStaffStruct (,, scStaffVacancy);
+  show at (,11,,19);
+  table tmpCurrStafStr;
+fields
+  tmpCurrStafStr.SeqNmb   '№ п/п'
+    ('Порядковый номер по штатному расписанию.',) : [5], Protect;
+  GetSngRec(tmpCurrStafStr.nRec)'Сист.ид',
+    ('Системный идентификатор записи'): [10], protect;
+  fPostName2 'Должность'
+    ('Наименование должности.',) : [35], Protect;
+//  tmpCurrStafStr.CodePost 'Код'
+//    ('Код должности.',) : [10], Protect;
+  tmpStafStrSCodest.scodest  'Код', 'профессии,', 'должности'
+    ('Код профессии, должности'): [12], skip;
+  iSHR.GetRate(tmpCurrStafStr.Nrec) 'Занятость ШЕ' ('Занятость ШЕ') : [5.3], protect;
+  tmpCurrStafStr.KategoryZL 'Код','категории','ЗЛ' ('Код категории застрахованного лица'): [10], Protect;
+  tmpCurrStafStr.Kateg 'Категория'
+    ('Категория должности',) : [10], Protect;
+  tForHist.mWorkStations  'Штат.ед-ц'
+    ('Количество штатных единиц.') : [8.3], Skip;
+  tForHist.mWorkers     'Вакансий'
+    ('Количество вакантных рабочих мест.') : [8.3], Skip, { font = { BackColor = GetCurPlanBackColor() Color = GetCurPlanFontColor()} };
+  tForHist.WholeWorker 'Плановые', 'вакансии'
+    ('Количество вакантных рабочих мест, включая неутвержденные приказы.') : [8.3], Skip, { font = { BackColor = GetCurPlanBackColor() Color = GetCurPlanFontColor()} };
+  StaffStruct.dInput 'Дата', 'введения'
+    ('Дата введения', hcStaffStructdInput): [10,'DD/MM/YYYY'], skip, Centered;
+  StaffStruct.dClose 'Дата', 'закрытия'
+    ('Дата закрытия', hcStaffStructdClose): [10,'DD/MM/YYYY'], skip, Centered;
+end;
+//----------------------------------------------------------------------------HR-384
+procedure FilltmpTable;
+{
+  inherited::FilltmpTable;
+
+  _loop tmpPers
+  {
+    set tmpPersPr.Nrec := tmpPers.Nrec;
+    if getFirst fastFirstRow VacSt where ((tmpPersPr.nRec == VacSt.Person)) = tsOk
+      if getFirst fastFirstRow KlOtp where ((VacSt.VacType == KlOtp.nRec)) = tsOk
+        { 
+          set tmpPersPr.prim := KlOtp.NOtpus;
+          insert current tmpPersPr; 
+        }
+  }
+  rescanPanel(#tmpPersPr);
+}
+
+//------------------------------------------------------------------
+// HE Interface
+//------------------------------------------------------------------
+HandleEvent
+    //cmPositionChanged:
+cmIdle:
+{
+  //inherited::handleEvent(cmPositionChanged);
+  _loop tmpPers
+    if getfirst fastFirstRow VacSt where ((tmpPers.NRec == VacSt.Person)) = tsOk
+      if VacSt.Status = 2
+      {
+        set tmpPers.CountVac := 0;
+        update current tmpPers;
+      }
+}
+  
+    cmStaffNewDepartment:
+    {
+      inherited::Handleevent(cmStaffNewDepartment);
+      SetWindowTitle(wnMainWindow, 'Штатное расписание организационной единицы "' + DepartmentCat.Name+'" на '+trim(string(dCurrent)));
+      RereadRecord(#tmpCurrStafStr);
+    }
+
+    cmInit:
+    {
+      bHide := false;
+
+      if (not lFSt)
+      {
+        DisableCommand(cmStaffNewDepartment);
+        DisableCommand(cmStaffSeeDopInfo);
+        bHide := true;
+      }
+
+      inherited::Handleevent(cmInit);
+
+      cfsSetProp('T_SCRSTAFFSTRUCT_Количество_штатных_единиц', cfpVisible, false);
+      ToggleFieldVisible(#tForHist.mWorkStations, false);
+      cfsSetProp('T_SCRSTAFFSTRUCT_Вакансий', cfpVisible, false);
+      ToggleFieldVisible(#tForHist.mWorkers, false);
+      cfsSetProp('T_SCRSTAFFSTRUCT_Тариф', cfpVisible, false);
+      ToggleFieldVisible(#TarStav.NaiTar, false);
+      cfsSetProp('T_SCRSTAFFSTRUCT_Разряд', cfpVisible, false);
+      ToggleFieldVisible(#StaffStruct.Category, false);
+      cfsSetProp('T_SCRSTAFFSTRUCT_Корректирующий_коэффициент', cfpVisible, false);
+      ToggleFieldVisible(#scdUpCoeff, false);
+
+      SetColumnTitle(brwStaffStruct, #fPostName2, 'Профессия,должность / Штатная единица');
+      ToggleFieldVisible(#tForHist.WholeWorker, false);
+      ToggleFieldVisible(#SSPayCurrencyCat.SimvolV, false);
+
+      SetWindowTitle(wnMainWindow, 'Штатное расписание организационной единицы "' + DepartmentCat.Name+'" на '+trim(string(dCurrent)));
+
+      inittab;                                    //HR-384
+
+      var bBackButton: boolean = false;
+      ReadMyDsk(bBackButton, 'RPD_BACK_PV_'+string(UserID), false);
+      ShowButton(scrStaffStruct, cmStaffNewDepartment, bBackButton);
+    }
+
+    cmHotKeys:
+    {
+      if (not bHide)
+      {
+        inherited::Handleevent(cmHotKeys);
+      }
+    }
+
+  cmDefault:
+  {
+//      if (tmpCurrStafStr.SeqNmb <1)
+//        {
+//          abort;
+//          exit;
+//        }
+    tmpCurrStafStr.SeqNmb := 1;
+
+    inherited::Handleevent(cmDefault);
+  }
+
+End;
+End.

@@ -1,0 +1,19 @@
+#component "Z_Staff"
+
+alter interface UserList;
+
+HandleEvent
+
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+
+  pMarker.UnselectAll;
+
+  if (GetMarkerCount(UserList_Marker) > 0)
+    pMarker.ImportFrom(UserList_Marker);
+}
+
+end;
+
+end.

@@ -1,0 +1,3 @@
+#component "Z_Staff"
+  bmpSearchPers       bitmap "SearchPers.bmp"
+  bmpSecData       bitmap "Commis.bmp"

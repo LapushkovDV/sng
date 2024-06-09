@@ -1,0 +1,218 @@
+#component "Z_Staff"
+#include ActionJsonCreate.vih //Для передачи сведений в SAP в формате Json
+
+alter Interface Recwin05;
+
+overload
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+function Get_SNG_Conscription_DopInf(num: integer): string; forward;
+function Check_SNG_Conscription: boolean; forward;
+
+create view
+as select
+   Get_SNG_Conscription_DopInf(1) (Fieldname = SNG_Conscription_sDop1),
+   Get_SNG_Conscription_DopInf(2) (Fieldname = SNG_Conscription_sDop2),
+   Get_SNG_Conscription_DopInf(3) (Fieldname = SNG_Conscription_sDop3)
+  from 
+    SNG_Conscription
+   , Passports PassDocs
+   , Catalogs  CatSdopinf
+  where ((
+    Conscription.nRec == SNG_Conscription.nRec
+  ))
+  ;
+
+//----------------------------------HR-758 ganeev_ii
+var oJson : PassportsSys560;
+
+procedure DoModifyAll(Person: comp; attrib: string );
+{
+  _loop PassDocs where (( Person == PassDocs.person
+                           and  PassDocs.docname == CatSdopinf.nrec ))
+  {
+    // if getfirst fastfirstrow CatSdopinf where (( PassDocs.docname == CatSdopinf.nrec )) = tsOk
+    if isValidall(#CatSdopinf)
+    {
+      if CatSdopinf.sdopinf = '07'  or CatSdopinf.sdopinf = '08'
+            or CatSdopinf.sdopinf = '27' or CatSdopinf.sdopinf = '908'
+         {
+             var  _addWhereString:string = ' and passports.nrec = ' + PassDocs.nrec;
+             oJson.CreateJsonSyscode(PassDocs.nrec, _addWhereString, attrib);
+             break;
+         }
+    }
+  } //loop
+} // procedure
+
+//---------------------------------HR-758 ganeev_ii
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+
+OverloadFormats scPersons;
+OverloadFormats scrConscription;
+
+screen scPersons;
+  show at (,,82,1);
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO    ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  {Font={BackColor=if(trim(tmpPersons.FIO) = '',ColorNeed,0)}}, protect;
+<<
+  Ф.И.О.                          .@@@@@@@@@  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scPersons
+
+panel panConscription;
+table Conscription;
+
+screen scrConscription;
+show at (,2,,21);
+table Conscription;
+
+Fields
+  ConsRelCat.Name          ('Отношение к воинской обязанности.'): pickbutton, protect;
+
+  ConsMilDocsCat_Name      ('Основной военный документ.'): pickbutton, protect;
+  DocSer                   ('Серия.'): protect, skip;             //DocSer
+  DocNmb                   ('Номер.'): protect, skip;             //DocNmb
+  DocGivDat                ('Дата выдачи.'): protect, skip;       //DocGivDat
+  DocGivBy                 ('Кем выдан.'): protect, skip;         //DocGivBy
+  DocToDat                 ('Действителен по.'): protect, skip;   //DocToDat
+  CheckTextDocs            ('Проверка соответствия звания и документа.'): protect, skip, { font = {Color = ColorSysRed}};
+  ConsMilRankCat.Name      ('Воинское звание.'): pickbutton, protect;
+  ConsAcntStrucCat.Name    ('Состав (профиль) воинского учета.'): pickbutton, protect;
+  Conscription.OfficerNmb  ('Личный номер офицера', , scStaffRecepT2Conscr);
+  ConsAcntGroupCat.Name    ('Группа воинского учета.'): pickbutton, protect;
+  ConsAcntCatCat.Name      ('Категория воинского запаса.'): pickbutton, protect;
+  ConsAcntClassCat.Name    ('Разряд запаса.'): pickbutton, protect;
+  ConsMilAbilityCat.Name   ('Категория годности к военной службе. '): pickbutton, protect;
+  ConscrVUSTXT             ('Военно-учетная специальность.') : pickbutton, noProtect;
+  Conscription.sDop1       ('Расшифровка военно-учетной специальности');
+  ConsMilComissCat_Name    ('Наименование военного комиссариата.'): pickbutton, protect;
+
+  ConsAcntKindCatName      ('Вид воинского учета.'): pickbutton, protect;
+  ConscrSpecial            ('Специальный учет. '): skip, protect ,{ font = {Color = wColorMilDoc}};
+
+  ConsMobOrder             ('Наличие моб.предписания '): NoProtect;
+
+  Conscription.MobOrderCom ('Мобилизационное предписание: номер команды, партии', , scStaffRecepT2Conscr): noProtect;
+  Conscription.MobOrderPnt ('Мобилизационное предписание: пункт явки',, scStaffRecepT2Conscr): noProtect;
+  CONSCRIPTION_MILSERVED   ('Служил в армии'), Noprotect;
+  Conscription.Dat1        ('Дата начала службы в армии', , scStaffRecepT2Conscr);
+  Conscription.Dat2        ('Дата окончания службы в армии', , scStaffRecepT2Conscr);
+  fnPeriodMil              : protect, skip;
+  Conscription.sDop2       ('Дополнительная информация');
+  SNG_Conscription_sDop1   ('Дополнительная информация'): noProtect;
+  SNG_Conscription_sDop2   ('Дополнительная информация'): noProtect;
+  SNG_Conscription_sDop3   ('Дополнительная информация'): noProtect;
+  ConscrVUS                ('Военно-учетная специальность.') : pickbutton, protect;
+Buttons
+  cmInfoAnalityc, [singleline],,,'Информационно-аналитический учет',;
+
+<<
+  Военнообязанность     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Документ учета        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+       Серия            .@@@@@@@@@@@@@@@@  №.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+       Дата выдачи      .@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Действителен по` .@@@@@@@@@@@@@@@@
+                        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Воинское звание       .@@@@@@@@@@@@@@@@@@@ Состав (профиль).@@@@@@@@@@@@@@@@@@@
+  Личный номер офицера  .@@@@@@@@@@@@@@@@@@@ Группа учета    .@@@@@@@@@@@@@@@@@@@
+  Категория запаса      .@@@@@@@@@@@@@@@@@@@ Разряд запаса   .@@@@@@@@@@@@@@@@@@@
+  Категория годности    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  ВУС                   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Расшифровка ВУС       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Военкомат             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Вид учета             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  [.] Моб. предписание`   Номер команды, партии .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                          Пункт явки            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+     <. Аналитика  .>
+  [.] Служил в армии`   Период с .@@@@@@@@@@ по .@@@@@@@@@@.@@@@@@@@@@@@@@@@@@@@@
+  Доп. информация       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `                    `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `                    `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `                    `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Военно-учетная специальность`  .@@@@@@@@@@
+>>
+end; // scrConscription
+
+handleEvent 
+
+  cmCheckField:
+  {
+    if (inherited::handleevent(cmCheckField) = heAbort) { abort; }
+
+    case CurField of
+      #SNG_Conscription_sDop1, #SNG_Conscription_sDop2, #SNG_Conscription_sDop3:
+        {
+        Check_SNG_Conscription();
+        case CurField of
+          #SNG_Conscription_sDop1: { SNG_Conscription.sDop1 := ExprFieldValue; }
+          #SNG_Conscription_sDop2: { SNG_Conscription.sDop2 := ExprFieldValue; }
+          #SNG_Conscription_sDop3: { SNG_Conscription.sDop3 := ExprFieldValue; }
+        end; //case
+        update current SNG_Conscription;
+        }
+    end; //case
+
+  } //cmCheckField
+
+end; //TableEvent Conscription
+
+TableEvent table Conscription
+
+ //---------------------------------HR-758 ganeev_ii
+  cmUpdateRecord:
+  {
+    inherited::handleevent(cmUpdateRecord);
+     DoModifyAll(conscription.person, 'MOD');
+  }
+
+  cmDeleteRecord:
+  {
+    inherited::handleevent(cmDeleteRecord);
+    DoModifyAll(conscription.person, 'DEL');
+  }
+
+//---------------------------------HR-758 ganeev_ii
+
+end;
+
+end; // panConscription
+
+Function Get_Sng_Conscription_DopInf(num: integer): string; {
+  case num of
+    1: { result := SNG_Conscription.sDop1; }
+    2: { result := SNG_Conscription.sDop2; }
+    3: { result := SNG_Conscription.sDop3; }
+    else { result := ''; }
+  end; //case
+}
+Function Check_Sng_Conscription: boolean; {
+  result := false;
+  if (getfirst SNG_Conscription where (( Conscription.nRec == nRec )) <> tsok) {
+    insert SNG_Conscription set nRec := Conscription.nRec;
+    if (getfirst SNG_Conscription = tsok)  { result := true; }  
+  } else {
+    result := true;
+  }
+}
+end.

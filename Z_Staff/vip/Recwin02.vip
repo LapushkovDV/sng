@@ -1,0 +1,713 @@
+#component "Z_Staff"
+
+#include CatEtalon.vih
+#include ActionJsonCreate.vih
+
+alter Interface Recwin02;
+
+overload
+  procedure CurrentFields; //HR-378, FIM
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+create view vEducation
+var
+  val4PlaceCat : longInt; //HR-378, FIM
+  val4NameCat  : longInt; //HR-378, FIM
+  val4SpecCat  : longInt; //HR-378, FIM
+  val4QualCat  : longInt; //HR-378, FIM
+  val4TopicCat : longInt; //HR-378, FIM
+  oExtAttr     : iExtAttr;//HR-378, FIM
+as select EduPlaceCat.nrec
+  , oExtAttr.sGetAttr(coEducation, Education.nrec, 'Образование. Текст  учебного заведения') (fieldname = _ExtAttrEduName) //HR-378, FIM
+  , oExtAttr.dGetAttr(coEducation, Education.nrec, 'Документ годен до') (fieldname = _ExtAttrDateExp)  //HR-1262
+from
+  Catalogs EduPlaceCat,
+  catalogs EduDocStatusCat
+where ((
+      Education.ceducationplace == EduPlaceCat.nrec and
+      Education.cdocstatus == EduDocStatusCat.nrec
+      ));
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+OverloadFormats scrPersons2;
+screen scrPersons2;
+  show at (,, 81, 4);
+  table tmpPersons;
+Fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  {Font={BackColor=if(trim(tmpPersons.FIO) = '',ColorNeed,0)}}, protect;
+  strBestEduLev ('Образование.') : skip;
+
+  <<   'Персональные данные сотрудника'
+   Ф.И.О.            .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `~О~бразование:`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  >>
+end; // scrPersonsPasAddr
+
+OverloadFormats brwEducation;
+browse brwEducation;
+  show at (, 19, 81,);
+  table LevelEducation;
+Fields
+  Education.FromDate 'Дата поступления', ('Дата поступления') : [12,'DD/MM/YYYY'], Noprotect;
+  Education.ToDate   'Дата окончания', ('Дата окончания') :  [12,'DD/MM/YYYY'], Noprotect;
+  EduLevelCat.code 'Код образования' : [16],  protect;
+  EduLevelCat.Name 'Вид образования' : [20],  protect;
+  EduNameCat.Name 'Учебное заведение' ('Наименование учебного заведения',, scStaffReceptionT2ComPick) : [18], pickbutton, protect;
+  EduSpecialityCat.Name 'Специальность', ('Специальность по диплому',, scStaffReceptionT2ComPick) : [17], pickbutton, protect;
+end; //browse
+
+OverloadFormats scrButtons1;
+screen scrButtons1;
+  show at (82,,,);
+  table tmpPersons;
+Buttons
+  cmAddStudyContract,,,  'Ученический договор',,  scStaffReceptionT2Com;
+  cmValue3,,,     'Знание языков',,       scStaffReceptionT2Com;
+  cmValue4,,,     'Ученые звания',,       scStaffReceptionT2Com;
+  cmValue5,,,     'Почетные звания',,     scStaffReceptionT2Com;
+<<
+<. Ученический договор .>
+
+<. Знание ~я~зыков .>
+
+<. ~У~ченые звания .>
+
+<. Почетные звания.>
+>>
+end; // screen scrButtons1
+
+OverloadFormats scrLearningNow1;
+screen scrLearningNow1 'Все виды';
+  table LevelEducation;
+Fields
+  EduLevelCat.Name  : protect;
+  EduNameCat.Name
+          ('Наименование учебного заведения. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : pickbutton, protect;
+  _ExtAttrEduName ('Учебное заведение (текст)') : noProtect; //HR-378, FIM
+  EduModeCat.Name ('Форма обучения. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduSpecialityCat.Name
+          ('Специальность по диплому. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduQualificationCat.Name
+          ('Квалификация по диплому. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : pickbutton, protect;
+  Education.FromDate ('Дата поступления') : Noprotect;
+  Education.ToDate   ('Дата окончания') : Noprotect;
+  Education.Course  ('На каком курсе учится') : noProtect;
+                                      // <0-закончил, >=0-в наст.время
+  TypeDocument ('Документ об образовании',
+      , scStaffReceptionT2ComPick) : PickButton, Protect ;
+  Education.Series  ('Серия документа', ) : noProtect;
+  Education.DiplomNmb  ('Номер документа', ) : noProtect;
+  Education.Nmb1 ('Периодичность образования в месяцах') : NoProtect;
+  AkkrCat.Name ('Аккредитация',
+      , scStaffReceptionT2ComPick) : PickButton, Protect;
+  EduDocStatusCat.name ('',, scStaffReceptionT2ComPick) : PickButton, protect;
+  Education.ddocstatuscheck : noprotect;
+  Education.sprotoqualnum : noprotect;
+  Education.dprotoqualdate : noprotect;
+  Education.sNote : noProtect;
+  
+<<  ' У Ч Е Б А:  оконченное учебное заведение'
+  Вид образования  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение (текст).@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Форма обучения   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Специальность по диплому.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Квалификация по диплому .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Даты поступл./оконч.    .@@@@@@@@@@@          .@@@@@@@@@@@ курс  .@@@@@@@@@@@
+  Документ         .@@@@@@@@@@@@@@@@@@ .@@@@@ N .@@@@@@@@@@@
+ `Периодичность`   .@@@@@
+ `Аккредитация`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Статус документа .@@@@@@@@@@@                 Дата ввода статуса .@@@@@@@@@@@
+  Номер протокола  .@@@@@@@@@@@                 Дата протокола     .@@@@@@@@@@@
+  Комментарий      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; //screen scrLearningNow1
+
+OverloadFormats scrLearningNow2;
+screen scrLearningNow2 'Образование';
+  table LevelEducation;
+Fields
+  EduLevelCat.code ('Код вида образования') : protect;
+  EduLevelCat.Name : protect;
+  EduNameCat.code ('Код учебного заведения') : protect;
+  EduNameCat.Name ('Наименование учебного заведения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  _ExtAttrEduName ('Учебное заведение (текст)') : noProtect; //HR-378, FIM
+  EduModeCat.Name ('Форма обучения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduSpecialityCat.code ('Код специальности') : protect;
+  EduSpecialityCat.Name ('Специальность по диплому',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduQualificationCat.code ('Код квалификации') : protect;
+  EduQualificationCat.Name ('Квалификация по диплому',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  Education.FromDate ('Дата поступления') : Noprotect;
+  Education.ToDate   ('Дата окончания') : Noprotect;
+  Education.Course  ('На каком курсе учится') : noProtect; // <0-закончил, >=0-в наст.время
+  TypeDocument ('Документ об образовании',, scStaffReceptionT2ComPick) : PickButton, Protect ;
+  Education.Series  ('Серия документа', ) : noProtect;
+  Education.DiplomNmb  ('Номер документа') : noProtect;
+  AkkrCat.Name ('Аккредитация',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  EduDocStatusCat.name ('',, scStaffReceptionT2ComPick) : PickButton, protect;
+  Education.ddocstatuscheck : noprotect;
+  Education.wDop : noProtect;
+  Education.isownstudent : noprotect;
+
+<<  ' У Ч Е Б А:  оконченное учебное заведение'
+  Вид образования  .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение.@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение (текст) .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Форма обучения   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Специальность по диплому.@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Квалификация по диплому .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Даты поступл./оконч.    .@@@@@@@@@@@          .@@@@@@@@@@@ курс  .@@@@@@@@@@@
+  Документ         .@@@@@@@@@@@@@@@@@@ .@@@@@ N .@@@@@@@@@@@
+ `Аккредитация`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Статус документа .@@@@@@@@@@@                 Дата ввода статуса .@@@@@@@@@@@
+
+  [:] Является профилирующим`
+  [.] признак студентов направленников ПАО "Сургутнефтегаз"`
+>>
+end;   //screen
+
+OverloadFormats scrLearningNow3;
+screen scrLearningNow3 'Повышение квалификации';
+  table LevelEducation;
+  bevel b0 {1, 0, 81, 18, bsLowered, bsBox}; //HR-1262
+Fields
+  EduLevelCat.code ('Код вида образования') : protect;
+  EduLevelCat.Name : protect;
+  EduNameCat.code ('Код учебного заведения') : protect;
+  EduNameCat.Name ('Наименование учебного заведения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  _ExtAttrEduName ('Учебное заведение (текст)') : noProtect; //HR-378, FIM
+  EduPlaceCat.code ('Код места обучения') : protect;
+  EduPlaceCat.name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduModeCat.Name ('Форма обучения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduSpecialityCat.code ('Код специальности') : protect;
+  EduSpecialityCat.Name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduQualificationCat.code ('Код квалификации') : protect;
+  EduQualificationCat.Name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  Education.FromDate ('Дата поступления') : Noprotect;
+  Education.ToDate   ('Дата окончания') : Noprotect;
+  TypeDocument ('Документ об образовании',, scStaffReceptionT2ComPick) : PickButton, Protect ;
+  Education.Series  ('Серия документа', ) : noProtect;
+  Education.DiplomNmb  ('Номер документа') : noProtect;
+  _ExtAttrDateExp ('Документ годен до') : noProtect; //HR-1262
+  EduQualType.code ('Код направления подготовки развития кадров') : Protect;
+  EduQualType.Name ('',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  TopicEductCat.code ('Код названия курсов (спр)') : Protect;
+  TopicEductCat.Name ('',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  Education.scourcename : noProtect;
+  Education.PaySum ('Стоимость обучения') : [10.3], NoProtect;
+  EduReason.Name ('Основание',, scStaffReceptionT2ComPick) : PickButton, Protect;
+//  Education.Nmb1 ('Периодичность образования в месяцах') : NoProtect;          //HR-1262
+  Education.sNote ('Примечание') : NoProtect;
+  AkkrCat.Name ('Аккредитация',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  EduDocStatusCat.name ('',, scStaffReceptionT2ComPick) : PickButton, protect;
+  Education.ddocstatuscheck : noprotect;
+  Education.sprotoqualnum : noprotect;
+  Education.dprotoqualdate : noprotect;
+
+<<  ' У Ч Е Б А:  оконченное учебное заведение'
+  Вид образования      .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение    .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение (текст)     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Место обучения       .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Форма обучения       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Рабочая специальность.@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Квалификация         .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Даты поступл./оконч.        .@@@@@@@@@@@          .@@@@@@@@@@@
+  Документ             .@@@@@@@@@@@@@@@@@@ .@@@@@ N .@@@@@@@@@@@
+  Документ годен до    .@@@@@@@@@@
+  Направление подготовки развития кадров    .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Название курсов (спр).@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Название курсов      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Стоимость            .@@@@@@@@@@@@@@@ Основание:.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Примечание           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Аккредитация`        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Статус документа     .@@@@@@@@@@@                  Дата ввода статуса.@@@@@@@@@@@
+  Номер протокола      .@@@@@@@@@@@                  Дата протокола    .@@@@@@@@@@@
+>>
+end;   //screen
+
+OverloadFormats scrLearningNow4;
+screen scrLearningNow4 'Профессиональная переподготовка';
+  table LevelEducation;
+  bevel b0 {1, 0, 81, 18, bsLowered, bsBox}; //HR-1262
+Fields
+  EduLevelCat.code ('Код вида образования') : protect;
+  EduLevelCat.Name : protect;
+  EduNameCat.code ('Код учебного заведения') : protect;
+  EduNameCat.Name ('Наименование учебного заведения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  _ExtAttrEduName ('Учебное заведение (текст)') : noProtect; //HR-378, GKS
+  EduPlaceCat.code ('Код места обучения') : protect;
+  EduPlaceCat.name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduModeCat.Name ('Форма обучения',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduSpecialityCat.code ('Код специальности') : protect;
+  EduSpecialityCat.Name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  EduQualificationCat.code ('Код квалификации') : protect;
+  EduQualificationCat.Name ('',, scStaffReceptionT2ComPick) : pickbutton, protect;
+  Education.FromDate ('Дата поступления') : Noprotect;
+  Education.ToDate   ('Дата окончания') : Noprotect;
+  Education.Course  ('На каком курсе учится') : noProtect; // <0-закончил, >=0-в наст.время
+  TypeDocument ('Документ об образовании',hcStaffEduNmb, scStaffReceptionT2ComPick) : PickButton, Protect ;
+  Education.Series  ('Серия документа', ) : noProtect;
+  Education.DiplomNmb  ('Номер документа', hcStaffEduDiplomNmb) : noProtect;
+ // Education.DiplomDate ('Дата выдачи документа', hcStaffEduDiplomDate) : Noprotect;  //HR-1262
+  _ExtAttrDateExp ('Документ годен до') : noProtect; //HR-1262
+  EduQualType.code ('Код направления подготовки развития кадров') : Protect;
+  EduQualType.Name ('Вид повышения квалификации',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  TopicEductCat.code ('Код названия курсов (спр)') : Protect;
+  TopicEductCat.Name ('',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  Education.scourcename : noProtect;
+  Education.PaySum ('Сумма обучения') : [10.3], NoProtect;
+  EduReason.Name ('Основание',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  Education.sNote ('Примечание') : NoProtect;
+  AkkrCat.Name ('Аккредитация',, scStaffReceptionT2ComPick) : PickButton, Protect;
+  EduDocStatusCat.name ('',, scStaffReceptionT2ComPick) : PickButton, protect;
+  Education.ddocstatuscheck : noprotect;
+  Education.sprotoqualnum : noprotect;
+  Education.dprotoqualdate : noprotect;
+
+<<  ' У Ч Е Б А:  оконченное учебное заведение'
+  Вид образования      .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение    .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Учебное заведение (текст)     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Место обучения       .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Форма обучения       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Рабочая специальность.@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Квалификация         .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Даты поступл./оконч.        .@@@@@@@@@@@          .@@@@@@@@@@@ курс  .@@@@@@@@@@@
+  Документ             .@@@@@@@@@@@@@@@@@@ .@@@@@ N .@@@@@@@@@@@
+  Документ годен до    .@@@@@@@@@@
+  Направление подготовки развития кадров    .@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Название курсов (спр).@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Название курсов      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Стоимость            .@@@@@@@@@@@@@@@ Основание:.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Примечание           .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Аккредитация`        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Статус документа     .@@@@@@@@@@@                 Дата ввода статуса .@@@@@@@@@@@
+  Номер протокола      .@@@@@@@@@@@                 Дата протокола     .@@@@@@@@@@@
+>>
+end;   //screen
+
+//HR-378, FIM
+procedure ModifyCatsAndScrsAccording2Code(code : string);
+{
+  SetFieldOption(#EduQualificationCat.Name, ofSelectable);
+  SetFieldOption(#EduPlaceCat.Name, ofSelectable);
+  SetFieldOption(#EduModeCat.Name, ofSelectable);
+  SetFieldOption(#Education.scourcename, ofSelectable);
+  SetFieldOption(#Education.sprotoqualnum, ofSelectable);
+  SetFieldOption(#Education.dprotoqualdate, ofSelectable);
+  SetFieldOption(#EduQualType.Name, ofSelectable);
+  SetFieldOption(#TypeDocument, ofSelectable);
+  SetFieldOption(#Education.Series, ofSelectable);
+  SetFieldOption(#Education.DiplomNmb, ofSelectable);
+  /*
+  if not byPrikaz
+  {
+    SetFieldOption(#EduNameCat.Name, ofSelectable);
+    SetFieldOption(#EduSpecialityCat.Name, ofSelectable);
+    SetFieldOption(#Education.PaySum, ofSelectable);
+    SetFieldOption(#EduReason.Name, ofSelectable);
+    SetFieldOption(#TopicEductCat.Name, ofSelectable);
+  }
+  */
+  
+  val4PlaceCat := -31627;
+  val4NameCat  := -24;
+  val4SpecCat  := -32;
+  val4QualCat  := -26;
+  val4TopicCat := 712;
+  
+  case CurLevelEduc of
+    2: // Образование
+    {
+      case code of
+        '90':
+        {
+          val4NameCat := -31990;
+          val4SpecCat := -31696;
+          val4QualCat := -31991;
+        }
+        '93':
+        {
+          val4NameCat := -31990;
+          val4SpecCat := -31694;
+          val4QualCat := -31691;
+        }
+        '94':
+        {
+          val4NameCat := -31658;
+          val4SpecCat := -31695;
+          val4QualCat := -31692;
+        }
+        '95':
+        {
+          val4NameCat := -31657;
+          val4SpecCat := -31697;
+          val4QualCat := -31693;
+        }
+        '96':
+        {
+          val4NameCat := -31521;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.wDop, ofSelectable);
+          ClearFieldOption(#Education.isownstudent, ofSelectable);
+        }
+        '01', '02', '11', '20', '52':
+        {
+          ClearFieldOption(#EduNameCat.Name, ofSelectable);
+          val4SpecCat := -31694;
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          ClearFieldOption(#TypeDocument, ofSelectable);
+          ClearFieldOption(#Education.Series, ofSelectable);
+          ClearFieldOption(#Education.DiplomNmb, ofSelectable);
+          ClearFieldOption(#Education.FromDate, ofSelectable);
+          ClearFieldOption(#Education.ToDate, ofSelectable);
+        }
+        '91', '92':
+        {
+          ClearFieldOption(#EduNameCat.Name, ofSelectable);
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+        }
+      end;
+    }
+    3: // Повышение квалификации
+    {
+      case code of
+        '97':
+        {
+          val4PlaceCat := -31624;
+          val4NameCat := -31604;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          val4TopicCat := -31653;
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+        }
+        '98':
+        {
+          ClearFieldOption(#EduPlaceCat.name, ofSelectable);
+          val4NameCat := -31603;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          val4QualCat := -31652;
+          val4TopicCat := -31653;
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+          ClearFieldOption(#EduQualType.Name, ofSelectable);
+        }
+        '71', 'AC', 'С2', 'С3', 'С6', 'С9':
+        {
+          ClearFieldOption(#EduPlaceCat.name, ofSelectable);
+          ClearFieldOption(#EduNameCat.Name, ofSelectable);
+          val4SpecCat := -31694;
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+          ClearFieldOption(#Education.scourcename, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+          ClearFieldOption(#EduQualType.Name, ofSelectable);
+          ClearFieldOption(#TypeDocument, ofSelectable);
+          ClearFieldOption(#Education.Series, ofSelectable);
+          ClearFieldOption(#Education.DiplomNmb, ofSelectable);
+          ClearFieldOption(#EduReason.Name, ofSelectable);
+        }
+        'Z2':
+        {
+          val4PlaceCat := -31623;
+          val4NameCat := -31628;
+          val4SpecCat := -31694;
+          val4QualCat := -31691;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+        }
+        'Z3':
+        {
+          val4PlaceCat := -31623;
+          val4NameCat := -31628;
+          val4SpecCat := -31694;
+          val4QualCat := -31691;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+          ClearFieldOption(#Education.scourcename, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+          ClearFieldOption(#EduQualType.Name, ofSelectable);
+        }
+        'Z5':
+        {
+          ClearFieldOption(#EduPlaceCat.name, ofSelectable);
+          val4NameCat := -31644;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          val4TopicCat := -31602;
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+          ClearFieldOption(#EduQualType.Name, ofSelectable);
+        }
+        'Z7':
+        {
+          ClearFieldOption(#EduPlaceCat.name, ofSelectable);
+          val4NameCat := -31631;
+          val4SpecCat := -31694;
+          val4QualCat := -31691;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.scourcename, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+          ClearFieldOption(#EduQualType.Name, ofSelectable);
+        }
+        'Z8':
+        {
+          val4PlaceCat := -31627;
+          val4NameCat := -31630;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          val4TopicCat := -31602;
+          ClearFieldOption(#Education.scourcename, ofSelectable);
+        }
+        'Z9':
+        {
+          ClearFieldOption(#EduPlaceCat.name, ofSelectable);
+          val4NameCat := -31643;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);;
+          val4TopicCat := -31680;
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+          ClearFieldOption(#Education.PaySum, ofSelectable);
+        }
+      end;
+    }
+    4: // Профессиональная переподготовка
+    {
+      val4PlaceCat := -31623;
+      case code of
+        '99':
+        {
+          val4NameCat := -31647;
+          val4SpecCat := -31664;
+          val4QualCat := -31650;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+          ClearFieldOption(#EduModeCat.Name, ofSelectable);
+          ClearFieldOption(#Education.scourcename, ofSelectable);
+          ClearFieldOption(#Education.sprotoqualnum, ofSelectable);
+          ClearFieldOption(#Education.dprotoqualdate, ofSelectable);
+        }
+        'G1':
+        {
+          val4NameCat := -31648;
+          val4SpecCat := -31694;
+          val4QualCat := -31691;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+        }
+        'Z1':
+        {
+          val4NameCat := -31656;
+          ClearFieldOption(#EduSpecialityCat.Name, ofSelectable);
+          ClearFieldOption(#EduQualificationCat.Name, ofSelectable);
+          val4TopicCat := -31651;
+        }
+        'Z4':
+        {
+          val4NameCat := -31649;
+          val4QualCat := -31650;
+          ClearFieldOption(#TopicEductCat.Name, ofSelectable);
+        }
+      end;
+    }
+  end; //case CurLevelEduc
+}
+
+procedure CurrentFields;
+{
+  inherited::CurrentFields;
+  ModifyCatsAndScrsAccording2Code(EduLevelCat.code);
+}
+
+TableEvent
+  table LevelEducation;
+
+  cmInsertRecord: {
+    if (inherited::HandleEvent(cmInsertRecord) = heAbort) {
+      abort;
+      exit;
+    }
+
+    var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+    if (oJsonSender.createJson('EDUCATION_SAP', Education.nRec, 'INS')) {
+      oJsonSender.sendJsonToReceiver('SAP');
+    } else {
+      message(oJsonSender.getErrorMessage());
+    }
+  }
+
+  cmUpdateRecord: {
+    if (inherited::HandleEvent(cmUpdateRecord) = heAbort) {
+      abort;
+      exit;
+    }
+
+    var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+    if (oJsonSender.createJson('EDUCATION_SAP', Education.nRec, 'MOD')) {
+      oJsonSender.sendJsonToReceiver('SAP');
+    } else {
+      message(oJsonSender.getErrorMessage());
+    }
+  }
+
+  cmDeleteRecord: {
+    var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+    var _bJsonFormed: boolean = oJsonSender.createJson('EDUCATION_SAP', Education.nRec, 'DEL');
+    if (not _bJsonFormed) {
+      message(oJsonSender.getErrorMessage());
+    }
+
+    if (inherited::HandleEvent(cmDeleteRecord) = heAbort) {
+      abort;
+      exit;
+    }
+
+    if (_bJsonFormed) {
+      oJsonSender.sendJsonToReceiver('SAP');
+    }
+  }
+
+end; // TableEvent LevelEducation
+
+HandleEvent
+  cmAddStudyContract:
+  {
+    RunInterface('SNG_StudyContract::StudyContract', Persons.Nrec);
+  }
+
+  cmPick:
+  {
+    case CurField of
+      #EduDocStatusCat.name:
+      {
+        ParentSav := Education.cdocstatus;
+        if (RunInterface('Z_STAFFCAT::PickCatalog2', -31626, ParentSav, 0) = cmDefault)
+        {
+          set Education.cdocstatus := ParentSav;
+          SetModified(true);
+        }
+
+        ReScanPanel(#Education) ;
+      }
+
+      #EduPlaceCat.name:
+      {
+        ParentSav := Education.ceducationplace;
+        if (RunInterface('Z_STAFFCAT::PickCatalog2', val4PlaceCat, ParentSav, 0) = cmDefault)
+        {
+          set Education.ceducationplace := ParentSav;
+          SetModified(true);
+        }
+
+        ReScanPanel(#Education) ;
+      }
+      
+      #EduSpecialityCat.Name:
+      {
+        ParentSav := Education.Speciality;
+        if (RunInterface('Z_STAFFCAT::PickCatalog2', val4SpecCat, ParentSav, 0) = cmDefault)
+        {
+          set Education.Speciality := ParentSav;
+          SetModified(true);
+        }
+
+        ReScanPanel(#Education) ;
+      }
+      
+      #EduNameCat.Name:
+      {
+        ParentSav := Education.Name;
+        cCurPart  := 0;
+        if (RunInterface('Z_STAFFCAT::PickCatalog2', val4NameCat, ParentSav, 0) = cmDefault)
+        {
+          set Education.Name := ParentSav;
+          SetModified(true);
+
+          if GetFirst Catalogs where ((ParentSav == Catalogs.NRec)) = tsOk
+          {
+            Education.LearnAddr := Catalogs.cRef1;
+            set EduAddrName := iAdrFunc.GetFullAddressInd(Education.LearnAddr);
+          }
+        }
+        ReScanPanel(#Education) ;
+      }
+      
+      #EduQualificationCat.Name:
+      {
+        ParentSav := Education.Qualification;
+        if (RunInterface('PickCatalog2', val4QualCat, ParentSav, 0) = cmDefault)
+        {
+          set Education.Qualification := ParentSav;
+          SetModified(true);
+        }
+      }
+      
+      #TopicEductCat.Name:
+      {
+        ParentSav := TopicEductCat.NRec ;
+
+        if (getfirst Catalogs where ((integer(val4TopicCat) == Catalogs.SysCode)) <> tsOk)
+        {
+          var oEtalon : CatEtalon;
+          oEtalon.AddNewElement(val4TopicCat);
+        }
+
+        if (RunInterface('PickCatalog2', val4TopicCat, ParentSav, 0) = cmDefault)
+          if (GetFirst Catalogs where ((ParentSav == Catalogs.NRec)) = tsOk)
+          {
+            set Education.cAddInf1 := ParentSav;
+            SetModified(true);
+          }
+      }
+
+      else inherited::HandleEvent(cmPick)
+    end; //case
+    
+    if (CurField = #EduLevelCat.Name)
+      CurrentFields;
+  }
+  
+  cmExprFieldChanged:
+  {
+     inherited::handleEvent(cmExprFieldChanged)
+     //HR-378, FIM
+      if CurField =  #_ExtAttrEduName
+         oExtAttr.sSetAttr(coEducation, Education.nrec, 'Образование. Текст  учебного заведения' , ExprFieldValue)
+         //HR-1262
+      if CurField =  #_ExtAttrDateExp
+         oExtAttr.dSetAttr(coEducation, Education.nrec, 'Документ годен до', StrToDate(ExprFieldValue, 'DD/MM/YYYY')) ;
+  }
+  
+end; // HandleEvent
+end.

@@ -1,0 +1,329 @@
+#component "Z_Staff"
+
+alter interface CommonFiltr;
+
+overload
+  procedure InitTmpTableEx;
+  procedure LoadInterface;
+end;
+
+overloadFormats SelectRecord, SelectRecord1;
+
+procedure LoadInterface;
+{
+  inherited::LoadInterface;
+//  wMaxParamValue := 7;      в версии 11100 этот параметр отсутствует
+}
+
+private procedure InitTmpTableEx;
+{
+  mtClear(#tmpPersCommonFiltr, mfNormal); // Очищаем временную таблицу
+
+  if (not ReadMyDsk(dDateFiltr, 'CommonFiltr_dDateFiltr', false))
+    dDateFiltr := Cur_Date;
+
+  var ddd: date = dDateFiltr;
+
+  case StatPers of
+    0:
+    { // работающие и принятые будущим периодом
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        from
+          Persons
+        where (( 'С'      == Persons.IsEmployee  and
+                 ZeroDate == Persons.DisDate ));
+      // теперь, если дата не пустая и фейс загружен по RunInterface, еще добавить уволенных будущим периодом
+		  if (dDateFiltr <> ZeroDate)
+		  {
+        var ddd: date;
+        ddd := dDateFiltr;
+        insert visual into tmpPersCommonFiltr
+        	select
+          	Persons.NRec,
+          	Persons.Department,
+          	Persons.JobNature,
+            Persons.AppDate,
+          	Persons.DisDate,
+          	Persons.GalDepHost
+        	from
+          	Persons
+        	where (( 'С'  == Persons.IsEmployee  and
+                   ddd <<= Persons.DisDate ));
+   		}
+    }
+
+    1:
+    { // текущие
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'С' == Persons.IsEmployee ));
+    }
+
+    2:
+    { // архив
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'У' == Persons.IsEmployee ));
+    }
+
+    3:
+    { // все
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'С' == Persons.IsEmployee ));
+
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'У' == Persons.IsEmployee ));
+
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'К' == Persons.IsEmployee ));
+
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'Ф' == Persons.IsEmployee ));
+    }
+
+    4:
+    { // уволенные
+      insert visual into tmpPersCommonFiltr
+       	select
+         	Persons.NRec,
+         	Persons.Department,
+         	Persons.JobNature,
+          Persons.AppDate,
+         	Persons.DisDate,
+         	Persons.GalDepHost
+       	From
+         	Persons
+       	where (( 'С'      == Persons.IsEmployee and
+                 ZeroDate << Persons.DisDate ));
+    }
+
+    5:
+    { // работающие на дату
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        from
+          Persons
+        where (( 'С'      == Persons.IsEmployee  and
+                 ddd     >>= Persons.AppDate    and
+                 ZeroDate == Persons.DisDate (NoIndex)));
+
+      // теперь, если дата не пустая и фейс загружен по RunInterface, еще добавить уволенных будущим периодом
+		  if (dDateFiltr <> ZeroDate)
+		  {
+        insert visual into tmpPersCommonFiltr
+        	select
+          	Persons.NRec,
+          	Persons.Department,
+          	Persons.JobNature,
+            Persons.AppDate,
+          	Persons.DisDate,
+          	Persons.GalDepHost
+        	from
+          	Persons
+        	where (( 'С'  == Persons.IsEmployee  and
+                   ddd <<= Persons.DisDate     and
+                   ddd >>= Persons.AppDate (NoIndex)));
+   		}
+
+		  if (dDateFiltr <> ZeroDate)
+		  {
+        insert visual into tmpPersCommonFiltr
+        	select
+          	Persons.NRec,
+          	Persons.Department,
+          	Persons.JobNature,
+            Persons.AppDate,
+          	Persons.DisDate,
+          	Persons.GalDepHost
+        	from
+          	Persons
+        	where (( 'У'  == Persons.IsEmployee  and
+                   ddd <<= Persons.DisDate     and
+                   ddd >>= Persons.AppDate (NoIndex)));
+   		}
+    }
+
+    6:
+    { // кандидаты
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'К' == Persons.IsEmployee ));
+    }
+
+    7:
+    { // физ. лица
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        From
+          Persons
+        where (( 'Ф' == Persons.IsEmployee ));
+    }
+    8:
+    {
+      // аннулированный трудовой договор
+      insert visual into tmpPersCommonFiltr
+        select
+          Persons.NRec,
+          Persons.Department,
+          Persons.JobNature,
+          Persons.AppDate,
+          Persons.DisDate,
+          Persons.GalDepHost
+        from
+          Persons
+        where (( 'Х' == Persons.IsEmployee ));
+    }
+
+  end; //case
+}
+
+Panel SelRec;
+  Table Catalogs;
+
+Screen SelectRecord ('',, sci1Esc);
+Fields
+  Flt  ('Установить фильтр подразделение/сотрудники'): NoProtect;
+  DeptFilter ('Выбранные подразделения',, sci13Esc): Protect;
+  PsnFilter  ('Выбранные сотрудники',, sci13Esc): Protect, quickChoice;
+  StatPers('База для просмотра: работающие, текущие, архив'):
+          [list 5 'работающие на дату',
+                0 'работающие и принятые будущим периодом',
+                1 'текущие',
+                2 'архив',
+                3 'вся картотека',
+                4 'уволенные, не переведенные в архив',
+                6 'кандидаты',
+                7 'физические лица',
+                8 'договор аннулирован'], Protect;
+  dDateFiltr('Дата, на которую сотрудники работают'): NoProtect;
+  JobFilter('Характер работы',, sci13Esc): Protect;
+  NeedFilial('Дополнительные параметры'):
+          [list 'не установлен',
+          'переведенные в филиал'], Protect;
+<<
+   `Фильтры по:`
+      [.]  подразделению`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      [.]  сотрудникам  `   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `База для просмотра:  `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@
+   `Характер работы:     `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `Доп. параметры:      `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+End;
+
+Screen SelectRecord1 ('',, sci1Esc); // для RunInterface
+Fields
+  Flt  ('Установить фильтр подразделение/сотрудники'): NoProtect;
+  DeptFilter ('Выбранные подразделения',, sci13Esc): Protect;
+  PsnFilter  ('Выбранные сотрудники',, sci13Esc): Protect, quickChoice;
+  StatPers('База для просмотра: работающие, текущие, архив'):
+          [list 5 'работающие на дату',
+                0 'работающие и принятые будущим периодом',
+                1 'текущие',
+                2 'архив',
+                3 'вся картотека',
+                4 'уволенные, не переведенные в архив',
+                6 'кандидаты',
+                7 'физические лица',
+                8 'договор аннулирован'], Protect;
+  dDateFiltr('Дата, на которую сотрудники работают'): NoProtect;
+  JobFilter('Характер работы',, sci13Esc): Protect;
+  NeedFilial('Дополнительные параметры'):
+          [list 'не установлен',
+          'переведенные в филиал'], Protect;
+Buttons
+  cmOk, default,, 'Установка фильтра',, scStaffForButton;
+  cmClose,,, 'Отмена',, scStaffForButton;
+<<
+   `Фильтры по:`
+      [.]  подразделению`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      [.]  сотрудникам  `   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `База для просмотра:  `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@.@@@@@@@@@@
+   `Характер работы:     `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `Доп. параметры:      `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    <. ~П~родолжить .>                                   <.   Отмена   .>
+>>
+End;
+
+end;
+
+End.

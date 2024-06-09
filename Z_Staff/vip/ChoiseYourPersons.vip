@@ -1,0 +1,179 @@
+#component "Z_Staff"
+#include CatFunc.vih              // Функции работы с каталогом
+#include Func_AppHist.vih
+
+
+#doc
+фильтр <длит. отсутствие>
+#end
+
+
+alter Interface ChoiseYourPersons;
+
+var iAH: Func_AppHist;
+
+
+overload
+  procedure prApplication_Filter;
+  Procedure FillByDifferentPodr;
+end;
+
+Procedure prApplication_Filter;
+ {
+  var  AbsApp: comp;
+  var  dShow1 : date;
+
+  if cPar2 = 9
+    {
+      cPar2 := 3;
+      inherited::prApplication_Filter;
+      SetTitle('Выбор сотрудников: фильтр (длит. отсутствие)');
+      cPar2 := 9;
+
+      _loop tmpPersons where (iAH.AH_GetLongAbsOnDate(tmpPersons.App, Cur_Date) = Comp(0)) //HR-932
+      {
+        delete current tmpPersons;     //hr-808
+      }
+    }
+    else inherited::prApplication_Filter;
+ }
+
+//******************************************************************************
+// Макрос вставки
+//******************************************************************************
+#declare insTmpP
+  insert visual into tmpPersons
+    select
+      Persons.NRec,
+      Persons.FIO,
+      Persons.TabNmb,
+      Persons.StrTabN,
+      Catalogs.Name,
+      Persons.BornDate,
+      Persons.DisDate,
+      comp(0)
+      , word(0)
+      , 'основное'
+      , Persons.AppDate//date(0, 0, 0)
+      , date(0, 0, 0)
+      , Persons.DisDate//date(0, 0, 0)
+    From
+      Persons,
+      Catalogs
+#end  
+
+Procedure FillByDifferentPodr;
+{
+  case cPar2 of
+    0: // вставка целиком физических лиц
+    {
+      #insTmpP
+      where (( 'С' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+
+      #insTmpP
+      where (( 'У' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+
+      #insTmpP
+      where (( 'Ю' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+    1: // текущие
+    {
+      #insTmpP
+      where (( 'С' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+    2: // архивные
+    {
+      #insTmpP
+      where (( 'У' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+    3: // работающие
+    {
+      #insTmpP
+      where (( 'С' == Persons.IsEmployee           and
+               date(0, 0, 0) == Persons.DisDate    and
+               Persons.Department == Catalogs.NRec     ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+    4: // уволенные
+    {
+      #insTmpP
+      where (( date(0, 0, 0) << Persons.DisDate    and
+               Persons.Department == Catalogs.NRec     ))
+            and CheckAndInsToTmpPersons(Persons.Department)
+            and ('Х' <> Persons.IsEmployee);
+    }
+    5: // работающие
+    {
+      #insTmpP
+      where (( 'Ю' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+    6: // картотека - т.е. уволенные и архивные!
+    {
+      // текущие
+      #insTmpP
+      where (('С' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+      //архивные
+      #insTmpP
+      where (( 'У' == Persons.IsEmployee and
+               Persons.Department == Catalogs.NRec ))
+            and CheckAndInsToTmpPersons(Persons.Department);
+    }
+  end; //case
+} //FillByDifferentPodr
+
+window SetFltPers;
+  show at (,,37,12);
+
+HandleEvent
+
+ cmInit:{
+
+    inherited::handleevent(cmInit);
+
+ var lValues: array [1..5] of integer;
+
+  lValues[1] := 3;
+
+  lValues[2] := 1;
+
+  lValues[3] := 2;
+
+  lValues[4] := 6;
+
+  lValues[5] := 9;
+
+  var sValues: array [1..5] of string;
+
+  sValues[1] := 'работающие';
+
+  sValues[2] := 'текущие';
+
+  sValues[3] := 'архив';
+
+  sValues[4] := 'вся картотека';
+
+  sValues[5] := 'длит. отсутствие';
+
+  SetEnumList(scrSelBD, #cPar2, sValues, lValues);
+
+ }
+
+end;
+
+end;
+
+end.

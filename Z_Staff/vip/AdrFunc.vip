@@ -1,0 +1,111 @@
+#component "Z_Staff"
+
+#doc
+Докомпиляция интерфейса "Функции работы с адресами"
+#end
+
+alter Interface AddressFunc;
+
+overload
+  function ObjAddressFunc13.GetFullTerrNameOnDateF10(NRecTerrName: comp; dDate: date) : string ;
+  public function ObjAddressFunc.GetFullAddressInd(NRecAddressN : comp) : string;
+  public function ObjAddressFunc.GetFullTerrName(NRecTerrName : comp) : string;
+  public function ObjAddressFunc10.CreateFullStreet(tblAN: type$AddressN): string;
+  public function ObjAddressFunc13.GetFullTerrNameOnDate(NRecTerrName: comp; dDate: date) : string ;
+end;
+
+//Возвращает подстроку, начиная с символа i, без пробелов и запятых по краям
+private function GetPosLTrim(sMod: string; bPos: byte): string;
+{
+  if bPos <> 0
+    result := LTrim(Trim(SubStr(sMod,bPos + 1,Length(sMod) - bPos)), ',');
+  else
+    result := sMod;
+}
+// Удаление названия справочников АТД из строки (при наличии)
+private function CheckATDTerrName(sTerrName: string) : string;
+{
+  if (InStr('Страны и регионы для места рождения',sTerrName) + InStr('Корневой',sTerrName)) <> 0
+    result := GetPosLTrim(sTerrName, pos(',',sTerrName));
+  else
+    result := sTerrName;
+}
+// Формирование полного названия АТД
+ public Function GetFullTerrNameOnDate(NRecTerrName: comp; dDate: date): string;
+{
+  result := CheckATDTerrName(inherited::GetFullTerrNameOnDate(NRecTerrName,dDate));
+}
+// Формирование полного названия АТД для формы 10
+private function GetFullTerrNameOnDateF10(NRecTerrName: comp; dDate: date): string;
+{
+  result := CheckATDTerrName(inherited::GetFullTerrNameOnDate(NRecTerrName,dDate));
+}
+// Формирование полного названия АТД без привязки к дате
+public function GetFullTerrName(NRecTerrName: comp): string;
+{
+  result := CheckATDTerrName(inherited::GetFullTerrName(NRecTerrName));
+}
+// Возвращает строку, из которой исключены совпадающие с главной строкой выражения
+private function GetStrMisMatch(sMisMatch, sMain: string): string;
+{
+  var j: byte = 0;
+  result := sMisMatch;
+
+  j := length(sMisMatch);
+  while (sMisMatch <> '')
+  {
+    j := Pos(',',sMisMatch);
+    if j = 0
+    {
+      if InStr(trim(sMisMatch), sMain) <> 0
+        sMisMatch := '';
+      break;
+    }
+    if InStr(trim(substr(sMisMatch, 1, j - 1)), sMain) = 0
+      break;
+    sMisMatch := trim(substr(sMisMatch, j + 1, length(sMisMatch) - j + 1));
+  }
+  result := sMisMatch;
+}
+// Строка адреса из улицы, дома, корпуса, квартиры
+public function CreateFullStreet(tblAN: type$AddressN): string;
+{
+  var sResult : string = '';
+
+  result := Trim(inherited::CreateFullStreet(tblAN));
+  sResult := LTrim(iStrFunc.DeleteExcessSpace(result), ',');
+  result := Trim(sResult);
+}
+// Формирование полного адреса с индексом
+public function GetFullAddressInd(NRecAddressN: comp): string;
+{
+  var sFullAddress, sAddress1, sStreet, sDopInfo, sSubPart : string = '';
+  result := '';
+
+  vAddressN.pAddressN := NRecAddressN;
+  if vAddressN.GetFirst AddressN = tsOK
+  {
+    if vAddressN.AddressN.wTypeCat <> coUserCat
+    {
+      result := sFullAddress;
+      exit;
+    }
+    sAddress1 := trim(vAddressN.AddressN.sAddress1);
+    sStreet := CreateFullStreet(vAddressN.AddressN.Buffer);
+    sDopInfo := if(vAddressN.AddressN.SDOPFIELD1 <> 0, string(vAddressN.AddressN.SDOPFIELD1),'');
+  }
+  sFullAddress := GetFullAddressIndOnDate(NRecAddressN, ZeroDate);
+  if InStr(sAddress1, sFullAddress) = 0
+  {
+    sSubPart := GetStrMisMatch(sAddress1, sFullAddress);
+    if sStreet <> ''
+    {
+      sFullAddress := replace(sFullAddress, sStreet, sSubPart);
+      sSubPart := GetStrMisMatch(sStreet, sSubPart);
+    }
+    if sSubPart <> ''
+      sFullAddress := trim(sFullAddress + ', ' + sSubPart);
+  }
+  result := if(sDopInfo <> '', string(sFullAddress + ', ' + sDopInfo), sFullAddress);
+}
+End.

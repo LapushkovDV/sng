@@ -1,0 +1,412 @@
+#component 'Z_Staff'
+#include StrFunc.vih
+
+
+alter interface Recwin04;
+
+
+var stringFunctions: StringFunctions;
+
+overload
+  function TestLink(iSysCode: integer; cLinkType: comp; sSex: s1): boolean;
+  function GetLinkType(iSysCode: integer; sSex: s1): comp;
+  function GetRodstvoLink(LinkTypeNrec: comp; sSex: s1): comp;
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+Function Get_SNG_Persons_FamDate : date; forward;
+Function Check_Sng_Persons: boolean; forward;
+
+create view vPsnLinks                   //Носова Н.Т. HR-69
+var  tel :string;
+ as select
+   Get_SNG_Persons_FamDate() (Fieldname = SNG_Persons_FamDate)
+from
+  Catalogs Catalogs_Gr,
+  Communications,
+  SNG_Persons
+  where
+  (( PsnLinks.Gr == Catalogs_Gr.Nrec
+  and psnlinks.nrec == Communications.Person
+  and             1 == Communications.Objtype  ////HR-344
+  and Persons.nRec  == SNG_Persons.nRec ))
+ ;
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+private function TestLink(iSysCode: integer; cLinkType: comp; sSex: s1): boolean;
+{
+  result := false;
+  case iSysCode of
+    1441: case sSex of
+          'М': result := TestCode(1470, cLinkType);
+          'Ж': result := TestCode(1471, cLinkType);
+          end;
+    1470: result := TestCode(1441, cLinkType);
+    1471: result := TestCode(1441, cLinkType);
+  end;
+}
+
+private function GetLinkType(iSysCode: integer; sSex: s1): comp;
+{
+  result := 0;
+  case iSysCode of
+    1441: case sSex of
+          'М': result := iCatFunc.GetCatalogsNRec(1470);
+          'Ж': result := iCatFunc.GetCatalogsNRec(1471);
+          end;
+    1470: result := iCatFunc.GetCatalogsNRec(1441);
+    1471: result := iCatFunc.GetCatalogsNRec(1441);
+  end;
+}
+
+private function GetRodstvoLink(LinkTypeNrec: comp; sSex: s1): comp;
+{
+  result := 0;
+
+  if (trim(UpCase(iCatFunc.GetCatalogsCode(LinkTypeNrec))) = 'ДЕТИ')
+    result := if(sSex = 'Ж', iCatFunc.GetCatalogsNRec(1596), iCatFunc.GetCatalogsNRec(1597));
+  else
+    if (iCatFunc.GetSysCode(LinkTypeNrec) = 1473)
+      result := iCatFunc.GetCatalogsNRec(1404);
+//    else
+//      if (iCatFunc.GetSysCode(LinkTypeNrec) = 1473)
+//        result := iCatFunc.GetCatalogsNRec(1403);
+}
+
+OverloadFormats scrPersons4;
+
+screen scrPersons4;                     //Рубцов А. HR-55
+  show at (,,, 2);
+  table tmpPersons;
+Fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO    ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  {Font={BackColor=if(trim(tmpPersons.FIO) = '',ColorNeed,0)}}, protect;
+  FamilyStateCat.Name('Семейное положение',
+    , scStaffReceptionT2PsnFamState) : pickbutton, protect;
+  SNG_Persons_FamDate ('Дата ввода статуса семейного положения'): [10,'DD/MM/YYYY'], noProtect;
+  tmpPsnDepend        ('Общее количество иждивенцев',,) : skip;
+<<   'Семейное положение сотрудника'
+      Ф.И.О.             .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      Семейное положение .@@@@@@@@@@@@@@@@@ с .@@@@@@@@@@ `Количество иждивенцев:`.@@@
+>>
+
+end; // scrPersons4
+
+ExtendFormats brwPsnLinks;
+browse brwPsnLinks;
+ table PsnLinks;
+Fields
+  //PsnLinks.TELNR 'Телефон родственника':[14], noProtect;
+  COMMUNICATIONS.ADDR 'Телефон родственника':[14], Protect;
+  Catalogs_Gr.Name 'Гражданство' (,,scStaffReceptionT2ComPick):[8], protect, pickbutton;
+end;
+
+OverloadFormats scrLinkedPsn2;
+screen scrLinkedPsn2;
+  table PsnLinks;
+  //bevel b1 {1, 5, 94, 15, bsRaised, bsFrame};
+  //bevel b2 {1, 15, 94, 22, bsLowered, bsFrame};
+Fields
+//  PsnLinks.TELNR ('Телефон родственника')  : noProtect;
+  Communications.Addr ('Телефон родственника')  : noProtect;
+  Catalogs_Gr.Name ('Гражданство. Выбор из каталога по F3.',
+     , scStaffReceptionT2CDPick) : pickbutton, protect;
+  LPLivName ('Место проживания. F3-Выбор.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  funcDate      ('Дата окончания действия льготы') : skip;
+  strAge      ('Дата окончания действия льготы') : skip;
+/* HR-478
+  str1_Ijd  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str2_Ijd  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str1_Std  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str2_Std  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str1_Inv  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str2_Inv  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str1_One  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str2_One  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str1_Vih  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+  str2_Vih  : Skip, {Font = {italic = true; Color = ColorSysGray}};
+
+  strLabel_2 : Skip, Centered, {Font = {bold = true}};
+
+  OtchetYear  ('Год, за который выводятся коды') : NoProtect, {inputMask = '0000'};
+  code_1      ('Код вычета по первому основанию за январь')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 1, true, false); BackColor = ColorSys06}};
+  code_2      ('Код вычета по первому основанию за февраль')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 2, true, false); BackColor = ColorSys06}};
+  code_3      ('Код вычета по первому основанию за март')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 3, true, false); BackColor = ColorSys06}};
+  code_4      ('Код вычета по первому основанию за апрель')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 4, true, false); BackColor = ColorSys06}};
+  code_5      ('Код вычета по первому основанию за май')      : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 5, true, false); BackColor = ColorSys06}};
+  code_6      ('Код вычета по первому основанию за июнь')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 6, true, false); BackColor = ColorSys06}};
+  code_7      ('Код вычета по первому основанию за июль')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 7, true, false); BackColor = ColorSys06}};
+  code_8      ('Код вычета по первому основанию за август')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 8, true, false); BackColor = ColorSys06}};
+  code_9      ('Код вычета по первому основанию за сентябрь') : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 9, true, false); BackColor = ColorSys06}};
+  code_10     ('Код вычета по первому основанию за октябрь')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 10, true, false); BackColor = ColorSys06}};
+  code_11     ('Код вычета по первому основанию за ноябрь')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 11, true, false); BackColor = ColorSys06}};
+  code_12     ('Код вычета по первому основанию за декабрь')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 12, true, false); BackColor = ColorSys06}};
+
+  vychet_1    ('Вычеты по первому основанию за январь (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 1, true, false); BackColor = ColorSys06}};
+  vychet_2    ('Вычеты по первому основанию за февраль (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 2, true, false); BackColor = ColorSys06}};
+  vychet_3    ('Вычеты по первому основанию за март (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 3, true, false); BackColor = ColorSys06}};
+  vychet_4    ('Вычеты по первому основанию за апрель (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 4, true, false); BackColor = ColorSys06}};
+  vychet_5    ('Вычеты по первому основанию за май (на иждивенцев/дополнительные)')      : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 5, true, false); BackColor = ColorSys06}};
+  vychet_6    ('Вычеты по первому основанию за июнь (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 6, true, false); BackColor = ColorSys06}};
+  vychet_7    ('Вычеты по первому основанию за июль (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 7, true, false); BackColor = ColorSys06}};
+  vychet_8    ('Вычеты по первому основанию за август (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 8, true, false); BackColor = ColorSys06}};
+  vychet_9    ('Вычеты по первому основанию за сентябрь (на иждивенцев/дополнительные)') : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 9, true, false); BackColor = ColorSys06}};
+  vychet_10   ('Вычеты по первому основанию за октябрь (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 10, true, false); BackColor = ColorSys06}};
+  vychet_11   ('Вычеты по первому основанию за ноябрь (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 11, true, false); BackColor = ColorSys06}};
+  vychet_12   ('Вычеты по первому основанию за декабрь (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 12, true, false); BackColor = ColorSys06}};
+
+  code_1_1    ('Код вычета по второму основанию за январь')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 1, true, false); BackColor = ColorSys06}};
+  code_1_2    ('Код вычета по второму основанию за февраль')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 2, true, false); BackColor = ColorSys06}};
+  code_1_3    ('Код вычета по второму основанию за март')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 3, true, false); BackColor = ColorSys06}};
+  code_1_4    ('Код вычета по второму основанию за апрель')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 4, true, false); BackColor = ColorSys06}};
+  code_1_5    ('Код вычета по второму основанию за май')      : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 5, true, false); BackColor = ColorSys06}};
+  code_1_6    ('Код вычета по второму основанию за июнь')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 6, true, false); BackColor = ColorSys06}};
+  code_1_7    ('Код вычета по второму основанию за июль')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 7, true, false); BackColor = ColorSys06}};
+  code_1_8    ('Код вычета по второму основанию за август')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 8, true, false); BackColor = ColorSys06}};
+  code_1_9    ('Код вычета по второму основанию за сентябрь') : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 9, true, false); BackColor = ColorSys06}};
+  code_1_10   ('Код вычета по второму основанию за октябрь')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 10, true, false); BackColor = ColorSys06}};
+  code_1_11   ('Код вычета по второму основанию за ноябрь')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 11, true, false); BackColor = ColorSys06}};
+  code_1_12   ('Код вычета по второму основанию за декабрь')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 12, true, false); BackColor = ColorSys06}};
+
+  vychet_1_1  ('Вычеты по второму основанию за январь (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 1, true, false); BackColor = ColorSys06}};
+  vychet_1_2  ('Вычеты по второму основанию за февраль (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 2, true, false); BackColor = ColorSys06}};
+  vychet_1_3  ('Вычеты по второму основанию за март (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 3, true, false); BackColor = ColorSys06}};
+  vychet_1_4  ('Вычеты по второму основанию за апрель (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 4, true, false); BackColor = ColorSys06}};
+  vychet_1_5  ('Вычеты по второму основанию за май (на иждивенцев/дополнительные)')      : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 5, true, false); BackColor = ColorSys06}};
+  vychet_1_6  ('Вычеты по второму основанию за июнь (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 6, true, false); BackColor = ColorSys06}};
+  vychet_1_7  ('Вычеты по второму основанию за июль (на иждивенцев/дополнительные)')     : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 7, true, false); BackColor = ColorSys06}};
+  vychet_1_8  ('Вычеты по второму основанию за август (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 8, true, false); BackColor = ColorSys06}};
+  vychet_1_9  ('Вычеты по второму основанию за сентябрь (на иждивенцев/дополнительные)') : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 9, true, false); BackColor = ColorSys06}};
+  vychet_1_10 ('Вычеты по второму основанию за октябрь (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 10, true, false); BackColor = ColorSys06}};
+  vychet_1_11 ('Вычеты по второму основанию за ноябрь (на иждивенцев/дополнительные)')   : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 11, true, false); BackColor = ColorSys06}};
+  vychet_1_12 ('Вычеты по второму основанию за декабрь (на иждивенцев/дополнительные)')  : Protect, {Font = {bold = if (curYear = OtchetYear and curMonth = 12, true, false); BackColor = ColorSys06}};
+*/
+Buttons
+  cmValue2,,,'Документы родственника';
+  cmPasteFromBuf,,,'Скопировать адрес сотрудника';
+  cmValue3,,,'Вычеты родственника';
+
+<<
+
+  `Телефон`          .@@@@@@@@@@@@@@ `Гражданство`.@@@@@@@@  <.Документы родственника.>
+
+  `Место регистрации`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                    <.Скопировать адрес сотрудника.>  <.Обоснования вычетов.>
+
+  `Возраст на`       .@@@@@@@@@@:.@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // scrLinkedPsn2
+
+OverloadFormats scrLinkedPsn1_Ex, scrLinkedPsn2_Ex;
+
+screen scrLinkedPsn1_Ex;
+  show at (, 8,,) fixed_y;
+  table PsnLinks;
+Fields
+  PsnLinks.SeqNmb      ('N п/п');
+  PsnLinks.RFIO        ('Фамилия, Имя, Отчество') : noProtect;
+  PsnLinks.RBornDate   ('Дата рождения', ,
+          scStaffReceptionT2SLEdit) : noProtect;
+  PsnLinksTypeCat.Name ('Степень родства. Кем приходится родственник сотруднику.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  PsnLinksRodSv.Name ('Родственная связь. Кем приходится сотрудник родственнику.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  LPLivName ('Место проживания. F3-Выбор.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+Buttons
+  cmPasteFromBuf,,,'Скопировать адрес сотрудника';
+  cmValue2,,,'Документы родственника';
+
+<<
+
+  № п/п.@@@@ ФИО .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Дата рождения.@@@@@@@@@@
+  Степень родства.@@@@@@@@@@@@@@@@@@@@@@@@Родственная связь.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Место регистрации .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+           <.Скопировать адрес сотрудника.> <.Документы.>
+
+>>
+end; // scrLinkedPsn1
+
+screen scrLinkedPsn2_Ex;
+  show at (, 8,,) fixed_y;
+  table PsnLinks;
+Fields
+  LPLivName ('Место проживания. F3-Выбор.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+Buttons
+  cmPasteFromBuf,,,'Скопировать адрес сотрудника';
+  cmValue2,,,'Документы родственника';
+
+<<
+
+   Место регистрации .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+           <.Скопировать адрес сотрудника.> <.Документы.>
+>>
+end; // scrLinkedPsn2
+
+
+TableEvent
+  table PsnLinks;
+cmCheckField:
+{
+ inherited::handleevent(cmCheckField);
+ if  CurField = #COMMUNICATIONS.Addr
+ {
+    if IsValid(#Communications)     //при изменении телефона
+    {
+      update current Communications;
+      ReReadRecord(tnPsnLinks);
+    }
+    else                             //если его нет, создаем запись в  Communications
+    {
+      set Communications.nrec :=0;
+      set Communications.person := psnlinks.nrec;
+      set Communications.objtype := 1;           //HR-344
+      insert current Communications;
+      ReReadRecord(tnPsnLinks);
+    }
+ }
+
+}
+cmInsertRecord:
+{
+  var tmpDate : date;
+  PsnLinks.NRec := 0;
+  insert current PsnLinks;
+  vPCU.ChangeInfo(coPsnLinks, cmInsertRecord, PsnLinks.NRec, Persons.NRec);
+
+  ShowButton(scrLinkedPsn1, cmPasteFromBuf, true );
+  ShowButton(scrLinkedPsn1, cmValue2, true );
+  ShowButton(scrLinkedPsn2, cmPasteFromBuf, true );
+  ShowButton(scrLinkedPsn2, cmValue2, true );
+
+  tmpDate := PD.GetDateEndLgota(PsnLinks.NRec);
+
+  if (trim(UpCase(iCatFunc.GetCatalogsCode(PsnLinks.LinkType))) = trim('ДЕТИ'))
+  {
+
+        var cDoc : comp ;
+        if (not iChildDoc.IsStatusExistForPeriod(PsnLinks.NRec, psnLinksIjd, ZeroDate, ZeroDate))
+        {
+          iChildDoc.DelAllDocDependAndStatus(PsnLinks.NRec);
+          cDoc := iChildDoc.CreateDocDepend1(PsnLinks.NRec, psnLinksDocBornSvid, ZeroDate, ZeroDate);
+          RunInterface('PsnLinksDoc', PsnLinks.NRec, cDoc, true);
+        }
+
+
+
+    if not isProtectKadry
+    {
+      if (Message('Создать статус иждивенец для предоставления вычетов на ребенка' + chr(13) +
+                  'с ' + string(PsnLinks.RBornDate) + ' по '+ string(tmpDate) +'?', YesNo + Confirmation) = cmYes)
+      {
+        if (not iChildDoc.IsStatusExistForPeriod(PsnLinks.NRec, psnLinksIjd, PsnLinks.RBornDate, tmpDate))
+        {
+          iChildDoc.CreateStatusDepend(PsnLinks.NRec, psnLinksIjd, PsnLinks.RBornDate, tmpDate);
+        }
+      }
+    }
+  }
+}
+end;
+HandleEvent
+cmOnVipLoad:
+{
+  inherited::handleevent(cmOnVipLoad);
+  cfsSetProp('T_SCRPERSONS4_Количество_иждивенцев:', cfpVisible, boolean(false));
+  cfsSetProp('SCRLINKEDPSN1', cfpVisible, boolean(false));
+  cfsSetProp('L_SCRPERSONS4_Количество_иждивенцев:', cfpVisible, boolean(false));
+  cfsSetProp('i_SCRPERSONS4_TMPPSNDEPEND', cfpVisible, boolean(false));
+  cfsSetProp('b_SCRLINKEDPSN2_Скопировать_адрес_сотрудника', cfpOrigin_X, 185);
+
+}  //cmOnVipLoad
+
+cmCheckField:
+{
+  if inherited::handleevent(cmCheckField) = heAbort
+     abort;
+
+  case CurField of
+    #SNG_Persons_FamDate:
+    {
+       Check_Sng_Persons();
+
+       set SNG_Persons.FamDate := StrToDate(ExprFieldValue, 'DD/MM/YYYY');
+       vPsnLinks.update current SNG_Persons;
+
+    }
+  end; //case
+
+}
+
+cmPick:
+{
+  inherited::handleEvent(cmpick); // Не затирает другие cmpick
+    case CurField of
+    #Catalogs_Gr.Name:
+      {
+        RunInterface(Z_StaffCat::PickCatalog2,-120,PsnLinks.Gr,0);
+      }
+
+    #PsnLinks.RFIO:
+    {
+
+      inherited::handleEvent(#PsnLinks.RFIO);
+
+      var errorName: string = '';
+
+      if ((stringFunctions.Get_LastName(PsnLinks.RFIO))= '')
+      {
+          errorName:= errorName + ' Фамилию';
+      }
+
+      if ((stringFunctions.Get_FirstName(PsnLinks.RFIO))= '')
+      {
+          errorName:= errorName + ' имя';
+      }
+      if ((stringFunctions.GetPatronymic(PsnLinks.RFIO))= '')
+      {
+          errorName:= errorName + ' и отчество';
+      }
+      if(((stringFunctions.Get_LastName(PsnLinks.RFIO))= '')or((stringFunctions.Get_FirstName(PsnLinks.RFIO))= '')or((stringFunctions.GetPatronymic(PsnLinks.RFIO))= ''))
+      {
+        message('Вы не ввели,' + errorName + '.', error);
+      }
+
+    }
+    end; //case
+
+}   //CmPick
+
+
+end; //HandleEvent
+
+Function Get_SNG_Persons_FamDate: date;
+{
+   result := SNG_Persons.FamDate;
+}
+Function Check_Sng_Persons: boolean;
+{
+   result := false;
+   if Getfirst SNG_Persons where (( vPsnLinks.Persons.nRec == SNG_Persons.nRec )) <> tsok
+      insert SNG_Persons set SNG_Persons.nRec := vPsnLinks.Persons.nRec;
+   if vPsnLinks.Getfirst SNG_Persons = tsok  { result := true; }
+}
+
+end.

@@ -1,9 +1,6 @@
-/*
-13580-13589
-*/
 alter dictionary;
 Create Table SNG_EDIT "Анкетный редактор для списочных интерфейсов"
-  With Table_CODE = 13590
+  With Table_CODE = 13575
   With Replace
   With TableOptions Branched
 (

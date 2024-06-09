@@ -1,0 +1,461 @@
+#include AtlProtocol.vih
+
+#component "Z_Staff"
+
+alter interface WorkFunctions;
+
+table struct tmpApp
+(
+  AppNRec: comp,
+  AppPerson: comp,
+  AppAppointDate: date,
+  AppDismissDate: date,
+  AppDateEnd: date,
+  ApplPrizn: integer,
+  AppAppTabNmb: tTabN,
+  AppStrTabN: TabnStr,
+  PersFIO: s60,
+  PersTabNmb: tTabN,
+  PersStrTabN: TabnStr,
+  SpAllStaffNRec: comp
+)
+;
+
+create view
+from
+  tmpApp;
+
+private procedure FillApp(pRec, pBaseT, pNRec: comp);
+{
+  mtClear(#tmpApp, mfNormal);
+
+  insert into tmpApp (AppNRec, AppPerson, AppAppointDate, AppDismissDate, AppDateEnd, ApplPrizn, AppAppTabNmb, AppStrTabN, PersFIO, PersTabNmb, PersStrTabN, SpAllStaffNRec)
+  select
+    Appointments.NRec,
+    Appointments.Person,
+    Appointments.AppointDate,
+    Appointments.DismissDate,
+    Appointments.DateEnd,
+    Appointments.lPrizn,
+    Appointments.AppTabNmb,
+    Appointments.StrTabN,
+    Persons.FIO,
+    Persons.TabNmb,
+    Persons.StrTabN,
+    SpAllStaff.NRec
+  from
+    Appointments,
+    Persons,
+    SpAllStaff
+  where
+  ((
+     pRec == Appointments.Post and
+     2 == Appointments.wAddWord1 and
+     Appointments.Person /== Persons.NRec and
+     cgStaff_TF /== SpAllStaff.wNoCon and
+     pBaseT /== SpAllStaff.cBaseT and
+     Appointments.NRec /== SpAllStaff.cLinkT and
+     0 /== SpAllStaff.iNum and
+     coAppointments /== SpAllStaff.wChoise and
+     pNRec /== SpAllStaff.ResComp[2] (NoIndex)
+  ))
+  ;
+}
+
+HandleEvent
+
+cmCheckField:
+{
+  var lLog, lNode: longint = 0;
+  var bError, bFindStaffStr, bFindApp: boolean = false;
+
+  mtClear(#tmpSpAllStaff, mfNormal);
+
+  case CurField of
+
+    #SpAllStaff.ResString[1]:
+    {
+       case SpAllStaff.wChoise of
+
+          coCatalogs:
+          {
+            var buffSpAllStaff: type$SpAllStaff;
+
+            _loop nocache StaffStruct where (( SpAllStaff.cLinkT == StaffStruct.Post ))
+            {
+              buffSpAllStaff.NRec := 0;
+
+              var bStrWF: boolean = false;
+
+              if (GetFirst Dop_SpAllStaff where (( cgStaff_TF        == Dop_SpAllStaff.wNoCon and
+                                                   SpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                   StaffStruct.NRec  == Dop_SpAllStaff.cLinkT and
+                                                   0                 == Dop_SpAllStaff.iNum and
+                                                   coStaffStruct     == Dop_SpAllStaff.wChoise and
+                                                   SpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+              {
+                buffSpAllStaff := Dop_SpAllStaff.Buffer;
+                update current Dop_SpAllStaff set Dop_SpAllStaff.ResString[1] := SpAllStaff.ResString[1];
+                bStrWF := true;
+              }
+
+
+              if (bStrWF)
+                _loop nocache Appointments where (( buffSpAllStaff.cLinkT == Appointments.StaffStr ))
+                   if (GetFirst Dop_SpAllStaff where (( cgStaff_TF            == Dop_SpAllStaff.wNoCon and
+                                                        buffSpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                        Appointments.NRec     == Dop_SpAllStaff.cLinkT and
+                                                        0                     == Dop_SpAllStaff.iNum and
+                                                        coAppointments        == Dop_SpAllStaff.wChoise and
+                                                        buffSpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+                     update current Dop_SpAllStaff set Dop_SpAllStaff.ResString[1] := SpAllStaff.ResString[1];
+            }
+
+            FillApp(SpAllStaff.cLinkT, SpAllStaff.cBaseT, SpAllStaff.NRec);
+
+            _loop tmpApp
+              update Dop_SpAllStaff where (( tmpApp.SpAllStaffNRec == Dop_SpAllStaff.NRec )) set Dop_SpAllStaff.ResString[1] := SpAllStaff.ResString[1];
+
+            mtClear(#tmpApp, mfNormal);
+          }
+
+          else
+          {
+            set SpAllStaff.ResString[1] := OldFieldValue;
+          }
+
+        end;
+    }
+
+    #SpAllStaff.ResDate[1]:
+    {
+      if ((SpAllStaff.ResDate[1] > SpAllStaff.ResDate[2]) and (SpAllStaff.ResDate[2] <> ZeroDate))
+      {
+        message('Дата начала не может быть больше даты окончания!', Warning);
+        update current SpAllStaff
+        set SpAllStaff.ResDate[1] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+      }
+      else
+      {
+        InitProtocol(lLog);
+
+        mtClear(#tmpMessage, mfNormal);
+
+        case SpAllStaff.wChoise of
+
+          coCatalogs:
+          {
+            var buffSpAllStaff: type$SpAllStaff;
+
+            _loop nocache StaffStruct where (( SpAllStaff.cLinkT == StaffStruct.Post ))
+            {
+              buffSpAllStaff.NRec := 0;
+
+              if (GetFirst Dop_SpAllStaff where (( cgStaff_TF        == Dop_SpAllStaff.wNoCon and
+                                                   SpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                   StaffStruct.NRec  == Dop_SpAllStaff.cLinkT and
+                                                   0                 == Dop_SpAllStaff.iNum and
+                                                   coStaffStruct     == Dop_SpAllStaff.wChoise and
+                                                   SpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+              {
+                bFindStaffStr := true;
+                buffSpAllStaff := Dop_SpAllStaff.Buffer;
+                InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[1]);
+
+                if ((StaffStruct.dClose <> ZeroDate) and (SpAllStaff.ResDate[1] <> ZeroDate) and (StaffStruct.dClose < SpAllStaff.ResDate[1]))
+                {
+                  bError := true;
+                  InsertLog(1, 'Подразделение: ' + iCatFunc.GetCatalogsName(StaffStruct.Department) +
+                               ' (№ п/п ' + string(StaffStruct.SeqNmb) + ')');
+                }
+              }
+
+              if (tmpSpAllStaff.NRec <> 0)
+              {
+                _loop nocache Appointments where (( buffSpAllStaff.cLinkT == Appointments.StaffStr ))
+                 if (GetFirst Persons = tsOk)
+                   if (GetFirst Dop_SpAllStaff where (( cgStaff_TF            == Dop_SpAllStaff.wNoCon and
+                                                        buffSpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                        Appointments.NRec     == Dop_SpAllStaff.cLinkT and
+                                                        0                     == Dop_SpAllStaff.iNum and
+                                                        coAppointments        == Dop_SpAllStaff.wChoise and
+                                                        buffSpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+                   {
+                     bFindApp := true;
+                     InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[1]);
+
+                     if (Appointments.AppointDate < SpAllStaff.ResDate[1])
+                     {
+                       bError := true;
+                       InsertLog(2, 'ФИО: ' + Persons.FIO + ' (таб. № ' +
+                                    if(Appointments.lPrizn = 0,
+                                       GetStrTabN(Persons.TabNmb, Persons.StrTabN),
+                                       GetStrTabN(Appointments.AppTabNmb, Appointments.StrTabN)) + ')');
+                     }
+                   }
+              }
+            }
+
+            FillApp(SpAllStaff.cLinkT, SpAllStaff.cBaseT, SpAllStaff.NRec);
+
+            _loop tmpApp
+            {
+              bFindApp := true;
+              InsertTmpSpAllStaff(tmpApp.SpAllStaffNRec, SpAllStaff.ResDate[1]);
+
+              if (tmpApp.AppAppointDate < SpAllStaff.ResDate[1])
+              {
+                bError := true;
+                InsertLog(2, 'ФИО: ' + tmpApp.PersFIO + ' (таб. № ' +
+                             if(tmpApp.ApplPrizn = 0,
+                                GetStrTabN(tmpApp.PersTabNmb, tmpApp.PersStrTabN),
+                                GetStrTabN(tmpApp.AppAppTabNmb, tmpApp.AppStrTabN)) + ')');
+              }
+            }
+
+            mtClear(#tmpApp, mfNormal);
+          }
+
+          coStaffStruct:
+          {
+            if (GetFirst StaffStruct where (( SpAllStaff.cLinkT == StaffStruct.NRec )) = tsOk) and
+               ((StaffStruct.dClose <> ZeroDate) and (SpAllStaff.ResDate[1] <> ZeroDate) and (StaffStruct.dClose < SpAllStaff.ResDate[1]))
+            {
+              message('Запрещено менять дату! Дата начала трудовой функции позже даты закрытия ставки!', Warning);
+              update current SpAllStaff
+              set SpAllStaff.ResDate[1] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+            }
+            else
+            {
+              _loop nocache Appointments where (( SpAllStaff.cLinkT == Appointments.StaffStr ))
+               if (GetFirst Persons = tsOk)
+                 if (GetFirst Dop_SpAllStaff where (( cgStaff_TF        == Dop_SpAllStaff.wNoCon and
+                                                      SpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                      Appointments.NRec == Dop_SpAllStaff.cLinkT and
+                                                      0                 == Dop_SpAllStaff.iNum and
+                                                      coAppointments    == Dop_SpAllStaff.wChoise and
+                                                      SpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+                 {
+                   bFindApp := true;
+                   InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[1]);
+
+                   if (Appointments.AppointDate < SpAllStaff.ResDate[1])
+                   {
+                     bError := true;
+                     InsertLog(2, 'ФИО: ' + Persons.FIO + ' (таб. № ' +
+                                  if(Appointments.lPrizn = 0,
+                                     GetStrTabN(Persons.TabNmb, Persons.StrTabN),
+                                     GetStrTabN(Appointments.AppTabNmb, Appointments.StrTabN)) + ')');
+                   }
+                 }
+            }
+          }
+
+        end;
+
+
+        if (GetFirst tmpMessage where (( 1 == tmpMessage.wType )) = tsOk)
+        {
+          ProtocolNode(lLog, lNode, 'Запрещено менять дату! Дата начала трудовой функции позже даты закрытия ставки:');
+
+          _loop nocache tmpMessage where (( 1 == tmpMessage.wType ))
+            AP.LogMessageEx(APE_WARNING, tmpMessage.sMess, lNode);
+        }
+
+        if (GetFirst tmpMessage where (( 2 == tmpMessage.wType )) = tsOk)
+        {
+          ProtocolNode(lLog, lNode, 'Запрещено менять дату! Найдены назначения с данной трудовой функцией, начинающиеся раньше:');
+
+          _loop nocache tmpMessage where (( 2 == tmpMessage.wType ))
+            AP.LogMessageEx(APE_WARNING, tmpMessage.sMess, lNode);
+        }
+
+        DoneProtocol(bError);
+
+        if (bError)
+        {
+          update current SpAllStaff
+          set SpAllStaff.ResDate[1] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+        }
+        else
+          if (bFindStaffStr) or (bFindApp)
+          {
+            UpdateTable;
+
+            _loop nocache tmpSpAllStaff
+              update Dop_SpAllStaff where (( tmpSpAllStaff.NRec == Dop_SpAllStaff.NRec ))
+              set Dop_SpAllStaff.ResDate[1] := tmpSpAllStaff.ResDate;
+          }
+      }
+    }
+
+    #SpAllStaff.ResDate[2]:
+    {
+      if (SpAllStaff.ResDate[2] < SpAllStaff.ResDate[1])
+      {
+        message('Дата окончания не может быть меньше даты начала!', Warning);
+        update current SpAllStaff
+        set SpAllStaff.ResDate[2] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+      }
+      else
+      {
+        InitProtocol(lLog);
+
+        mtClear(#tmpMessage, mfNormal);
+
+        case SpAllStaff.wChoise of
+
+          coCatalogs:
+          {
+            var buffSpAllStaff: type$SpAllStaff;
+
+            _loop nocache StaffStruct where (( SpAllStaff.cLinkT == StaffStruct.Post ))
+            {
+              buffSpAllStaff.NRec := 0;
+
+              if (GetFirst Dop_SpAllStaff where (( cgStaff_TF        == Dop_SpAllStaff.wNoCon and
+                                                   SpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                   StaffStruct.NRec  == Dop_SpAllStaff.cLinkT and
+                                                   0                 == Dop_SpAllStaff.iNum and
+                                                   coStaffStruct     == Dop_SpAllStaff.wChoise and
+                                                   SpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+              {
+                bFindStaffStr := true;
+                buffSpAllStaff := Dop_SpAllStaff.Buffer;
+                InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[2]);
+
+                if ((SpAllStaff.ResDate[2] <> ZeroDate) and (StaffStruct.dInput > SpAllStaff.ResDate[2]))
+                {
+                  bError := true;
+                  InsertLog(1, 'Подразделение: ' + iCatFunc.GetCatalogsName(StaffStruct.Department) +
+                               ' (№ п/п ' + string(StaffStruct.SeqNmb) + ')');
+                }
+              }
+
+              if (tmpSpAllStaff.NRec <> 0)
+              {
+                _loop nocache Appointments where (( buffSpAllStaff.cLinkT == Appointments.StaffStr ))
+                 if (GetFirst Persons = tsOk)
+                   if (GetFirst Dop_SpAllStaff where (( cgStaff_TF            == Dop_SpAllStaff.wNoCon and
+                                                        buffSpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                        Appointments.NRec     == Dop_SpAllStaff.cLinkT and
+                                                        0                     == Dop_SpAllStaff.iNum and
+                                                        coAppointments        == Dop_SpAllStaff.wChoise and
+                                                        buffSpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+                   {
+                     bFindApp := true;
+                     InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[2]);
+
+                     if (((Appointments.DismissDate <> ZeroDate) and (SpAllStaff.ResDate[2] <> ZeroDate) and (Appointments.DismissDate > SpAllStaff.ResDate[2])) or
+                         ((Appointments.DateEnd <> ZeroDate) and (SpAllStaff.ResDate[2] <> ZeroDate) and (Appointments.DateEnd > SpAllStaff.ResDate[2])))
+                     {
+                       bError := true;
+                       InsertLog(2, 'ФИО: ' + Persons.FIO + ' (таб. № ' +
+                                    if(Appointments.lPrizn = 0,
+                                       GetStrTabN(Persons.TabNmb, Persons.StrTabN),
+                                       GetStrTabN(Appointments.AppTabNmb, Appointments.StrTabN)) + ')');
+                     }
+                   }
+              }
+            }
+
+            FillApp(SpAllStaff.cLinkT, SpAllStaff.cBaseT, SpAllStaff.NRec);
+
+            _loop tmpApp
+            {
+              bFindApp := true;
+              InsertTmpSpAllStaff(tmpApp.SpAllStaffNRec, SpAllStaff.ResDate[2]);
+
+              if (((tmpApp.AppDismissDate <> ZeroDate) and (SpAllStaff.ResDate[2] <> ZeroDate) and (tmpApp.AppDismissDate > SpAllStaff.ResDate[2])) or
+                  ((tmpApp.AppDateEnd <> ZeroDate) and (SpAllStaff.ResDate[2] <> ZeroDate) and (tmpApp.AppDateEnd > SpAllStaff.ResDate[2])))
+              {
+                bError := true;
+                InsertLog(2, 'ФИО: ' + tmpApp.PersFIO + ' (таб. № ' +
+                             if(tmpApp.ApplPrizn = 0,
+                                GetStrTabN(tmpApp.PersTabNmb, tmpApp.PersStrTabN),
+                                GetStrTabN(tmpApp.AppAppTabNmb, tmpApp.AppStrTabN)) + ')');
+              }
+            }
+
+            mtClear(#tmpApp, mfNormal);
+          }
+
+          coStaffStruct:
+          {
+            if (GetFirst StaffStruct where (( SpAllStaff.cLinkT == StaffStruct.NRec )) = tsOk) and
+               ((SpAllStaff.ResDate[2] <> ZeroDate) and (StaffStruct.dInput > SpAllStaff.ResDate[2]))
+            {
+              message('Запрещено менять дату! Дата окончания трудовой функции раньше даты введения ставки!', Warning);
+              update current SpAllStaff
+              set SpAllStaff.ResDate[2] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+            }
+            else
+            {
+              _loop nocache Appointments where (( SpAllStaff.cLinkT == Appointments.StaffStr ))
+               if (GetFirst Persons = tsOk)
+                 if (GetFirst Dop_SpAllStaff where (( cgStaff_TF        == Dop_SpAllStaff.wNoCon and
+                                                      SpAllStaff.cBaseT == Dop_SpAllStaff.cBaseT and
+                                                      Appointments.NRec == Dop_SpAllStaff.cLinkT and
+                                                      0                 == Dop_SpAllStaff.iNum and
+                                                      coAppointments    == DOp_SpAllStaff.wChoise and
+                                                      SpAllStaff.NRec   == Dop_SpAllStaff.ResComp[2] (NoIndex))) = tsOk)
+                 {
+                   bFindApp := true;
+                   InsertTmpSpAllStaff(Dop_SpAllStaff.NRec, SpAllStaff.ResDate[2]);
+
+                   if (((Appointments.DismissDate <> ZeroDate) and (Appointments.DismissDate > SpAllStaff.ResDate[2])) or
+                       ((Appointments.DateEnd <> ZeroDate) and (Appointments.DateEnd > SpAllStaff.ResDate[2])))
+                   {
+                     bError := true;
+                     InsertLog(2, 'ФИО: ' + Persons.FIO + ' (таб. № ' +
+                                  if(Appointments.lPrizn = 0,
+                                     GetStrTabN(Persons.TabNmb, Persons.StrTabN),
+                                     GetStrTabN(Appointments.AppTabNmb, Appointments.StrTabN)) + ')');
+                   }
+                 }
+            }
+          }
+
+        end;
+
+        if (GetFirst tmpMessage where (( 1 == tmpMessage.wType )) = tsOk)
+        {
+          ProtocolNode(lLog, lNode, 'Запрещено менять дату! Дата окончания трудовой функции раньше даты введения ставки:');
+
+          _loop nocache tmpMessage where (( 1 == tmpMessage.wType ))
+            AP.LogMessageEx(APE_WARNING, tmpMessage.sMess, lNode);
+        }
+
+        if (GetFirst tmpMessage where (( 2 == tmpMessage.wType )) = tsOk)
+        {
+          ProtocolNode(lLog, lNode, 'Запрещено менять дату! Найдены назначения с данной трудовой функцией, заканчивающиеся позже:');
+
+          _loop nocache tmpMessage where (( 2 == tmpMessage.wType ))
+            AP.LogMessageEx(APE_WARNING, tmpMessage.sMess, lNode);
+        }
+
+        DoneProtocol(bError);
+
+        if (bError)
+        {
+          update current SpAllStaff
+          set SpAllStaff.ResDate[2] := StrToDate(OldFieldValue,'DD/MM/YYYY');
+        }
+        else
+          if (bFindStaffStr) or (bFindApp)
+          {
+            UpdateTable;
+
+            _loop nocache tmpSpAllStaff
+              update Dop_SpAllStaff where (( tmpSpAllStaff.NRec == Dop_SpAllStaff.NRec ))
+              set Dop_SpAllStaff.ResDate[2] := tmpSpAllStaff.ResDate;
+          }
+      }
+    }
+
+  end;
+}
+
+end;
+
+end.

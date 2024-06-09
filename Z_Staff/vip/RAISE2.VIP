@@ -1,0 +1,26 @@
+#component  'Z_STAFF'
+
+alter interface RaiseWin;
+
+extendFormats brwRaise;
+
+  browse brwRaise 'brwRaise' (,, sci178Esc);
+
+Fields
+  RaiseCat.Code 'Вид оплаты'('Вид оплаты.', hcStaffRaiseType): [7], protect;
+end;
+
+HandleEvent
+
+cmInit:
+
+{
+
+  inherited::handleEvent(cmInit);
+
+  cfsSetProp('c_BRWRAISE_RAISECAT.CODE_Вид_оплаты', cfpIndex, integer(2) );        //задали новому полю индекс 2
+
+}
+end;
+
+end.

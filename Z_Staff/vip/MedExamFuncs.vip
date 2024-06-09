@@ -1,0 +1,24 @@
+#component "Z_Staff"
+
+alter interface iMedExamFuncs;
+
+overloadFormats brDangerWork;
+
+browse brDangerWork 'Вредные факторы и работы';
+  table Danger_SpAllStaff;
+  fields
+    {Font = { Color = if(Danger_SpAllStaff.wChoise = 1 , ColorGray, 0) }};
+    Danger_Catalogs.Code 'Код', 'вредного', 'фактора', 'или работы'
+      ('Вредный фактор / вредная работа / работа с опасностью заражения'): [12], Protect, noautosize;
+
+    Danger_Catalogs.Name            'Наименование', 'вредного фактора', 'или работы'
+      ('Вредный фактор / вредная работа / работа с опасностью заражения'): [34], Protect;
+
+    fTypeDanger 'Вид': [15], Protect;
+    Danger_SpAllStaff.ResDate[1]    'Дата с': [13], noautosize;
+    Danger_SpAllStaff.ResDate[2]    'Дата по': [13], noautosize;
+    Danger_SpAllStaff.ResDecimal[1] 'Периодичность',  '(лет)': [5.3], Protect;
+    Danger_SpAllStaff.wChoise 'Архив' ('Признак архивного вредного фактора или работы'): [6], noautosize, checkBox;
+End;
+
+end.

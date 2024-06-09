@@ -1,0 +1,311 @@
+#component "Z_Staff"
+
+alter interface LinkPersVac 'Привязка персональных отпусков' EscClose;
+
+create view
+
+as select
+  AppHist.*
+
+from
+   Appointments NewAppoint
+ , Appointments AppCur
+ , Catalogs JobNatureCatCard         // характер работы из карточки сотр-ка
+ , Catalogs JobNatureCatAppHist      // характер работы AppHist
+ , Catalogs NewJobNatureCat          // характер работы AppHist рпд5
+ , KlKatego
+ , KlKatego NewKlKatego
+ , KlKatego KlKategoAppCur
+ , AppHist
+ , AppHist NewAppHist
+ , ContDoc ContDoc2
+
+where
+((
+  Persons.JobNature == JobNatureCatCard.Nrec and
+  ContDoc.nRec      == AppHist.cContDoc  and
+  AppHist.cSpr4     == KlKatego.Nrec     and          // категория
+  AppHist.cRez2     == JobNatureCatAppHist.Nrec and   // характер работы
+
+  // для РПД-5
+  ContDoc.cPart     == ContDoc2.cPart     and
+  ContDoc.TypeOper  == ContDoc2.TypeOper  and
+  ContDoc.Person    == ContDoc2.Person    and
+  Integer(1)        << ContDoc2.SeqNmb    and
+  ContDoc.wRec      == ContDoc2.wRec (noIndex) and
+
+  ContDoc2.cStr     == NewAppoint.Nrec    and
+  ContDoc2.nRec     == NewAppHist.cContDoc and
+
+  NewAppHist.cSpr4  == NewKlKatego.Nrec     and     // категория
+  NewAppHist.cRez2  == NewJobNatureCat.Nrec and     // характер работы
+
+  Persons.AppointCur == AppCur.Nrec   and
+  AppCur.EmpCategory == KlKategoAppCur.Nrec
+))
+;
+
+function AddPersVac(cPerson: comp; KOTPUS, DaysOtp: word): boolean;
+{
+  result := false;
+
+  if (GetFirst KlOtpuskAll where (( KOTPUS == KlOtpuskAll.KOTPUS )) = tsOk)
+  {
+    ClearBuffer(#PersVacation);
+    PersVacation.cPersons    := cPerson;
+    PersVacation.cKotPus     := KlOtpuskAll.KOTPUS;;
+    PersVacation.TypeOtp     := KlOtpuskAll.TypeOtp;
+    PersVacation.AlgSumm     := 0;
+    PersVacation.SummOtp     := KlOtpuskAll.SummOtp;
+    PersVacation.GivOtp      := KlOtpuskAll.GivOtp;
+    PersVacation.wCountDay   := DaysOtp;
+    PersVacation.dVacCoef    := 1;
+    PersVacation.RESCOMP[2]  := coGetTune('UP.ZAR.VidStaj');
+    result := (insert current PersVacation = tsOk);
+  }
+}
+
+procedure ReorganizeVacations;
+var
+  cKateg, cJobNature: comp = 0;
+  iSysCode: integer = 0;
+  wKategoKod: word = 0;
+{
+  // если формируем из приказов
+  if (wMode = 1)
+  {
+    ToggleFieldVisible(#AppointMainMark, false);
+    ToggleFieldVisible(#AppTabNmb, false);
+    ToggleFieldVisible(#PersVacation.dBegExist, false);
+    ToggleFieldVisible(#PersVacation.dEndExist, false);
+
+    if (Message('Сформировать сотруднику ' + Persons.FIO + ' полагающиеся отпуска?', yesNo) = cmNo)
+      exit;
+    else
+    {
+      if (getfirst ContDoc = tsOk)
+      {
+        case ContDoc.TypeOper of
+          1:
+          {
+            cKateg     := AppHist.cSpr4;
+            cJobNature := Persons.JobNature;
+            wKategoKod := KlKatego.Kod;
+            iSysCode   := JobNatureCatCard.SysCode;
+          }
+          5:
+          {
+            cKateg     := NewAppHist.cSpr4;
+            cJobNature := NewAppHist.cRez2;
+            wKategoKod := NewKlKatego.Kod;
+            iSysCode   := NewJobNatureCat.SysCode;
+          }
+          50:
+          {
+            cKateg     := AppHist.cSpr4;
+            cJobNature := Persons.JobNature;
+            wKategoKod := KlKatego.Kod;
+            iSysCode   := JobNatureCatCard.SysCode;
+          }
+          65:
+          {
+            cKateg     := AppHist.cSpr4;
+            cJobNature := AppHist.cRez2;
+            wKategoKod := KlKatego.Kod;
+            iSysCode   := JobNatureCatAppHist.SysCode;
+          }
+        end;
+
+        if (cKateg = 0)
+        {
+          Message('Не заполнено поле "Категория"!', Warning);
+          exit;
+        }
+        else
+          if  ((wKategoKod = 2) or (wKategoKod = 4) or (wKategoKod = 5)) and (cJobNature = 0)
+          {
+            Message('Не заполнено поле "Характер работы"!', Warning);
+            exit;
+          }
+      }
+    }
+  }
+  else   // если формируем из встроенного интерфейса (7-е окно картотеки)
+  {
+    if (Message('Сформировать сотруднику ' + Persons.FIO + ' полагающиеся отпуска?', yesNo) = cmNo)
+      exit;
+    else
+    {
+      cKateg     := AppCur.EmpCategory;
+      cJobNature := Persons.JobNature;
+      wKategoKod := KlKategoAppCur.Kod;
+      iSysCode   := JobNatureCatCard.SysCode;
+
+      if (cKateg = 0)
+      {
+        Message('В карточке сотрудника не заполнено поле "Категория"!', Warning);
+        exit;
+      }
+      else
+        if  ((wKategoKod = 2) or (wKategoKod = 4) or (wKategoKod = 5)) and (cJobNature = 0)
+        {
+          Message('В карточке сотрудника не заполнено поле "Характер работы"!', Warning);
+          exit;
+        }
+    }
+  }
+
+  // если сюда дошли, то всё гуд, переформировываем
+  // удаляем все привязанные ранее отпуска
+  delete PersVacationExists where (( Persons.nRec  == PersVacationExists.cPersons ));
+  RescanPanel(#PersVacation);
+
+  // привязываем новые по таблице в зависимости от характера работы и категории:
+  case wKategoKod of
+    1:
+    {
+      AddPersVac(Persons.Nrec, 10, 28);
+      AddPersVac(Persons.Nrec, 11, 16);
+      AddPersVac(Persons.Nrec, 12, 10);
+    }
+    2:
+    {
+      if (iSysCode <> -31675) and (iSysCode <> -31676)
+      {
+        AddPersVac(Persons.Nrec, 10, 28);
+        AddPersVac(Persons.Nrec, 11, 16);
+        AddPersVac(Persons.Nrec, 12, 3);
+      }
+      else
+      {
+        AddPersVac(Persons.Nrec, 10, 28);
+        AddPersVac(Persons.Nrec, 11, 8);
+      }
+    }
+    3:
+    {
+      AddPersVac(Persons.Nrec, 10, 28);
+      AddPersVac(Persons.Nrec, 11, 16);
+    }
+    4,5:
+    {
+      if (iSysCode <> -31675) and (iSysCode <> -31676)
+      {
+        AddPersVac(Persons.Nrec, 10, 28);
+        AddPersVac(Persons.Nrec, 11, 16);
+        AddPersVac(Persons.Nrec, 13, 14);
+      }
+      else
+      {
+        AddPersVac(Persons.Nrec, 10, 28);
+        AddPersVac(Persons.Nrec, 11, 8);
+      }
+    }
+  end;
+
+  RereadRecord(#PersVacation);
+  Message('Сотруднику сформирован перечень персональных отпусков!', Information);
+
+}
+
+TableEvent
+  table PersVacation;
+cmPick:
+{
+  case CurField of
+    #KlOtpuskPers.NOTPUS:
+    {
+      if (getfirst KlOtpuskPers = tsOk)
+        wTmp := KlOtpuskPers.KotPus;
+      else
+        wTmp := 0;
+
+      RunInterface('PickOtp', wTmp, integer(22), 2, true, ZeroDate);
+      if (GetFirst KlOtpuskAll where (( wTmp == KlOtpuskAll.KOTPUS )) = tsOk)
+        {
+              PersVacation.cKotPus     := KlOtpuskAll.KOTPUS;
+              PersVacation.cPersons    := Persons.Nrec;
+              PersVacation.AlgSumm     := 0; //Первую запись
+              PersVacation.SummOtp     := KlOtpuskAll.SummOtp;
+              PersVacation.GivOtp      := KlOtpuskAll.GivOtp;
+              PersVacation.wCountDay   := KlOtpuskAll.KolDn;
+          set PersVacation.TypeOtp     := KlOtpuskAll.TypeOtp;
+        }
+
+      UpdateTable;
+    }
+    else
+    inherited::HandleEvent(cmPick);
+  end; //case
+}
+
+cmHotKeys:
+{
+  if isPrevReceptn
+    exit;
+
+  var idMenu: longInt;
+
+  if (wMode = word(0))
+  {
+    idMenu := LoadMenu('ReceptionMenu');
+
+    case FocusedFormat of
+
+      brwPersVacation:
+      {
+        AddMenuItemEx(idMenu,'Расчет количества дней отпуска',
+                             'Окно расчета количества дней отпуска', hcStaff_KartVkladkaPrivyazkaOtpuska,cmAttrib,kbCtrlO);
+        DelMenuItem(idMenu, 'Копирование информации ...', cmValue15, '');
+        DelMenuItem(idMenu, 'Информация о производственном центре', cmValue14, '');
+
+        AddMenuItemEx(idMenu,'Изменить перечень персональных отпусков',
+                             'Переформировать персональные отпуска', hcStaff_KartVkladkaPrivyazkaOtpuska,cmValue1,kbCtrlB);
+
+        DisableCommand(cmValue15);
+        DisableCommand(cmValue14);
+        SetMenuItemState(idMenu, 'Отчет о неиспользованных отпусках', cmValue21,mfHidden);
+      }
+
+    end;
+  }
+  else
+    idMenu := LoadMenu('LenkPersVacMenu');
+
+
+  PutHotCommand(RunLoadMenu(idMenu));
+}
+
+end;
+
+HandleEvent
+
+cmInit:
+{
+  case Inherited::HandleEvent(cmInit) of
+    heAbort :  Abort;
+    heStop  :  Exit;
+  end;
+
+  ReorganizeVacations;
+}
+
+cmValue1:
+{
+  ReorganizeVacations;
+}
+
+end;
+
+end.
+
+LenkPersVacMenu Menu
+{
+ - 'Внешняя классификация',cmPickClass,'Внешняя классификация',
+          hcGkatalM1ExtClass,'Alt+C',kbAltC,sci1Esc;
+ - 'Внешние атрибуты'     ,cmPickAttr ,'Заполнение внешних атрибутов по данной позиции',
+          hcGkatalM1Attr    ,'Alt+A',kbAltA,sci1Esc;
+-----------;
+ - 'Расчет количества дней отпуска', cmAttrib, 'Окно расчета количества дней отпуска', hcStaff_KartVkladkaPrivyazkaOtpuska, ,kbCtrlO, sci1Esc;
+ - 'Изменить перечень персональных отпусков', cmValue1, 'Переформировать персональные отпуска', hcStaff_KartVkladkaPrivyazkaOtpuska, ,kbCtrlB, sci1Esc;
+}

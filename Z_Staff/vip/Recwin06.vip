@@ -1,0 +1,1869 @@
+#component "Z_Staff"
+ 
+alter interface Recwin06;
+
+overload
+  procedure LoadInterface;
+  procedure UpdateTabs;
+  procedure SetCurAppointSheet;
+  procedure SetFiltrAppoint;
+  procedure Idle;
+  procedure LoadCurAppointSheet;
+  procedure DisAbleAppointments;  //HR-283, FIM
+  procedure EnAbleAppointments;   //HR-283, FIM
+  procedure EnableReplacAppoint;  //HR-283, FIM
+  procedure DisableReplacAppoint; //HR-283, FIM
+  procedure EnableTempAppoint;    //HR-283, FIM
+  procedure DisAbleTempAppoint;   //HR-283, FIM
+  function WriteAccess(wWindNum: word): boolean;
+  Procedure DisableKK;
+  Procedure EnableKK;
+end;
+
+#include OWFunc.vpp
+
+table struct sng_tpPersons
+(
+  Nrec: comp
+)
+;
+
+table struct sng_tpInfPsn2
+(
+  NRec     : tNRec
+, LastUser : s20
+, LastTime : Time
+, LastDate : Date
+, FilialNo : Longint
+, cPers    : tNRec
+, dBeg     : Date
+, dEnd     : Date
+, cRef1    : Comp
+, cRef2    : Comp
+, cRef3    : Comp
+, cRef4    : Comp
+, sum1     : Double
+, sum2     : Double
+, str1     : s20
+, str2     : s100
+, str3     : s250
+)
+With Index
+(
+  sng_tpInfPsn201  =  NRec(Unique, Surrogate, Journal)
+, sng_tpInfPsn203  =  cPers + FilialNo
+)
+;
+
+function setOklad:double; forward;                                              //ganeev_ii HR-52
+function GetDsStr(): string; forward;
+
+//<Iva HR-985
+function GetSngRec(c: comp): string;
+var i: byte;
+{
+  result := upcase(substr(to_char(c, 0, 0), 5, 12));
+  for  (i := 1; i < 12; i++)
+  {
+    if substr(result, 1, 1) = '0' then
+      result := substr(result, 2, 12-i);
+    else
+      break;
+  }
+}
+//>Iva HR-985
+
+create view vAppointments
+ Var
+#info PLV
+  vc_MainLink : Comp;
+  bSNG_TaxRate: boolean;
+//nRecApp, cContApp: comp; // - gtm HR-477
+As Select
+  setOklad() (fieldname = _persOklad),                                             //ganeev_ii HR-52
+  if (IsValid(tnDirExtDoc), DirExtDoc.Numbers[1], DirExtDocApp.Numbers[4]) (FieldName = DirID),
+  if (IsValid(tnDirExtDoc), DirExtDoc.Numbers[5]+DirExtDoc.Numbers[6],DirExtDocApp.Numbers[5]+DirExtDocApp.Numbers[6]) (FieldName = DirIDHyperlink),    //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc1.Numbers[1], DirExtDocApp1.Numbers[4]) (FieldName = DirID1), //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc1.Numbers[5]+DirExtDoc1.Numbers[6],DirExtDocApp1.Numbers[5]+DirExtDocApp1.Numbers[6]) (FieldName = DirID1Hyperlink),    //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc2.Numbers[1], DirExtDocApp2.Numbers[4]) (FieldName = DirID2), //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc2.Numbers[5]+DirExtDoc2.Numbers[6],DirExtDocApp2.Numbers[5]+DirExtDocApp2.Numbers[6]) (FieldName = DirID2Hyperlink),    //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc3.Numbers[1], DirExtDocApp3.Numbers[4]) (FieldName = DirID3), //+ gtm HR-477
+  if (IsValid(tnDirExtDoc), DirExtDoc3.Numbers[5]+DirExtDoc3.Numbers[6],DirExtDocApp3.Numbers[5]+DirExtDocApp3.Numbers[6]) (FieldName = DirID3Hyperlink),    //+ gtm HR-477
+  GetDsStr() (fieldname = DopSogStr),
+  ( iCatFunc.GetCatalogsName(sng_tpInfPsn2.cRef1) ) ( FieldName = sng_StageInterv ),   // этап
+  ( iCatFunc.GetCatalogsName(sng_tpInfPsn2.cRef3) ) ( FieldName = sng_ResultInterview ),   // результат собеседования
+  ( iCatFunc.GetCatalogsName(sng_InfPsn2.cRef1) ) ( FieldName = StageInterv ),   // этап
+  ( iCatFunc.GetCatalogsName(sng_InfPsn2.cRef3) ) ( FieldName = ResultInterview ),   // результат собеседования
+  AppWorkRegimeCat.NRejim + ' ' ( fieldname = fldAppWorkRegimeCat_fixed, FieldTitle = 'Наимен.режима' ),               //HR-283, FIM
+  AppWorkRegimeCatZ.NRejim + ' ' ( fieldname = fldAppWorkRegimeCatZ_fixed, FieldTitle = 'Наимен.режима (замещение)' ), //HR-283, FIM
+  AppWorkRegimeCat_tm.NRejim + ' ' ( fieldname = fldAppWorkRegimeCat_tm_fixed ),                                       //HR-283, FIM
+  DisRejim.NRejim + ' ' ( fieldname = fldDisRejim_fixed ),                                                             //HR-283, FIM
+  if(not bSNG_TaxRate, '***', DoubleToStr(Appointments.TaxRate, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate1),
+  if(not bSNG_TaxRate, '***', DoubleToStr(ReplacAppoint.TaxRate, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate2),
+  if(not bSNG_TaxRate, '***', DoubleToStr(disAppoint.TaxRate, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate3)
+From
+  catalogs catalogs1
+  , Raise RaiseVidOp                                                                //ganeev_ii HR-52
+  , RaiseHist LastHistRais (RaiseHist03)                                            //ganeev_ii HR-52
+  , Catalogs RaiseVidOpCat,                                                         //ganeev_ii HR-52
+  ContDoc DirContDoc,
+  PartDoc DirPartDoc,
+  ExternalASM DirExtDoc,
+  ExternalASM DirExtDocApp,
+  sng_tpInfPsn2,
+  sng_tpPersons,
+  Persons sng_TestPersons,
+  InfPsn2 sng_InfPsn2,
+  Persons sng_InterviewPsn,
+  Persons InterviewPsn,
+  PartDoc DirPartDoc1,    //+ gtm HR-477
+  ContDoc DirContDoc1,    //+ gtm HR-477
+  ExternalASM DirExtDoc1, //+ gtm HR-477
+  ExternalASM DirExtDocApp1, //+ gtm HR-477
+  PartDoc DirPartDoc2,    //+ gtm HR-477
+  ContDoc DirContDoc2,    //+ gtm HR-477
+  ExternalASM DirExtDoc2, //+ gtm HR-477
+  ExternalASM DirExtDocApp2, //+ gtm HR-477
+  PartDoc DirPartDoc3,    //+ gtm HR-477
+  ContDoc DirContDoc3,    //+ gtm HR-477
+  ExternalASM DirExtDoc3, //+ gtm HR-477
+  ExternalASM DirExtDocApp3 //+ gtm HR-477
+where
+(( persons.department == catalogs.nrec and catalogs.cparent == catalogs1.nrec
+    and Appointments.Person   == RaiseVidOp.Person                                  //ganeev_ii HR-52
+    and Appointments.Nrec     == RaiseVidOp.Appoint                                 //ganeev_ii HR-52
+    and RaiseVidOp.nREC      == LastHistRais.cRaise                                 //ganeev_ii HR-52
+    and RaiseVidOp.RaiseType == RaiseVidOpCat.Nrec                                  //ganeev_ii HR-52
+    #info Связка на поиск ИД приказа по Appointments.cCont
+      // and cContApp == DirContDoc.nRec //Appointments.cCont - gtm HR-477
+      and Appointments.cCont == DirContDoc.nRec // + gtm HR-477
+      and DirContDoc.cPart == DirPartDoc.nRec
+      and 101 == DirExtDoc.Asm_Type
+      and 25043 == DirExtDoc.wTable
+      and DirPartDoc.cDoc == DirExtDoc.cRec
+
+    #info Связка на поиск ИД приказа по Appointments.nRec
+      and 100 == DirExtDocApp.Asm_Type
+      and 25008 == DirExtDocApp.wTable
+      // and nRecApp == DirExtDocApp.cRec //Appointments.nRec - gtm HR-477
+      and Appointments.nRec == DirExtDocApp.cRec // + gtm HR-477
+    #info Связка на поиск ИД приказа по ReplacAppoint.cCont   //HR-477
+      and ReplacAppoint.cCont == DirContDoc1.nRec            //HR-477   + gtm HR-477 {{{
+      and DirContDoc1.cPart == DirPartDoc1.nRec               //HR-477
+      and 101 == DirExtDoc1.Asm_Type                         //HR-477
+      and 25043 == DirExtDoc1.wTable                         //HR-477
+      and DirPartDoc1.cDoc == DirExtDoc1.cRec                //HR-477
+    #info Связка на поиск ИД приказа по ReplacAppoint.nRec    //HR-477
+      and 100 == DirExtDocApp1.Asm_Type                      //HR-477
+      and 25008 == DirExtDocApp1.wTable                      //HR-477
+      and ReplacAppoint.nRec == DirExtDocApp1.cRec           //HR-477
+    #info Связка на поиск ИД приказа по TempMoveApp.cCont
+      and TempMoveApp.cCont == DirContDoc2.nRec            //HR-477
+      and DirContDoc2.cPart == DirPartDoc2.nRec               //HR-477
+      and 101 == DirExtDoc2.Asm_Type                         //HR-477
+      and 25043 == DirExtDoc2.wTable                         //HR-477
+      and DirPartDoc2.cDoc == DirExtDoc2.cRec                //HR-477
+    #info Связка на поиск ИД приказа по TempMoveApp.nRec
+      and 100 == DirExtDocApp2.Asm_Type                      //HR-477
+      and 25008 == DirExtDocApp2.wTable                      //HR-477
+      and TempMoveApp.nRec == DirExtDocApp2.cRec           //HR-477
+    #info Связка на поиск ИД приказа по disAppoint.cCont
+      and disAppoint.cCont == DirContDoc3.nRec            //HR-477
+      and DirContDoc3.cPart == DirPartDoc3.nRec               //HR-477
+      and 101 == DirExtDoc3.Asm_Type                         //HR-477
+      and 25043 == DirExtDoc3.wTable                         //HR-477
+      and DirPartDoc3.cDoc == DirExtDoc3.cRec                //HR-477
+    #info Связка на поиск ИД приказа по disAppoint.nRec
+      and 100 == DirExtDocApp3.Asm_Type                      //HR-477
+      and 25008 == DirExtDocApp3.wTable                      //HR-477
+      and disAppoint.nRec == DirExtDocApp3.cRec           //HR-477  }}}
+
+    and sng_tpInfPsn2.cRef2 == sng_InterviewPsn.nRec
+    and Persons.nRec == sng_InfPsn2.cPers
+    and 2 == sng_InfPsn2.FilialNo
+    and sng_InfPsn2.cRef2 == InterviewPsn.nRec
+
+ ));
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+function GetDsStr(): string;
+{
+  if (getlast AppHistRep = tsOk)
+  {
+    var tmpLink: comp = NOAA.GetFirstAgreementByLink(coAppHist, AppHistRep.NRec);
+    var tmpStr: string = NOAA.GetAgreementString(tmpLink);
+
+    result := oArchiveFuncs.GetBarKodAndState(cgDoc_1803, tmpLink, m_sCurrentBarKod);
+
+    if (result <> '')
+      result := tmpStr + ' - ' + result;
+    else
+      result := tmpStr;
+  }
+}
+
+//Получаем имя верхнего каталога в ПАО
+ function getCatNrec(fnrec: comp) : comp;
+{
+
+#info PLV Инициализация
+    Result := 0;
+
+    var nrec_tmp : comp;
+    var n : integer;
+    nrec_tmp := fnrec;
+
+    if (getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+    do
+    {
+        if(vc_MainLink = catalogs1.cParent)
+          exit;
+
+        Result := catalogs1.Nrec;
+
+        if(LengTh(catalogs1.code) <=4 )
+         exit;
+
+        nrec_tmp := catalogs1.cparent;
+    }
+    While(getFirst catalogs1 where ((nrec_tmp == catalogs1.nrec)) = tsOk)
+}
+ //Код + имя раздела
+ function getCatName(fnrec_: comp) : string;
+{
+  if (getFirst catalogs where ((fnrec_ == catalogs.nrec)) = tsOk)
+    result := catalogs.code + ' ' + catalogs.name;
+}
+
+//код раздела
+ function getCatCode(fnrec_: comp) : string;
+{
+  if (getFirst catalogs where ((fnrec_ == catalogs.nrec)) = tsOk)
+    result := catalogs.code;
+}
+//Штатная должность
+function getCodeNameSt(fnrec: comp) : string;
+{
+    var nrec_tmp : comp;
+    var n : integer;
+    nrec_tmp := fnrec;
+    if (getfirst staffstruct where(( nrec_tmp == Appointments.nRec and
+                                    Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+      result := StaffStruct.sCodeSt + ' ' + StaffStruct.sNameSt
+}
+
+//для получения суммы персонального оклада  ganeev_ii HR-52
+function setOklad:double;
+{
+//      result:=Appointments.TaxRate;                               //HR-322 ganeev_ii
+        result:=0;                                                  //HR-322 ganeev_ii
+
+      _loop RaiseVidOp
+      {
+         if 1020 = RaiseVidOpCat.Code
+            {
+              if (GetLast LastHistRais)=tsok
+              {
+                result:= Appointments.TaxRate + RaiseVidOp.sum;
+                break;                                               //HR-941
+              }
+            }
+      } //loop
+}
+
+//Полное наименование штатной единицы HR-431 nnt
+function GetFullStr(_cNrecDep:comp; _cNrec: comp):WideString;
+{
+    var cDeart: comp;
+
+   if (getfirst staffstruct where(( _cNrecdep == Appointments.nRec and
+                                    Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
+       {
+         cDeart := StaffStruct.Department;
+         result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-895
+       }
+   do
+   {
+      if (getFirst catalogs1 where ((cDeart == catalogs1.nrec)) = tsOk)
+      {
+         if(LengTh(catalogs1.code) <=4)
+              exit;
+
+         result += catalogs1.longname +''#13#10;
+         cDeart := catalogs1.cparent;
+      }
+   }
+   While(getFirst catalogs1 where ((cDeart == catalogs1.nrec)) = tsOk)
+}
+window winFullOrg 'Полное наименование орг. присвоения' EscClose;
+  show at (,,50,6);
+
+screen scFullOrg (,,sci1Esc);
+fields
+  GetFullStr(persons.appointcur, catalogs.nrec):Protect, WordWrap;
+<<
+  `Примечание:`
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  :@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+end; //window winFullOrg
+
+Procedure DisAbleAppointments; //HR-283, FIM
+{
+  inherited::DisAbleAppointments;
+  ClearFieldOption(#fldAppWorkRegimeCat_fixed, ofSelectable);
+  if CurAppointSheet = 1                                             // HR-485
+    {
+      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.PERIODOW',        cfpVisible, false);
+    }
+} //DisAbleAppointments;
+
+Procedure EnAbleAppointments; //HR-283, FIM
+{
+  inherited::EnAbleAppointments;
+  SetFieldOption(#fldAppWorkRegimeCat_fixed, ofSelectable);
+  if CurAppointSheet = 1                                             // HR-485
+    {
+      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.PERIODOW',        cfpVisible, false);
+    }
+} //EnAbleAppointments
+
+Procedure EnableReplacAppoint; //HR-283, FIM
+{
+  inherited::EnableReplacAppoint;
+  SetFieldOption(#fldAppWorkRegimeCatZ_fixed, ofSelectable);
+} //EnableReplacAppoint
+
+Procedure DisableReplacAppoint; //HR-283, FIM
+{
+  inherited::DisableReplacAppoint;
+  ClearFieldOption(#fldAppWorkRegimeCatZ_fixed, ofSelectable);
+} //DisableReplacAppoint
+
+Procedure EnableTempAppoint; //HR-283, FIM
+{
+  inherited::EnableTempAppoint;
+  SetFieldOption(#fldAppWorkRegimeCat_tm_fixed,       ofSelectable);
+} //EnableTempAppoint
+
+Procedure DisAbleTempAppoint; //HR-283, FIM
+{
+  inherited::DisAbleTempAppoint;
+  ClearFieldOption(#fldAppWorkRegimeCat_tm_fixed,       ofSelectable);
+} //DisAbleTempAppoint
+
+overloadformats scrAppointments1;
+overloadformats scrAppointments3;
+overloadformats scrAppointments2;
+overloadformats scrAppointments_TempMove;
+overloadformats scrDisAppoint;
+
+ExtendTabbedSheets Recwin06;
+
+TabbedSheet Appoint;
+  Show at (, 2, 93, 24);
+Screen scrAppointments1 'Прием / переводы' (,hcStaff_PriemPerevod,);
+  Table Appointments;
+Fields
+  Appointments.AppointDate ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Appointments.AppointDate) = 0,ColorNeed,0)}};
+  Appointments.DateEnd ('Назначен на срок по ...', , ): [10,'DD/MM/YYYY'], noprotect;
+  Appointments.wAddWord1 ('По штатному расписанию/вне штатного расписания')
+    : [list ' ', 'по ШР', 'вне ШР' ], protect;
+
+  klSovm.Nsovm : protect;
+  Appointments.OrderNmb    ('Номер приказа');
+  Appointments.OrderDate   ('Дата приказа', , ):[10,'DD/MM/YYYY'];
+  AppKindAppCat.Name   ('Характер назначения.',
+          , scStaffPrikazT1Pick): pickbutton, protect;
+  DirID ('ИД приказа') : protect,{hyperlink = if (DirID <> 0, true, false)};
+  ContractStr ('Информация о трудовом договоре'): pickbutton, protect;
+  DopSogStr ('Информация о доп. соглашении'): skip;
+  getCatName(getcatnrec(persons.department)) ('Раздел персонала'), protect; //HR-70
+  AppKatPodrFull ('Подразделение. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect,
+  {Font={BackColor=if(Appointments.Department = 0,ColorNeed,0)}};
+
+  AppEmpCategoryCat.NaiKat      ('Категория. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppPostCat.Name ('Профессия, должность. Выбор из каталога по F3.',
+    , scStaffReceptionT2Com) : protect,
+  {Font={BackColor=if(Appointments.Post = 0,ColorNeed,0)}};
+  AppPostAccordCat.Name
+  ('Соответствие специальности занимаемой должности. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  getCodeNameSt(persons.appointcur) ('Штатная должность') : [25], protect;//HR-70
+  AppDopInfoCat.Name ('Дополнительные сведения. Выбор из каталога по F3.',
+  , scStaffReceptionT2ComPick) : pickbutton, protect;
+  Appointments.dDop2 : Skip;
+  ChPerson ('ФИО и таб.номер сотрудника на период отсутствия которого произведено трудоустройство'): pickbutton, protect, skip;
+  sWF_APP: protect,
+  {Font = {Color = if(WF_APP_Protect, ColorSysGray, 0);
+           BackColor = if(WF_APP_Protect, ColorSys06, 0)}};
+
+  AppOU (): protect, pickbutton;
+  Appointments.Rate ('Количество занимаемых ставок') :[5.3];
+  Appointments.EmpRate ('Коэффициент для среднесписочной'): [5.3];
+  TarStav.Codtar  : Skip;
+
+  AppPayModelCat.NaSisOpl ('Система оплаты труда. Выбор из каталога по F3.',
+            , scStaffReceptionT2ComPick): pickbutton, protect;
+  //TarStav.Naitar  : Skip;
+  [sTarZone1] iCatFunc.GetCatalogsCode(TarStav.TarZone): Skip;
+  Appointments.Category : Skip;
+  i_Kategory ('Квалификационный разряд/категория'): skip;
+
+  Appointments.TaxRate ('Оклад, ставка, тариф'): [11.3];
+  AppPayCurrencyCat.SimvolV  ('Валюта оплаты. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  //vTSFuncs1.GetRealCorrCoeff(Appointments.Tariff, Appointments.LastUser) ('Корректирующий коэффициент'): [10.3];  //#brdLastUser3
+  _persOklad ('Персональный оклад'): [10.3], skip;                                     //ganeev_ii HR-52
+  fldAppWorkRegimeCat_fixed     ('График работы. Выбор из каталога по F3.',   //HR-283
+          , scStaffReceptionT2ComPick) : pickbutton, protect;                 //HR-283
+  AppWorkCondCat.Name ('Условия труда. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  OverworkCalculation ('Способ учета сверхурочных работ',,): protect;
+  Appointments.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  AppDopAttrCat.Name('Дополнительная характеристика', , scStaffStructPick) :  pickbutton, protect;
+  TbnLS ('Табельный номер из лицевого счета', ,
+      scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppointmentsTypeMove.Name ('Условия приема на работу') : pickbutton, Protect;
+
+  AppPrivPensionCat.Name('Льготная пенсия. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  Appointments.DismissDate ('Дата ухода с должности', , ): [10,'DD/MM/YYYY'];
+
+  Persons.DisOrderNmb ('Номер приказа об увольнении', , ):[10,'DD/MM/YYYY'], skip;
+  Persons.DisOrderDate ('Дата приказа об увольнении'): skip;
+
+  fDismisGround ('',  , ) : skip;
+  DisReasonCatalogs.Name('Основание увольнения',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  fDismissReason ('',  , ) : skip;
+  DisMotiveCatalogs.Name('Причина увольнения.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  fAttPeriod    ('Аттестационный период (количество месяцев)'): Noprotect;
+  fPostEdperiod ('Период между повышениями квалификации (количество месяцев)'): Noprotect;
+  _TaxRateApp   ('Оклад/ставка + суммы надбавок'): [10.3], skip;
+  #bVnutr
+    //if(Appointments.rSum3 <> 0, longint(Appointments.rSum3), longint(0))
+      ('Внутреннее перемещение'), Noprotect;
+  DopNum ('Номер последнего доп соглашения'): skip;
+  DopDate('Дата последнего доп соглашения'): skip;
+  FullIf ('Источники финансирования',, scStaffReceptionT2ComPick): protect;
+
+  fUpAppointmentsView ('Признание временного перевода постоянным (формат: подразделение / должность)', , ): Protect, PickButton;
+buttons
+  cmValue5, [SingleLine],,,'Перечень трудовых договоров сотрудника', hcStaff_Dogovor;
+  cmFullOrg, [singleline],,, 'Полное наименование';   //HR-431
+  cmValue24, [SingleLine],,, 'Штрих-код';
+  cmValue12,[singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+<<
+  Назначен c   .@@@@@@@@@@ по .@@@@@@@@@@   .@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@
+  Приказ       .@@@@@@@@@@ от .@@@@@@@@@@ Характер назн-ния .@@@@@@@@@@@@@@@@@@@@@
+  ИД приказа   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Договор         .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <. Договоры .>
+  Доп. соглашение .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Раздел персонала.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Подразделение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Категория    .@@@@@@@@@@@@@@@@@@@@@@ Должность         .@@@@@@@@@@@@@@@@@@@@@@@@
+  Соответствие .@@@@@@@@@@@@@@@@@@@@@@ Штатная должность .@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.сведения .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <.  Полное наименование  .>
+  На период отсутствия.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  <. Штрих-код .>
+ `Данные на   `.@@@@@@@@@@              `Трудовая функция`.@@@@@@@@@@@@@@@@@@@@@@@
+  Условия труда на рабочем месте.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Кол-во ставок.@@@@@    Среднесписочный коэффициент.@@@@@@         Сетка  .@@@@@@
+  Сис-ма оплаты.@@@@@@@@@@@@@@@@@@@@@@
+  Тарифная зона.@@@@@@@@@@@@@@@@@@@@@@@  Разряд .@@@@@  Классность водителя .@@@@@
+ `Оклад/ставка`.@@@@@@@@@@@@@@@@@.@@@@@ `Персональный оклад`.@@@@@@@@ <.>>.>
+  Режим        .@@@@@@@@@@@@@@@@@@@@@@@  Условия      .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@`Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.хар-ка   .@@@@@@@@@@@@@@@@@@@@@@@  Таб.№ из ЛС  .@@@@@@@@@@@@
+  Условие      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                         Льгот. пенсия.@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Дата ухода   .@@@@@@@@@@ `Приказ`.@@@@@@@@@@ `от`.@@@@@@@@@@
+ .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Аттест.период.@@@@    Период повыш.квал-ции .@@@@@   ФОТ .@@@@@@@@@@@@@@@@@@@@@@
+  [.] Внутреннее перемещение `  Доп. соглашение: Номер,дата.@@@@@@@@@.@@@@@@@@@@@@
+ `ИФ`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Временный перевод:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrAppointments1
+
+Screen scrAppointments3 'Внутр.совмест-ва, совмещения' (,hcStaff_VnutrSovm,);
+  Table Appointments;
+Fields
+  Appointments.AppointDate ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Appointments.AppointDate) = 0,ColorNeed,0)}};
+  Appointments.DateEnd ('Назначен на срок по ...', , ): [10,'DD/MM/YYYY'], noprotect;
+  Appointments.wAddWord1 ('По штатному расписанию/вне штатного расписания')
+    : [list ' ', 'по ШР', 'вне ШР' ], protect;
+  AppointMainMsg : Skip;
+  Appointments.OrderNmb    ('Номер приказа');
+  Appointments.OrderDate   ('Дата приказа', , ):[10,'DD/MM/YYYY'];
+  Appointments.AppTabNmb ('Табельный номер совмещения');
+  DirID ('ИД приказа') : protect,{hyperlink = if (DirID <> 0, true, false)};
+  ContractStr ('Информация о трудовом договоре'): pickbutton, protect;
+  getCatName(getcatnrec(persons.department)) ('Раздел персонала'), protect; //HR-70
+  AppKatPodrFull ('Подразделение. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect,
+  {Font={BackColor=if(Appointments.Department = 0,ColorNeed,0)}};
+
+  AppEmpCategoryCat.NaiKat      ('Категория. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppPostCat.Name ('Профессия, должность. Выбор из каталога по F3.') : protect,
+  {Font={BackColor=if(Appointments.Post = 0,ColorNeed,0)}};
+  AppPostAccordCat.Name
+  ('Соответствие специальности занимаемой должности. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  getCodeNameSt(persons.appointcur) ('Штатная должность') : [25], protect;//HR-70
+  AppDopInfoCat.Name ('Дополнительные сведения. Выбор из каталога по F3.',
+  , scStaffReceptionT2ComPick) : pickbutton, protect;
+  ChPerson ('ФИО и таб.номер сотрудника на период отсутствия которого произведено трудоустройство'): pickbutton, protect, skip;
+
+  Appointments.dDop2 : Skip;
+
+  sWF_APP: protect,
+  {Font = {Color = if(WF_APP_Protect, ColorSysGray, 0);
+           BackColor = if(WF_APP_Protect, ColorSys06, 0)}};
+
+  AppOU (): protect, pickbutton;
+  Appointments.Rate ('Количество занимаемых ставок') :[5.3];
+  Appointments.EmpRate ('Коэффициент для среднесписочной'): [5.3];
+  TarStav.Codtar  : Skip;
+
+  AppPayModelCat.NaSisOpl ('Система оплаты труда. Выбор из каталога по F3.',
+            , scStaffReceptionT2ComPick): pickbutton, protect;
+  AppKindAppCat.Name ('Характер назначения.',
+          , scStaffReceptionT2ComPick): pickbutton, protect;
+  //TarStav.Naitar  : Skip;
+  [sTarZone3] iCatFunc.GetCatalogsCode(TarStav.TarZone): Skip;
+  Appointments.Category : Skip;
+
+  i_Kategory ('Квалификационный разряд/категория'): skip;
+
+  Appointments.TaxRate ('Оклад, ставка, тариф'): [11.3];
+  AppPayCurrencyCat.SimvolV  ('Валюта оплаты. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  vTSFuncs1.GetRealCorrCoeff(Appointments.Tariff, Appointments.LastUser)//[brdLastUser4]
+                          ('Корректирующий коэффициент'): [10.3];
+  fldAppWorkRegimeCat_fixed     ('Режим работы. Выбор из каталога по F3.', //HR-283, FIM
+          , scStaffReceptionT2ComPick) : pickbutton, protect;              //HR-283, FIM
+  AppWorkCondCat.Name ('Условия труда. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  OverworkCalculation ('Способ учета сверхурочных работ',,): protect;
+  Appointments.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  AppDopAttrCat.Name('Дополнительная характеристика', , scStaffStructPick) :  pickbutton, protect;
+  TbnLS ('Табельный номер из лицевого счета', ,
+      scStaffReceptionT2ComPick) : pickbutton, protect;
+  Appointments.DismissDate ('Дата ухода с должности', , ): [10,'DD/MM/YYYY'];
+  AppPrivPensionCat.Name('Льготная пенсия. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  fDismisGround ('',  , ) : skip;
+  DisReasonCatalogs3.Name('Основание увольнения',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  fDismissReason ('',  , ) : skip;
+  DisMotiveCatalogs3.Name('Причина увольнения.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  Appointments.StrTabN ('Символьный табельный номер совместит');
+  _TaxRateApp   ('Оклад/ставка + суммы надбавок'): [10.3], skip;
+  FullIfS ('Источники финансирования',, scStaffReceptionT2ComPick): protect;
+  fUpAppointmentsView ('Текущее назначение совместительства является переводом с указанного (формат: подразделение / должность)', , ): Protect, PickButton;
+buttons
+  cmValue5, [SingleLine],,,'Перечень трудовых договоров сотрудника', hcStaff_Dogovor;
+  cmValue24, [SingleLine],,, 'Штрих-код';
+  cmValue12,[singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+<<
+  Назначен c   .@@@@@@@@@@ по .@@@@@@@@@@   .@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@
+  Приказ       .@@@@@@@@@@ от .@@@@@@@@@@      Таб. номер совмещения .@@@@@@@@@@@@
+  ИД приказа   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Договор      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <. Договоры  .>
+  Раздел персонала.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Подразделение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Категория    .@@@@@@@@@@@@@@@@@@@@@@@@ Должность    .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Соответствие .@@@@@@@@@@@@@@@@@@@@@@@@ Штатная должность .@@@@@@@@@@@@@@@@@@@@@@
+  <. Штрих-код .>                        Доп.сведения .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  На период отсутствия.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Данные на   `.@@@@@@@@@@              `Трудовая функция`.@@@@@@@@@@@@@@@@@@@@@@@
+  Условия труда на рабочем месте.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Кол-во ставок.@@@@@    Среднесписочный коэффициент.@@@@@@         Сетка  .@@@@@@
+  Сис-ма оплаты.@@@@@@@@@@@@@@@@@@@@@@@@ Хар-р назн-я .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Тарифная зона.@@@@@@@@@@@@@@@@@@@@@@@@ Разряд  .@@@@@  Разряд (категория) .@@@@@
+ `Оклад/ставка`.@@@@@@@@@@@@@@@@@.@@@@@@ Корр.коэф.   .@@@@@@@<.>>.>
+  Режим        .@@@@@@@@@@@@@@@@@@@@@@@@ Условия      .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@`Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.хар-ка   .@@@@@@@@@@@@@@@@@@@@@@@@ Таб.№ из ЛС                 .@@@@@@@@@@@@
+  Дата ухода   .@@@@@@@@@@             Льгот. пенсия.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                                                    .@@@@@@@@@@@@@
+  ФОТ          .@@@@@@@@@@@@@@@@@@@@@@
+ `ИФ`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Перевод с назначения:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrAppointments3
+
+Screen scrAppointments2 'Заместительства' (,hcStaff_Zamest,);
+  Table ReplacAppoint;
+Fields
+  ReplacAppoint.AppointDate ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(ReplacAppoint.AppointDate) = 0,ColorNeed,0)}};
+  ReplacAppoint.DateEnd ('Назначен на срок по ...', , ): [10,'DD/MM/YYYY'], noprotect;
+  #z_AppTabN
+    //if ( IsValid(#ReplacAppoint), GetStrTabN(ReplacAppoint.AppTabNmb, ReplacAppoint.StrTabN), '')
+    : skip;
+  ReplacAppoint.OrderNmb    ('Номер приказа');
+  ReplacAppoint.OrderDate   ('Дата приказа', , ):[10,'DD/MM/YYYY'];
+  ReplacAppoint.wAddWord1 ('По штатному расписанию/вне штатного расписания')
+    : [list ' ', 'по ШР', 'вне ШР' ], protect;
+  DirID1 ('ИД приказа') : protect,{hyperlink = if (DirID1 <> 0, true, false)};
+  AppKatPodrFullz ('Подразделение. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect,
+  {Font={BackColor=if(ReplacAppoint.Department = 0,ColorNeed,0)}};
+  AppEmpCategoryCatz.NaiKat      ('Категория. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppPostCatz.Name ('Профессия, должность. Выбор из каталога по F3.',
+    , scStaffReceptionT2Com) : protect;
+  AppPostAccordCatz.Name
+('Соответствие специальности занимаемой должности. Выбор из каталога по F3.',
+    , scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppDopInfoCatz.Name ('Дополнительные сведения. Выбор из каталога по F3.',
+  , scStaffReceptionT2ComPick) : pickbutton, protect;
+
+  ReplacAppoint.dDop2 : Skip;
+  #ZamOU //AKps.GetKpsSTR(AKps.GetMainKPS(ReplacAppoint.NRec)) (, hcStaff_ProfKPS)
+  :  pickbutton, protect;
+  ReplacAppoint.Rate ('Количество занимаемых ставок') :[5.3];
+  TarStavZ.Codtar  : Skip;
+  AppPayModelCatz.NaSisOpl ('Система оплаты труда. Выбор из каталога по F3.',
+            , scStaffReceptionT2ComPick): pickbutton, protect;
+  //TarStavZ.Naitar  : Skip;
+  [sTarZone2] iCatFunc.GetCatalogsCode(TarStavZ.TarZone): Skip;
+  ReplacAppoint.Category : Skip;
+  ReplacAppoint.TaxRate ('Оклад, ставка, тариф'): [11.3];
+  AppPayCurrencyCatz.SimvolV  ('Валюта оплаты. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  #brdLastUser5 //vTSFuncs1.GetRealCorrCoeff(ReplacAppoint.Tariff, ReplacAppoint.LastUser)
+  ;
+  fldAppWorkRegimeCatZ_fixed    ('Режим работы. Выбор из каталога по F3.', //HR-283, FIM
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  AppWorkCondCatz.Name ('Условия труда. Выбор из каталога по F3.',
+          , scStaffReceptionT2ComPick) : pickbutton, protect;
+  OverworkCalculationZ ('Способ учета сверхурочных работ',,): protect;
+  ReplacAppoint.PeriodOW ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  AppDopAttrCatZ.Name('Дополнительная характеристика',, scStaffStructPick) :  pickbutton, protect;
+  AppTypeMove.Name ('Причина замещения. Выбор из каталога по F3.') : pickbutton, Protect;
+  #ZamTabn;
+    //GetStrTabn(ChangeAppoint4Replace.AppTabNmb, ChangeAppoint4Replace.StrTabN), skip;
+  ChangePersons.FIO, skip;
+  FullIfZ ('Источники финансирования',, scStaffReceptionT2ComPick): protect;
+buttons
+  cmValue12,[singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+<<
+  Назначен c   .@@@@@@@@@@ по .@@@@@@@@@@ Табельный номер.@@@@@@@@@@@@@@@@@@@@@@@@
+  Приказ       .@@@@@@@@@@ от .@@@@@@@@@@           .@@@@@@@@@@@@@
+  ИД приказа   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Подразделение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Категория    .@@@@@@@@@@@@@@@@@@@@@@@@ Должность    .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Соответствие .@@@@@@@@@@@@@@@@@@@@@@@@ Доп.сведения .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Данные на   `.@@@@@@@@@@
+  Условия труда на рабочем месте.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Кол-во ставок.@@@@@                                                Сетка .@@@@@@
+  Сис-ма оплаты.@@@@@@@@@@@@@@@@@@@@@@@@ Тарифная зона.@@@@@@@@@@@@@ Разряд.@@@@@@
+ `Оклад/ставка`.@@@@@@@@@@@@@@@@@.@@@@@@ Корр.коэф.   .@@@@@@@<.>>.>
+  Режим        .@@@@@@@@@@@@@@@@@@@@@@@@ Условия      .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@`Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.хар-ка   .@@@@@@@@@@@@@@@@@@@@@@@@
+  Причина      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Замещает сотрудника .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `ИФ`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrAppointments2
+
+// -----------------------------------------------------------------------------
+Screen scrAppointments_TempMove 'Временные переводы' (,hcStaff_VremPerevod,);
+  Table TempMoveApp;
+Fields
+  TempMoveApp.AppointDate      ('Дата назначения',,): [10,'DD/MM/YYYY'],
+    { Font = { BackColor = if ( Day(TempMoveApp.AppointDate) = 0, ColorNeed, 0 ) } };
+  TempMoveApp.DateEnd          ('Назначен на срок по ...',,): [10,'DD/MM/YYYY'],
+    { Font = { BackColor = if ( Day(TempMoveApp.DateEnd) = 0, ColorNeed, 0 ) } };
+  TempMoveApp.wAddWord1 ('По штатному расписанию/вне штатного расписания')
+    : [list ' ', 'по ШР', 'вне ШР' ], protect;
+  TempMoveApp.OrderNmb         ('Номер приказа');
+  TempMoveApp.OrderDate        ('Дата приказа',,): [10,'DD/MM/YYYY'];
+  DirID2 ('ИД приказа') : protect,{hyperlink = if (DirID2 <> 0, true, false)};
+  AppKatPodrFull_tm            ('Подразделение. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect,
+    { Font = { BackColor = if  ( TempMoveApp.Department = 0, ColorNeed, 0 ) } };
+  AppEmpCategoryCat_tm.NaiKat  ('Категория. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  AppPostCat_tm.Name           ('Профессия, должность. Выбор из каталога по F3.',, scStaffReceptionT2Com): protect;
+  AppPostAccordCat_tm.Name     ('Соответствие специальности занимаемой должности. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  AppDopInfoCat_tm.Name        ('Дополнительные сведения. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+
+  TempMoveApp.dDop2 : Skip;
+  VremOU:  pickbutton, protect;
+  TempMoveApp.Rate             ('Количество занимаемых ставок'): [5.3];
+  TarStav_tm.Codtar: Skip;
+  AppPayModelCat_tm.NaSisOpl   ('Система оплаты труда. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  //TarStav_tm.Naitar: Skip;
+  [sTarZone_tm] iCatFunc.GetCatalogsCode(TarStav_tm.TarZone): Skip;
+  TempMoveApp.Category: Skip;
+  TempMoveApp.TaxRate          ('Оклад, ставка, тариф'): [11.3];
+  AppPayCurrencyCat_tm.SimvolV ('Валюта оплаты. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  brdLastUser6;
+  fldAppWorkRegimeCat_tm_fixed ('Режим работы. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect; //HR-283, FIM
+  AppWorkCondCat_tm.Name       ('Условия труда. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  OverworkCalculation_tm       ('Способ учета сверхурочных работ',,): protect;
+  TempMoveApp.PeriodOW         ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], protect;
+  AppDopAttrCat_tm.Name        ('Дополнительная характеристика',, scStaffStructPick): pickbutton, protect;
+  AppTypeMove_tm.Name          ('Причина временного перемещения'): pickbutton, protect;
+  TempTabn;
+  ChangePersonsTemp.FIO, skip;
+  FullIf_tm ('Источники финансирования',, scStaffReceptionT2ComPick): protect;
+
+buttons
+  cmValue12,[singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+<<
+  Назначен c   .@@@@@@@@@@ по .@@@@@@@@@@   .@@@@@@@@@@@
+  Приказ       .@@@@@@@@@@ от .@@@@@@@@@@
+  ИД приказа   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Подразделение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Категория    .@@@@@@@@@@@@@@@@@@@@@@@@ Должность    .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Соответствие .@@@@@@@@@@@@@@@@@@@@@@@@ Доп.сведения .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ `Данные на   `.@@@@@@@@@@
+  Условия труда на рабочем месте.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Кол-во ставок.@@@@@                                                Сетка .@@@@@@
+  Сис-ма оплаты.@@@@@@@@@@@@@@@@@@@@@@@@ Тарифная зона.@@@@@@@@@@@@@ Разряд.@@@@@@
+ `Оклад/ставка`.@@@@@@@@@@@@@@@@@.@@@@@@ Корр.коэф.   .@@@@@@@<.>>.>
+  Режим        .@@@@@@@@@@@@@@@@@@@@@@@@ Условия      .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@`Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.хар-ка   .@@@@@@@@@@@@@@@@@@@@@@@@
+  Причина      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Замещает сотрудника .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `ИФ`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrAppointments_TempMove
+
+screen scrDisAppoint 'Предыдущие назначения' (, hcStaff_PredNazn, sci18Esc);
+  table disAppoint;
+Fields
+   disAppoint.AppointDate ('Дата назначения',,): [10,'DD/MM/YYYY'], skip;
+   disAppoint.DateEnd     ('Назначен на срок по ...',,): [10,'DD/MM/YYYY'], skip;
+   StatusShr;
+   disAppoint.OrderNmb    ('Номер приказа'): skip;
+   disAppoint.OrderDate   ('Дата приказа',,): [10,'DD/MM/YYYY'], skip;
+   disKindApp.Name        ('Характер назначения.',,): skip;
+   DirID3 ('ИД приказа') : protect,{hyperlink = if (DirID3 <> 0, true, false)};
+   DisContractStr ('Информация о трудовом договоре'): skip;
+   AppKatPodrFullD        ('Подразделение.',,): skip;
+   disKategory.NaiKat     ('Категория.',,): skip;
+   disPostCat.Name        ('Профессия, должность.',,): skip;
+   disPostAccordCat.Name  ('Соответствие специальности занимаемой должности.',,): skip;
+   disDopInfo.Name        ('Дополнительные сведения.',,): skip;
+   DisOU;
+   disAppoint.Rate        ('Количество занимаемых ставок'): [5.3], skip;
+   disAppoint.EmpRate     ('Коэффициент для среднесписочной'): [5.3], skip;
+   TarStav.Codtar  : Skip;
+   disSisOpl.NaSisOpl     ('Система оплаты труда.',,): skip;
+   //disTarStav.Naitar  : Skip;
+   [sdisTarZone] iCatFunc.GetCatalogsCode(disTarStav.TarZone): Skip;
+   disAppoint.Category: Skip;
+   disAppoint.TaxRate     ('Оклад, ставка, тариф'): [11.3], skip;
+   disCurrency.SimvolV    ('Валюта оплаты.',,): skip;
+   disLastUser1;
+   fldDisRejim_fixed      ('График работы.',,): skip; //HR-283, FIM
+   disWorkCond.Name       ('Условия труда.',,): skip;
+   OverworkCalculation_dis ('Способ учета сверхурочных работ',,): skip;
+   disAppoint.PeriodOW     ('Период расчета сверхурочных работ при суммированном учете',,): [list 'месяц', 'квартал', 'полугодие', 'год'], skip;
+   disDopAttr.Name        ('Дополнительная характеристика',,): skip;
+   disTbnLS;
+   disPrivPension.Name    ('Льготная пенсия.'): skip;
+   disAppoint.DismissDate ('Дата ухода с должности',,): [10,'DD/MM/YYYY'], skip;
+   TitleDocNmb ('Номер приказа об увольнении'): skip;
+   TitleDocDate ('Дата приказа об увольнении', , ):[10,'DD/MM/YYYY'], skip;
+   disFullIf ('Источники финансирования'): skip;
+   KlSovmPred.NSovm      ('Вид работы.',,) : pickbutton, protect, skip;
+
+buttons
+  cmValue12,[singleline],,, 'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+
+<<
+  Назначен c   .@@@@@@@@@@ по .@@@@@@@@@@   .@@@@@@@@@@@
+  Приказ       .@@@@@@@@@@ от .@@@@@@@@@@ Характер назн-ния .@@@@@@@@@@@@@@@@@@@@@
+  ИД приказа   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Договор      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Подразделение.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Категория    .@@@@@@@@@@@@@@@@@@@@@@@@ Должность    .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Соответствие .@@@@@@@@@@@@@@@@@@@@@@@@ Доп.сведения .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Условия труда на рабочем месте.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  Кол-во ставок.@@@@@    Среднесписочный коэффициент.@@@@@@          Сетка .@@@@@@
+  Сис-ма оплаты.@@@@@@@@@@@@@@@@@@@@@@@@ Тарифная зона.@@@@@@@@@@@@@ Разряд.@@@@@@
+ `Оклад/ставка`.@@@@@@@@@@@@@@@@@.@@@@@@ Корр.коэф.   .@@@@@@@<.>>.>
+  Режим        .@@@@@@@@@@@@@@@@@@@@@@@@ Условия      .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Учет сверхурочных`.@@@@@@@@@@@@@@@@@@@@@@`Период`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Доп.хар-ка   .@@@@@@@@@@@@@@@@@@@@@@@@ Таб.N из ЛС  .@@@@@@@@@@@@@
+                                       Льгот. пенсия.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Дата ухода   .@@@@@@@@@@ `Приказ`.@@@@@@@@@@ `от`.@@@@@@@@@@
+ `ИФ`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Вид paботы   .@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scrDisAppoint
+
+screen sng_scrDetPerson 'Сведения о местах прохождения собеседований' (,, scStaffReceptionT2Com);
+  table sng_tpInfPsn2;
+fields
+  Persons.FIO ('Фамилия, имя, отчество кандидата'), protect;
+  iCatFunc.GetCatalogsName(sng_tpInfPsn2.cRef4) ('Подразделение'), protect;
+  sng_InterviewPsn.FIO ('Фамилия, имя, отчество проводившего собеседование'), protect;
+  GetStrTabn(sng_InterviewPsn.Tabnmb, sng_InterviewPsn.StrTabN)  ('Табельный номер проводившего собеседование'), protect;
+  sng_tpInfPsn2.dBeg ('Дата проведения собеседования'), protect;
+  sng_tpInfPsn2.dEnd ('Дата получения документов'), protect;
+  sng_StageInterv  ('Этап собеседования'), protect;
+  sng_ResultInterview ('Результат собеседования'), protect;
+  sng_tpInfPsn2.str3 ('Уточняющие сведения'), protect;
+
+<<
+
+`Кандидат`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Подразделение`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Интревьюер`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   `Таб. №`.@@@@@@@@@@@@@
+`Дата собеседования`               .@@@@@@@@@@@@
+`Дата получения документов из ОВК` .@@@@@@@@@@@@
+`Этап`                    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Результат собеседования` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Уточняющие сведения`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen sng_scrDetPerson2 'Сведения о местах прохождения собеседований' (,, scStaffReceptionT2Com);
+  table sng_InfPsn2;
+fields
+  Persons.FIO ('Фамилия, имя, отчество кандидата'), protect;
+  [Podr] iCatFunc.GetCatalogsName(sng_InfPsn2.cRef4) ('Подразделение',, scStaffReceptionT2ComPick), protect;
+  InterviewPsn.FIO ('Фамилия, имя, отчество проводившего собеседование',, scStaffReceptionT2ComPick), protect;
+  GetStrTabn(InterviewPsn.Tabnmb, InterviewPsn.StrTabN)  ('Табельный номер проводившего собеседование'), protect;
+  sng_InfPsn2.dBeg ('Дата проведения собеседования'), noprotect;
+  sng_InfPsn2.dEnd ('Дата получения документов'), noprotect;
+  StageInterv  ('Этап собеседования',, scStaffReceptionT2ComPick), protect;
+  ResultInterview ('Результат собеседования',, scStaffReceptionT2ComPick), protect;
+  sng_InfPsn2.str3 ('Уточняющие сведения'), noprotect;
+<<
+
+`Кандидат`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Подразделение`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Интревьюер`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   `Таб. №`.@@@@@@@@@@@@@
+`Дата собеседования`               .@@@@@@@@@@@@
+`Дата получения документов из ОВК` .@@@@@@@@@@@@
+`Этап`                    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Результат собеседования` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Уточняющие сведения`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+end;
+
+OverLoadFormats brwAppointments1, brwAppointments3, brwAppointments2, brwAppointments70, brwDisAppoint;
+
+browse brwAppointments1 (,hcStaff_PriemPerevod,); // 1
+  show at (, 25, 93,);
+  table Appointments;
+Fields
+  AppointMainMark ' '
+      ('"О" - основное назначение, "С" - внутреннее совместительство') :[1], protect,
+      {font = {color  = if ( (VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+  Appointments.AppointDate 'Дата с'
+      ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Appointments.AppointDate) = 0 or Appointments.rSum3 <> 0,ColorNeed,0)}},
+  {Font={color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }}, Centered;
+  Appointments.wAddWord1 'По/вне ШР'
+      ('По штатному расписанию/вне штатного расписания') : [9], protect,
+        [list ' ', 'по ШР', 'вне ШР'  ],
+        {font = {color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+  AppKatPodrFull 'Подразделение'
+      ('Подразделение. Просмотр истории изменений и выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [20], pickbutton, protect,
+  {Font={BackColor=if(Appointments.Department = 0 or Appointments.rSum3 <> 0,ColorNeed,0)}},
+  {Font={color  = if (IDepartIer.IsChanged(Appointments.Department, Appointments.AppointDate, funGetMinDate(Appointments.DateEnd, Appointments.DismissDate))
+                      , ColorSysBlue
+                      , if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) ) }};
+  AppPostCat.Name 'Профессия, должность'
+      ('Профессия, должность. Выбор из каталога по F3.',
+      , scStaffReceptionT2Com) : [21], protect,
+  {Font={BackColor=if(Appointments.Post = 0 or Appointments.rSum3 <> 0,ColorNeed,0)}};
+  [SNG_KategoryCode] iCatFunc.GetCatalogsCode(AppPostCat.cRef3) 'Код','категории','ЗЛ' ('Код категории застрахованного лица'): [10], Protect;
+  fSNG_TaxRate1 'Оклад'
+      ('Оклад, ставка, тариф') : [10], protect,
+      {Font={color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+  AppPayCurrencyCat.SimvolV 'Валюта'
+      ('Валюта оплаты. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [6], pickbutton, protect,
+      {Font={color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+  [SNG_brdLastUser] vTSFuncs1.GetRealCorrCoeff(Appointments.Tariff, Appointments.LastUser)
+      'Корректирующий','коэф-т'('Корректирующий коэффициент'): [10.3],
+      {Font={color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+ getCodeNameSt(persons.appointcur) 'Штатная должность' ('Штатная должность') : [25], protect;//HR-70
+ getCatCode(GetCatNrec(persons.department))    'Раздел персонала'  ('Раздел персонала')  : [10], protect;//HR-70
+end;
+
+browse brwAppointments3 (,hcStaff_VnutrSovm,); // 2
+  show at (, 25, 93,);
+  table Appointments;
+Fields
+  AppointMainMark ' '
+      ('"О" - основное назначение, "С" - внутреннее совместительство'):[1], protect;
+  Appointments.AppointDate 'Дата с'
+      ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(Appointments.AppointDate) = 0,ColorNeed,0)}};
+  Appointments.wAddWord1 'По/вне ШР'
+      ('По штатному расписанию/вне штатного расписания') : [9], protect,
+      [list  ' ', 'по ШР', 'вне ШР'];
+  AppKatPodrFull 'Подразделение'
+      ('Подразделение. Просмотр истории изменений и выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [20], pickbutton, protect,
+  {Font={BackColor=if(Appointments.Department = 0,ColorNeed,0)}},
+  {Font={color=if (IDepartIer.IsChanged(Appointments.Department, Appointments.AppointDate, funGetMinDate(Appointments.DateEnd, Appointments.DismissDate))
+                      , ColorSysBlue
+                      , 0)}};
+  AppPostCat.Name 'Профессия, должность'
+      ('Профессия, должность. Выбор из каталога по F3.',
+      , scStaffReceptionT2Com) : [21], protect,
+  {Font={BackColor=if(Appointments.Post = 0,ColorNeed,0)}};
+  fSNG_TaxRate1 'Оклад'
+      ('Оклад, ставка, тариф'): [10], protect;
+  AppPayCurrencyCat.SimvolV 'Валюта'
+      ('Валюта оплаты. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [6], pickbutton, protect;
+[SNG_brdLastUser1] vTSFuncs1.GetRealCorrCoeff(Appointments.Tariff, Appointments.LastUser)
+  'Корректирующий','коэф-т' ('Корректирующий коэффициент'): [10.3];
+ getCodeNameSt(persons.appointcur) 'Штатная должность' ('Штатная должность') : [25], protect;//HR-70
+ getCatCode(GetCatNrec(persons.department))    'Раздел персонала'  ('Раздел персонала')  : [10], protect;//HR-70
+end;
+
+browse brwAppointments2 (,hcStaff_Zamest,); // 3
+  show at (, 25, 93,);
+  table ReplacAppoint;
+Fields
+  [SNG_ReplMark] ' ' (''): [1], protect;
+  ReplacAppoint.AppointDate 'Дата с'
+      ('Дата назначения', , ):[10,'DD/MM/YYYY'],
+  {Font={BackColor=if(Day(ReplacAppoint.AppointDate) = 0,ColorNeed,0)}}, Centered;
+  ReplacAppoint.DateEnd 'Дата по'
+      ('Назначен на срок по ...', , ): [10,'DD/MM/YYYY'], noprotect;
+  AppKatPodrFullz 'Подразделение'
+      ('Подразделение. Просмотр истории изменений и выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [20], pickbutton, protect,
+  {Font={BackColor=if(ReplacAppoint.Department = 0,ColorNeed,0)}},
+  {Font={color=if (IDepartIer.IsChanged(ReplacAppoint.Department, ReplacAppoint.AppointDate, funGetMinDate(ReplacAppoint.DateEnd, ReplacAppoint.DismissDate))
+                      , ColorSysBlue
+                      , 0)}};
+  AppPostCatz.Name 'Профессия, должность'
+      ('Профессия, должность. Выбор из каталога по F3.',
+      , scStaffReceptionT2Com) : [21], protect;
+  fSNG_TaxRate2 'Оклад'
+      ('Оклад, ставка, тариф'): [10], protect;
+  AppPayCurrencyCatz.SimvolV 'Валюта'
+      ('Валюта оплаты. Выбор из каталога по F3.',
+      , scStaffReceptionT2ComPick) : [6], pickbutton, protect;
+[SNG_brdLastUser2] vTSFuncs1.GetRealCorrCoeff(ReplacAppoint.Tariff, ReplacAppoint.LastUser)
+  'Корректирующий','коэф-т' ('Корректирующий коэффициент'): [10.3];
+end;
+// -----------------------------------------------------------------------------
+browse brwAppointments70 (,hcStaff_VremPerevod,); // 4
+  show at (, 25, 93,);
+  table TempMoveApp;
+Fields
+  [SNG_TempMoveMark] ' ' (''): [1], protect;
+  TempMoveApp.AppointDate 'Дата с' ('Дата назначения',, ): [10,'DD/MM/YYYY'],
+    { Font = { BackColor = if ( Day(TempMoveApp.AppointDate) = 0, ColorNeed, 0 ) } };
+  TempMoveApp.DateEnd     'Дата по' ('Назначен на срок по ...',, ): [10,'DD/MM/YYYY'];
+  TempMoveApp.wAddWord1 'По/вне ШР'
+      ('По штатному расписанию/вне штатного расписания') : [9], protect,
+        [list ' ', 'по ШР', 'вне ШР'  ],
+        {font = {color  = if ( ( VersionGreaterOrEqual('Z_StaffAddFirst', 1, 0, 0, 0) and Appointments.rSum3 = 1 ), ColorSysGray, 0 ) }};
+  AppKatPodrFull_tm       'Подразделение' ('Подразделение. Просмотр истории изменений и выбор из каталога по F3.',, scStaffReceptionT2ComPick): [20], pickbutton, protect,
+    { Font = { BackColor = if ( TempMoveApp.Department = 0, ColorNeed, 0 ) } },
+    { Font = { color = if (IDepartIer.IsChanged(TempMoveApp.Department, TempMoveApp.AppointDate, funGetMinDate(TempMoveApp.DateEnd, TempMoveApp.DismissDate))
+                      , ColorSysBlue
+                      , 0)}};
+  AppPostCat_tm.Name      'Профессия, должность' ('Профессия, должность. Выбор из каталога по F3.',, scStaffReceptionT2Com): [21], protect;
+end;
+// -----------------------------------------------------------------------------
+
+browse brwDisAppoint (,hcStaff_PredNazn, sci18Esc);
+  show at (, 25, 93,);
+  table disAppoint;
+Fields
+  [SNG_disMainMark] ' ' (''): [1], protect;
+  disAppoint.AppointDate 'Дата с' ('Дата назначения',,):[10,'DD/MM/YYYY'], skip;
+  [SNG_brStatusShr]
+    if ( disAppoint.wAddWord1 <> 0,
+      if ( disAppoint.wAddWord1 = 1, 'по ШР', 'вне ШР' ) , '' ) 'По/вне ШР': [6], skip;
+  AppKatPodrFullD 'Подразделение'  ('Подразделение. Просмотр истории изменений по F3.'): [20], pickbutton, protect,
+    { Font = { color = if (IDepartIer.IsChanged(disAppoint.Department, disAppoint.AppointDate, funGetMinDate(disAppoint.DateEnd, disAppoint.DismissDate))
+                      , ColorSysBlue
+                      , ColorSysGray)}};
+  disPostCat.Name 'Профессия, должность' ('Профессия, должность.'): [21], skip;
+  fSNG_TaxRate3  'Оклад'      ('Оклад, ставка, тариф'): [10], skip;
+  disCurrency.SimvolV 'Валюта'     ('Валюта оплаты.'): [6], skip;
+  [SNG_disLastUser] vTSFuncs1.GetRealCorrCoeff(disAppoint.Tariff, disAppoint.LastUser)
+     'Корректирующий','коэф-т'('Корректирующий коэффициент'): [10.3], skip;
+  KlSovmPred.NSovm 'Вид работы' ('Вид работы.'): [15], skip;
+end;
+
+Procedure DisableKK;
+{
+  inherited::DisableKK;
+  ClearFieldOption(#SNG_brdLastUser, ofSelectable);
+  ClearFieldOption(#SNG_brdLastUser1, ofSelectable);
+  ClearFieldOption(#SNG_brdLastUser2, ofSelectable);
+}
+
+Procedure EnableKK;
+{
+  inherited::EnableKK;
+  SetFieldOption(#SNG_brdLastUser, ofSelectable);
+  SetFieldOption(#SNG_brdLastUser1, ofSelectable);
+  SetFieldOption(#SNG_brdLastUser2, ofSelectable);
+}
+
+browse sng_brPsn (,, scStaffReceptionT2Com);
+  show at (, 25, 93,);
+  table sng_tpInfPsn2;
+fields
+  sng_tpInfPsn2.dBeg 'Дата прохождения' ('Дата прохождения собеседования'): [12], protect;
+  sng_StageInterv  'Этап'             ('Этап собеседования'): [30], protect;
+  iCatFunc.GetCatalogsName(sng_tpInfPsn2.cRef4) 'Подразделение' ('Подразделение'): [30], protect;
+end;
+
+browse sng_brPsn2;
+  show at (, 25, 93,);
+  table sng_InfPsn2;
+fields
+  sng_InfPsn2.dBeg 'Дата прохождения' ('Дата прохождения собеседования',, scStaffReceptionT2Com): [12], noprotect;
+  StageInterv  'Этап'             ('Этап собеседования',, scStaffReceptionT2ComPick): [30], protect;
+  [PodrBr] iCatFunc.GetCatalogsName(sng_InfPsn2.cRef4) 'Подразделение' ('Подразделение',, scStaffReceptionT2ComPick): [30], protect;
+end;
+
+private procedure FillTmp;
+{
+  mtClear(#sng_tpPersons, mfClearFilters);
+
+  var pPers: comp = Persons.NRec;
+  var cPers: comp = pPers;
+
+  if (GetFirst sng_TestPersons where (( cPers == sng_TestPersons.NRec )) <> tsOk)
+    exit;
+
+  while (true)
+  {
+    insert visual into sng_tpPersons (NRec)
+    select
+      Persons.NRec
+    from
+      Persons
+    where
+    ((
+       vAppointments.sng_TestPersons.cOld_Person /== Persons.NRec
+    ));
+
+    cPers := sng_TestPersons.cOld_Person;
+
+    if (GetFirst sng_TestPersons where (( cPers == sng_TestPersons.NRec )) <> tsOk)
+      break;
+  }
+
+  cPers := pPers;
+
+  if (GetFirst sng_TestPersons where (( cPers == sng_TestPersons.NRec )) <> tsOk)
+    exit;
+
+  while (true)
+  {
+    insert visual into sng_tpPersons (NRec)
+    select
+      Persons.NRec
+    from
+      Persons
+    where
+    ((
+       vAppointments.sng_TestPersons.cNew_Person /== Persons.NRec
+    ));
+
+    cPers := sng_TestPersons.cNew_Person;
+
+    if (GetFirst sng_TestPersons where (( cPers == sng_TestPersons.NRec )) <> tsOk)
+      break;
+  }
+
+  mtClear(#sng_tpInfPsn2, mfClearFilters);
+
+  _loop sng_tpPersons
+    _loop sng_InfPsn2 where (( sng_tpPersons.nRec == sng_InfPsn2.cPers and
+                               2 == sng_InfPsn2.FilialNo ))
+    {
+      ClearBuffer(#sng_tpInfPsn2);
+      sng_tpInfPsn2.Buffer := cast(type$sng_tpInfPsn2, type$sng_tpInfPsn2(sng_InfPsn2.Buffer));
+      insert current sng_tpInfPsn2;
+    }
+}
+
+procedure LoadInterface;
+{
+  inherited::LoadInterface;
+
+  case Persons.IsEmployee of
+
+  'К':
+  {
+    SetTabbedSheetVisible(sng_scrDetPerson, false);
+    SetTabbedSheetVisible(sng_scrDetPerson2, true);
+    SetFormat(sng_brPsn2);
+  }
+
+  'С', 'У':
+  {
+    SetTabbedSheetVisible(sng_scrDetPerson2, false);
+    SetTabbedSheetVisible(sng_scrDetPerson, true);
+    SetFormat(sng_brPsn);
+  FillTmp;
+  }
+
+  'Ф':
+  {
+    SetTabbedSheetVisible(sng_scrDetPerson2, false);
+    SetTabbedSheetVisible(sng_scrDetPerson, false);
+    SetTabbedSheetVisible(scrAppointments1, false);
+    SetTabbedSheetVisible(scrAppointments3, false);
+    SetTabbedSheetVisible(scrAppointments2, false);
+    SetTabbedSheetVisible(scrAppointments_TempMove, false);
+  }
+
+  else
+  {
+    SetTabbedSheetVisible(sng_scrDetPerson2, false);
+    SetTabbedSheetVisible(sng_scrDetPerson, false);
+  }
+
+  end;
+
+  if ( not ExistTune('UP.PENSFOND.KATEGORY') )
+    SetFieldandLabelVisible(#SNG_KategoryCode, false);
+  else
+    if ( wGetTune('UP.PENSFOND.KATEGORY') = 0 )
+      SetFieldandLabelVisible(#SNG_KategoryCode, false);
+}
+
+procedure UpdateTabs;
+{
+  inherited::UpdateTabs;
+  var ff: boolean = (GetFirst sng_tpInfPsn2 = tsOk);
+  SetTabTitle(sng_scrDetPerson, 'Сведения о местах прохождения собеседований', ff);
+  ff := (GetFirst sng_InfPsn2 = tsOk);
+  SetTabTitle(sng_scrDetPerson2, 'Сведения о местах прохождения собеседований', ff);
+}
+
+procedure SetCurAppointSheet;
+{
+  case CurFormatInArea(scrAppointments1) of
+   scrAppointments1: CurAppointSheet := 1;
+   scrAppointments2: CurAppointSheet := 2;
+   scrAppointments3: CurAppointSheet := 3;
+   scrDisAppoint   : CurAppointSheet := 4;
+   scrAppointments_TempMove: CurAppointSheet := 5;
+   sng_scrDetPerson, sng_scrDetPerson2: CurAppointSheet := 6;
+  end; //case
+} // procedure SetCurAppointSheet;
+
+procedure SetFiltrAppoint;
+{
+  // Установить фильтр по назначениям/замещениям
+  case CurAppointSheet of
+    1 : // Назначения
+    {
+      // { HR-485
+      ClearFieldState(#AppPayModelCat.NaSisOpl,    sfVisible);  
+      ClearFieldState(#TarStav.TarZone,            sfVisible);  
+      ClearFieldState(#Appointments.TaxRate,       sfVisible);    
+      ClearFieldState(#AppPayCurrencyCat.SimvolV,  sfVisible);  
+      ClearFieldState(#_persOklad,                 sfVisible);  
+      ClearFieldState(#fldAppWorkRegimeCat_fixed,  sfVisible);  
+      ClearFieldState(#OverworkCalculation,        sfVisible); 
+      ClearFieldState(#Appointments.PeriodOW,      sfVisible);  
+
+      cfsSetProp('b_SCRAPPOINTMENTS1_>>',                           cfpVisible, false); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.DDOP2',           cfpVisible, false);
+      cfsSetProp('i_SCRAPPOINTMENTS1_FDISMISGROUND',                cfpVisible, false);
+      cfsSetProp('i_SCRAPPOINTMENTS1_FDISMISSREASON',               cfpVisible, false);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сис-ма_оплаты',                cfpVisible, false); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Тарифная_зона',                cfpVisible, false); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Оклад/ставка',                 cfpVisible, false); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Персональный_оклад',           cfpVisible, false); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Режим',                        cfpVisible, false); 
+      cfsSetProp('L_SCRAPPOINTMENTS1_Учет_сверхурочных',            cfpVisible, false);  
+      cfsSetProp('i_SCRAPPOINTMENTS1_STARZONE1',                    cfpVisible, false);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_ФОТ',                          cfpVisible, false);  //HR-855
+      cfsSetProp('i_SCRAPPOINTMENTS1_TAXRATEAPP',                   cfpVisible, false);  //HR-855
+
+      // ------------------------------------------------------------------------------
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpOrigin_X, 17);    //Условие приема
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpOrigin_Y, 203); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTSTYPEMOVE.NAME',    cfpOrigin_X, 134);
+       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTSTYPEMOVE.NAME',   cfpOrigin_Y, 203);
+
+    // ------------------------------------------------------------------------------
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpOrigin_X, 160);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpOrigin_Y, 263); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpOrigin_X, 314);   
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpOrigin_Y, 263);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_X, 399); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_Y, 263); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_X, 532); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_Y, 263); 
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpSize_X, 130);
+      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpSize_X, 38);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpSize_X, 110);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpSize_X, 38);
+    
+    // ------------------------------------------------------------------------------
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_X, 19); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_Y, 283); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.CATEGORY',        cfpOrigin_X, 130); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.CATEGORY',        cfpOrigin_Y, 283);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_X, 19); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_Y, 303); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_TARSTAV.CODTAR',               cfpOrigin_X, 130);
+      cfsSetProp('i_SCRAPPOINTMENTS1_TARSTAV.CODTAR',               cfpOrigin_y, 303);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpOrigin_X, 19);   //Условия вред.
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpOrigin_Y, 323); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPWORKCONDCAT.NAME',          cfpOrigin_X, 130); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPWORKCONDCAT.NAME',          cfpOrigin_Y, 323);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Таб.N_из_ЛС',                  cfpOrigin_X, 17);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Таб.N_из_ЛС',                  cfpOrigin_Y, 343); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_TBNLS',                        cfpOrigin_X, 130); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_TBNLS',                        cfpOrigin_Y, 343);
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Доп.хар-ка',                  cfpOrigin_X, 17);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Доп.хар-ка',                  cfpOrigin_Y, 363); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPDOPATTRCAT.NAME',          cfpOrigin_X, 130); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPDOPATTRCAT.NAME',          cfpOrigin_Y, 363);
+    
+      cfsSetProp('T_SCRAPPOINTMENTS1_Льгот._пенсия',                cfpOrigin_X, 17); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Льгот._пенсия',                cfpOrigin_Y, 383);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_X, 124); 
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_Y, 383);  
+
+      //-------------------------------------------------------------------------------------
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpTitle, 'Среднесписочный коэфф.');
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpTitle, 'Условие приема');
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpTitle, 'Условия вред.');
+
+      ReReadRecord(#Appointments);
+      //} 
+      typeAppointPrizn := 0;
+      pushBounds(tbTypeAppoint);
+      if ( comp(Persons.AppointCur) <> comp(0) )
+      {
+        if (GetFirst Appointments
+            where (( Persons.AppointCur == Appointments.Nrec )) = tsOk){};
+      }
+      ReReadRecord(#Appointments);
+
+      VZarSgn.PushInfoToBuffer(Persons.Nrec, Appointments.Nrec);
+
+      SetFormat(scrAppButtons1);
+      SetFormat(brwAppointments1);
+      SelectFormat(brwAppointments1);
+      SelectField(#Appointments.AppointDate);
+      Set_TaxRateApp;
+      // cContApp := Appointments.cCont; // - gtm HR-477
+      // nRecApp := Appointments.nRec;   // - gtm HR-477
+    }
+    2 : // Замещение
+    {
+      ReDrawPanel(tnReplacAppoint);
+      if (getlast ReplacAppoint = tsOk)
+      {
+        if (ContDoc2.wDop and 010b) = 0
+        {
+          VZarSgn.PushInfoToBuffer(Persons.Nrec, ReplacAppoint.Nrec);
+          RescanPanel(#ReplacAppoint);
+        }
+      }
+      SetFormat(scrAppButtons2);
+      SetFormat(brwAppointments2);
+      SelectFormat(brwAppointments2);
+      SelectField(#ReplacAppoint.AppointDate);
+      // cContApp := ReplacAppoint.cCont; // - gtm HR-477
+      // nRecApp := ReplacAppoint.nRec;   // - gtm HR-477
+    }
+    3 : // Совмещение
+    {
+      typeAppointPrizn := 3;
+      pushBounds(tbTypeAppoint);
+      if (getlast Appointments <> tsOk){};
+
+      if wGetTune('FormatClockNumber') = 0
+      {
+        cfsSetProp('i_SCRAPPOINTMENTS3_APPOINTMENTS.APPTABNMB', cfpVisible, true);
+        cfsSetProp('i_scrAppointments3_Appointments.StrTABN', cfpVisible, false);
+      }
+      else // строковый табельный
+      {
+        var dl: integer; //переменная для управления координатами поля
+        cfsGetProp('i_SCRAPPOINTMENTS3_APPOINTMENTS.APPTABNMB', 'Origin_X', dl);
+        cfsSetProp('i_scrAppointments3_Appointments.StrTABN', 'Origin_X', dl);
+        cfsGetProp('i_SCRAPPOINTMENTS3_APPOINTMENTS.APPTABNMB', cfpOrigin_Y, dl);
+        cfsSetProp('i_scrAppointments3_Appointments.StrTABN', cfpOrigin_Y, dl);
+        cfsSetProp('i_SCRAPPOINTMENTS3_APPOINTMENTS.APPTABNMB', cfpVisible, false);
+        cfsSetProp('i_scrAppointments3_Appointments.StrTABN', cfpVisible, true);
+      }
+
+      ReReadRecord(#Appointments);
+      VZarSgn.PushInfoToBuffer(Persons.Nrec, Appointments.Nrec);
+
+      SetFormat(scrAppButtons3);
+      SetFormat(brwAppointments3);
+      SelectFormat(brwAppointments3);
+      SelectField(#Appointments.AppointDate);
+      Set_TaxRateApp;
+      // cContApp := Appointments.cCont; // - gtm HR-477
+      // nRecApp := Appointments.nRec;   // - gtm HR-477
+    }
+    4 :
+    {
+      ReReadRecord(#disAppoint);
+      SetFormat(scrNoButton);
+      SetFormat(brwDisAppoint);
+      SelectFormat(brwDisAppoint);
+      SelectField(#SNG_disMainMark);
+      // cContApp := disAppoint.cCont;  // - gtm HR-477
+      // nRecApp := disAppoint.nRec;    // - gtm HR-477
+    }
+    // ----------------------
+    // временные переводы
+    5:
+    {
+      typeAppointPrizn := 70;
+      pushBounds(tbTypeAppoint);
+
+      if ( getlast TempMoveApp = tsOk )
+        VZarSgn.PushInfoToBuffer(Persons.Nrec, TempMoveApp.Nrec);
+
+      SetFormat(scrAppButtons_TempMove);
+      SetFormat(brwAppointments70);
+      // cContApp := TempMoveApp.cCont;  // - gtm HR-477
+      // nRecApp := TempMoveApp.nRec;    // - gtm HR-477
+    }
+    6:
+    {
+      case Persons.IsEmployee of
+
+      'К':
+      {
+        ReReadRecord(#sng_InfPsn2);
+        SetFormat(scrNoButton);
+        SetFormat(sng_brPsn2);
+        SelectFormat(sng_brPsn2);
+      }
+
+      'С', 'У':
+      {
+        ReReadRecord(#sng_tpInfPsn2);
+        SetFormat(scrNoButton);
+        SetFormat(sng_brPsn);
+        SelectFormat(sng_brPsn);
+      }
+
+      end;
+    }
+
+  end; //case
+
+  // разграничения прав доступа к подразделению и картотеке
+  SetAccessAllAppoint;
+  reReadRecord(tnDirContDoc);
+  reReadRecord(tnDirExtDocApp);
+}
+
+
+procedure Idle;
+{
+  //Запрещено редактирование
+  if (not WriteAccess(6))
+  {
+    DisableCommand(cmInsert);
+    DisableCommand(cmDelete);
+    DisableCommand(cmStaffT2MainApp);
+  }
+  else
+  {
+    EnableCommand(cmInsert);
+    EnableCommand(cmDelete);
+    EnableCommand(cmStaffT2MainApp);
+  }
+  // надо делать, поскольку при перепозиционировании в картотеку не перечитывались значения
+  case CurAppointSheet of
+    1,3: // Назначения
+    {
+      if GetLast Appointments = tsOk
+        VZarSgn.PushInfoToBuffer(Persons.Nrec, Appointments.Nrec);
+
+      ReReadRecord(#Appointments);
+    }
+    2: // Замещение
+    {
+      if (getlast ReplacAppoint = tsOk)
+        if (ContDoc2.wDop and 010b) = 0
+        {
+          VZarSgn.PushInfoToBuffer(Persons.Nrec, ReplacAppoint.Nrec);
+        }
+
+      ReReadRecord(#ReplacAppoint);
+    }
+    4:
+    {
+      if ( getlast disAppoint <> tsOk){};
+    }
+    5: // временные перемещения
+    {
+      if ( getlast TempMoveApp <> tsOk ) {};
+
+      ReReadRecord(#TempMoveApp);
+    }
+    6:
+    {
+      case Persons.IsEmployee of
+
+      'К': ReReadRecord(#sng_InfPsn2);
+
+      'С', 'У': ReReadRecord(#sng_tpInfPsn2);
+
+      end;
+    }
+  end; //case
+
+  Set_TaxRateApp;
+
+  if MLFP.GetMainLschet(Persons.Nrec, cLschet)
+    ReReadRecord(tnOsnLSchet);
+
+  SetAccessAllAppoint;
+} // procedure Idle
+
+procedure LoadCurAppointSheet;
+{
+  case CurAppointSheet of
+    1 : // Назначения
+    {
+      SetFormat(scrAppointments1);
+    }
+    2 : // Замещение
+    {
+      SetFormat(scrAppointments2);
+    }
+    3 : // Совмещение
+    {
+      SetFormat(scrAppointments3);
+    }
+    // предыдущие назначения
+    4: SetFormat(scrDisAppoint);
+    // временные перемещения
+    5: SetFormat(scrAppointments_TempMove);
+
+    6:
+    {
+      case Persons.IsEmployee of
+
+      'К': SetFormat(sng_scrDetPerson2);
+
+      'С', 'У': SetFormat(sng_scrDetPerson);
+
+      end;
+    }
+  end;
+}
+
+
+
+handleEvent
+  cmSwitchFormat:
+    {
+      if (focusedFormat = brwAppointments1)
+      {
+        ClearFieldOption(#Appointments.AppointDate, ofSelectable); //Назначен с
+        ClearFieldOption(#Appointments.DateEnd, ofSelectable); //по
+        ClearFieldOption(#Appointments.wAddWord1, ofSelectable); //ШР
+        ClearFieldOption(#Appointments.OrderNmb, ofSelectable); //Приказ
+        //ClearFieldOption(#DirID, ofSelectable); //Приказ
+        ClearFieldOption(#Appointments.OrderDate, ofSelectable); //от
+        ClearFieldOption(#AppKindAppCat.Name, ofSelectable); //Характер назн-ния
+        ClearFieldOption(#ContractStr, ofSelectable); //Договор
+        ClearFieldOption(#AppKatPodrFull, ofSelectable); //Подразделение
+        ClearFieldOption(#AppPostCat.Name, ofSelectable); //Должность
+        ClearFieldOption(#AppPostAccordCat.Name, ofSelectable); //Соответствие
+        ClearFieldOption(#AppDopInfoCat.Name, ofSelectable); //Доп.сведения
+        ClearFieldOption(#AppOU, ofSelectable); //Условия труда
+        ClearFieldOption(#Appointments.EmpRate, ofSelectable); //Среднеспис.коэф.
+        ClearFieldOption(#AppPayModelCat.NaSisOpl, ofSelectable); //Сис-ма оплаты
+        ClearFieldOption(#Appointments.TaxRate, ofSelectable); //Оклад/ставка
+        ClearFieldOption(#AppPayCurrencyCat.SimvolV, ofSelectable); //Валюта
+        ClearFieldOption(#fldAppWorkRegimeCat_fixed, ofSelectable); //Режим
+        ClearFieldOption(#AppWorkCondCat.Name, ofSelectable); //Условия
+        ClearFieldOption(#AppDopAttrCat.Name, ofSelectable); //Доп.хар-ка
+        ClearFieldOption(#TbnLS, ofSelectable); //Таб.№
+        ClearFieldOption(#AppointmentsTypeMove.Name, ofSelectable); //Условие
+        ClearFieldOption(#AppPrivPensionCat.Name, ofSelectable); //Льгот.пенсия
+        ClearFieldOption(#Appointments.DismissDate, ofSelectable); //Дата ухода
+        ClearFieldOption(#fAttPeriod, ofSelectable); //Аттест.период
+        ClearFieldOption(#fPostEdperiod, ofSelectable); //Период повыш.квал-ции
+        ClearFieldOption(#fUpAppointmentsView, ofSelectable); //Временный перевод
+      }
+    }
+
+  cmOnVipLoad:
+  {
+    #info PLV Структурные единицы ШР
+        vc_MainLink := if(GetFirst Catalogs Where(( -11 == Catalogs.SysCode))=tsOk, Catalogs.Nrec,0);
+
+    inherited::handleEvent(cmOnVipLoad);
+
+    cfsSetProp('c_BRWAPPOINTMENTS1_Штатная_должность', cfpIndex       ,   integer(4) );  //HR-70 устанавливаем индекс поля
+    cfsSetProp('c_BRWAPPOINTMENTS1_Штатная_должность', cfpIndex       ,   integer(4) );  //HR-70 устанавливаем индекс поля
+
+    cfsSetProp('c_BRWAPPOINTMENTS1_Раздел_персонала', cfpIndex       ,   integer(3) );  //HR-70 устанавливаем индекс поля
+    cfsSetProp('c_BRWAPPOINTMENTS1_Раздел_персонала', cfpIndex       ,   integer(3) );  //HR-70 устанавливаем индекс поля
+
+    var bLockTabnmb : boolean = boGetTune('UP.STAFF.LOCK_TABNMB');
+    if not bLockTabnmb then
+      SetFieldOption(#Appointments.AppTabNmb, ofProtected);
+
+    cfsSetProp('i_SCRAPPOINTMENTS1_BRDLASTUSER3', 'Visible', false);   //HR-52 скрыли старый расчет [brdLastUser3]
+    cfsSetProp('i_SCRAPPOINTMENTS1_BRDLASTUSER3', 'Hidden',  true);
+    cfsSetProp('b_SCRAPPOINTMENTS1_>>', 'Visible', false);             //HR-52 скрыли кнопку cmValue12
+    cfsSetProp('b_SCRAPPOINTMENTS1_>>', 'Hidden',  true);
+
+    cfsSetProp('b_SCRAPPBUTTONS1_Договоры', 'Hidden',  true);
+    cfsSetProp('b_SCRAPPBUTTONS3_Договоры', 'Hidden',  true);
+
+    setOklad;
+
+    if ((VPerAccess.GetAccessMask(6) and 32768) <> 0)
+      bSNG_TaxRate := true;
+    else
+    {
+      SetFieldAndLabelVisible(#Appointments.TaxRate, false);
+      SetFieldAndLabelVisible(#_persOklad, false);
+      SetFieldAndLabelVisible(#_TaxRateApp, false);
+      SetFieldAndLabelVisible(#ReplacAppoint.TaxRate, false);
+      SetFieldAndLabelVisible(#TempMoveApp.TaxRate, false);
+      SetFieldAndLabelVisible(#disAppoint.TaxRate, false);
+      bSNG_TaxRate := false;
+    }                                                                //HR-52
+
+    SetFieldAndLabelVisible(#fSNG_TaxRate1, false);
+    SetFieldAndLabelVisible(#fSNG_TaxRate2, bSNG_TaxRate);
+    SetFieldAndLabelVisible(#fSNG_TaxRate3, bSNG_TaxRate);
+  } //cmOnVipLoad
+
+  cmPick:
+  {
+    inherited::handleEvent(cmPick);
+    case CurField of
+      #fldAppWorkRegimeCatZ_fixed:
+      {
+        liTmp := AppWorkRegimeCatz.Rejim;
+
+        if (RunInterface('Z_Calendar::PickRejExt', liTmp, Year(ReplacAppoint.AppointDate), Month(ReplacAppoint.AppointDate)) <> cmCancel)
+          if (GetFirst AppWorkRegimeCatz where ((liTmp == AppWorkRegimeCatz.Rejim)) = tsOk)
+          {
+            if ReplacAppoint.WorkRegime <> AppWorkRegimeCatz.Nrec
+              NeedUpdHist := true;
+
+            ReplacAppoint.OWMode := OWF.GetOWModeFromMask(AppWorkRegimeCatz.FilialNo);
+            ReplacAppoint.PeriodOW := OWF.GetOWPeriodFromMask(AppWorkRegimeCatz.FilialNo);
+            set ReplacAppoint.WorkRegime := AppWorkRegimeCatz.Nrec;
+           // SetVisibleOWPeriodZ; 10975
+            #SetVisibleOWPeriod(ReplacAppoint, #ReplacAppoint.PeriodOW);//10975
+          }
+      }
+      #fldAppWorkRegimeCat_fixed:
+      {
+        liTmp := AppWorkRegimeCat.Rejim;
+
+        if (RunInterface('Z_Calendar::PickRejExt', liTmp, Year(Appointments.AppointDate), Month(Appointments.AppointDate)) <> cmCancel)
+        {
+          if ( GetFirst AppWorkRegimeCat where ((liTmp == AppWorkRegimeCat.Rejim)) = tsOk )
+          {
+            if Appointments.WorkRegime <> AppWorkRegimeCat.Nrec
+              NeedUpdHist := true;
+
+            Appointments.OWMode := OWF.GetOWModeFromMask(AppWorkRegimeCat.FilialNo);
+            Appointments.PeriodOW := OWF.GetOWPeriodFromMask(AppWorkRegimeCat.FilialNo);
+            set Appointments.WorkRegime := AppWorkRegimeCat.Nrec;
+           // SetVisibleOWPeriod;  10975
+            #SetVisibleOWPeriod(Appointments, #Appointments.PeriodOW);//10975
+          }
+        }
+      }
+      #Podr, #PodrBr:
+      {
+        var ParentSav: comp = sng_InfPsn2.cRef4;
+        if (RunInterface('Z_StaffCat::PickCatalog2', integer(-11), ParentSav, comp(0)) = cmDefault)
+          update current sng_InfPsn2 set sng_InfPsn2.cRef4 := ParentSav;
+      }
+      // ------------------
+      // интервьюер
+      #InterviewPsn.FIO:
+      {
+        var ParentSav: comp = sng_InfPsn2.cRef2;
+        var DummyMarker: TPtr;
+        DummyMarker := InitMarker('', 8, 1, 1);
+
+        if ( RunInterface('Z_Staff::PrikAllPsn', sng_InfPsn2.dBeg, comp(0), longInt(0), DummyMarker, vfCanSelect) = cmdefault )
+          if ( GetMarker(DummyMarker, 0, ParentSav) )
+          	set sng_InfPsn2.cRef2 := ParentSav;
+
+        DoneMarker(DummyMarker, '');
+      }
+      // ------------------
+      // этап собеседования
+      #StageInterv:
+      {
+        var ParentSav: comp = sng_InfPsn2.cRef1;
+
+        if (RunInterface('Z_StaffCat::PickCatalog2', integer(-400), ParentSav, comp(0)) = cmDefault)
+          set sng_InfPsn2.cRef1 := ParentSav;
+      }
+      // ------------------
+      // результат собеседования
+      #ResultInterview:
+      {
+        var ParentSav: comp = sng_InfPsn2.cRef1;
+
+        if (RunInterface('Z_StaffCat::PickCatalog2', integer(-402), ParentSav, comp(0)) = cmDefault)
+          set sng_InfPsn2.cRef3 := ParentSav;
+      }
+    end // case
+  } //cmPick
+
+  cmDelOnProtect:
+  {
+    inherited::handleEvent(cmDelOnProtect);
+
+    case CurField of
+      // -----------
+      #Persons.FIO:
+      {
+        abort;
+        exit;
+      }
+      // -----------
+      #StageInterv:
+        set sng_InfPsn2.cRef1 := 0;
+      // -----------
+      #InterviewPsn.FIO:
+        set sng_InfPsn2.cRef2 := 0;
+      // -----------
+      #ResultInterview:
+        set sng_InfPsn2.cRef3 := 0;
+      // -----------
+    end; //case
+  }
+
+  cmFullOrg:    //HR-431
+  {
+   RunWindowModal(winFullOrg);
+  }
+
+end;
+
+tableevent // HR-477 gtm {{{
+  table Appointments;
+  cmHyperlink:
+  {
+   case CurField of
+     #dirID:
+     {
+     if (dirID <> 0)
+     {
+      var aErrorCode: integer;
+      var sPagePath: string = DirIDHyperlink;
+      ExecProgram('start' , sPagePath, 'Печать файла', 0, aErrorCode);
+     }
+     }
+   end;
+  }
+
+end;
+
+tableevent
+Table ReplacAppoint;
+  cmHyperlink:
+  {
+    case CurField of
+     #dirID1:
+     {
+     if (dirID1 <> 0)
+     {
+      var aErrorCode: integer;
+      var sPagePath: string = DirID1Hyperlink;
+      ExecProgram('start' , sPagePath, 'Печать файла', 0, aErrorCode);
+     }
+     }
+   end;
+  }
+end;
+
+tableevent
+Table TempMoveApp;
+  cmHyperlink:
+  {
+    case CurField of
+     #dirID2:
+     {
+     if (dirID2 <> 0)
+     {
+      var aErrorCode: integer;
+      var sPagePath: string = DirID2Hyperlink;
+      ExecProgram('start' , sPagePath, 'Печать файла', 0, aErrorCode);
+     }
+     }
+   end;
+  }
+end;
+
+tableevent
+Table disAppoint;
+  cmHyperlink:
+  {
+    case CurField of
+     #dirID3:
+     {
+     if (dirID3 <> 0)
+     {
+      var aErrorCode: integer;
+      var sPagePath: string = DirID3Hyperlink;
+      ExecProgram('start' , sPagePath, 'Печать файла', 0, aErrorCode);
+     }
+     }
+   end;
+  }
+end;
+// HR-477 gtm }}}
+
+TableEvent
+  table TempMoveApp;
+  cmPick:
+  {
+    inherited::handleEvent(cmPick);
+    case CurField of
+      #fldAppWorkRegimeCat_tm_fixed:
+      {
+        liTmp := AppWorkRegimeCat_tm.Rejim;
+
+        if ( RunInterface('Z_Calendar::PickRejExt', liTmp, Year(TempMoveApp.AppointDate), Month(TempMoveApp.AppointDate)) <> cmCancel )
+          if ( getfirst AppWorkRegimeCat_tm where (( liTmp == AppWorkRegimeCat_tm.Rejim)) = tsOk )
+          {
+            if TempMoveApp.WorkRegime <> AppWorkRegimeCat_tm.Nrec
+              NeedUpdHist := true;
+
+            TempMoveApp.OWMode := OWF.GetOWModeFromMask(AppWorkRegimeCat_tm.FilialNo);
+            TempMoveApp.PeriodOW := OWF.GetOWPeriodFromMask(AppWorkRegimeCat_tm.FilialNo);
+            set TempMoveApp.WorkRegime := AppWorkRegimeCat_tm.Nrec;
+//            SetVisibleOWPeriod_tm; 10975
+            #SetVisibleOWPeriod(TempMoveApp, #TempMoveApp.PeriodOW);// 10975
+          }
+      }
+    end // case
+} // end cmPick
+end; // TableEvent TempMoveApp
+
+TableEvent Table sng_InfPsn2;
+
+  cmSetDefault:
+  {
+    ClearBuffer(tnsng_InfPsn2);
+    sng_InfPsn2.cPers    := Persons.Nrec;
+    sng_InfPsn2.FilialNo := 2;
+  } //cmSetDefault
+
+  cmInsertRecord:
+  {
+    Insert Current sng_InfPsn2;
+  } //cmInsertRecord
+
+  cmUpdateRecord:
+  {
+    Update Current sng_InfPsn2;
+  } //cmUpdateRecord
+
+  cmDeleteRecord:
+  {
+    if ( Message('Удалить запись о прохождении собеседования?', YesNo) = Yes )
+      delete current sng_InfPsn2;
+  } //cmDeleteRecord
+
+end;
+
+OverloadFormats scPersons;
+
+screen scPersons;
+  show at (,,93,1);
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO    ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  {Font={BackColor=if(trim(tmpPersons.FIO) = '',ColorNeed,0)}}, protect;
+<<
+  Ф.И.О.       .@@@@@@@@@  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scPersons
+
+end.

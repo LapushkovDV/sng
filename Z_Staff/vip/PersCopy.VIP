@@ -1,0 +1,993 @@
+#include PersCopy.VIH
+#include Experience_Funcs.vih
+#include CatEtalon.vih
+
+#component "Z_Staff"
+
+alter interface Copy_Psn;
+
+overload
+  procedure CopyAppendixPassport(_OldPassNrec, _NewPassNRec: comp);
+  procedure CopyInfo(_cParam: comp);
+end;
+
+type
+  AttachMemo = array[0..0] of string;
+
+Create view PsnCopy
+as select
+  Cons_SpAllStaff1.NRec
+from
+  SNG_Persons,
+  SNG_Persons CurSNG_Persons,
+  SNG_ServLenExt,
+  SNG_ServLenExt CurSNG_ServLenExt,
+  SpAllStaff Cons_SpAllStaff1,
+  SpAllStaff NewCons_SpAllStaff1
+;
+
+procedure CopyAppendixPassport(_OldPassNrec, _NewPassNRec: comp);
+{
+  _loop AppendixPassport where ((            3 == AppendixPassport.ObjBlock and
+                                             0 == AppendixPassport.Person   and
+                                             4 == AppendixPassport.ObjType  and
+                                  _OldPassNrec == AppendixPassport.ObjNrec       ))
+  {
+    ClearBuffer(#CurAppendix);
+    CurAppendix.Person    := 0;
+    CurAppendix.ObjBlock  := 3;
+    CurAppendix.ObjType   := 4;
+    CurAppendix.ObjNrec   := _NewPassNRec;
+    CurAppendix.Abstract  := AppendixPassport.Abstract;
+
+    var tmpFileList: AttachMemo;
+    var tmpFileDir: string = CreateTmpFileName();
+
+    var cntPart: integer = GetPartMemoCount(AppendixPassport.Contents);
+
+    if (cntPart < 0)
+    {
+      tmpFileList[0] := tmpFileDir + '\Attachment.' + GetMemoPrefix(#AppendixPassport);
+      ExportMemoToFile(AppendixPassport.Contents, tmpFileList[0], false);
+    }
+    else
+    {
+      var k: word = 0;
+
+      for (k := 0; k < cntPart; k++)
+      {
+        tmpFileList[k] := tmpFileDir + '\' + GetPartMemoName(AppendixPassport.Contents, k);
+        ExportPartMemoToFile(AppendixPassport.Contents, k, tmpFileList[k], false);
+      }
+    }
+
+    var i: word = 0;
+    for (i := 0; i < Count(tmpFileList); i++)
+      ImportFileToMemoAZM(CurAppendix.Contents, tmpFileList[i], true);
+
+    if (insert current CurAppendix <> tsOk){};
+  }
+}
+
+#declare CheckUsersInterrupt
+  if Not NextVisual
+  {
+    Message('Операция прервана пользователем', Information + OKButton);
+    if (update current CurPersons <> tsOK){};
+    StopVisual;
+    abort;
+    exit;
+  }
+#end
+
+procedure CopyInfo(_cParam: comp);
+var
+  bExpExist: boolean;
+{
+  StartNewVisual(vtIndicatorVisual, vfTimer + vfBreak + vfConfirm,
+                'Перенос персональных данных сотрудника...' + ''#13'', longint(22));
+
+  if ( CheckSelectAndRights( 16 ) )         // 1.1. Общие сведения
+  {
+    CurPersons.BornDate     := Persons.BornDate;
+    CurPersons.Nationality  := Persons.Nationality;
+    CurPersons.Gr           := Persons.Gr;
+    CurPersons.InvalidGrp   := Persons.InvalidGrp;
+    CurPersons.PensionCause := Persons.PensionCause;
+    CurPersons.cAddNRec2    := Persons.cAddNRec2;
+    CurPersons.Education    := Persons.Education;
+    CurPersons.Dependants   := Persons.Dependants;
+    CurPersons.Sex          := Persons.Sex;
+    CurPersons.FamilyState  := Persons.FamilyState;
+    CurPersons.Publications := Persons.Publications;
+    CurPersons.Inventions   := Persons.Inventions;
+    CurPersons.cBaseProf    := Persons.cBaseProf;
+    CurPersons.PensionDate  := Persons.PensionDate;
+    CurPersons.cDopRef1     := Persons.cDopRef1;
+    CurPersons.DDAT1        := Persons.DDAT1;
+    CurPersons.cAddProf     := Persons.cAddProf;
+    CurPersons.cAddNRec1    := Persons.cAddNRec1;   // классность\звание
+    CurPersons.PassNmb      := Persons.PassNmb;   // Пропуск
+    CurPersons.WPRIZN2      := Persons.WPRIZN2;
+    CurPersons.DDOP1        := Persons.DDOP1;
+    CurPersons.cPrizn1      := Persons.cPrizn1;
+    CurPersons.SNILS        := Persons.SNILS;
+
+    CopyAttrName (coPersons, Persons.NRec, CurPersons.NRec, 'TD_wPrizn1');
+    CopyAttrName (coPersons, Persons.NRec, CurPersons.NRec, 'TD_wPrizn2');
+    CopyAttrName (coPersons, Persons.NRec, CurPersons.NRec, 'TD_dPrizn1');
+    CopyAttrName (coPersons, Persons.NRec, CurPersons.NRec, 'TD_dPrizn2');
+
+    _loop DopInfo where (( Persons.Nrec == DopInfo.cPerson ))
+    {
+      DopInfo.Nrec:= 0;
+      DopInfo.cPerson:= CurPersons.Nrec;
+      if insert current DopInfo <> tsOk
+        message('Ошибка вставки в таблицу DopInfo');
+    }
+
+    // здесь должна быть проверка на то, а нужно ли копировать эти данные
+    // ведь их можно заполнить в приказе на повторное трудоустройство и
+    // тогда произойдет перекрытие данных (101.44918)
+    if OnlyCopy
+    { // только при копировании данных переносим данную информацию
+      CurPersons.JobNature := Persons.JobNature;   // характер работы
+      CurPersons.ComplSrc := Persons.ComplSrc;   // источник комплектования
+    }
+
+    #CheckUsersInterrupt
+
+    if (_cParam and CN_PSNCOPY_NO_ATTEST) = 0
+    {
+      // плановые аттестации (которые тем не менее связаны с реальными)
+      _loop planAtt where ((Persons.Nrec == planAtt.cpers))
+      {
+        ClearBuffer(#CurplanAtt);
+        CurplanAtt.Buffer := planAtt.Buffer;
+        CurplanAtt.nRec := 0;
+        CurplanAtt.cpers := CurPersons.Nrec;
+        if (insert current CurplanAtt <> tsOk){};
+      }
+
+      // данные по аттестациям
+      _loop Attestation where ((Persons.Nrec == Attestation.Person
+                                    and attCommon == Attestation.wDop1))
+      {
+        ClearBuffer(#CurAttestation);
+        CurAttestation.Buffer := Attestation.Buffer;
+        CurAttestation.nRec := 0;
+        CurAttestation.Person := CurPersons.Nrec;
+        if (insert current CurAttestation <> tsOk){};
+      }
+    }
+
+    // данные по профосмотрам
+    _loop ProfAtt where ((Persons.Nrec == ProfAtt.Person
+                          and attProfInspect == ProfAtt.wDop1))
+    {
+      ClearBuffer(#CurProfAtt);
+      CurProfAtt.Buffer := ProfAtt.Buffer;
+      CurProfAtt.nRec := 0;
+      CurProfAtt.Person := CurPersons.Nrec;
+      if (insert current CurProfAtt <> tsOk) {};
+    }
+    // данные по профессиям
+    _loop ProffInf where ((Persons.Nrec == ProffInf.cRef))
+    {
+      ClearBuffer(#CurProffInf);
+      CurProffInf.Buffer := ProffInf.Buffer;
+      CurProffInf.nRec := 0;
+      CurProffInf.cRef := CurPersons.Nrec;
+      if (insert current CurProffInf <> tsOk) {};
+    }
+
+    // негосударственные пенсионные фонды
+    _loop NPF where ((Persons.Nrec == NPF.cPersons (noindex)))
+    {
+      ClearBuffer(#CurNPF);
+      CurNPF.Buffer := NPF.Buffer;
+      CurNPF.nRec := 0;
+      CurNPF.cPersons := CurPersons.Nrec;
+      if (insert current CurNPF <> tsOk) {};
+    }
+
+    if (getfirst AddressN where ((Persons.Nrec  == AddressN.cPerson and
+                                  word(55)      == AddressN.ObjType )) = tsOk)
+      iAdrFunc.CopyAddress(AddressN.Nrec, CurPersons.NRec, WORD(55));
+
+    #CheckUsersInterrupt
+
+    // адрес места рождения
+    if (CurPersons.BornAddr = 0)
+      CurPersons.BornAddr := iAdrFunc.CopyAddress(Persons.BornAddr, CurPersons.NRec, WORD(3));
+
+    #CheckUsersInterrupt
+
+    CurPersons.PasspAddr := iAdrFunc.CopyAddress(Persons.PasspAddr, CurPersons.NRec, WORD(4));
+
+    #CheckUsersInterrupt
+
+      // адрес проживания
+    CurPersons.LiveAddr := iAdrFunc.CopyAddress(Persons.LiveAddr, CurPersons.NRec, WORD(2));
+
+    #CheckUsersInterrupt
+
+    if (getfirst tmpPas where (( CurPersons.PasspRus == tmpPas.Nrec )) <> tsOk)
+      //Национальный паспорт сотрудника
+      if (getfirst Passports where ((Persons.PasspRus == Passports.Nrec)) = tsOk)
+      {
+        Passports.Nrec:= 0;
+        Passports.Person:= CurPersons.Nrec;
+        if (insert current Passports <> tsOK){};
+        CurPersons.PasspRus:= Passports.Nrec;
+        CopyAppendixPassport(Persons.PasspRus, Passports.Nrec);
+      }
+
+    #CheckUsersInterrupt
+
+    if (getfirst tmpPas where (( CurPersons.PasspFor == tmpPas.Nrec )) <> tsOk)
+      //Загранпаспорт сотрудника
+      if (getfirst Passports where ((Persons.PasspFor == Passports.Nrec)) = tsOk)
+      {
+        Passports.Nrec:= 0;
+        Passports.Person:= CurPersons.Nrec;
+        if (insert current Passports <> tsOK){};
+        CurPersons.PasspFor:= Passports.Nrec;
+        CopyAppendixPassport(Persons.PasspFor, Passports.Nrec);
+      }
+    //переносим данные по документам сотрудников
+    #CheckUsersInterrupt
+
+    _loop Passports where ((Persons.Nrec == Passports.Person))
+    {
+     if (Persons.PasspRus = Passports.Nrec)
+       continue; //исключаем запись для Национальный паспорта
+     if (Persons.PasspFor = Passports.Nrec)
+       continue; //исключаем запись для Загранпаспорта
+
+     var bPaspExist: boolean;
+     bPaspExist:= false;
+     _loop tmpPas where (( NrecCurPers == tmpPas.PERSON ))
+     {
+       if
+       (
+         tmpPas.Ser       = Passports.Ser and
+         tmpPas.Nmb       = Passports.Nmb and
+         tmpPas.GivenBy   = Passports.GivenBy and
+         tmpPas.GivenDate = Passports.GivenDate and
+         tmpPas.GivenPodr = Passports.GivenPodr and
+         tmpPas.ToDate    = Passports.ToDate and
+         tmpPas.Kind      = Passports.Kind and
+         tmpPas.SeqNmb    = Passports.SeqNmb and
+         tmpPas.SysCode   = Passports.SysCode and
+         tmpPas.DocName   = Passports.DocName and
+         tmpPas.Append    = Passports.Append  and
+         tmpPas.FilialNo  = passports.FilialNo
+       )
+       bPaspExist:= true;
+     }
+
+     if bPaspExist
+       continue;
+
+     ClearBuffer(#CurPassports);
+     CurPassports.Person     := CurPersons.Nrec;
+     CurPassports.Ser        := Passports.Ser;
+     CurPassports.Nmb        := Passports.Nmb;
+     CurPassports.GivenBy    := Passports.GivenBy;
+     CurPassports.GivenDate  := Passports.GivenDate;
+     CurPassports.GivenPodr  := Passports.GivenPodr;
+     CurPassports.ToDate     := Passports.ToDate;
+     CurPassports.Kind       := Passports.Kind;
+     CurPassports.SeqNmb     := Passports.SeqNmb;
+     CurPassports.SysCode    := Passports.SysCode;
+     CurPassports.DocName    := Passports.DocName;
+     CurPassports.Append     := Passports.Append;
+     CurPassports.FilialNo   := passports.FilialNo;
+
+     if (insert current CurPassports = tsOk)
+     {
+       CopyAppendixPassport(Passports.NRec, CurPassports.NRec);
+     }
+    }
+    //История изменения фамилии сотрудника
+    #CheckUsersInterrupt
+
+    _loop CasePsn where ((Persons.Nrec == CasePsn.cPsn))
+    {
+      ClearBuffer(#CurCasePsn);
+      CurCasePsn.cPsn      := CurPersons.Nrec;
+      CurCasePsn.PsnV      := CasePsn.PsnV;
+      CurCasePsn.PsnD      := CasePsn.PsnD;
+      CurCasePsn.cReserv   := CasePsn.cReserv;
+      CurCasePsn.ChangePsn := CasePsn.ChangePsn;
+      CurCasePsn.dChange   := CasePsn.dChange;
+      if (insert current CurCasePsn <> tsOk){};
+    }
+
+    //Телефоны сотрудника
+    #CheckUsersInterrupt
+
+    _loop Communications where ((Persons.Nrec   == Communications.Person))
+    {
+      ClearBuffer(#CurCommunications);
+      CurCommunications.Person  := CurPersons.Nrec;
+      CurCommunications.ObjType := Communications.ObjType;
+      CurCommunications.ComType := Communications.ComType;
+      CurCommunications.SeqNmb  := Communications.SeqNmb;
+      CurCommunications.Addr    := Communications.Addr;
+      CurCommunications.Email   := Communications.Email;
+      if (insert current CurCommunications <> tsOk){};
+    }
+
+    //Дополнительная информация
+    #CheckUsersInterrupt
+
+    _loop Appendix where ((1 == Appendix.ObjBlock and
+                           Persons.Nrec == Appendix.Person /*and
+                           200 == Appendix.ObjType*/ ))
+    {
+      ClearBuffer(#CurAppendix);
+      CurAppendix.Person    := CurPersons.Nrec;
+      CurAppendix.ObjBlock  := Appendix.ObjBlock;
+      CurAppendix.ObjType   := Appendix.ObjType;
+
+      // при копировании если это аппендих по persons и он не пустой - подменить Nrec
+      if ( (Appendix.ObjType = 2) and
+           (Appendix.ObjNrec <> comp(0)) )
+        CurAppendix.ObjNrec   := CurPersons.Nrec
+      else
+        CurAppendix.ObjNrec   := Appendix.ObjNrec;
+
+      CurAppendix.Abstract  := Appendix.Abstract;
+
+      var tmpFileList: AttachMemo;
+      var tmpFileDir: string = CreateTmpFileName();
+
+      var cntPart: integer = GetPartMemoCount(Appendix.Contents);
+
+      if (cntPart < 0)
+      {
+        tmpFileList[0] := tmpFileDir + '\Attachment.' + GetMemoPrefix(#Appendix);
+        ExportMemoToFile(Appendix.Contents, tmpFileList[0], false);
+      }
+      else
+      {
+        var k: word = 0;
+
+        for (k := 0; k < cntPart; k++)
+        {
+          tmpFileList[k] := tmpFileDir + '\' + GetPartMemoName(Appendix.Contents, k);
+          ExportPartMemoToFile(Appendix.Contents, k, tmpFileList[k], false);
+        }
+      }
+
+      var i: word = 0;
+      for (i := 0; i < Count(tmpFileList); i++)
+        ImportFileToMemoAZM(CurAppendix.Contents, tmpFileList[i], true);
+
+      if (insert current CurAppendix <> tsOk){};
+    }
+
+    // копируем гос пенсию
+    if IsValid(#StatePensionsGos)
+    {
+      ClearBuffer(#StatePensions);
+      StatePensions.Buffer := StatePensionsGos.Buffer;
+      StatePensions.nRec := 0;
+      StatePensions.cPerson := CurPersons.Nrec;
+
+      if (insert current StatePensions = tsOk)
+      {
+        // величины гос пенсии
+        _loop SalScaleGos
+        {
+          ClearBuffer(#CurSalScale);
+          CurSalScale.Buffer := SalScaleGos.Buffer;
+          CurSalScale.cUnit  := StatePensions.nrec;
+          if (insert current CurSalScale <> tsOk){};
+        }
+      }
+    }
+
+    // копируем cоц\страх пенсию
+    if IsValid(#StatePensionsSoc)
+    {
+      ClearBuffer(#StatePensions);
+      StatePensions.Buffer := StatePensionsSoc.Buffer;
+      StatePensions.nRec := 0;
+      StatePensions.cPerson := CurPersons.Nrec;
+
+      if (insert current StatePensions = tsOk)
+      {
+        // величины cоц\страх пенсии
+        _loop SalScaleSoc
+        {
+          ClearBuffer(#CurSalScale);
+          CurSalScale.Buffer := SalScaleSoc.Buffer;
+          CurSalScale.cUnit  := StatePensions.nrec;
+          if (insert current CurSalScale <> tsOk){};
+        }
+      }
+    }
+
+    #CheckUsersInterrupt
+  }
+
+  if ( CheckSelectAndRights( 17 ) ) // 1.2. Социальные льготы
+  {
+    _loop SocLg where (( Persons.Nrec == SocLg.cPerson ))
+    {
+      ClearBuffer(#CurSocLg);
+      CurSocLg.Buffer  := SocLg.Buffer;
+      CurSocLg.nRec    := 0;
+      CurSocLg.cPerson := CurPersons.Nrec;
+      if (insert current CurSocLg <> tsOk) {};
+    }
+
+    #CheckUsersInterrupt
+  }
+
+  if ( CheckSelectAndRights( 12 ) ) // 3.2. Дополнительные сведения
+  {
+    _loop Appendix where ((999 == Appendix.ObjBlock
+                          and Persons.Nrec == Appendix.Person
+                          and 999 == Appendix.ObjType ))
+    {
+      ClearBuffer(#CurAppendix);
+      CurAppendix.Person:= CurPersons.Nrec;
+      CurAppendix.ObjBlock  := Appendix.ObjBlock;
+      CurAppendix.ObjType   := Appendix.ObjType;
+      CurAppendix.ObjNrec   := Appendix.ObjNrec;
+      CurAppendix.Abstract  := Appendix.Abstract;
+
+      var tmpFileList: AttachMemo;
+      var tmpFileDir: string = CreateTmpFileName();
+
+      var cntPart: integer = GetPartMemoCount(Appendix.Contents);
+
+      if (cntPart < 0)
+      {
+        tmpFileList[0] := tmpFileDir + '\Attachment.' + GetMemoPrefix(#Appendix);
+        ExportMemoToFile(Appendix.Contents, tmpFileList[0], false);
+      }
+      else
+      {
+        var k: word = 0;
+
+        for (k := 0; k < cntPart; k++)
+        {
+          tmpFileList[k] := tmpFileDir + '\' + GetPartMemoName(Appendix.Contents, k);
+          ExportPartMemoToFile(Appendix.Contents, k, tmpFileList[k], false);
+        }
+      }
+
+      var i: word = 0;
+      for (i := 0; i < Count(tmpFileList); i++)
+        ImportFileToMemoAZM(CurAppendix.Contents, tmpFileList[i], true);
+
+      if (insert current CurAppendix <> tsOk){};
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 13 ) ) // 3.4.1 Награждения
+  {
+    //Сведения о поощрении сотрудников
+    _loop Fortune where (( Persons.Nrec == Fortune.cPers and 0  == Fortune.wChoice ))
+    {
+      ClearBuffer(#CurFortune);
+      CurFortune.cPers:= CurPersons.Nrec;
+      CurFortune.cFType := Fortune.cFType;
+      CurFortune.WState := Fortune.WState;
+      CurFortune.DocNmb := Fortune.DocNmb;
+      CurFortune.DocDate := Fortune.DocDate;
+      CurFortune.FortCurr := Fortune.FortCurr;
+      CurFortune.FortAttr := Fortune.FortAttr;
+      CurFortune.DocSum := Fortune.DocSum;
+      CurFortune.SNote := Fortune.SNote;
+      CurFortune.Dat1 := Fortune.Dat1;
+      CurFortune.cFCont := Fortune.cFCont;
+      CurFortune.cRef1 := Fortune.cRef1;
+      CurFortune.sFortText := Fortune.sFortText;
+      CurFortune.wChoice := Fortune.wChoice;
+      CurFortune.sAbout := Fortune.sAbout;
+      CurFortune.cRef2 := Fortune.cRef2;
+      CurFortune.cRef3 := Fortune.cRef3;
+      CurFortune.wAttr1 := Fortune.wAttr1;
+      CurFortune.wAttr2 := Fortune.wAttr2;
+      if (insert current CurFortune <> tsOk){};
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 14 ) ) // 3.4.2 Награды и взыскания
+  {
+    // Наградные листы
+    _loop Fortune where (( Persons.Nrec == Fortune.cPers   and
+                                      1 == Fortune.wChoice     ))
+    {
+      ClearBuffer(#CurFortune);
+      CurFortune.cPers:= CurPersons.Nrec;
+      CurFortune.cFType := Fortune.cFType;
+      CurFortune.WState := Fortune.WState;
+      CurFortune.DocNmb := Fortune.DocNmb;
+      CurFortune.DocDate := Fortune.DocDate;
+      CurFortune.FortCurr := Fortune.FortCurr;
+      CurFortune.FortAttr := Fortune.FortAttr;
+      CurFortune.DocSum := Fortune.DocSum;
+      CurFortune.SNote := Fortune.SNote;
+      CurFortune.Dat1 := Fortune.Dat1;
+      CurFortune.cFCont := Fortune.cFCont;
+      CurFortune.cRef1 := Fortune.cRef1;
+      CurFortune.sFortText := Fortune.sFortText;
+      CurFortune.wChoice := Fortune.wChoice;
+      CurFortune.sAbout := Fortune.sAbout;
+      CurFortune.cRef2 := Fortune.cRef2;
+      CurFortune.cRef3 := Fortune.cRef3;
+      CurFortune.wAttr1 := Fortune.wAttr1;
+      CurFortune.wAttr2 := Fortune.wAttr2;
+      if (insert current CurFortune <> tsOk){};
+    }
+  }
+
+   //Сведения о взыскании сотрудников
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 15 ) ) // 3.4.3 Взыскания
+  {
+    // Взыскания/наказания
+    _loop Punishments where (( Persons.Nrec == Punishments.cPsn ))
+    {
+      ClearBuffer(#CurPunishments);
+      CopyTableFields(#Punishments, #CurPunishments);
+      CurPunishments.cPsn := CurPersons.Nrec;
+      CurPunishments.nRec := GetNextNRec(#CurPunishments, 0);
+      if LogTableError(integer(Insert Current CurPunishments), coCurPunishments) <> tsOk {}
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 2 ) )
+  {
+    //Сведения об образовании
+    CopyPersEducation(NrecCurPers, Persons.Nrec);
+    //Знание языков
+    #CheckUsersInterrupt
+
+    delete CurLang where (( NrecCurPers == CurLang.Person ));
+
+    _loop Lang where ((Persons.Nrec == Lang.Person))
+    {
+      ClearBuffer(#CurLang);
+      CurLang.Person    := CurPersons.Nrec;
+      CurLang.SeqNmb    := Lang.SeqNmb;
+      CurLang.TypeLang  := Lang.TypeLang;
+      CurLang.Language  := Lang.Language;
+      CurLang.Level     := Lang.Level;
+      if (insert current CurLang <> tsOk){};
+    }
+
+    //Ученые звания
+    #CheckUsersInterrupt
+
+    delete CurBadge where (( NrecCurPers == CurBadge.Person and
+                             (CurBadge.BadgeMonth > 1 and CurBadge.BadgeMonth < 17)  ));
+
+    _loop Badge where (( Persons.Nrec == Badge.Person and
+                         (Badge.BadgeMonth > 1 and Badge.BadgeMonth < 17) ))
+    {
+      ClearBuffer(#CurBadge);
+      CurBadge.Person     := CurPersons.Nrec;
+      CurBadge.Appoint    := Badge.Appoint;
+      CurBadge.KlndrType  := Badge.KlndrType;
+      CurBadge.KlndrNrec  := Badge.KlndrNrec;
+      CurBadge.BadgeYear  := Badge.BadgeYear;
+      CurBadge.BadgeMonth := Badge.BadgeMonth;
+      if (insert current CurBadge <> tsOk){};
+    }
+
+    //Ученые степени
+    #CheckUsersInterrupt
+
+    // УЧЕНЫЕ ЗВАНИЯ
+
+    delete CurOldOrg where (( CurPersons.Nrec == CurOldOrg.cParent and
+                             (CurOldOrg.wObj > 0 and CurOldOrg.wObj < 17)  ));
+
+    _loop OldOrg where ((Persons.Nrec == OldOrg.cParent ))
+    {
+      case OldOrg.wObj of
+        1..16:
+        {
+          ClearBuffer(#CurOldOrg);
+          CurOldOrg.cParent   := CurPersons.Nrec;
+          CurOldOrg.wObj      := OldOrg.wObj;
+          CurOldOrg.Code      := OldOrg.Code;
+          CurOldOrg.CatData   := OldOrg.CatData;
+          CurOldOrg.Name      := OldOrg.Name;
+          CurOldOrg.cAddr     := OldOrg.cAddr;
+          CurOldOrg.DopAddr   := OldOrg.DopAddr;
+          CurOldOrg.cDop1     := OldOrg.cDop1;
+          if (insert current CurOldOrg <> tsOk){};
+        }
+      end;
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 9 ) )  // 3.1. Анкетные данные
+  {
+    //Разные показатели
+    _loop Features where ((Persons.Nrec == Features.Person))
+    {
+      ClearBuffer(#CurFeatures);
+      CurFeatures.Person:= CurPersons.Nrec;
+      CurFeatures.Division  := Features.Division;
+      CurFeatures.SeqNmb    := Features.SeqNmb;
+      CurFeatures.Catalog   := Features.Catalog;
+      CurFeatures.Position  := Features.Position;
+      if (insert current CurFeatures <> tsOk){};
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 4 ) )
+  {
+    var isCopy     : boolean;
+    var existObosn : boolean;
+    isCopy     := false;
+    existObosn := false;
+
+    _loop PsnLinks where ((Persons.Nrec == PsnLinks.FromPerson))
+    {
+      if GetFirst Sys_Uder where (( PsnLinks.Nrec == Sys_Uder.Cex )) = tsOk
+      {
+        existObosn := true;
+        break;
+      }
+    }
+
+    if existObosn
+    {
+      case wGetTune('UP.STAFF.COPYVYCHET') of
+        0: // да
+        {
+          isCopy := true;
+        }
+        2: // выдавать предупреждение
+        {
+          if Message(chr(3) + 'Перенести обоснования вычетов в новую карточку?', YesNo) = Yes
+            isCopy := true;
+        }
+      end;
+    }
+
+    //Родственники
+    _loop PsnLinks where ((Persons.Nrec == PsnLinks.FromPerson))
+    {
+      ClearBuffer(#CurPsnLinks);
+      CurPsnLinks.Buffer      := PsnLinks.Buffer;
+      CurPsnLinks.FromPerson  := CurPersons.Nrec;
+      CurPsnLinks.NRec        := 0;
+
+      if (insert current CurPsnLinks = tsOk)
+      {
+        if isCopy
+          _loop Sys_Uder where (( PsnLinks.Nrec == Sys_Uder.Cex ))
+          {
+            ClearBuffer(#CurSys_Uder);
+            CurSys_Uder.Buffer := Sys_Uder.Buffer;
+            CurSys_Uder.NRec   := 0;
+            CurSys_Uder.Cex    := CurPsnLinks.NRec;
+            if (insert current CurSys_Uder <> tsOk) {};
+          }
+      }
+    }
+
+    if getfirst fastfirstrow SNG_Persons where ((Persons.Nrec == SNG_Persons.Nrec)) = tsOk
+    {
+      ClearBuffer(#CurSNG_Persons);
+      CurSNG_Persons.FamDate := SNG_Persons.FamDate;
+      CurSNG_Persons.Nrec := CurPersons.Nrec;
+
+      insert current CurSNG_Persons;
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 5 ) )
+  {
+    //Воинский учет
+    if (getfirst Conscription where ((Persons.Nrec == Conscription.Person)) = tsOk)
+    {
+      delete CurConscription where (( NrecCurPers == CurConscription.Person));
+
+      ClearBuffer(#CurConscription);
+      CurConscription.Buffer := Conscription.Buffer;
+      CurConscription.Person := CurPersons.Nrec;
+      CurConscription.NRec := 0;
+
+      insert current CurConscription;
+
+      _loop Cons_SpAllStaff1 where (( coConscription == Cons_SpAllStaff1.wChoise (noindex)and//HR-1190 новая подцепка coConscription == Cons_SpAllStaff1.wNoCon  and 
+                                     Conscription.NRec == Cons_SpAllStaff1.cLinkT (noindex)))
+      {
+        ClearBuffer(#NewCons_SpAllStaff1);
+        NewCons_SpAllStaff1.Buffer := Cons_SpAllStaff1.Buffer;
+        NewCons_SpAllStaff1.cLinkT := CurConscription.Nrec;
+        NewCons_SpAllStaff1.NRec := 0;
+
+        insert current NewCons_SpAllStaff1;
+      }
+    }
+  }
+
+  #CheckUsersInterrupt
+
+  if ( (_cParam and CN_PSNCOPY_NO_EXPERIENCE) = 0 )
+    if ( CheckSelectAndRights( 7 ) )
+    {
+      //Предыдущая трудовая деятельность
+      _loop Experience where (( Persons.Nrec == Experience.Person ))
+      {
+        bExpExist:= false;
+        _loop tmpExp where (( NrecCurPers == tmpExp.Person ))
+        {
+          if
+          (
+            tmpExp.EnterpriseName = Experience.EnterpriseName and
+            tmpExp.EntranceDate = Experience.EntranceDate and
+            tmpExp.RetirementDate = Experience.RetirementDate and
+            tmpExp.wAttr1 = Experience.wAttr1 and
+            tmpExp.wAttr2 = Experience.wAttr2 and
+            tmpExp.Post = Experience.Post and
+            tmpExp.cReason = Experience.cReason and
+            tmpExp.str1 = Experience.str1 and
+            tmpExp.str2 = Experience.str2 and
+            tmpExp.JobOrderNmb = Experience.JobOrderNmb and
+            tmpExp.JobOrderDate = Experience.JobOrderDate and
+            tmpExp.GroupCode = Experience.GroupCode and
+            tmpExp.Foundation = Experience.Foundation and
+            tmpExp.EnterpriseLoc = Experience.EnterpriseLoc and
+            tmpExp.cDop1 = Experience.cDop1 and
+            tmpExp.cDop2 = Experience.cDop2 and
+            tmpExp.FilialNo = Experience.FilialNo and
+            tmpExp.dDop1 = Experience.dDop1 and
+            (sGetAttr(coExperience, tmpExp.NRec, 'AppDopInfo') = sGetAttr(coExperience, Experience.NRec, 'AppDopInfo'))
+          )
+          bExpExist:= true;
+        }
+
+        if bExpExist
+          continue;
+
+        ClearBuffer(#CurExperience);
+        CurExperience.Person := CurPersons.Nrec;
+        CurExperience.EnterpriseName := Experience.EnterpriseName;
+        CurExperience.EntranceDate := Experience.EntranceDate;
+        CurExperience.RetirementDate := Experience.RetirementDate;
+        CurExperience.wAttr1 := Experience.wAttr1;
+        CurExperience.wAttr2 := Experience.wAttr2;
+        CurExperience.Post := Experience.Post;
+        CurExperience.cReason := Experience.cReason;
+        CurExperience.str1 := Experience.str1;
+        CurExperience.str2 := Experience.str2;
+        CurExperience.JobOrderNmb := Experience.JobOrderNmb;
+        CurExperience.JobOrderDate := Experience.JobOrderDate;
+        CurExperience.GroupCode := Experience.GroupCode;
+        CurExperience.Foundation := Experience.Foundation;
+        CurExperience.EnterpriseLoc := Experience.EnterpriseLoc;
+        CurExperience.cDop1 := Experience.cDop1;
+        CurExperience.cDop2 := Experience.cDop2;
+        CurExperience.FilialNo := Experience.FilialNo;
+        CurExperience.dDop1 := Experience.dDop1;
+
+        if (insert current CurExperience = tsOk)
+        {
+          CopyAllAttr(coExperience, Experience.NRec, CurExperience.NRec);
+          sSetAttr(coExperience, CurExperience.NRec, 'AppDopInfo', sGetAttr(coExperience, Experience.NRec, 'AppDopInfo'));
+
+          if (Experience.FilialNo > coStatusSystemHide) and ((Experience.cDop2 = 0) or (Experience.cDop2 = Experience.NRec))
+            if (vExpFuncs.GetStatusReportEx(0, Experience.Person, 0, Experience.NRec, CurExperience.EntranceDate))
+            {
+              var tmpD: date = vExpFuncs.GetDateReportEx(0, Experience.Person, 0, Experience.NRec, CurExperience.EntranceDate);
+              vExpFuncs.SetStatusReportEx(0, coExpHide, CurExperience.Person, 0, CurExperience.NRec, tmpD, CurExperience.EntranceDate);
+            }
+        }
+      }
+    }
+
+  //переносим данные по пенсионным стажам сотрудника------------------------
+  #CheckUsersInterrupt
+
+  /*  Пенсионный стаж при повторном трудоустройстве не копируется в связи с ПИРом 101.53199
+  _loop PenStaj where ((Persons.Nrec == PenStaj.Person))
+  {
+    ClearBuffer(#CurPenStaj);
+    CurPenStaj.Buffer:= PenStaj.Buffer;
+    CurPenStaj.Nrec  := 0;
+    CurPenStaj.Person:= CurPersons.Nrec;
+    // при переносе в 8-е окно есть смысл ликвидировать связь с назначением
+    // чтобы в сервисной функции формирования стажей иметь возможность их не у
+    // удалять, выбрав опцию: "кроме сформированных сервисными функциями"
+    if WhereMove = 0
+      CurPenStaj.cAppoint := 0;
+
+    if (insert current CurPenStaj = tsOk)
+      _loop AddPens where ((PenStaj.Nrec  == AddPens.cStaj))
+      {
+        ClearBuffer(#CurAddPens);
+        CurAddPens.Buffer:= AddPens.Buffer;
+        CurAddPens.Nrec := 0;
+        CurAddPens.cStaj:= CurPenStaj.Nrec;
+        if (insert current CurAddPens <> tsOk){};
+      }
+  } */
+
+
+  if ( CheckSelectAndRights( 10 ) )  // 3.3. Стажи
+  {
+    //переносим данные по стажам сотрудника------------------------
+    /* при выполнении надо учесть, что если это обыкновенное копирование данных, то
+    стаж работы на предприятии копировать не стоит*/
+    var bo: boolean;
+        bo := false;
+    _loop ServLen where ((Persons.Nrec == ServLen.Person))
+    {
+      // проверим насчет стажа "работа на предприятии" для случая копирования
+      if OnlyCopy
+        if CatF.GetSysCode(ServLen.Position) = 89
+          continue;
+
+      ClearBuffer(#CurServLen);
+      CurServLen.Buffer:= ServLen.Buffer;
+      CurServLen.Nrec  := 0;
+      CurServLen.Person:= CurPersons.Nrec;
+      // сразу здесь попытаемся слить одинаковые стажи, если они есть (т.е. )
+      if ServLen.CurRec = slStaffServLenCur
+      {
+        bo := false;
+        if GetFirst ServLenWrk where ((CurPersons.Nrec == ServLenWrk.Person and
+                             ServLen.Position == ServLenWrk.Position and     // есть уже текущая запись с таким стажем
+                             slStaffServLenCur == ServLenWrk.CurRec)) = tsOk //надо ее переопределить на старый стаж,
+        {
+          CurServLen.CurRec := slStaffServLenOld; //переопределение
+          bo := true;
+        }
+      }
+
+      if (insert current CurServLen = tsOk)
+      {
+        if bo
+        {// а вот и перерасчет
+          iRunStaj.ReCalcStaj(CurPersons.Nrec, ServLen.Position);
+          bo := false;
+        }
+        if getfirst fastfirstrow SNG_ServLenExt where ((ServLen.Nrec == SNG_ServLenExt.ServLen)) = tsOk
+        {
+          ClearBuffer(#CurSNG_ServLenExt);
+          CurSNG_ServLenExt.Nrec      := 0;
+          CurSNG_ServLenExt.ServLen   := CurServLen.Nrec;
+          CurSNG_ServLenExt.Zamount   := SNG_ServLenExt.Zamount;
+          CurSNG_ServLenExt.Priznak   := SNG_ServLenExt.Priznak;
+          CurSNG_ServLenExt.Pred      := SNG_ServLenExt.Pred;
+          CurSNG_ServLenExt.Org       := SNG_ServLenExt.Org;
+          CurSNG_ServLenExt.Dol       := SNG_ServLenExt.Dol;
+          CurSNG_ServLenExt.Osn       := SNG_ServLenExt.Osn;
+          CurSNG_ServLenExt.Lgota     := SNG_ServLenExt.Lgota;
+          CurSNG_ServLenExt.DateSprav := SNG_ServLenExt.DateSprav;
+          CurSNG_ServLenExt.YearsB    := SNG_ServLenExt.YearsB;
+          CurSNG_ServLenExt.MonthsB   := SNG_ServLenExt.MonthsB;
+          CurSNG_ServLenExt.DaysB     := SNG_ServLenExt.DaysB;
+          CurSNG_ServLenExt.YearsE    := SNG_ServLenExt.YearsE;
+          CurSNG_ServLenExt.MonthsE   := SNG_ServLenExt.MonthsE;
+          CurSNG_ServLenExt.DaysE     := SNG_ServLenExt.DaysE;
+          insert current CurSNG_ServLenExt;
+        }
+      }
+    }
+  }
+
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 6 )  )
+  {
+    //переносим данные по званиям---------------------------------------------
+    _loop MilRanks where ((Persons.Nrec == MilRanks.cPerson))
+    {
+      ClearBuffer(#CurMilRanks);
+      CurMilRanks.Buffer := MilRanks.Buffer;
+      CurMilRanks.Nrec   := 0;
+      CurMilRanks.cPerson:= CurPersons.Nrec;
+      if (insert current CurMilRanks <> tsOk){};
+    }
+
+    //------------------------------------------------------------------------
+    #CheckUsersInterrupt
+
+    //Наименование организации
+    TOA.Bind(0); // связываем TOA с собственной организацией
+
+    if (getfirst Catalogs where ((-35 == Catalogs.SysCode)) <> tsOk)
+    {
+      var oEtalon : CatEtalon;
+      oEtalon.AddNewElement(-35);
+    }
+
+    if ( (_cParam and CN_PSNCOPY_NO_MOVETO100) = 0 )
+      if not OnlyCopy // т.е. повторное трудоустройство идет
+      {
+        // надо пометить последнюю запись
+        var co1: comp;
+        co1 := Persons.AppointLast;
+
+        _loop Appointments where ((Persons.Nrec == Appointments.Person))
+        {
+          case Appointments.lPrizn of
+            2, 21, 3, 31, 70, 71: continue;
+            100: // предыдущие места работы, но висят в 6-м, а не 8-м окне
+            {
+              prMoveCurrAppTo100;
+              continue;
+            }
+          end;
+
+          prMoveCurrAppTo100;
+        }
+      } // с назначениями работаем только при повторном трудоустройстве
+  }
+
+  #CheckUsersInterrupt
+
+  if ( CheckSelectAndRights( 8 ) )
+  {
+    delete all tmpComp;
+
+    _loop CompetencePers
+    {
+      ClearBuffer(#CurrCompetencePers);
+      CurrCompetencePers.Buffer := CompetencePers.Buffer;
+      CurrCompetencePers.NRec := 0;
+      CurrCompetencePers.cPers := CurPersons.NRec;
+
+      insert current CurrCompetencePers;
+
+      ClearBuffer(#tmpComp);
+      tmpComp.NRec := CompetencePers.NRec;
+      tmpComp.cParent := CompetencePers.cParent;
+      tmpComp.NRecNew := CurrCompetencePers.NRec;
+      tmpComp.cPers := CurPersons.NRec;
+
+      insert current tmpComp;
+    }
+
+    _loop tmpComp
+    {
+      _loop CurrCompetencePers where (( tmpComp.cPers == CurrCompetencePers.cPers ))
+      {
+        if ( tmpComp.NRec <> CurrCompetencePers.cParent )
+          continue;
+
+        CurrCompetencePers.cParent := tmpComp.NRecNew;
+
+        update current CurrCompetencePers;
+      }
+    }
+  }
+
+  if (update current CurPersons <> tsOK){};
+
+  StopVisual('',0);
+  ShowErrors;
+  ReReadRecord;
+} // procedure CopyInfo
+
+end.

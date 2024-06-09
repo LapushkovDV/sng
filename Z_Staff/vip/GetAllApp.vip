@@ -1,0 +1,56 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface GetAllApp;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brAllApp;
+
+Create view AllAppForAllPersons
+
+As select
+  DepIer.GetFulDepNameEx(tmpApp.cDept)
+    (fieldname = DeptNameIer)
+from
+  Persons SNG_PSN,
+  Appointments SNG_APP
+
+bounds Pens_bound = tmpApp.NRec /== SNG_APP.NRec and
+                    SNG_APP.Person /== SNG_PSN.NRec and
+                    1 /== SNG_PSN.PensionerStatus (noindex);
+;
+
+browse brAllApp (,, sci1EnEsc);
+  table tmpApp;
+fields
+  tmpApp.FIO 'ФИО' ('Табельный номер'): [20], protect;
+  tmpApp.TabN 'Табельный номер' ('Табельный номер'): [10], protect;
+  tmpApp.StrTabN 'Табельный номер' ('Табельный номер'): [10], protect;
+  tmpApp.Appdate 'Дата назначения' ('Дата назначения на должность'): [12], Protect;
+  tmpApp.DateEnd 'Назначен по' ('Дата окончания назначения на должность'): [12], Protect;
+  tmpApp.DismissDate 'Дата ухода' ('Дата ухода с должности'): [12], Protect;
+  DeptNameIer  'Подразделение' ('Подразделение',,): [30], Protect;
+  CatPost.Name 'Должность' ('Должность',,): [20], Protect;
+  tmpApp.Rate  'Кол-во ставок' ('Количество ставок',,): [10.3], Protect;
+end;
+
+HandleEvent
+
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+
+  var bOnlyPens: boolean = false;
+  ReadMyDsk(bOnlyPens, 'RPD_ONLYPENS_'+string(UserID), false);
+  if (bOnlyPens)
+    PushBounds(tbPens_bound);
+  else
+    PopBounds(tbPens_bound);
+}
+
+end;
+
+end.

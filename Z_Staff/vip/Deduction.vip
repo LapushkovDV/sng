@@ -1,0 +1,56 @@
+//******************************************************************************
+//                                                      (с) корпорация Галактика
+//  Галактика 8.10 - Управление персоналом
+//  Интерфейс
+#component "Z_Staff"
+
+alter interface Deduction;
+
+HandleEvent
+
+cmCheckField:
+{
+  if CurField = #PsnLinks.wPrizn4
+  {
+    var tmpPrizn: word = PsnLinks.wPrizn4;
+
+    if ( PsnLinks.wPrizn4 = 1 )
+    {
+      if (trim(UpCase(iCatFunc.GetCatalogsCode(PsnLinks.LinkType))) = trim('ДЕТИ'))
+      {
+        var bThereIsDependent: boolean = false;
+        _loop Sys_Uder
+        {
+          if Sys_Uder.prkauot = 1
+          {
+            bThereIsDependent := true;
+            break;
+          }
+        }
+
+        if ( not bThereIsDependent )
+        {
+          var tmpDate: date = PD.GetDateEndLgota(PsnLinks.NRec);
+          if (Message('Создать статус иждивенец для предоставления вычетов на ребенка' + chr(13) +
+                      'с ' + string(PsnLinks.RBornDate) + ' по '+ string(tmpDate) +'?', YesNo + Confirmation) = cmYes)
+            iChildDoc.CreateStatusDepend(PsnLinks.NRec, psnLinksIjd, PsnLinks.RBornDate, tmpDate);
+          RereadRecord(#Sys_Uder);
+        }
+      }
+    }
+    PD.SetStatus(PsnLinks.NRec);
+    if (wGetTune('COUNTRY') <> ccRus)
+      PD.SetLgotaNew2(PsnLinks.FromPerson);
+
+    ReReadRecord(#PsnLinks);
+    set PsnLinks.wPrizn4 := tmpPrizn;
+    update current PsnLinks;
+    ReReadRecord(#PsnLinks);
+  }
+  else
+    inherited::handleevent(cmCheckField);
+}
+
+end;
+
+end.

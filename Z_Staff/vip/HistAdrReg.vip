@@ -1,0 +1,108 @@
+#component "Z_Staff"
+
+#include OsFun.vih
+#include ActionJsonCreate.vih   // Интеграция с SAP
+
+#doc
+Докомпиляция интерфейса "Формирование полного адреса"
+#end
+
+alter interface HistAdrReg;
+
+var oJson: JsonAddress;
+
+create view HistAdrRegControl
+as select SubAdr.NRec //для проверки пересечения периодов
+from Addressn SubAdr
+where 
+(( 
+    PsnNrec == SubAdr.cPerson 
+    and wType == SubAdr.ObjType
+));
+var periodOverlap: boolean;
+var cOvrAdr: comp;
+var pOsFun : OsFun;
+
+panel pStaffHistAdrReg;
+HandleEvent
+  cmCheckRecord:
+  {
+    if (TempAddress.BegDate = ZeroDate) or (TempAddress.EndDate = ZeroDate)
+    {
+      message('Проверьте корректность введенного периода.');
+      SelectField(#TempAddress.BegDate);
+      abort;
+      exit;
+    }
+    _loop SubAdr where TempAddress.BegDate <= SubAdr.dRegEnd and TempAddress.EndDate >= SubAdr.dRegBeg
+    {
+      if TempAddress.NRecAddress = SubAdr.NRec
+        continue;
+      else
+      {
+        cOvrAdr := SubAdr.NRec;
+        periodOverlap := true;
+      }  
+    }
+  }
+  cmUpdateRecord:
+  {
+    if periodOverlap
+    {
+      if getfirst fastfirstrow SubAdr where ((cOvrAdr == SubAdr.NRec)) = tsOk
+      {
+        set SubAdr.dRegEnd := pOsFun.PrevPeriodLastDate(1, TempAddress.BegDate);
+        if (update current SubAdr <> tsOk)
+        {
+          message('Ошибка ограничения пересекающейся записи.');
+          abort;
+          exit;
+        }
+        periodOverlap := false;
+        cOvrAdr := 0;
+
+      }
+    }
+    inherited::handleEvent(cmUpdateRecord);
+
+    case AddressN.ObjType of
+      2,4,55: {
+        oJson.CreateJsonAddressn(AddressN.nRec, 'MOD');
+      }
+    end;
+
+  }
+
+  cmDeleteRecord:
+  {
+    case AddressN.ObjType of
+      2,4,55: {
+        oJson.CreateJsonAddressn(AddressN.nRec, 'DEL');
+      }
+    end;
+    inherited::handleEvent(cmDeleteRecord);
+  }
+end; // HandleEvent
+end; // panel
+
+HandleEvent
+cmInit:
+{
+  periodOverlap := false;
+  cOvrAdr := 0;
+  inherited::handleEvent(cmInit);
+}
+cmDefault:
+  {
+    if TempAddress.EndDate < Cur_Date
+    {
+      message('Запись не может быть выбрана, так как она ограничена ' + DateToStr(TempAddress.EndDate, 'DD.MM.YYYY'), Error);
+      abort;
+      exit;
+    }
+
+    inherited::handleEvent(cmDefault);
+  } // cmDefault
+
+end;      // HandleEvent
+end.

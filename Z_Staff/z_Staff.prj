@@ -1,0 +1,23 @@
+//------------------------------------------------------------------------------
+// Проектный файл сборки компонента SNG_Z_Staff
+//------------------------------------------------------------------------------
+
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+
+#component "SNG_Z_Staff"
+#define CompTitle Доработки СНГ Z_Staff
+#doc
+  #CompTitle
+#end
+#include Z_Staff.ver
+#include galaktika.vil
+#include SNG.vil
+
+#make "bmp\*.bmc"
+#make "vip\*.vip"
+#make "vip\EnterModule\*.vip"
+#make "vip\TrudStaj\*.vip"
+#make "vip\EventList\*.vip"

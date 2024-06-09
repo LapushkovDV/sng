@@ -1,0 +1,154 @@
+#component "Z_STAFF"
+
+#include ChildDoc.vih        // Функции работы с документами родственников
+#include CatFunc.vih
+#include PsnFuncs.vih          // Функции работы с сотрудниками
+
+#doc
+HR-100 Доработка интерфейса по выбору документа на детей для миграции РА0021
+#end
+
+alter interface PsnLinksDoc;
+const
+     psnLinksSNILS = 501;
+end;
+
+overload
+  procedure pSetVisibleGrDisability;
+  function GetDocName(value: word): string;
+end;
+
+  procedure pSetVisibleGrDisability;
+  {
+    NmbTmp := '';
+
+    case Sys_Uder.prkauot of
+      psnLinksDocInv: SetFormat(scInvalid);
+
+      psnLinksDocBornSvid,
+       psnLinksDocBornSpr:
+      {
+        SetFormat(scBorn);
+        set dAct := LongToDate(longint(Sys_Uder.cpodr));
+      }
+
+      psnLinksSNILS:
+        {
+          GetTemplates(Catalogs.CatData, '', Sys_Uder.LastUser, SerTmp, NmbTmp);
+          SetFormat(scStrah);
+        }
+      psnLinksOther:
+       {
+          SetFormat(scBorn);
+          set dAct := LongToDate(longint(Sys_Uder.cpodr));
+          }
+
+    else
+      SetFormat(scDocum);
+    end;
+  }
+
+function GetDocName(value: word): string;
+{
+   case value of
+     psnLinksDocBornSvid:    result := 'Свидетельство о рождении';
+     psnLinksPassport:       result := 'Паспорт';
+     psnLinksOther:          result := 'Иной документ';
+     psnLinksSNILS:          result := 'СНИЛС';
+   else
+     result := string(value);
+   end;
+}
+
+window WDOCUMENTEDIT;
+
+HandleEvent
+
+
+cmInit:{
+
+  inherited::handleevent(cmInit);
+
+  cfsSetProp('i_SCRFIELDS_CATALOGS.NAME', cfpSkip, true);
+
+  cfsSetProp('i_SCRFIELDS_Sys_Uder.SumManc', cfpHidden, true);
+
+  var lValues: array [1..4] of integer;
+
+  lValues[1] := psnLinksDocBornSvid;
+  lValues[2] := psnLinksPassport;
+  lValues[3] := psnLinksOther;
+  lValues[4] := psnLinksSNILS;
+
+  var sValues: array [1..4] of string;
+  sValues[1] := 'Свидетельство о рождении';
+  sValues[2] := 'Паспорт';
+  sValues[3] := 'Прочее';
+  sValues[4] := 'СНИЛС';
+
+  SetEnumList(SCRFIELDS, #Sys_Uder.prkauot, sValues, lValues);
+
+  }
+
+end;      //end WIn
+end; //end cmInit
+HandleEvent
+
+cmInit:        // 20.11 для мигрированных документов: так док-та нет, иначе не открывается возможность создания док-та
+{
+  inherited::handleevent(cmInit);
+
+  if not bEdit
+  if getfirst Sys_Uder <> tsOk
+   {
+
+    ClearBuffer(#Sys_Uder);
+    Sys_Uder.cex      := PsnLinks.Nrec;
+    Sys_Uder.NMNEM    := 2;
+    Sys_Uder.prkauot  := psnLinksDocBornSvid;
+
+   insert current Sys_Uder;
+
+   bEdit := true;
+       PutCommand(cmEdit);
+   }
+
+} // cmInit
+
+
+cmSetDefault:
+{
+  inherited::handleevent(cmDefault);
+   set Sys_Uder.cHozOper := iCatFuncs.GetCatalogsNRec(36);
+}
+
+cmCheckField:{
+
+ case CurField of
+
+   #Sys_Uder.prkauot:{
+
+      case Sys_Uder.prkauot of
+       psnLinksDocBornSvid : set   Sys_Uder.cHozOper:=iCatFuncs.GetCatalogsNRec(36);
+       psnLinksPassport    : set   Sys_Uder.cHozOper:=iCatFuncs.GetCatalogsNRec(502);
+       psnLinksOther       : set   Sys_Uder.cHozOper:=iCatFuncs.GetCatalogsNRec(40);
+       psnLinksSNILS       : set   Sys_Uder.cHozOper:=iCatFuncs.GetCatalogsNRec(501);
+
+      end;
+      pSetVisibleGrDisability;
+      }
+
+  #Sys_Uder.LastUser: {
+      if (Sys_Uder.prkauot = psnLinksSNILS) {
+        update current PsnLinks
+        set PsnLinks.SNILS = Sys_Uder.LastUser;
+      }
+  }
+
+ else
+   inherited::handleevent(cmCheckField);
+ end; //endCase
+} // cmCheckField
+end;
+
+end.

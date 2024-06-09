@@ -1,0 +1,259 @@
+#component "Z_Staff"
+#include CatFunc.vih          // Функции работы с каталогом
+#include ActionJsonCreate.vih //HR-1167 FIM
+
+#doc
+Данные о согласии на ОПД
+#end
+alter interface PersonAddWin;
+
+const cs_vs_opd:string = 'Виды согласия на ОПД';
+      cs_syscod:integer = -31662;
+end;
+
+ var iCatFunc : CatalogsFunctions;
+ oJson : JsonPersons; //HR-1167, FIM
+
+  Create view PsnAdd
+  as Select
+          iCatFunc.GetCatalogsName(dopinfo.cFld[1])
+          (FieldName = AgrType, FieldTitle='Вид согласия'),
+          iCatFunc.GetCatalogsCode(dopinfo.cFld[1])
+          (FieldName = AgrCode, FieldTitle='Код согласия')
+  from
+    dopinfo,
+    doptables (readonly),
+    Sng_Persons, //add new
+    dopflds   (readonly)
+  where ((
+                      4  == doptables.nmbtbl   // Согласие на ОПД
+     and   Persons.NRec  == dopinfo.cperson
+     and   Persons.NRec  == Sng_Persons.Nrec  //add new
+     and doptables.nrec  == dopinfo.cdoptbl
+     and doptables.nrec  == dopflds.cdoptbl
+  ));
+
+ ExtendTabbedSheets PersonAddWin;
+
+TabbedSheet bottom tsMain;
+show at (,,,8);
+  OverloadFormats scrMain;
+ screen scrMain 'Основная' ('',, scStaffT2AddPick);
+  table Persons;
+fields
+  Persons.TestPeriod    ('Испытательный срок', hcStaffEmplTestPeriod);
+  ComplSrcCat.Name      ('Источник комплектования', hcStaffEmplComplSrc): Protect;
+  Persons.wPrizn2       ('Признак "молодой специалист"', hcStaffEmplDisDate, scStaffT2Add): NoProtect;
+
+  Sng_Persons.DDATMOL1 ('C',, scStaffT2Add), NoProtect;
+  Sng_Persons.DDATMOL2 ('по',, scStaffT2Add),NoProtect;
+  Persons.wPrizn3       ('Включен в группу Таланты', hcStaffEmplDisDate, scStaffT2Add):NoProtect;
+
+  Sng_Persons.DDATMOL3 ('Дата включения в группу Таланты',, scStaffT2Add), NoProtect;
+  Sng_Persons.TEXTMOL ('Комментарий (Таланты)',, scStaffT2Add), NoProtect;
+  StrahCat.Code         ('Код категории плательщика страховых взносов', hcStaffStrahCatCodeName): Protect;
+  StrahCat.CatData      ('Наименование категории плательщика страховых взносов', hcStaffStrahCatCodeName): Protect;
+  StatusCur             ('Текущий статус работника', hclschetStatus): Protect;
+  LSchet.Date1          ('Дата начала действия текущего статуса работника', hclschetStatus, scStaffT2Add): NoProtect;
+  StatusOld             ('Статус работника в прошлом году', hclschetStatus): Protect;
+
+  TakePartyInWar        ('Участие в войнах и локальных вооруженных конфликтах'): Protect;
+  InvalidGrpCat.CatData ('Номер группы инвалидности', hcStaffEmplInvalidGrp): Skip;
+  InvalidGrpCat.Name    ('Наименование группы инвалидности', hcStaffEmplInvalidGrp): Skip;
+
+  Persons.dDop1  ('Дата смерти',, scStaffT2Add);
+buttons
+  cmValue4,,, 'Дополнительные характеристики кандидата',, scStaffForButton;
+<<
+                                                               <.     Кандидат     .>
+  `Испытательный срок до`   .@@@@@@@@@@
+  `Источник комплектования` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Молодой специалист`   `С`.@@@@@@@@@@  `по`.@@@@@@@@@@
+   [:] Вкл. в группу Таланты``Дата вкл. в группу`.@@@@@@@@@@
+  `Комментарий (Таланты)`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Категория плательщика страховых взносов`.@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Текущий статус`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ `c`.@@@@@@@@@@
+  `Статус прошлого года`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Военные конфликты`       .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Инвалидность`    .@@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+                                                             `Дата смерти`.@@@@@@@@@@
+>>
+end;
+
+browse brAgrOPD 'Согласие на ОПД' (,,Sci13478Esc);
+show at (,,,8);
+table dopinfo;
+fields
+  AgrCode 'Код', 'согласия'('Код согласия'): [5], noprotect;
+  AgrType 'Вид согласия' ('Вид согласия'): [15], skip;
+  dopinfo.dFld[1] 'Дата заключения'('Дата заключения'): [10, 'DD.MM.YYYY'], noprotect;
+  dopinfo.dFld[2] 'Дата след. заключения'('Дата след. заключения'): [10, 'DD.MM.YYYY'], skip;
+  ordered dopinfo.dFld[1](desc);
+end; // brAgrOPD
+end; // tsMain
+
+TableEvent
+  table dopinfo;
+
+ //cmPositionChanged: {  commented HR-936 Оптимизация PersonAddWin.vip
+   cmIdle:{ // add HR-936 Оптимизация PersonAddWin.vip
+   if ( AgrCode != '' ) {
+     ClearFieldOption(#dopinfo.dFld[1], ofSelectable);
+     ClearFieldOption(#AgrCode, ofSelectable);
+   }
+ }
+ cmUpdateRecord: {
+    update current dopinfo;
+ }
+ cmInsertRecord: {
+   insert current dopinfo;
+ }
+ cmDeleteRecord: {
+    if Message('Удалить запись?', yesNo+Confirmation) = cmYes then
+      delete current dopinfo;
+ }
+ cmCheckField: {
+   if ( AgrCode= '0003' )
+     dopinfo.dfld[2]:= to_date(31, 12, 9999);
+   else
+     dopinfo.dfld[2]:= to_date(day(dopinfo.dfld[1]) ,month(dopinfo.dfld[1]) ,year(dopinfo.dfld[1])+5);
+ }
+ cmCheckRecord: {
+   if ( dopinfo.dfld[1] = ZeroDate ) {
+     message('Укажите дату заключения', Warning);
+     abort;
+     exit;
+   }
+   if ( AgrCode = '' ) {
+     message('Укажите вид согласия', Warning);
+     abort;
+     exit;
+   }
+ }
+end; // TableEvent dopinfo
+
+HandleEvent
+ cmPick: {
+  inherited::handleevent(cmPick);
+  var cRec :  Comp = 0;
+  case CurField of
+    #AgrCode:
+    {
+//      if GetFirst catalogs where (( 0 == catalogs.lpr and
+//                                    0 == catalogs.mainlink and
+//               'Виды согласия на ОПД' == catalogs.name )) = tsOk
+//        {
+//          cRec := catalogs.nrec;
+          if( RunInterface('Z_STAFFCAT::PICKCATALOG2', cs_syscod, cRec, comp(0), comp(0))= cmDefault ){
+            if( dopinfo.cFld[1] != cRec)
+              Set dopinfo.cFld[1] := cRec;
+          }
+//        }
+        if ( AgrCode= '0003' )
+          dopinfo.dfld[2]:= to_date(31, 12, 9999);
+        else
+          dopinfo.dfld[2]:= to_date(day(dopinfo.dfld[1]) ,month(dopinfo.dfld[1]) ,year(dopinfo.dfld[1])+5);
+      }
+
+
+  end; //case
+ }
+
+ cmCheckField: {
+    inherited::handleevent(cmCheckField);
+  if curfield = #Persons.wPrizn2{
+        if ( Persons.wPrizn2 = 1 )
+           if not isvalid( #Sng_Persons )
+             insert current Sng_Persons set Sng_Persons.nrec := Persons.NRec;
+  }
+ }
+ /* - если понадобиться задавать изначальный размер browse
+ cmInit: {
+   inherited::handleevent(cmInit);
+
+   SetFormat(brCompensList);
+   cfsSetProp('brAgrOPD', cfpRectB_Y, 14);
+ }*/
+
+cmUpdateRecord:
+{
+
+  var lDateEmpty : date;
+  var lWordEmpty : word;
+  var lTextEmpty : string;
+
+  var ldDate1 : date   =  Sng_Persons.DDATMOL1;
+  var ldDate2 : date   =  Sng_Persons.DDATMOL2;
+  var ldDate3 : date   =  Sng_Persons.DDATMOL3;
+  var lPrizn3 : word   =  Persons.wPrizn3;
+  var lTextml : String =  Sng_Persons.TEXTMOL;
+
+  if Persons.wPrizn2 = lWordEmpty
+    {
+      set ldDate1 := lDateEmpty;
+      set ldDate2 := lDateEmpty;
+
+      set ldDate3 := lDateEmpty;
+      set lPrizn3 := lWordEmpty;
+
+      set lTextml := lTextEmpty;
+
+    }else{
+      if ldDate1 = lDateEmpty or
+         ldDate2 = lDateEmpty {
+          message('Введите период действия статуса Молодой специалист')
+          SetFormat(scrMain)
+          SelectField(#Sng_Persons.DDATMOL1) ;
+          abort;
+          exit;
+         }
+    }
+
+    if ldDate2 < ldDate1 {
+       message('Проверьте введенные даты')
+       SetFormat(scrMain)
+       SelectField(#Sng_Persons.DDATMOL2) ;
+       abort;
+       exit;
+    }
+
+   if lPrizn3 = lWordEmpty {
+       set ldDate3 := lDateEmpty;
+       set lTextml := lTextEmpty;
+   }else{
+       if ldDate3 = lDateEmpty{
+          message('Заполните дату включения в группу Таланты')
+          SetFormat(scrMain)
+          SelectField(#Sng_Persons.DDATMOL3) ;
+          abort;
+          exit;
+       }
+    }
+
+  inherited::handleevent(cmUpdateRecord); //UpdateCurrentPersons;
+
+  ReReadrecord(#Persons)
+  Sng_Persons.DDATMOL1 := ldDate1;
+  Sng_Persons.DDATMOL2 := ldDate2;
+  Sng_Persons.DDATMOL3 := ldDate3;
+  Persons.wPrizn3  := lPrizn3;
+  Sng_Persons.TEXTMOL  := lTextml;
+
+  update current Persons;
+  update current Sng_Persons;
+  
+  oJson.CreateJsonPA0034(Persons.Nrec); //HR-1167 FIM
+}
+ cmInsert: {
+  SetFieldOption(#AgrCode, ofSelectable);
+  SetFieldOption(#dopinfo.dFld[1], ofSelectable);
+ }
+ cmEdit: {
+  SetFieldOption(#dopinfo.dFld[1], ofSelectable);
+ }
+ end; //HandleEvent
+end. // alter interface

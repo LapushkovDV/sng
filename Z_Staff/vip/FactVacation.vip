@@ -1,0 +1,231 @@
+#include RepCalendar.vih
+
+#component "Z_Staff"
+
+Alter InterFace  iFactVacation;
+
+overload
+  function fnGetCurVacDuration(_cPutVac, _cVac: comp; _dDate: date; var _liVacMarker : TPtr): double;
+end;
+
+function SNG_OtpFactEnd: date; forward;
+function SNG_GetKalendarDayCount: longint; forward;
+
+var RC: RepCalendar;
+
+create view
+as select
+  (SNG_OtpFactEnd)
+  (fieldname = fSNG_OtpFactEnd),
+  (SNG_GetKalendarDayCount)
+  (fieldname = fSNG_KalendarDayCount)
+from
+  Vacations SNG_Vac,
+  OtpOtz SNG_Otz,
+  AllVacCon SNG_AVC,
+  BlisNet SNG_BN
+where
+((
+       FactOtpusk.nRec   == SNG_Vac.cFactOtpusk
+   and FactOtpusk.Person == SNG_Vac.Person
+   and FactOtpusk.nRec   == SNG_Otz.cOtpusk
+   and SNG_Vac.NRec      == SNG_AVC.cVacations
+   and coBlisNet         == SNG_AVC.wTable(NoIndex)
+   and SNG_AVC.cTable    == SNG_BN.NRec
+))
+;
+
+OverloadFormats scFactOtpuskDet, scFactOtpuskDet_Edit,
+                scVacationsDet , scVacationsDet_Edit;
+
+ExtendFormats trVacation, trVacation_Edit, brFactOtpusk, brFactOtpusk_Edit;
+
+function SNG_OtpFactEnd: date;
+{
+  result := FactOtpusk.FactYearEnd;
+
+  _loop SNG_Otz
+    if (result > Sub_Day(OtpOtz.DATAN, 1))
+      result := Sub_Day(OtpOtz.DATAN, 1);
+
+  _loop SNG_Vac
+    _loop SNG_AVC
+      if (GetFirst SNG_BN = tsOk)
+        if (result > Sub_Day(SNG_BN.DATAN, 1))
+          result := Sub_Day(SNG_BN.DATAN, 1);
+
+  if (result < FactOtpusk.FactYearBeg)
+    result := ZeroDate;
+}
+
+function SNG_GetKalendarDayCount: longint;
+{
+  result := 0;
+
+  var dBeg: date = ZeroDate;
+  var dEnd: date = ZeroDate;
+
+  if (tpTreeVacations.cParent = 0)
+  {
+    dBeg := tpTreeVacations.dFactBeg;
+    var tmpDate: date = SNG_OtpFactEnd;
+
+    if (tpTreeVacations.dFactEnd < tmpDate) and (tmpDate <> ZeroDate)
+      dEnd := tpTreeVacations.dFactEnd;
+    else
+      dEnd := tmpDate;
+  }
+  else
+  {
+    dBeg := tpTreeVacations.dFactBeg;
+    dEnd := tpTreeVacations.dFactEnd;
+  }
+
+  if (dBeg = ZeroDate) or (dEnd = ZeroDate) or (dEnd <= dBeg)
+    exit;
+
+  var tmpDate: date = dBeg;
+
+  while (tmpDate <= dEnd)
+  {
+    if (not RC.fboHoliday(tmpDate))
+      result++;
+
+    tmpDate := Add_Day(tmpDate, 1);
+  }
+}
+
+function fnGetCurVacDuration(_cPutVac, _cVac: comp; _dDate: date; var _liVacMarker : TPtr): double;
+{
+  result := 0;
+
+  _loop Balance_Vacation where ((_cPutVac == Balance_Vacation.cPutVac))
+  {
+    if (_cVac <> comp(0))
+      if (_cVac = Balance_Vacation.nRec) // не считать самого себя
+        continue;
+
+    if (_dDate <> ZeroDate)
+      if (_dDate < Balance_Vacation.FactYearBeg)
+        continue;
+
+    if ( Balance_Vacation.Person = comp(0) )
+      continue;
+
+    if (Balance_Vacation.cDetPlanOtp = rvMaxComp-1)//  компенсация)
+      result += abs(Balance_Vacation.Duration);
+    else
+      result += Balance_Vacation.Duration;
+
+    if ( _liVacMarker <> 0 )
+      InsertMarker(_liVacMarker, Balance_Vacation.NRec);
+  }
+}
+
+
+screen scFactOtpuskDet (,hcStaff_OtpuskOll, sci1Esc);
+  show at ( , 20, , );
+<<
+>>
+end;
+
+screen scFactOtpuskDet_Edit (,hcStaff_KartVkladkaTrudovieOtpuska, scStaff1Esc);
+  show at ( , 20, , );
+<<
+>>
+end;
+
+screen scVacationsDet (,hcStaff_OtpuskOll, sci1Esc);
+  show at ( , 15, , 19);
+  table MirrorVacation;
+  fields
+    tpTreeVacations.OrderStatus ('Статус приказа')  : Skip;
+    tpTreeVacations.DocNmb      ('Номер приказа', hcStaffVacationsFoundation) : Protect;
+    tpTreeVacations.DocDate     ('Дата приказа') : Skip;
+    tpTreeVacations.Foundation  ('Основание', hcStaffVacationsFoundation): Protect;
+<<
+
+  Приказ    .@@@@@@@@@@@@@@@@@             номер.@@@@@@@@@@@@   дата.@@@@@@@@@@
+  Основание .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scVacationsDet
+
+screen scVacationsDet_Edit (,hcStaff_KartVkladkaTrudovieOtpuska, scStaff1Esc);
+  show at ( , 15, , 19);
+  table MirrorVacation;
+  fields
+
+    tpTreeVacations.OrderStatus ('Статус приказа')  : Skip;
+    tpTreeVacations.DocNmb      ('Номер приказа') : Protect;
+    tpTreeVacations.DocDate     ('Дата приказа') : Skip;
+    tpTreeVacations.Foundation  ('Основание', hcStaffVacationsFoundation): NoProtect;
+    tpTreeVacations.sOrderInf: Skip;
+<<
+
+  Приказ    .@@@@@@@@@@@@@@@@@             номер.@@@@@@@@@@@@   дата.@@@@@@@@@@
+  Основание .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scVacationsDet_Edit
+
+tree 1 trVacation 'Ежегодные трудовые отпуска' (,,sci1478Esc);
+  show at ( , 10, , 14);
+  table tpTreeVacations;
+fields
+  fSNG_KalendarDayCount 'Дни', 'отсутствия' ('Дни отсутствия'): [5], Skip;
+end;
+
+tree 1 trVacation_Edit 'Ежегодные трудовые отпуска' (,hcStaff_KartVkladkaTrudovieOtpuska,sci178EscTreeStaffReception);
+  show at ( , 10, , 14);
+  table tpTreeVacations;
+fields
+  fSNG_KalendarDayCount 'Дни', 'отсутствия' ('Дни отсутствия'): [5], Skip;
+end;
+
+
+tree 2 brFactOtpusk (, hcStaff_OtpuskOll, sci1478Esc);
+  show at ( , , , 9);
+  table tpFactOtpusk;
+fields
+  fSNG_OtpFactEnd 'Дата', 'окончания', '(факт)' ('Дата окончания (факт)'): [10], Skip;
+end;
+
+tree 2 brFactOtpusk_Edit (, hcStaff_KartVkladkaTrudovieOtpuska, scStaffReceptionT2Com);
+  show at ( , , , 9);
+  table tpFactOtpusk;
+fields
+  fSNG_OtpFactEnd 'Дата', 'окончания', '(факт)' ('Дата окончания (факт)'): [10], Skip;
+end;
+
+HandleEvent
+
+cmInsertEditKN:
+{
+  if (UpdateTable)
+  {
+    //Открытие 12 окна
+    vPersCh.InsertEditKN;
+  }
+}
+// переключение на 13-е окно
+cmStaffDoWin13:
+{
+  if (UpdateTable)
+  {
+    //Открытие 13 окна
+    vPersCh.StaffDoWin13;
+  }
+}
+// переключение на 14-е окно
+cmStaffDoWin14:
+{
+  if (UpdateTable)
+  {
+    //Открытие 14 окна
+    vPersCh.StaffDoWin14;
+  }
+}
+
+end;
+
+end.

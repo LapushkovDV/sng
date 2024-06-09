@@ -1,0 +1,1815 @@
+#component 'Z_Staff'
+
+#include AdrFunc.vih          //Функции работы с адресами
+#include ActionJsonCreate.vih //HR-617 PA0004 - Инвалидность
+
+// #include PersonDocWinUpperBrowse.vih
+
+alter interface PersonDocWinLowerScreen;
+overload
+  procedure SetValidDocScreen;
+  procedure SetFields;
+  procedure PickFields;
+  function GetFormat(_SysCode: integer): longint;  
+end;
+
+
+  extendFormats scrAllDocs;
+  extendFormats scrBornDoc;
+  extendFormats scrAllDocKat;
+  extendFormats scrDeathDocs;
+  extendFormats scrInvDocs;
+  overloadFormats scrStrahSvid;
+  extendFormats scrAllDocsWithoutSer;
+  extendFormats scrPassportsRF;
+  extendFormats scrPassportsUSSR;
+  extendFormats scrPassportsBel;
+  extendFormats scrPassportsUkr;
+  extendFormats scrResidentialBel;
+  extendFormats scrPassportsFor;
+  extendFormats scrPolis;
+  extendFormats scrCovid;
+  extendFormats scrDSV;
+  extendFormats scrINN_GNI;
+  extendFormats scrNUM_UVED;
+  extendFormats scrConfirmation;
+  extendFormats scrAnyRecord;
+  extendFormats scrDocMatOtv;
+  extendFormats scrNewDoc;
+  extendFormats scrVisa;
+  extendFormats scrMigrKarta;
+  extendFormats scrPrigl;
+  extendFormats scrDocStudOtryd;
+  extendFormats scrFormEduc;
+  extendFormats scrDocVKS;
+  extendFormats scrDriverDoc;
+  extendFormats SCRPEKDOC;
+  extendFormats scrMilitaryDocs;
+
+create view PsnDoc
+var
+  LastDate : date;
+  chng1: string;
+  chng2: string;
+  chng3: string;
+  mesto_pass :string;
+  FIO_pass :string;
+  Date_pass : date;
+  NRecCopyAddress:  comp;
+  ParSav:  Comp;
+  strAddrTitle: String[100];
+  old_givendate, old_todate: date;
+
+as select SNG_Passports.nRec
+
+from Passports CheckDocs,
+     Persons CheckPerson,
+     SNG_Passports,
+     Passports Passports_old
+where (( CheckDocs.Person == CheckPerson.NRec
+         and Integer(501) == CheckDocs.SysCode
+         and Passports.Nmb == CheckDocs.Nmb
+         and Passports.nRec == SNG_Passports.nRec ))
+;
+
+var
+  // UpperBrowse    : PersonDocWinUpperBrowse;
+  oExtAttr: iExtAttr;
+  ExtAttrIDFIO : comp;
+  ExtAttrIDDat : comp;
+  sRefGivenByText: string;
+  oJson : PassportsSys560;
+  gv_max_givendate : date;
+
+
+#declare stSerTmpM
+  stSerTmp: skip, { font = { bold = (stSerTmp = 'не соответствует шаблону!' + GetCorrectFormat(NameDocCat.CatData, 0));
+                             color = if(stSerTmp = 'не соответствует шаблону!' + GetCorrectFormat(NameDocCat.CatData, 0), ColorSysRed, ColorSysBlack) }};
+#end
+
+#declare stNmbTmpM
+  stNmbTmp: skip, { font = { bold = (stNmbTmp = 'не соответствует шаблону!' + GetCorrectFormat(NameDocCat.CatData, 1));
+                             color = if(stNmbTmp = 'не соответствует шаблону!' + GetCorrectFormat(NameDocCat.CatData, 1), ColorSysRed, ColorSysBlack) }};
+#end
+
+
+  procedure DoInsert(pcNrec: comp);  {
+  //      message('DoInsert = ' + pcNrec);
+        oJson.CreateJsonSyscode560(pcNrec, 'INS');
+}
+
+  procedure DoDelete(pcNrec: comp);  {
+  //      message('DoDelete = ' + pcNrec);
+        oJson.CreateJsonSyscode560(pcNrec, 'MOD'); //полное удаление происходит в PersonDocWinUpperBrowse.vip
+}
+
+  procedure DoModify(pcNrec: comp);  {
+ //       message('DoModify = ' + pcNrec);
+        oJson.CreateJsonSyscode560(pcNrec, 'MOD');
+}
+//-----------------------------------------------------------------------------HR-758
+  procedure DoInsertAll(pcNrec: comp);  {
+     // var  _addWhereString:string = ' and passports.person = ' + passports.person + ' and catalogs.sdopinf = ' + chr(39) + string(NameDocCat.sdopinf) + chr(39)
+        var  _addWhereString:string = ' and passports.nrec = ' + pcNrec;             //резервный вариант
+     // message('DoInsert = ' + pcNrec + ' ' + _addWhereString);
+        oJson.CreateJsonSyscode(pcNrec, _addWhereString, 'INS');
+}
+
+  procedure DoDeleteAll(pcNrec: comp);  {
+     // var  _addWhereString:string = ' and passports.person = ' + passports.person + ' and catalogs.sdopinf = ' + chr(39) + string(NameDocCat.sdopinf) + chr(39)
+        var  _addWhereString:string = ' and passports.nrec = ' + pcNrec;
+     // message('DoDelete = ' + pcNrec + ' ' + _addWhereString);
+        oJson.CreateJsonSyscode(pcNrec, _addWhereString, 'MOD'); //полное удаление происходит в PersonDocWinUpperBrowse.vip
+}
+
+  procedure DoModifyAll(pcNrec: comp);  {
+     // var  _addWhereString:string = ' and passports.person = ' + passports.person + ' and catalogs.sdopinf = ' + chr(39) + string(NameDocCat.sdopinf) + chr(39) ;            //резервный вариант
+        var  _addWhereString:string = ' and passports.nrec = ' + pcNrec;
+        var newRec:comp;
+        var sParam:string = 'MOD';
+//Для проверки заведен ли документ только что
+      if(ReadMyDsk(newRec, 'ForCheckNewRecordToJson', true))
+      {
+       if(newRec = pcNrec) sParam := 'INS';
+
+       ClearMyDsk('ForCheckNewRecordToJson');
+      }
+//Для проверки поменялись ли ключевые поля даты
+      if (getFirst Passports_old where ((Passports.nrec == Passports_old.nrec )) = tsOk
+            and (old_givendate <> Passports.givendate or old_todate <> Passports.todate))
+      {
+         sParam := 'KEY_CHANGED(BEGDA:'+dateToStr(old_givendate, 'YYYYMMDD')+'$ENDDA:'+dateToStr(old_todate, 'YYYYMMDD')+')';
+      }
+//Формирование JSON и отправка в SAP
+      oJson.CreateJsonSyscode(pcNrec, _addWhereString, sParam);
+}
+//-----------------------------------------------------------------------------HR-758
+
+function SetBessrochno:string;
+{
+  if passpToDate = ZeroDate
+    result := 'бессрочно';
+  else
+    result := '';
+
+}
+
+procedure Set_Back_Color;
+{
+  var lv_name_scr : string;
+   var format1: longint = 0; 
+   format1 := GetFormat(Passports.SysCode);
+
+  if format1 = SCRALLDOCSWITHOUTSER
+    lv_name_scr := 'i_SCRALLDOCSWITHOUTSER_';
+  else if  format1 = scrAllDocs
+    lv_name_scr := 'i_SCRALLDOCS_';
+  else if  format1 = scrAllDocKat
+    lv_name_scr := 'i_SCRALLDOCKAT_';
+  else if  format1 = scrDeathDocs
+    lv_name_scr := 'i_SCRDEATHDOCS_';
+  else if  format1 = scrInvDocs
+    lv_name_scr := 'i_SCRINVDOCS_';
+  else if  format1 = scrPassportsRF
+    lv_name_scr := 'i_SCRPASSPORTSRF_';
+  else if  format1 = scrPassportsUSSR
+    lv_name_scr := 'i_SCRPASSPORTSUSSR_';
+  else if  format1 = scrPassportsUkr
+    lv_name_scr := 'i_SCRPASSPORTSUKR_';
+  else if  format1 = scrPassportsBel
+    lv_name_scr := 'i_SCRPASSPORTSBEL_';
+  else if  format1 = scrResidentialBel
+    lv_name_scr := 'i_SCRRESIDENTIALBEL_';  
+  else if  format1 = scrPassportsFor
+    lv_name_scr := 'i_SCRPASSPORTSFOR_';
+  else if  format1 = scrStrahSvid
+    lv_name_scr := 'i_SCRSTRAHSVID_';
+  else if  format1 = scrDSV
+    lv_name_scr := 'i_SCRDSV_';
+  else if  format1 = scrINN_GNI
+    lv_name_scr := 'i_SCRINN_GNI_';
+  else if  format1 = scrNUM_UVED
+    lv_name_scr := 'i_SCRNUM_UVED_';  
+  else if  format1 = scrConfirmation
+    lv_name_scr := 'i_SCRCONFIRMATION_';  
+  else if  format1 = scrAnyRecord
+    lv_name_scr := 'i_SCRANYRECORD_';  
+  else if  format1 = scrDocMatOtv
+    lv_name_scr := 'i_SCRDOCMATOTV_';  
+  else if  format1 = scrNewDoc
+    lv_name_scr := 'i_SCRNEWDOC_';  
+  else if  format1 = scrVisa
+    lv_name_scr := 'i_SCRVISA_';  
+  else if  format1 = scrMigrKarta
+    lv_name_scr := 'i_SCRMIGRKARTA_';  
+  else if  format1 = scrPrigl
+    lv_name_scr := 'i_SCRPRIGL_';  
+  else if  format1 = scrDocStudOtryd
+    lv_name_scr := 'i_SCRDOCSTUDOTRYD_';  
+  else if  format1 = scrFormEduc
+    lv_name_scr := 'i_SCRFORMEDUC_';  
+  else if  format1 = scrDocVKS
+    lv_name_scr := 'i_SCRDOCVKS_';  
+  else if  format1 = scrPolis
+    lv_name_scr := 'i_SCRPOLIS_';  
+  else if  format1 = scrCovid
+    lv_name_scr := 'i_SCRCOVID_';  
+  else if  format1 = SCRBORNDOC
+    lv_name_scr := 'i_SCRBORNDOC_';  
+  else if  format1 = scrDriverDoc
+    lv_name_scr := 'i_SCRDRIVERDOC_';  
+  else if  format1 = scrPEKDoc
+    lv_name_scr := 'i_SCRPEKDOC_';  
+  else if  format1 = scrMilitaryDocs
+    lv_name_scr := 'i_SCRMILITARYDOCS_';  
+  else if  format1 = scrWarDocsWithoutSer
+    lv_name_scr := 'i_SCRWARDOCSWITHOUTSER_';  
+  else if  format1 = scrMilitaryDocsWithLimits
+    lv_name_scr := 'i_SCRMILITARYDOCSWITHLIMITS_';  
+ if NameDocCat.code <> '1' and NameDocCat.code <> '2' and  NameDocCat.code <> '3' and NameDocCat.code <> '4'
+ {
+   
+  // if PASSPTODATE = ZeroDate or PASSPTODATE = ''
+  //   cfsSetProp(lv_name_scr+'PASSPTODATE','FontBackColor',ColorNeed);
+  // else
+  //   cfsSetProp(lv_name_scr+'PASSPTODATE','FontBackColor',0);
+  if PASSPGIVENDATE = ZeroDate or PASSPGIVENDATE = ''
+    cfsSetProp(lv_name_scr+'PASSPGIVENDATE','FontBackColor',ColorNeed);
+  else
+    cfsSetProp(lv_name_scr+'PASSPGIVENDATE','FontBackColor',0);
+      
+  }
+ cfsSetProp(lv_name_scr+'PASSPGIVENBY','FontBackColor',0);
+}
+
+procedure SetValidDocScreen;
+{
+  inherited::SetValidDocScreen;
+  if (Passports.SysCode = 560)
+  {
+    ClearFieldOption(#InvalidGrpCat.Name, ofSelectable);
+    SetFieldState(#LastDate, sfVisible);
+  }
+  else
+  {
+    SetFieldOption(#InvalidGrpCat.Name, ofSelectable);
+    ClearFieldState(#LastDate, sfVisible);
+  }
+} // procedure SetValidDocScreen
+
+
+procedure SetFields;
+{
+  inherited::SetFields;
+  rereadRecord(#SNG_Passports);
+
+  if (Passports.SysCode = 560)
+  {
+    LastDate := Passports.LastDate;
+  }
+  rereadRecord(#SNG_Passports);
+  if Passports.sysCode = 563 or Passports.sysCode = 1185 then
+    {
+    if PsnDoc.isValidAll(#CatGivenBy) then
+      set sRefGivenByText := CatGivenBy.Name;
+    else
+      sRefGivenByText := '';
+    }
+} // procedure SetValidDocScreen
+
+private procedure PickFields();
+  { 
+  case CurField of
+
+    #sRefGivenByText:
+    {      
+      if Passports.sysCode = 563 then
+        {
+        ParentSav := comp(0);
+        if (RunInterface('Z_StaffCat::PickCatalog2', -31621, ParentSav, 0) = cmDefault) then
+          {
+          set Passports.cRefGivenBy := ParentSav;
+          set sRefGivenByText := iCatFunc.GetCatalogsName(ParentSav);
+          SetModified(true);
+          }
+        }
+      else if Passports.sysCode = 1185 then
+        {
+        ParentSav := comp(0);
+        ParentSav := iCatFunc.GetCatalogsNRec(-24);
+        if ParentSav = comp(0) then
+          {
+          message('Не найден справочник -24 Учебные заведения для базового образования');
+          exit;
+          }
+        if getFirst Catalogs where ((ParentSav == cParent and '95' == Code)) = tsOk then
+          {
+          ParentSav := Catalogs.nRec;
+
+          if (RunInterface('Z_StaffCat::PickCatalog2', 0, ParentSav, 0) = cmDefault) then
+            {
+            set Passports.cRefGivenBy := ParentSav;
+            set sRefGivenByText := iCatFunc.GetCatalogsName(ParentSav);
+            SetModified(true);
+            }
+          }
+        else
+          {
+          message('Не найден справочник ВУЗов');
+          }
+        }
+      else
+        {
+        inherited::PickFields;      
+        }
+    }
+    else
+      {
+      inherited::PickFields;      
+      }
+  end; //case
+  } // procedure PickFields
+
+const gc_inv: string = 'ZTINVALID'; end;
+
+screen scrPensDoc 'Документ' ('',, ); // Пенсионное свидетельство
+  show () fixed_y;
+  table Passports;
+fields
+  BarKodAndStateCaption : Skip, right;
+  BarKodAndState ('Связь документа с архивом и ее состояние.',,): Protect, { button = { command = cmValue7; picture = 'Z_Staff::bmpPickButton';}};
+  IsOsnDoc('Является ли документ основным'): NoProtect;
+  IsPredDoc('Является ли неактуальным документом'): NoProtect;
+  fDocDescr: skip, { font = { bold = true } };
+  NameDocCat.Code: skip;
+  NameDocCat.Name ('Название документа', hcStaffPersDocName, Sci13Esc): Protect;
+  PasspSer ('Серия документа', hcStaffPassportsSer): noProtect, { InputMask = SerTmp };
+  #stSerTmpM
+  PasspNmb ('Номер документа', hcStaffPassportsNmb): noProtect, { InputMask = NmbTmp };
+  #stNmbTmpM
+  PasspGivenDate ('Дата выдачи документа', hcStaffPersDocGivenDate):  
+     {Font = {BackColor = if(PasspGivenDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect;
+  PasspGivenBy ('Кем выдан', hcStaffPersDocGivenBy): NoProtect; 
+  PasspToDate ('Срок действия документа', hcStaffPersDocToDate): NoProtect;
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+    //  {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect;
+  sRefGivenByText ('Вид пенсии. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : pickbutton, protect;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+                 .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                [.] Основной документ`                [.] Предыдущий (не актуальный) документ`
+                                                .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Документ`.@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `серия`          .@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `номер`          .@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `выдан`          .@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `действителен по`.@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+  `Вид пенсии               `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrAllDocs; // любой документ
+  fields  
+    SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+    SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+   
+<<
+
+
+
+
+
+
+
+
+
+                                  .@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; //scrAllDocs
+
+screen scrPEKDoc; // // Персональная электронная карта военнослужащего (725)
+  fields
+    PasspToDate ('Дата действия документа'): NoProtect; 
+      // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+    SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+    SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+  `дата действия документа`  .@@@@@@@@@@@@  .@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; //scrPEKDoc
+
+screen scrMilitaryDocs; // // Военные документы безсрочные (726,727,516,520)
+  fields
+    PasspToDate ('Дата действия документа'): NoProtect;
+      // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+<<
+
+
+
+
+
+
+
+
+  `действителен по`.@@@@@@@@@@@@
+>>
+end; //scrMilitaryDocs
+
+screen scrBornDoc; // свидетельство о рождении
+fields
+    SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+    SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;  //scrBornDoc
+
+screen scrAllDocKat; // чернобыльский документ
+fields
+    SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+    SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDeathDocs; // свидетельство о смерти
+fields   
+    SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+    SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+                                 
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrInvDocs 'Документ' ('',, sci178Esc); // инвалидный документ
+fields
+  CatVactine.Code ('Причина инвалидности, номер группы', hcStaffEmplInvalidGrp, sci1378Esc ) : Protect;
+  CatVactine.Name  ('Причина инвалидности, наименование', hcStaffEmplInvalidGrp, sci1378Esc) : Skip;
+  LastDate  ('Дата установления инвалидности', hcStaffPersDocGivenDate): NoProtect;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+
+<<
+
+
+
+
+
+
+
+
+
+
+
+
+  `Причина инвалидности`   .@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Дата установления инвалидности`   .@@@@@@@@@@
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;           // scrInvDocs
+
+screen scrAllDocsWithoutSer; // любой документ без серии
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPassportsRF; // нац. паспорт РФ
+fields
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPassportsUSSR; // нац. паспорт СССР
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPassportsBel; // нац. паспорт РБ
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPassportsUkr; // нац. паспорт Украины
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrResidentialBel; // Вид на жительство РБ
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPassportsFor; // загранпаспорт
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrStrahSvid 'Документ' ('',, Sci1EnEsc); // страховое свидетельство
+  show () fixed_y;
+  table Passports;
+
+fields
+  BarKodAndStateCaption : Skip, right;
+  BarKodAndState ('Связь документа с архивом и ее состояние.',,): Protect, { button = { command = cmValue7; picture = 'Z_Staff::bmpPickButton';}};
+  IsPredDoc('Является ли неактуальным документом'): NoProtect;
+  fDocDescr: skip, { font = { bold = true } };
+  NameDocCat.Code: skip;
+  NameDocCat.Name ('Название документа', hcStaffPersDocName, Sci13EnEsc ): Protect;
+  PasspNmb ('Номер документа', hcStaffPassportsNmb): NoProtect, {InputMask = NmbTmp},
+    {font = {backcolor = if(IncorrectInsCert(PasspNmb), ColorError, if (PasspNmb = '', ColorNeed, 0))}};
+  #stNmbTmpM
+  InsCertNumberError: protect, skip;
+  PasspGivenDate ('Дата выдачи документа', hcStaffPassportsGivenDate): 
+    {Font = {BackColor = if(PasspGivenDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect;
+  PasspToDate ('Срок действия документа', hcStaffPassportsToDate):  NoProtect;
+    // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect;
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  mesto_pass ('Место рождения по паспорту',, scStaffReceptionT2CDEdit): pickbutton;//, noprotect; //('Место рождения по паспорту'): noprotect
+  chng1: skip;
+  FIO_pass ('ФИО по паспорту'): noprotect;
+  chng2: skip;
+  Date_pass ('Дата рождения по паспорту'): [10, 'DD/MM/YYYY'], noprotect;
+  chng3: skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+
+  buttons
+  cmChangeMest;
+  cmChangeFio1;
+  cmChangeDtBd;
+
+<<
+                 .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                                [.] Предыдущий (не актуальный) документ`
+                                                .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Документ`.@@@@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `номер`          .@@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `             с` .@@@@@@@@@@@@ `по` .@@@@@@@@@@@@  .@@@@@@@@@
+  `Место рождения по паспорту` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <.Изменить.> .@@@@@@@@@@@@@@@@@@@@@@@
+
+  `ФИО по паспорту`            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <.Изменить.> .@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Дата рождения по паспорту`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <.Изменить.> .@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+
+end;  // scrStrahSvid
+
+screen scrPolis 'Документ' ('',, Sci1Esc); // полис ОМС/ДМС
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrCovid 'Документ' ('',, Sci1Esc); // Сертификат о вакцинации против новой коронавирусной инфекции (COVID-19)
+fields
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDSV; // страховое свидетельство
+fields
+  PasspToDate ('Дата действия документа'):  NoProtect;
+    // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+  
+  `дата действия документа`  .@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrINN_GNI; // ИНН и код ГНИ
+fields
+  PasspGivenDate ('Дата выдачи документа'): 
+    {Font = {BackColor = if(PasspGivenDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+  PasspToDate ('Дата действия документа'):  NoProtect;
+    // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+  `дата выдачи документа`    .@@@@@@@@@@@@
+  `дата действия документа`  .@@@@@@@@@@@@ .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrNUM_UVED; // Документ уведомление
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrConfirmation; // документ-подтверждение
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrAnyRecord; // запись об изменениях персонифицированных данных
+fields
+  PasspToDate ('Дата действия документа'):  NoProtect;
+    // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+  
+  `дата действия изменений`  .@@@@@@@@@@@@ .@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDocMatOtv; // документ о материальной ответственности
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+                                                                  .@@@@@@@@@ 
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrNewDoc; // новый документ
+fields
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrVisa; // Виза
+fields
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrMigrKarta; // Миграционная карта
+fields
+  PasspToDate ('Дата действия документа'):  NoProtect;
+    // {Font = {BackColor = if(PasspToDate = ZeroDate and NameDocCat.Code <> '1' and NameDocCat.Code <> '2' and NameDocCat.Code <> '3' and NameDocCat.Code <> '4', ColorNeed, 0)}}, NoProtect; // + gtm hr-499
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+  `дата действия документа`  .@@@@@@@@@@@@ .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrPrigl; // Приглашение
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+                                 .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDocStudOtryd; // справка о членстве в студенческом отряде
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+                                                    .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrFormEduc; // справка о форме обучения
+fields
+  sRefGivenByText ('ВУЗ. Выбор из каталога по F3.',, scStaffReceptionT2CDPick) : pickbutton, protect;
+  SNG_Passports.DopInfo2 ('Факультет'): noProtect;
+  SNG_Passports.DopInfo1 ('Курс'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+  `ВУЗ           ` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  
+  `Факультет                `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Курс                     `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDocVKS; // Разрешение на работу высококвалифицированного специалиста
+fields
+  SetBessrochno() ('статус бессрочно', hcStaffPersDocToDate): skip;
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+                                                      .@@@@@@@@@
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+screen scrDriverDoc; // любой документ без серии
+fields
+  SNG_Passports.DopInfo1 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo2 ('Дополнительная информация'): noProtect;
+  SNG_Passports.DopInfo3 ('Дополнительная информация'): noProtect;
+<<
+
+
+
+
+
+
+
+
+
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                             .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+function GetFormat(_SysCode: integer): longint;
+  {
+  result := inherited::GetFormat(_SysCode);
+
+  case _SysCode of
+    563: result := scrPensDoc;
+  end; //case
+  }
+
+procedure make_limit_passports2; // + gtm HR-499 {{{
+  {
+  var lv_dat : date;      
+  lv_dat := sub_day(Passports.GivenDate,1) ;  
+  var lv_dat2 : date;      
+  lv_dat2 := add_day(Passports.toDate,1) ;        
+  if  Passports_Check.GivenDate >= Passports.GivenDate
+  { 
+    if Passports.toDate = date(0,0,0)
+    {       
+      if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет удалена!',YesNo) = cmYes      
+      {
+        delete current Passports_Check;          
+      }
+    }
+    else 
+    {
+      if Passports_Check.TODATE = date(0,0,0)
+      {
+        if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет ограничена датой c ' + string(lv_dat2),YesNo) = cmYes
+        {
+          Passports_Check.GivenDate := lv_dat2;
+          update current  Passports_Check;     
+          if gv_max_givendate < lv_dat2
+          {
+            gv_max_givendate := lv_dat2;
+            persons.PASSPRUS := Passports_Check.nrec;
+          }       
+        } 
+      }
+      else
+      {
+        if Passports_Check.TODATE <= Passports.TODATE 
+        {       
+          if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет удалена!',YesNo) = cmYes      
+          {
+            delete current Passports_Check;              
+          }
+        }
+        else
+        {
+          if Passports_Check.TODATE > Passports.TODATE and Passports.TODATE >= Passports_Check.GivenDate
+          {
+            if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет ограничена датой c ' + string(lv_dat2),YesNo) = cmYes
+            {
+              Passports_Check.GivenDate := lv_dat2;
+              update current  Passports_Check;      
+              if gv_max_givendate < lv_dat2
+                {
+                  gv_max_givendate := lv_dat2;
+                  persons.PASSPRUS := Passports_Check.nrec;
+                }                  
+            }
+          } 
+        }
+      }
+    }
+  }
+  else
+  {
+    if Passports.toDate = date(0,0,0)
+    {
+      if Passports_check.toDate = date(0,0,0) 
+      {
+        if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет ограничена датой по ' + string(lv_dat),YesNo) = cmYes
+        {                   
+          Passports_Check.todate := lv_dat;
+          update current  Passports_Check;                            
+        }  
+      }
+      else
+      {
+        if Passports_check.toDate > passports.givendate
+        {
+          if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет ограничена датой по ' + string(lv_dat),YesNo) = cmYes
+          {                   
+            Passports_Check.todate := lv_dat;
+            update current  Passports_Check;                            
+          }
+        }    
+      }
+    }  
+    else
+    {
+      if Passports_check.toDate = date(0,0,0) 
+      {
+        if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' разделена на 2 записи: с ' +string(Passports_Check.GivenDate)+' по '+ string(lv_dat)+ ' и с '+string(lv_dat2)+' по '+string(Passports_Check.TODATE),YesNo) = cmYes 
+        {
+          var lv_todate  : date;
+          lv_todate := Passports_Check.todate;
+          Passports_Check.todate := lv_dat;
+          update current  Passports_Check;  
+          Passports_Check.givendate := lv_dat2;      
+          Passports_Check.todate :=lv_todate;
+          insert current  Passports_Check;            
+          if gv_max_givendate < lv_dat2
+          {
+            gv_max_givendate := lv_dat2;
+            persons.PASSPRUS := Passports_Check.nrec;
+          }
+        }
+      }
+      else
+      {
+        if Passports_check.toDate > passports.todate
+        {
+          if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' разделена на 2 записи: с ' +string(Passports_Check.GivenDate)+' по '+ string(lv_dat)+ ' и с '+string(lv_dat2)+' по '+string(Passports_Check.TODATE),YesNo) = cmYes 
+          {
+            var lv_todate  : date;
+            lv_todate := Passports_Check.todate;
+            Passports_Check.todate := lv_dat;
+            update current  Passports_Check;  
+            Passports_Check.givendate := lv_dat2;      
+            Passports_Check.todate :=lv_todate;
+            insert current  Passports_Check;     
+            if gv_max_givendate < lv_dat2
+            {
+              gv_max_givendate := lv_dat2;
+              persons.PASSPRUS := Passports_Check.nrec;
+            }         
+          }
+        }  
+        else
+        {
+          if Passports_check.toDate <= passports.todate and Passports_check.toDate >= passports.GivenDate
+          {
+            if message('Предыдущая запись документа '+ NameDocCat.name + ' c ' + string(Passports_Check.GivenDate)+' по '+string(Passports_Check.TODATE)+' будет ограничена датой по ' + string(lv_dat),YesNo) = cmYes
+            {                   
+              Passports_Check.todate := lv_dat;
+              update current  Passports_Check;                                                  
+            } 
+          }
+        }
+      }
+    }
+  }
+}           
+
+
+TableEvent
+  table Passports;
+  
+  cmDeleteRecord:
+  {
+   if (Passports.SysCode = 560)
+   {
+      DoDelete(Passports.Nrec);
+   }
+
+//--------------------------------------------------HR-758
+   if NameDocCat.sdopinf <> ''           //Удаление любого документа кроме документов воинского учета
+     and NameDocCat.sdopinf <> '07'
+     and NameDocCat.sdopinf <> '08'
+     and NameDocCat.sdopinf <> '27'
+     and NameDocCat.sdopinf <> '908'
+    {
+    //    Message('Попали в условие вставка NameDocCat.sdopinf = ' + NameDocCat.sdopinf);
+    //    Message('passports.nrec = ' + comp(passports.nrec) + ' passports.syscode ' + passports.syscode );
+        DoDeleteAll(Passports.Nrec);
+    }
+//--------------------------------------------------HR-758
+	 if Passports.SysCode = 501
+	 {
+    inherited::handleEvent(cmDeleteRecord);
+		oExtAttr.DeleteValueID(coPassports, Passports.nrec, ExtAttrIDFIO);
+		oExtAttr.DeleteValueID(coPassports, Passports.nrec, ExtAttrIDDat);
+	 }
+  }
+
+  cmBeginRecordModification:
+  {
+    if inherited::handleevent(cmBeginRecordModification) = heAbort
+    {
+      abort;
+      exit;
+    }
+  }
+
+cmInsertRecord:
+  {
+    if (Passports.SysCode = 560)
+    {
+      Passports.Append  := PassportsAppend;
+      Passports.LastDate := LastDate;
+    }
+//--------------------------------------------------HR-758
+    if NameDocCat.sdopinf <> ''           //Вставка любого документа кроме документов воинского учета
+     and NameDocCat.sdopinf <> '07'
+     and NameDocCat.sdopinf <> '08'
+     and NameDocCat.sdopinf <> '27'
+     and NameDocCat.sdopinf <> '908'
+    {
+    //    Message('Попали в условие вставка NameDocCat.sdopinf = ' + NameDocCat.sdopinf);
+    //    Message('passports.nrec = ' + comp(passports.nrec) + ' passports.syscode ' + passports.syscode );
+        DoInsertAll(Passports.Nrec);
+    }
+//--------------------------------------------------HR-758
+    inherited::handleevent(cmInsertRecord);
+	
+	if Passports.SysCode = 501
+	{
+	if(oExtAttr.ValueExistsID(coPassports, 0, ExtAttrIDFIO))
+     oExtAttr.DeleteValueID(coPassports, 0, ExtAttrIDFIO);
+    if(oExtAttr.ValueExistsID(coPassports, 0, ExtAttrIDDat))
+     oExtAttr.DeleteValueID(coPassports, 0, ExtAttrIDDat)
+    inherited::handleEvent(cmInsertRecord);
+	 
+    oExtAttr.sSetAttrID(coPassports, Passports.nrec, ExtAttrIDFIO, FIO_pass);
+    oExtAttr.dSetAttrID(coPassports, Passports.nrec, ExtAttrIDDat, Date_pass);
+	}
+    if (Passports.SysCode = 560) DoInsert(Passports.Nrec);
+
+  } // cmInsertRecord
+
+cmUpdateRecord:
+  {    
+    gv_max_givendate := date(0,0,0);
+    //Спозиционируем  таблицу Passports_old с Passports и запомним старые значения дат
+    if (getFirst Passports_old where (( passports.nrec == Passports_old.nrec ))=tsOk)
+    {
+      old_givendate := passports_old.givendate;
+      old_todate := passports_old.todate;
+    }
+
+    if (NameDocCat.Code = 300)
+    {
+      if (PasspGivenDate <= LastDate)
+      {
+        message('Дата установления инвалидности должна быть ' + 
+                'меньше даты выдачи документа!', error);
+        stop; abort; exit;
+      }
+    }
+    if (Passports.SysCode = 560)
+    {
+      Passports.Append  := PassportsAppend;
+      Passports.LastDate := LastDate;
+    }
+    inherited::handleevent(cmUpdateRecord);
+    // При сохранении записи в интерфейсе редактирования документов работника необходимо реализовать проверку на пересечение с
+    // периодом действия документа такого же типа (PASSPORTS.GIVENDATE - TODATE). При наличии такой записи необходимо выводить
+    // предупреждение:
+    //  if ( Day(Passports.GivenDate) <> 0 ) 
+    
+    if Passports.SysCode <> 0  // HR-499    {{{
+      {
+       if Passports.SysCode = 502 // HR-1261
+         {
+           gv_max_givendate := PasspGivenDate;
+           persons.PASSPRUS :=  Passports.NRec;  
+         }
+      _loop Passports_Check where (( Persons.NRec == Passports_Check.Person     and
+                                   Passports.SysCode == Passports_Check.SysCode    and
+                                   ( Passports_Check.NRec <> Passports.NRec ) ))
+        {  
+          if  Passports.SysCode = 502 and gv_max_givendate < Passports_Check.givendate// HR-1261
+          {
+            gv_max_givendate := Passports_Check.givendate;
+            persons.PASSPRUS :=  Passports_Check.NRec;  
+          }  
+          make_limit_passports2;                                                   
+        }
+      if Passports.SysCode = 502 // HR-1261 
+        update current persons; 
+      }        
+    else
+      {   
+      var lv_code: string;
+      lv_code  := namedoccat.code ;           
+      _loop Passports_Check where (( Persons.NRec == Passports_Check.Person     and                                 
+                                   ( Passports_Check.NRec <> Passports.NRec ) ))
+        {  
+        _loop catalogs where  (( Passports_Check.docname ==catalogs.NRec  ))    
+          {   
+          if  catalogs.code = lv_code 
+            make_limit_passports2;                               
+          }
+        }   
+      }   // HR-499  }}}
+
+//--------------------------------------------------HR-758
+     if persons.ISEMPLOYEE <> 'У'
+      and persons.ISEMPLOYEE <> 'П'
+     {
+       if NameDocCat.sdopinf <> ''             //Обновление любого документа кроме документов воинского учета
+         and NameDocCat.sdopinf <> '07'
+         and NameDocCat.sdopinf <> '08'
+         and NameDocCat.sdopinf <> '27'
+         and NameDocCat.sdopinf <> '908'
+         and NameDocCat.sdopinf <> '300'    // Исключим документы подтверждающие инвалидность
+
+       {
+        //  Message('Попали в условие модификация Passports.person=' + Passports.person );
+          DoModifyAll(Passports.Nrec);
+       }
+     }
+//--------------------------------------------------HR-758
+
+    if (Passports.SysCode = 560) DoModify(Passports.Nrec);
+  } // cmUpdateRecord
+
+cmCheckField:
+{
+  if inherited::handleevent(cmCheckField) = tsOk
+  {
+    case CurField of
+      #LastDate:
+      {
+        set Passports.LastDate := LastDate;
+        SetModified(true);
+      }
+      #PasspNmb:
+      {
+        var check: boolean = false;
+        if (Passports.SysCode = 501 and PasspNmb <> '')
+        {
+          _loop CheckDocs
+          {
+            if ( (CheckPerson.borndate <> Persons.borndate or CheckPerson.FIO <> Persons.FIO) and CheckDocs.NRec <> Passports.NRec )
+             { 
+              check := true;
+              break;
+             }
+          }
+          if check
+          {
+            if Message('В системе уже есть работник с таким номером страхового свидетельства. ' +
+            'Вернуться к редактированию номера?', yesNo) = cmNo
+            {
+              PasspNmb := '';
+              Passports.Nmb := '';
+              RedrawPanel(#Passports);
+            }
+            abort;
+            SelectField(#PasspNmb);
+          }
+        }
+      }
+      #SNG_Passports.DopInfo1, #SNG_Passports.DopInfo2, #SNG_Passports.DopInfo3:
+        {
+        if not isValidAll(tnSNG_Passports)
+          {
+          insert SNG_Passports set nRec := Passports.nRec, DopInfo1 := SNG_Passports.DopInfo1, DopInfo2 := SNG_Passports.DopInfo2, DopInfo3 := SNG_Passports.DopInfo3;
+          rereadRecord(#SNG_Passports);
+          }
+        else
+          update current SNG_Passports;
+        }
+/*     #PASSPGIVENBY:
+     {
+      if (Passports.SysCode = 560) DoModify(Passports.Nrec);
+     } */
+    end; //case
+    Set_Back_Color;
+  }
+} // cmCheckField
+cmCheckRecord: 
+  {        
+    // if passports.syscode = 516 or passports.syscode = 520 or passports.syscode = 568 or passports.syscode = 725 or passports.syscode = 726 or passports.syscode = 727 or passports.syscode = 501 or passports.syscode = 505 
+    if NameDocCat.code = '1' or NameDocCat.code = '2' or  NameDocCat.code = '3' or NameDocCat.code = '4' // это документы о трудовой деятельности
+      {
+         // не проверяем даты тогда!!!!
+      }
+    else
+      {  
+      if PasspGivenDate = ZeroDate //or PasspToDate = ZeroDate
+        {
+          message('Поле "выдан" обязательно для заполнения!' );
+          abort;
+        }
+      else
+        {        
+        if PasspToDate < PasspGivenDate and PasspToDate <> ZeroDate 
+          {
+            message('Дата выдачи должна быть меньше либо равна дате действия по!' );
+            abort; 
+          }
+        }
+      if PasspToDate = date(31,12,9999)
+        {
+          message('Документ действует бессрочно. Срок действия заполнять не нужно. Дата действия 31.12.9999 будет очищена.' );
+          PasspToDate := date(0,0,0);
+          abort; 
+        }
+      }     
+  // inherited::handleevent(cmCheckRecord);
+  case Passports.SysCode of
+    501: // страховое свидетельство
+    {
+      if IncorrectInsCert(Passports.Nmb)
+      {
+        // if Message('Введен некорректный номер страхового свидетельства. ' +
+        //            'Вернуться к редактированию номера?', yesNo) = cmYes
+        Message('Введен некорректный номер страхового свидетельства. ' +
+                    'Документ не сохранен!', okButton) ;
+        
+        abort;
+        SelectField(#PasspNmb);
+        
+      }
+    }
+
+    505: // ИНН
+    {
+      if IncorrectINN(Passports.Nmb)
+      {
+        // if Message('Введен некорректный ИНН. ' +
+        //            'Вернуться к редактированию номера?', yesNo) = cmYes
+        // {
+        Message('Введен некорректный ИНН. ' +
+                    'Документ не сохранен!', okButton) ;
+        abort;
+        SelectField(#PasspNmb);
+        // }
+      }
+    }
+
+    562:
+    {
+      Persons.dDop1 := PasspToDate;
+      update current Persons;
+    }
+
+    9130:
+    {
+      if PasspNmb = ''
+      or PasspGivenDate = ZeroDate
+      or PasspToDate = ZeroDate
+      or PasspGivenBy = ''
+      or PasspSer = ''
+      {
+        if Message('Не введены обязательные данные. ' +
+                   'Вернуться к редактированию?', yesNo) = cmYes
+        {
+          abort;
+        }
+      }
+    }
+    725:
+    {
+      if PasspNmb = ''
+      {
+        if Message('Не введены обязательные данные. ' +
+                   'Вернуться к редактированию?', yesNo) = cmYes
+        {
+          abort;
+        }
+      }
+    }
+    726, 727, 516, 520:
+    {
+      if PasspNmb = ''
+      or PasspGivenDate = ZeroDate
+      // or PasspGivenBy = ''
+      or PasspSer = ''
+      {
+        if Message('Не введены обязательные данные. ' +
+                   'Вернуться к редактированию?', yesNo) = cmYes
+        {
+          abort;
+        }
+      }
+    }
+    568:
+    {
+      if PasspNmb = ''
+      or PasspGivenDate = ZeroDate
+      // or PasspToDate = ZeroDate
+      // or PasspGivenBy = ''
+      or PasspSer = ''
+      {
+        if Message('Не введены обязательные данные. ' +
+                   'Вернуться к редактированию?', yesNo) = cmYes
+        {
+          abort;
+        }
+      }
+    }
+  end;
+  }
+end; //TableEvent
+
+HandleEvent
+
+cmInit:
+  {
+    inherited::handleevent(cmInit);
+    if (Passports.SysCode = 560)
+    {
+      LastDate := Passports.LastDate;
+    }
+  } // cmInit
+
+//cmSwitchFormat:
+
+cmWindowCreated:
+{
+	ClearFieldOption(#NameDocCat.Name, ofSelectable); //закрываем на редактирование
+	//	SetFieldOption(#NameDocCat.Name, ofSelectable); //вдруг нужно будет открыть на редактирование по условиям 
+   case Passports.SysCode of
+    501:
+    {
+      var dat_attr : date;
+      var fio_attr : string;
+	  
+	    ExtAttrIDFIO:=oExtAttr.CreateAttr(coPassports, 'ФИО для СНИЛС', cgAttrType_Str);
+      ExtAttrIDDat:=oExtAttr.CreateAttr(coPassports, 'Дата рождения для СНИЛС', cgAttrType_Date);
+
+      mesto_pass := '';
+      if (getfirst fastfirstrow addressn where ((persons.nrec == addressn.cperson and 99 == addressn.objtype )) and (Passports.NRec = AddressN.CDOPFIELD1)) = tsOk
+      {
+        mesto_pass := iAdrFunc.GetFullAddressInd(Addressn.nrec);
+        redrawpanel(#Passports);
+        if addressn.NRec != 0 and iAdrFunc.GetFullAddressInd(AddressN.NRec) != iAdrFunc.GetFullAddressIndOnDate(BornAddress.NRec, Persons.BornDate)
+          chng1 := 'Данные не соответствуют';
+      }
+      else
+      {
+        mesto_pass := iAdrFunc.GetFullAddressIndOnDate(BornAddress.NRec, Persons.BornDate);//iAdrFunc.GetFullAddressInd(Persons.BornAddr);
+        redrawpanel(#Passports);
+        chng1 := '';
+      }
+
+      FIO_pass := persons.fio;
+      Date_pass := persons.borndate;
+
+      // if getlast addressn where ((persons.nrec == addressn.cperson and 99 == addressn.objtype )) = tsOk {
+      //   if addressn.NRec != 0 and iAdrFunc.GetFullAddressInd(AddressN.NRec) != iAdrFunc.GetFullAddressIndOnDate(BornAddress.NRec, Persons.BornDate) //iAdrFunc.GetFullAddressInd(Persons.BornAddr)
+      //   {
+      //     chng1 := 'Данные не соответствуют';
+      //     mesto_pass := iAdrFunc.GetFullAddressInd(addressn.nrec);
+      //   }
+      // }
+      // else
+      // {
+      //   mesto_pass := iAdrFunc.GetFullAddressIndOnDate(BornAddress.NRec, Persons.BornDate); //iAdrFunc.GetFullAddressInd(Persons.BornAddr);
+      //   chng1 := '';
+      // }
+
+      fio_attr := oExtAttr.sGetAttrID(coPassports, Passports.nrec, ExtAttrIDFIO);
+      if (FIO_pass != fio_attr and fio_attr != '')
+      {
+        chng2 := 'Данные не соответствуют';
+        FIO_pass := fio_attr;
+      }
+      else
+      {
+        chng2 := '';
+      }
+      dat_attr := oExtAttr.dGetAttrID(coPassports, Passports.nrec, ExtAttrIDDat);
+      if (Date_pass != dat_attr and string(dat_attr) != 'ДД/ММ/ГГГГ')
+      {
+        chng3 := 'Данные не соответствуют';
+        Date_pass := dat_attr;
+      }
+      else
+      {
+        chng3 := '';
+      }
+
+      redrawpanel(#Passports);
+    }
+   end; //case
+   Set_Back_Color;
+} // cmPositionChanged
+
+cmPick:
+  {
+    var cRec:  Comp = 0;
+    case Passports.SysCode of
+      501:
+      {
+        case CurField of
+          #mesto_pass:
+          {
+            if (not UpdateTableWithInserted)
+            {
+              abort;
+              exit;
+            }
+            ParSav := 0;
+
+            if (getfirst fastfirstrow AddressN where ((Persons.Nrec == AddressN.cPerson and word(99)  == AddressN.ObjType )) 
+                                              and     (Passports.NRec = AddressN.CDOPFIELD1)) = tsOk
+            {
+              ParSav := AddressN.NRec;
+            }
+              
+            // ParSav := 0
+            // ParSav := BornAddress.NRec;
+            strAddrTitle := 'Место рождения по СНИЛС ' + Persons.FIO;
+            // RunInterface(HistAdrReg, strAddrTitle, ParSav, WORD(99), Persons.NRec); //(4)
+            RunInterface('Z_STAFF::AddressWinN', strAddrTitle, ParSav, WORD(99), Persons.NRec);
+
+            if getfirst fastfirstrow AddressN where ((ParSav == AddressN.NRec)) = tsOk
+            {
+              AddressN.CDOPFIELD1 := Passports.NRec;
+              update current AddressN;
+            }
+            mesto_pass := iAdrFunc.GetFullAddressInd(ParSav);
+            ReScanPanel(CurTable);
+
+            if mesto_pass = ''
+            {
+              delete AddressN where ((Persons.Nrec == AddressN.cPerson and
+                                             word(99)    == AddressN.ObjType ));
+            }
+
+            SetModified(true);
+          }
+        end; //case
+      }
+      560:
+        {
+        case CurField of
+          #CatVactine.Code:
+            {
+            if RunInterface('Z_STAFFCAT::PICKCATALOG2', integer(-31698), cRec, 0, 0) = cmDefault
+              {
+              PassportsAppend := Passports.Append := cRec;
+              update current Passports;
+              reReadRecord;
+              if (Passports.SysCode = 560 and
+                  Passports.LastDate <> date(0,0,0) ) DoModify(Passports.Nrec);
+              }
+            }
+          else inherited::handleevent(cmPick);
+        end; // case
+        }
+      else inherited::handleevent(cmPick);
+    end; // case
+  } // cmPick
+
+cmChangeMest:
+ {
+   if mesto_pass != ''
+   {
+      if mesto_pass != iAdrFunc.GetFullAddressIndOnDate(BornAddress.NRec, Persons.BornDate) //iAdrFunc.GetFullAddressInd(Persons.BornAddr)
+        chng1 := 'Данные не соответствуют';
+      else
+        chng1 := ''
+   }
+   else
+     chng1 := ''
+   rescanpanel(#Passports);
+ } // cmChangeMest
+ cmChangeFio1:
+ {
+  if (persons.fio != FIO_pass and FIO_pass != '')
+  {
+    oExtAttr.sSetAttrID(coPassports, Passports.nrec, ExtAttrIDFIO, FIO_pass);
+    chng2 := 'Данные не соответствуют';
+  }
+  else
+  {
+    chng2 := ''
+  }
+  rescanpanel(#Passports);
+ } // cmChangeFio1
+ cmChangeDtBd:
+ {
+  if (persons.borndate != Date_pass and string(Date_pass) != 'ДД/ММ/ГГГГ')
+  {
+    oExtAttr.dSetAttrID(coPassports, Passports.nrec, ExtAttrIDDat, Date_pass);
+    chng3 := 'Данные не соответствуют';
+  }
+
+  else
+  {
+    chng3 := ''
+  }
+
+  rescanpanel(#Passports);
+ } // cmChangeDtBd
+
+ end; // HandleEvent
+end. //PersonDocWinLowerScreen

@@ -1,0 +1,46 @@
+#component "Z_Staff"
+
+alter Interface AppendixWin;
+
+create view
+ Var
+#info PLV
+  vc_MainLink : Comp;
+From
+    GroupMembers GrpMems4Serv //HR303, FIM
+  , ServStav ServStavPhoto    //HR303, FIM
+  , ServStav ServStavPhotoGrp  //HR303, FIM
+where
+((
+      UserId  == ServStavPhoto.cUnit                   //HR303, FIM
+  and 16      == ServStavPhoto.wTblCode                //HR303, FIM
+  and UserId  == GrpMems4Serv.ObjCode                  //HR303, FIM
+  and GrpMems4Serv.GroupCode == ServStavPhotoGrp.cUnit //HR303, FIM
+  and 16      == ServStavPhotoGrp.wTblCode             //HR303, FIM
+));
+
+function CheckRight2ViewPhotos : boolean; //HR303, FIM
+{
+  result := false;
+  if IsValidAll(#ServStavPhoto)
+    result := true;
+  else
+    _loop GrpMems4Serv
+      if IsValidAll(#ServStavPhotoGrp)
+      {
+        result := true;
+        break;
+      }
+}
+
+HandleEvent
+
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+  ToggleFieldVisible(#Appendix.Contents, CheckRight2ViewPhotos);
+} //cmInit
+
+end;//HandleEvent
+
+end.//interface

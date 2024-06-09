@@ -1,0 +1,192 @@
+#component "Z_Staff"
+
+alter interface iAppHist;
+
+overload
+procedure SetVisibleField;
+end;
+
+//******************************************************************************
+const
+  CONTRACT_NEW    = 0001b;
+	CONTRACT_LONG   = 0010b;
+  CONTRACT_NEW_EX = 0101b;
+end; 
+//******************************************************************************
+create view
+var
+  bSNG_TaxRate: boolean;
+as select
+  NOAA.GetStrAgreementVid(NOAA.GetFirstAgreementByLink(coAppHist, tmpAppHist.NRec))
+    (fieldname = vidDopS),
+  if(not bSNG_TaxRate, '***', DoubleToStr(tmpAppHist.TaxRate, '[|-]36666666666667.88999999999999999999')) (fieldname = fSNG_TaxRate)
+from
+	Catalogs CatTarZone,
+  SNG_Apphist,
+  HistoryStr
+where
+((
+	Tarstav.Tarzone == CatTarZone.nRec
+  and tmpApphist.nRec == SNG_Apphist.cApphist
+  and SNG_AppHist.cHistoryStr == HistoryStr.nRec
+))
+;
+//******************************************************************************
+function GetPeriodOwModeName() : string;
+{
+  result := '';
+  case tmpAppHist.OwMode of
+    1: result := 'Суммированный учет/ день';
+    2:
+    {
+      case tmpAppHist.PeriodOw of
+        0: result := 'Суммированный учет/ месяц';
+        1: result := 'Суммированный учет/ квартал';
+        2: result := 'Суммированный учет/ полугодие';
+        3: result := 'Суммированный учет/ год';
+      end;
+    }
+    4: result := 'Ненормированный учет';
+  end;
+}
+
+OverloadFormats scrAppHist, brwAppHist;
+
+browse brwAppHist;
+  show at (,5,,11);
+  table tmpAppHist;
+fields
+  {font = {color  = if ( ( tmpAppHist.wAttrHist1 = 99 ), ColorSysGray, 0 ) }};
+  TypePr.NOper 'Вид операции' ('Вид операции.',, scStaffRecepT2RaisePick): [28], protect;
+  fDRec    'С даты'       ('С даты') : [10,'DD/MM/YYYY'], protect;
+  fDEnd    'По дату'      ('По дату') : [10,'DD/MM/YYYY'], protect;
+  fSNG_TaxRate 'Оклад, тариф' ('Оклад, ставка, тариф'): [10], protect;
+  fDocNmb  'Приказ N'     ('N приказа')   : [10], protect;
+  fDocDate 'от'           ('Дата приказа'): [10,'DD/MM/YYYY'], protect;
+end;
+
+screen scrAppHist;
+  show at (,12);
+  table tmpAppHist;
+fields
+  tmpAppHist.LastDate ('Дата создания записи'): skip;
+  tmpAppHist.LastTime ('Время создания записи'): skip;
+  fRecSource ('Источник записи'): {Font={Color=ColorSysBlue}}, skip;
+  TypePr.CodOper    ('Код вида операции'): protect;
+  TypePr.NOper      ('Вид операции.',, scStaffRecepT2RaisePick): protect;
+  PriznTrud ('Признак отображения в трудовой книжке',, scStaffRecepT2RaisePick): NoProtect;
+  tmpAppHist.DocNmb    ('N приказа');
+  tmpAppHist.DocDate   ('Дата приказа'): [10,'DD/MM/YYYY'];
+  tmpAppHist.dRec      ('С даты') : [10,'DD/MM/YYYY'];
+  tmpAppHist.dEnd      ('По дату'): [10,'DD/MM/YYYY'];
+  wValue1: NoProtect;
+  KlSisOpl.NaSisOpl ('Система оплаты труда',, scStaffReceptionT2ComPick): protect;
+  tmpAppHist.TaxRate   ('Оклад, ставка, тариф'): [11.3];
+  KlVal.SimvolV     ('Валюта оплаты',, scStaffReceptionT2ComPick):  protect;
+  scdLastUser ('Корректирующий коэффициент'): [10.3];
+  TarStav.Naitar  : Skip;
+  //tmpAppHist.Category: Skip;
+	CatTarZone.Code ('Тарифная зона'): skip;
+  SNG_Apphist.Pers ('Персональный оклад'): protect;
+  SNG_Apphist.Pers_Prizn1 ('Признак персонального оклада'): protect;
+  //HistoryStr.hTaxRate ('Должностной оклад'): [6.2], protect;
+  SNG_Apphist.Text ('Примечание'): protect;
+  tmpAppHist.coef1  ('Количество занимаемых ставок'): [5.3];
+  FullIf ('Источники финансирования',, scStaffReceptionT2ComPick): protect;
+  wValue2: NoProtect;
+  i_Kategory        ('Квалификационный разряд/категория'): NoProtect;
+  wValue3: NoProtect;
+  KLRejim.NRejim    ('Режим работы',, scStaffReceptionT2ComPick): protect;
+  GetPeriodOwModeName() ('Период суммирования/ вид учета',, scStaffReceptionT2ComPick): protect;
+  wValue4: NoProtect;
+  JobNatureCat.Name ('Характер работы',, scStaffReceptionT2ComPick): protect;
+  wValue5: NoProtect;
+  AppWorkCondCat.Name ('Условия труда. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  wValue6: NoProtect;
+  AppHistOU           (): pickbutton, protect;
+  wValue7: NoProtect;
+  KlKatego.NaiKat ('Категория',, scStaffReceptionT2ComPick): protect;
+  wValue8: NoProtect;
+  AppDopAttrCat.Name ('Дополнительная характеристика. Выбор из каталога по F3.',, scStaffReceptionT2ComPick): pickbutton, protect;
+  wValue9: NoProtect;
+  tmpAppHist.wFld     ('Новый трудовой договор/продление старого'):
+      [list 0 ' '
+          , CONTRACT_NEW 'заключение'
+          , CONTRACT_LONG 'продление'
+          , CONTRACT_NEW_EX 'заключение (договор уже оформлен)'], protect;
+  HistContractStr ('Информация о трудовом договоре'): pickbutton, protect;
+  fAgreement ('Доп. соглашение к трудовому договору'): protect, pickbutton;
+	vidDopS ('Вид доп. соглашения'): protect;
+buttons
+  cmValue12,[singleline],,,'Составляющие корректирующего коэффициента', hcStaff_complexKK;
+  cmValue24, [SingleLine],,, 'Штрих-код';
+  cmValue25, [SingleLine],,, 'Штрих-код';
+
+<<
+     Дата и время создания записи   .@@@@@@@@@ .@@@@@ .@@@@@@@@@@@@@@@@@
+     Вид операции  .@@@.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ [:] Отобразить в трудовой книжке`
+     Номер приказа     .@@@@@@@@@@@@                  `дата`.@@@@@@@@@@@
+     Изменить с        .@@@@@@@@@@@@  `по`  .@@@@@@@@@@@
+   [:] Система оплаты` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Оклад/ставка`     .@@@@@@@@@@@@.@@@@@@@@@ `Корр.коэф.`.@@@@@@@<.>>.>
+     Тариф             .@@@@@@@@@@@@@@@@    Тарифная зона .@@@@@@@@@@@@@
+   [:] Персональный оклад`  `Признак персонального оклада`.@@
+     Примечание        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+		 
+     Кол-во ставок     .@@@@@ `ИФ `.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                         [:] Классность водителя` .@@@@@
+   [:] Режим работы`   .@@@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@
+   [:] Характер работы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Условия`        .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Условия труда на рабочем месте`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Категория`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Доп. хар-ка`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   [:] Долгосрочное отсутствие`
+    `Режим операции `  .@@@@@@@@@@@@@@@@@@@@@@
+    `Договор        `  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <. Штрих-код .>
+    `Доп. соглашение`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ <. Штрих-код .>
+		`Вид доп. соглашения`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+//******************************************************************************
+
+procedure SetVisibleField;
+{
+  inherited::SetVisibleField;
+
+  ClearFieldOption(#vidDopS, ofSelectable);
+
+  if (tmpAppHist.cContDoc = 0) and (Title <> 'Protect')
+  {
+    SetFieldOption(#vidDopS, ofSelectable);
+  }
+
+    //поля доп. соглашений
+  if (NOAA.GetFirstAgreementByLink(coAppHist, tmpAppHist.NRec) <> 0)
+      or NOAA.NeedFormAddAgreementPers(tmpAppHist.CodOper)
+    SetFieldAndLabelVisible(#vidDopS, true);
+  else
+    SetFieldAndLabelVisible(#vidDopS, false);
+}
+
+HandleEvent
+
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+
+  if ((VPerAccess.GetAccessMask(6) and 32768) <> 0)
+    bSNG_TaxRate := true;
+  else
+  {
+    SetFieldAndLabelVisible(#tmpAppHist.TaxRate, false);
+    SetFieldAndLabelVisible(#HistoryStr.hTaxRate, false);
+    bSNG_TaxRate := false;
+  }
+
+  SetFieldAndLabelVisible(#fSNG_TaxRate, bSNG_TaxRate);
+}
+
+end;
+
+end.

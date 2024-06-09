@@ -1,0 +1,476 @@
+#component "Z_STAFF"
+
+#include ActionJsonCreate.vih
+
+alter interface PNFond;
+
+const 
+  UPDATE_REC = 'U';
+  DELETE_REC = 'D';
+  SPLIT_REC = 'S';
+  END_DATE = to_date(31, 12, 9999);
+end;
+
+table struct Restricted
+(
+  nRec: comp,
+  operation: string(1),
+  dateOfEntry: date,
+  dateOfOut: date
+)
+with index
+(
+  Oper = operation
+);
+
+function checkAndRestrict: boolean; forward;
+
+create view vPNFond
+as select CheckEntries.nRec
+from 
+  Persons,
+  NPF CheckEntries,
+  NPF NPF_mod,
+  Restricted
+;
+
+window winNPFEdit
+  show at (,, 30, 20);   
+
+  panel fillValues 
+
+    screen scSocSupport;
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfOut = zeroDate, ColorNeed, 0)}};
+      [PensBasement] iCatFunc.GetCatalogsName(NPF.cReasonOfEntry) ('Пенсионные основания'): pickbutton;
+
+    <<
+      `Вид пенсионной программы`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`         .@@@@@@@@@@
+      `Дата выбытия`            .@@@@@@@@@@
+      `Пенсионные основания`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    >>
+    end; // scSocSupport
+
+    screen scPartnership;
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfOut = zeroDate, ColorNeed, 0)}};
+      NPF.ContractNum ('Номер договора НПФ'): noProtect;
+      NPF.contractStatus ('Статус договора (блокировано/разблокировано)'):[list 0 'Разблокировано', 1 'Заблокировано'], noProtect;
+      NPF.ContractDate ('Дата договора НПФ'): [10, 'DD/MM/YYYY'], noProtect;
+      [DeductCause] iCatFunc.GetCatalogsName(NPF.cReasonEndOfPayment) ('Причина окончания удержания суммы'): pickbutton;
+      NPF.dateOfPayment ('Дата начала удержания суммы'): [10, 'DD/MM/YYYY'], noProtect;
+
+    <<
+      `Вид пенсионной программы`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`             .@@@@@@@@@@
+      `Дата выбытия`                .@@@@@@@@@@
+      `Номер договора НПФ`          .@@@@@@@@@@@@@@@@@@@@
+      `Статус договора`             .@@@@@@@@@@@@@@@
+      `Дата договора НПФ`           .@@@@@@@@@@
+      `Причина окончания удержания` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата начала удержания суммы` .@@@@@@@@@@
+    >>
+    end; // scPartnership
+
+    screen scSpecServ; // Особые заслуги
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], skip;
+      NPF.programDuration ('Срок участия в программе (лет)'): noProtect;
+
+    <<
+      `Вид пенсионной программы`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`               .@@@@@@@@@@
+      `Дата выбытия`                  .@@@@@@@@@@
+      `Срок участия в программе (лет)`.@@@@
+    >>
+    end; // scSpecServ
+
+    screen scPersPension; // Персональная пенсия
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfOut = zeroDate, ColorNeed, 0)}};
+
+    <<
+      `Вид пенсионной программы`      .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`               .@@@@@@@@@@
+      `Дата выбытия`                  .@@@@@@@@@@
+    >>
+    end; // scPersPension
+
+    screen scNPO;
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfOut = zeroDate, ColorNeed, 0)}};
+      NPF.ContractNum ('Номер договора НПФ'): noProtect;
+      NPF.ContractDate ('Дата договора НПФ'): [10, 'DD/MM/YYYY'], noProtect;
+
+    <<
+      `Вид пенсионной программы`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`             .@@@@@@@@@@
+      `Дата выбытия`                .@@@@@@@@@@
+      `Номер договора НПО`          .@@@@@@@@@@@@@@@@@@@@
+      `Дата договора НПО`           .@@@@@@@@@@
+    >>
+    end; // scNPO
+
+    screen scOPS;
+      show at (,,,18) fixed_y;
+    fields
+      iCatFunc.GetCatalogsName(NPF.cProgram) ('Вид программы НПФ'): skip;
+      NPF.DateOfEntry ('Дата вступления'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfEntry = zeroDate, ColorNeed, 0)}};
+      NPF.DateOfOut ('Дата выбытия'): [10, 'DD/MM/YYYY'], noProtect, {Font = {BackColor = if(NPF.DateOfOut = zeroDate, ColorNeed, 0)}};
+      NPF.ContractNum ('Номер договора НПФ'): noProtect;
+      NPF.ContractDate ('Дата договора НПФ'): [10, 'DD/MM/YYYY'], noProtect;
+
+    <<
+      `Вид пенсионной программы`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      `Дата вступления`             .@@@@@@@@@@
+      `Дата выбытия`                .@@@@@@@@@@
+      `Номер договора ОПС`          .@@@@@@@@@@@@@@@@@@@@
+      `Дата договора ОПС`           .@@@@@@@@@@
+    >>
+    end; // scOPS
+
+  end; // fillValues
+
+  handleEvent
+
+    cmInit: {
+      case iCatFunc.GetCatalogsCode(NPF.cProgram) of 
+        '1': { SetFormat(scSocSupport); }
+        '2': { SetFormat(scPartnership); }
+        '3': { SetFormat(scSpecServ); }
+        '4': { SetFormat(scPersPension); }
+        '5': { SetFormat(scNPO); }
+        '6': { SetFormat(scOPS); }
+      end; //case
+
+      if (NPF.dateOfOut = zeroDate) {
+        NPF.dateOfOut := END_DATE;
+      }
+
+    }
+
+    cmPick: {
+      case CurField of
+        #PensBasement : {
+          ParentSav := NPF.cReasonOfEntry;
+          iEntry := -31663;
+          if (RunInterface(PickCatalog2, iEntry, ParentSav, comp(0)) = cmDefault) {
+            set NPF.cReasonOfEntry := ParentSav;
+          }
+        }
+        #DeductCause : {
+          ParentSav := NPF.cReasonOfEntry;
+          iEntry := -31622;
+          if (RunInterface(PickCatalog2, iEntry, ParentSav, comp(0)) = cmDefault) {
+            set NPF.cReasonEndOfPayment := ParentSav;
+          }
+        }
+      end; //case
+    }
+
+  end;
+
+end; // winNPFEdit
+
+overloadFormats NepF;
+overloadFormats NepF_ReadOnly;
+
+window windPNFond;
+
+browse NepF;
+table NPF;
+fields
+  [ProgName] 
+    iCatFunc.GetCatalogsName(NPF.cProgram) 'Вид', 'программы НПФ', (,, sci13478Esc): [12], protect;
+  NPF.DateOfEntry 'Дата', 'вступления' ('Дата вступления',, sci13478Esc): [10], protect;
+  NPF.DateOfOut 'Дата выбытия' ('Дата выбытия',, sci13478Esc): [8], protect;
+end; //browse NepF
+
+browse NepF_ReadOnly (, hcNoContext, sci1Esc);
+table NPF;
+fields
+  iCatFunc.GetCatalogsName(NPF.cProgram) 'Вид', 'программы НПФ': [12], protect;
+  NPF.DateOfEntry 'Дата', 'вступления' ('Дата вступления'): [10], protect;
+  NPF.DateOfOut 'Дата выбытия' ('Дата выбытия'): [8], protect;
+end; //browse NepF_ReadOnly
+
+handleevent
+
+  cmEdit: {
+    if (inherited::handleEvent(cmEdit) = heAbort) {
+      abort;
+      exit;
+    }
+    SetWindowTitle(winNPFEdit, iCatFunc.GetCatalogsName(NPF.cProgram));
+    RunWindowModal(winNPFEdit);
+  }
+
+end;
+
+end; // windPNFond
+
+tableEvent table NPF;
+  cmInsertRecord: {
+
+    var sParam: string;
+
+    if (not checkAndRestrict()) {
+      abort;
+      exit;
+    }
+
+    sParam := 'INS';
+
+    // var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new; // Пока запись не добавлена в БД, никакой JSON через конструктор не сформируется
+    // if (oJsonSender.createJson('NPF_SAP', NPF.nRec, sParam + ';X')) {
+    //   if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+    //     message(oJsonSender.getErrorMessage(), Error);
+    //     abort;
+    //     exit;
+    //   }
+    // }
+
+    if (inherited::handleEvent(cmInsertRecord) <> heAbort) {
+      var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+      if (oJsonSender.createJson('NPF_SAP', NPF.nRec, sParam)) {
+        if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+          message(oJsonSender.getErrorMessage(), Error);
+        }
+      }
+    }
+  }
+
+  cmUpdateRecord: {
+
+    var sParam: string;
+
+    if (not checkAndRestrict()) {
+      abort;
+      exit;
+    }
+
+    sParam := 'MOD';
+
+    if (getFirst NPF_mod where ((NPF.nRec == NPF_mod.nRec)) = tsOk and (NPF_mod.dateOfEntry <> NPF.dateOfEntry or NPF_mod.dateOfOut <> NPF.dateOfOut)){
+      sParam := 'KEY_CHANGED(BEGDA:'+dateToStr(NPF_mod.dateOfEntry, 'YYYYMMDD')+'$ENDDA:'+dateToStr(NPF_mod.dateOfOut, 'YYYYMMDD')+')';
+    } 
+
+    var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+    if (oJsonSender.createJson('NPF_SAP', NPF.nRec, sParam+';X')) { // Пока запись не сохранена в БД, мы не можем получить JSON с изменёнными данными, но мы можем хотя бы передать уже существующую запись и проверить табельный на блокировку
+      if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+        message(oJsonSender.getErrorMessage(), Error);
+        abort;
+        exit;
+      }
+    }
+
+    if (inherited::handleEvent(cmUpdateRecord) <> heAbort) {
+      if (oJsonSender.createJson('NPF_SAP', NPF.nRec, sParam)) {
+        if (not oJsonSender.sendJsonToReceiver('SAP') ) {
+          message(oJsonSender.getErrorMessage(), Error);
+        }
+      }
+    }
+  }
+
+  cmDeleteRecord: {
+
+    var oJsonSender: iEntryActionSender(JsonSenderToReceiver) new;
+    var _bJsonFormed: boolean = oJsonSender.createJson('NPF_SAP', NPF.nRec, 'DEL');
+    if (inherited::handleevent(cmDeleteRecord) <> heAbort) {
+      if (_bJsonFormed) {
+        oJsonSender.sendJsonToReceiver('SAP');
+      }
+    }
+  }
+
+  cmCheckField: {
+    case curField of
+      #NPF.DateOfEntry: {
+        if (iCatFunc.GetCatalogsCode(NPF.cProgram) = '3') {
+          if (NPF.DateOfEntry = ZERODATE) {
+            NPF.dateOfOut := ZERODATE;
+          } else {
+            NPF.dateOfOut := Sub_Day(Add_Months(NPF.DateOfEntry, 36), 1);
+          }
+          rescanPanel(#NPF);
+        }
+      }
+    end; //case
+  }
+  
+end;  //tableEvent table NPF
+
+handleevent
+
+cmPick: {
+
+  if (inherited::handleEvent(cmPick) = heAbort) {
+    abort;
+    exit;
+  }
+
+  case CurField of
+    #ProgName: {
+      ParentSav := NPF.cProgram;
+      iEntry := -31582;
+      cCurPart := 0;
+      if (RunInterface(PickCatalog2, iEntry, ParentSav, cCurPart) = cmDefault) {
+        if (NPF.cProgram <> comp(0) and NPF.cProgram <> ParentSav) {
+          message('Нельзя менять тип программы, создайте новую запись');
+          abort;
+          exit;
+        }
+        set NPF.cProgram := ParentSav;
+        SetWindowTitle(winNPFEdit, iCatFunc.GetCatalogsName(NPF.cProgram));
+        RunWindowModal(winNPFEdit);
+      }
+    }
+  end;
+}
+
+end; //handleevent
+
+function getConfirmation(_key: comp; _oper: String): boolean;
+var textMessage: string;
+{
+  result := false;
+  if getFirst NPF_mod where ((_key == nRec)) = tsOk {
+    textMessage := 'Существующая запись NPF с '+dateToStr(NPF_mod.dateOfEntry,'DD-MM-YYYY')+' по '+dateToStr(NPF_mod.dateOfOut,'DD-MM-YY')+' будет '+case(_oper; DELETE_REC: 'удалена', UPDATE_REC: 'ограничена', SPLIT_REC: 'разделена');
+    if (message(textMessage, yesNo+Confirmation) = cmYes) {
+      result := true;
+    }
+  }
+}
+
+function checkAndRestrict(): boolean; 
+var 
+  lCheckEnd: date;
+  lCheckFlag: boolean;
+{
+  result := false;
+
+  if (NPF.dateOfEntry = ZERODATE) {
+    message('Не заполнено обязательное поле Дата Вступления');
+    exit;
+  }
+
+  if (NPF.dateOfOut = ZERODATE) {
+    message('Не заполнено обязательное поле Дата Выбытия');
+    exit;
+  }
+
+  if (NPF.dateOfOut < NPF.dateOfEntry) {
+    message('Дата окончания записи должна быть не меньше даты начала');
+    exit;
+  }
+
+  if (iCatFunc.GetCatalogsCode(NPF.cProgram) = '2') {
+    if (iCatFunc.GetCatalogsCode(NPF.cReasonEndOfPayment) = '4' and (NPF.dateOfOut = ZERODATE or NPF.dateOfOut = END_DATE)) {
+      message('Необходимо заполнить дату расторжения договора');
+      exit;
+    }
+
+    if (NPF.dateOfPayment <> ZERODATE and Day(NPF.dateOfPayment) <> 1) {
+      NPF.dateOfPayment := Sub_Day(NPF.dateOfPayment, Day(NPF.dateOfPayment) - 1);
+    }
+
+    if (NPF.dateOfPayment <> ZERODATE and NPF.dateOfPayment < NPF.dateOfEntry) {
+      message('Дата начала удержания суммы должна быть больше или равна дате заявления!');
+      exit;
+    }
+  } else if (iCatFunc.GetCatalogsCode(NPF.cProgram) = '4') {
+    if (getFirst Persons where ((NPF.cPersons == Persons.nRec)) <> tsOk or Persons.isEmployee <> 'У') {
+      message('Ведение разрешено только для уволенных!');
+      exit;
+    }
+  }
+
+  delete all from Restricted;
+
+  _loop CheckEntries where (( NPF.cPersons == CheckEntries.cPersons (noIndex) and (NPF.nRec <> CheckEntries.nRec 
+                                                                              and (NPF.DateOfEntry <= CheckEntries.DateOfOut or CheckEntries.DateOfOut = ZERODATE)
+                                                                              and (NPF.DateOfOut = ZERODATE or NPF.DateOfOut >= CheckEntries.DateOfEntry)) )) {
+    if (NPF.cProgram <> CheckEntries.cProgram) {
+      lCheckFlag := false;
+      case iCatFunc.GetCatalogsCode(NPF.cProgram) of
+        1: {
+          if (iCatFunc.GetCatalogsCode(CheckEntries.cProgram) = 2) { lCheckFlag := true; }
+        }
+        2: {
+          if (iCatFunc.GetCatalogsCode(CheckEntries.cProgram) = 1) { lCheckFlag := true; }
+        }
+      end; //case
+      if (lCheckFlag) { 
+        message('Невозможно одновременно участвовать в программах "Соц.поддержка" и "Партнерство"');
+        delete all from Restricted; 
+        exit; 
+      }
+      continue;
+    }
+
+    lCheckEnd := if(CheckEntries.dateOfOut = ZERODATE, END_DATE, CheckEntries.dateOfOut);
+
+    if (NPF.dateOfEntry <= CheckEntries.dateOfEntry and NPF.dateOfOut >= lCheckEnd) {
+      insert Restricted set nRec = CheckEntries.nRec, operation = DELETE_REC, dateOfEntry = CheckEntries.dateOfEntry, dateOfOut = CheckEntries.dateOfOut;
+    } else if (CheckEntries.dateOfEntry >= NPF.dateOfEntry and CheckEntries.dateOfEntry <= NPF.dateOfOut and lCheckEnd > NPF.dateOfOut) {
+      insert Restricted set nRec = CheckEntries.nRec, operation = UPDATE_REC, dateOfEntry = Add_Day(NPF.dateOfOut, 1), dateOfOut = CheckEntries.dateOfOut;
+    } else if (CheckEntries.dateOfEntry < NPF.dateOfEntry and lCheckEnd >= NPF.dateOfEntry and lCheckEnd <= NPF.dateOfOut) {
+      insert Restricted set nRec = CheckEntries.nRec, operation = UPDATE_REC, dateOfEntry = CheckEntries.dateOfEntry, dateOfOut = Sub_Day(NPF.dateOfEntry, 1);
+    } else if (CheckEntries.dateOfEntry < NPF.dateOfEntry and lCheckEnd > NPF.dateOfOut) {
+      insert Restricted set nRec = CheckEntries.nRec, operation = SPLIT_REC, dateOfEntry = Add_Day(NPF.dateOfOut, 1), dateOfOut = Sub_Day(NPF.dateOfEntry, 1);
+    } else { 
+      continue; 
+    }
+    if (not getConfirmation(CheckEntries.nRec, Restricted.operation)) { delete all from Restricted; exit; }
+  }
+
+  _loop Restricted {
+    if getFirst NPF_mod where ((Restricted.nRec == NPF_mod.nRec)) <> tsOk {
+      continue;
+    }
+
+    case Restricted.operation of
+      DELETE_REC: {
+        delete current NPF_mod;
+      }
+      UPDATE_REC: {
+        NPF_mod.dateOfEntry := Restricted.dateOfEntry;
+        NPF_mod.dateOfOut := Restricted.dateOfOut;
+        update current NPF_mod;
+      }
+      SPLIT_REC: {
+        clearBuffer(#CheckEntries);
+        CheckEntries.buffer := NPF_mod.buffer;
+        NPF_mod.dateOfOut := Restricted.dateOfOut;
+        update current NPF_mod;
+        CheckEntries.dateOfEntry := Restricted.dateOfEntry;
+        CheckEntries.nRec := comp(0);
+        insert current CheckEntries;
+      }
+    end; //case
+  }
+
+  delete all from Restricted;
+
+  result := true;
+
+}
+
+end.

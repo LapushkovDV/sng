@@ -1,0 +1,102 @@
+#include DepartmentsLimiter.vih
+
+#component "Z_Staff"
+
+alter interface CommonFiltrDept;
+
+overload
+  procedure ICommonFiltrDept.InitTmpTable;
+end;
+
+table struct tpDel
+(
+  NRec: comp
+)
+with index
+(
+  tpDel01 = NRec
+)
+;
+
+var vUserAcsEx: UserDepartmentsIterator;
+
+create view ForFiltr
+as select
+  tpDel.NRec
+from
+  tpDel
+;
+
+private function Private_Exists(pDepartment: comp): boolean; cacheable;
+{
+  result := vUserAcsEx.Exists(pDepartment);
+}
+
+private procedure InsToDel(pDepartment: comp);
+{
+  if (GetFirst tpDel where (( pDepartment == tpDel.NRec )) <> tsOk)
+  {
+    tpDel.NRec := pDepartment;
+    insert current tpDel;
+  }
+}
+
+procedure ICommonFiltrDept.InitTmpTable;
+{
+  mtClear(#tmpPostCommonFiltr, mfNormal);
+  mtClear(#tpDel, mfNormal);
+
+  if (PostSort = 0)
+  {
+    insert visual 'Инициализация таблицы в памяти' into tmpPostCommonFiltr (cStaffStr, Department, Post)
+    select
+      StaffStruct.Nrec,
+      StaffStruct.Department,
+      StaffStruct.Nrec
+    from
+      StaffStruct
+    where
+    ((
+      ForFiltr.FDate >>= StaffStruct.dInput and
+      (ForFiltr.FDate <= StaffStruct.dClose or ZeroDate = StaffStruct.dClose)
+    ))
+    ;
+  }
+  else
+  {
+    insert visual 'Инициализация таблицы в памяти' into tmpPostCommonFiltr (cStaffStr, Department, Post)
+    select
+      StaffStruct.Post,
+      StaffStruct.Department,
+      StaffStruct.Nrec
+    from
+      StaffStruct
+    where
+    ((
+      ForFiltr.FDate >>= StaffStruct.dInput and
+      (ForFiltr.FDate <= StaffStruct.dClose or ZeroDate = StaffStruct.dClose)
+    ))
+    ;
+  }
+
+  delete tmpPostCommonFiltr where (( 0 == tmpPostCommonFiltr.Department ));
+
+  StartNewVisual(vtIndicatorVisual, vfTimer + vfBreak + vfConfirm,
+                  'Инициализация таблицы в памяти', RecordsInTable(#StaffStruct));
+
+  _loop tmpPostCommonFiltr
+  {
+    if (Not NextVisual)
+      break;
+
+    if (not Private_Exists(tmpPostCommonFiltr.Department))
+      InsToDel(tmpPostCommonFiltr.Department);
+  }
+
+  _loop tpDel
+    delete tmpPostCommonFiltr where (( tpDel.NRec == tmpPostCommonFiltr.Department ));
+
+  StopVisual('', 0);
+} // procedure InitTmpTable
+
+end.

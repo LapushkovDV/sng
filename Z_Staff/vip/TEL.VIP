@@ -1,0 +1,180 @@
+#component "Z_Staff"
+#include CatFunc.vih              // Функции работы с каталогом
+#include Getkau.vih              // Функции работы с аналитикой
+#include ActionJsonCreate.vih    // Интеграция с SAP
+
+
+#doc
+Данные рабочего места (HR-77)
+#end
+
+alter interface TelWin;
+
+const
+  ObjAddr = 10;
+  coComTypeTelHome: integer = 66;
+  coComTypeTelMobile: integer = 71;
+end;
+
+var oGetKau:GetKau;
+
+
+create view  TelWin
+as select SpKau.nrec, Sng_SpkauExt.cSpKau
+from
+  SpKau,
+  Sng_SpkauExt
+where
+((
+        Communications.cRef == SpKau.Nrec
+   and  Spkau.nrec == Sng_SpKauExt.cSpKau
+))
+// ----- Данные рабочего места  --------------
+//condition byAddr = ObjAddr = Communications.ObjType;
+
+bounds byAddr as   cPers == Communications.Person and
+                   ObjAddr == Communications.ObjType ;
+
+panel panCommunications;
+  table Communications;
+
+ExtendTabbedSheets TelWin;
+
+TabbedSheet Bottom TabsPanel;
+  show at (,,,);
+
+screen scrCommunic_Addr 'Данные рабочего места';
+Fields
+  SpKau.Code : PickButton, Protect;
+  Sng_SpKauExt.sAddr : Protect, {Font = {Color = ColorSysGray; BackColor = ColorSys06}}; //++
+  SpKau.Name : Protect, {Font = {Color = ColorSysGray; BackColor = ColorSys06}};
+  Sng_SpKauExt.sCity : Protect, {Font = {Color = ColorSysGray; BackColor = ColorSys06}};
+  Communications.addr : noPickbutton, noProtect;
+  GetTablePermissions(coSng_SpKauExt) : Protect;
+<<
+
+    `Код здания`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Адрес здания`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Наименование ТМ`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Город`          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    `Номер комнаты`  .@@@@@@                Права.@@@@@
+>>
+end;  // screen
+end;  // TabbedSheet
+
+HandleEvent
+
+cmInsertRecord:
+{
+  inherited::handleevent(cmInsertRecord)
+  // Формирование JSON для домашнего и мобильного телефонов
+  case CommunicationCat.SysCode of
+    coComTypeTelHome, coComTypeTelMobile: {
+      ClearFuncCache();
+      var oJson: JsonAddress new;
+      oJson.CreateJsonCommunications(Persons.nRec, 'MOD');
+    }
+  end;
+}
+
+cmUpdateRecord:
+{
+  inherited::handleevent(cmUpdateRecord)
+  // Формирование JSON для домашнего и мобильного телефонов
+  case CommunicationCat.SysCode of
+    coComTypeTelHome, coComTypeTelMobile: {
+      ClearFuncCache();
+      var oJson: JsonAddress new;
+      oJson.CreateJsonCommunications(Persons.nRec, 'MOD');
+    }
+  end;
+}
+
+cmDeleteRecord:
+{
+
+  var cComType: Integer;
+
+  cComType := CommunicationCat.SysCode;
+
+  inherited::handleevent(cmDeleteRecord);
+
+  // Формирование JSON для домашнего и мобильного телефонов
+  case cComType of
+    coComTypeTelHome, coComTypeTelMobile: {
+      if not IsValidAll(#Communications)
+      {
+        ClearFuncCache();
+        var oJson: JsonAddress new;
+        oJson.CreateJsonCommunications(Persons.nRec, 'MOD');
+      }
+    }
+  end;
+}
+
+end;
+end;
+
+HandleEvent
+
+cmChangeTabbedSheetFormat:
+{
+ // if ConditionActive(tcbyAddr)
+ //    PopCondition(tcbyAddr);
+
+   if BoundActive(tbbyAddr)
+    PopBounds(tbbyAddr);
+
+  inherited::handleEvent(cmChangeTabbedSheetFormat);
+
+  case Target of
+
+    scrCommunic_Addr:
+    {
+      PopCondition(tcbyEmail);
+      PopCondition(tcbyPhone);
+      //PushCondition(tcbyAddr);
+      PushBounds(tbbyAddr);
+      numPage  := 2;
+
+      UpDateTable;
+      SelectField(#SpKau.Code);
+      ReReadRecord(#Communications);
+	  ReReadRecord(#SpKau);
+	  ReReadRecord(#Sng_SpKauExt);
+    }
+
+  end; //case
+}
+
+cmSetDefault:
+{
+  inherited::handleEvent(cmSetDefault);
+
+  case numPage of
+    //------------------
+    2 :
+    {
+      Communications.ObjType := ObjAddr;
+    }
+
+  end; //case
+}
+
+cmPick:
+{
+  inherited::handleEvent(cmPick);
+  if ( CurField = #SpKau.Code )
+  {
+     var nrecAddr : comp; //внутри функции переменную обяъвялем в 1 строку!!!
+     oGetKau.GetCodeKau( cgiNotClear, 10022, nrecAddr)  //вызов аналитики
+     if nrecAddr>0
+        set Communications.cRef := nrecAddr;
+     RereadRecord(#Sng_SpKauExt);
+     ReScanPanel(#Communications);
+     ReScanPanel(#Sng_SpKauExt); //++
+  }
+}
+
+end; //HandleEvent
+end.  // alter

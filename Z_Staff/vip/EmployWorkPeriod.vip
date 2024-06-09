@@ -1,0 +1,29 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface iEmployWorkPeriod;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brAllLschetPersons;
+
+Create view IEmployWorkPeriod
+
+As select
+  DepIer.GetFulDepNameEx(Persons.Department)
+    (fieldname = DeptNameIer)
+;
+
+browse brAllLschetPersons (,, sci1InsPM);
+  show (,,,5);
+  recMarker = pMarker {PersonsTmp.Person};
+fields
+  PersonsTmp.FIO      'Фамилия Имя Отчество'  ('Фамилия Имя Отчество',,):[30], protect;
+  PersonsTmp.TabNum   'Таб.номер'      ('Табельный номер работника',,):[20], protect;
+  DeptNameIer         'Подразделение'  ('Подразделение',,):[30], skip;
+  PostCatalogs.Name   'Должность'  ('Должность',,):[30], skip;
+end;
+
+end.

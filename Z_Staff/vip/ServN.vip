@@ -1,0 +1,426 @@
+#component "Z_Staff"
+//#include CatFunc.vih              // Функции работы с каталогом
+//#include ServlenFunc.vih
+//#include MainLschetForPersons.vih // нахождение основного л\с
+//#include Pickcat.vih
+
+
+#doc
+Информация для начисления северной надбавки
+#end
+
+Alter interface ServN;
+var Sprav         : Comp = 0;
+var ini_datesprav : Date = Date(0,0,0);
+var ini_code      : String;
+var ini_name      : String;
+
+Table Struct tNorthSignal
+(
+ Tabnzpl : Longint,
+ Northerncategory : Word
+);
+
+const cs_lgotSn:string = 'Льготы для СН';
+      cs_syscod:integer = -31996;
+end;
+
+Function Get_Proc( )                    : double;  forward;
+Function lookAtNorthZar( )              : boolean; forward;
+Function ShowHideFields(mshow:Word = 0) : boolean; forward;
+Function CheckKategs( )                 : boolean; forward;
+Procedure ManagementFields( ); forward;
+Procedure SetInitialFields( ); forward;
+
+create view
+var
+  SNG_sevKateg: word;
+  SNG_NorthProc: double;
+from
+   tNorthSignal,
+
+   Servlen srv(SLBYCURREC),
+   Catalogs ctg,
+
+   Sng_ServlenExt ServArch,
+   Catalogs CatArch,
+
+   Sng_ServlenExt Serv_Ext,
+   Catalogs CatExt,
+
+   KlKategS SNG_KlKategS,
+
+   Appointments AppointmentsCur
+where
+((
+                64 == ctg.SysCode      and     //Северный стаж
+              cPsn == Srv.Person       and
+          ctg.Nrec == Srv.Position     and
+ slStaffServLenCur == Srv.Currec       and
+
+    Serv_Ext.Lgota == CatExt.Nrec      and
+          Srv.nRec == Serv_Ext.Servlen and
+
+     Servlen1.nRec == ServArch.Servlen and
+    ServArch.Lgota == CatArch.Nrec     and
+
+    SNG_sevKateg   == SNG_KlKategS.Kod
+
+));
+
+
+OverloadFormats scrServN;
+
+ screen scrServN 'Информация для начисления северной надбавки';
+  show at (,,,11);
+  table KlKategs;
+   fields
+    LSchetFilialNo ( 'Фиксированная категория', hcnorth) : NoProtect;
+    KlKategs.Naikat
+       ('Наименование категории для начисления северной надбавки',,
+         sci13Esc) : protect;
+    NorthProc
+       ('Процент начисления', hcnorth) : [5.2], skip;
+    SNG_KlKategs.Naikat
+       ('Наименование категории для начисления северной надбавки',
+         hcnorth) : skip;
+    SNG_NorthProc
+       ('Процент начисления', hcnorth) : [5.2], skip;
+
+    CatExt.code( 'Предоставлена справка', hcnorth) :[1]  NoProtect, pickButton; //CatCode
+    CatExt.name( 'Текст из справочника' , hcnorth) :[10] Protect, noFrame;  //CatText
+    Serv_Ext.Datesprav( 'Дата предоставления справки', hcnorth) : [10,'DD/MM/YYYY'], NoProtect, pickButton;
+
+    KlKategsNew.Naikat
+       ('Наименование категории для начисления северной надбавки',, sci13Esc) : protect;
+    newDate
+       ( 'Дата начала текущего стажа', hcnorth) : [10,'DD/MM/YYYY'], NoProtect;
+  buttons
+   cmOk,,, 'Перенести северный стаж в архив',,;
+   cmValue24,,, 'Извлечь северный стаж из архива',,;
+   cmValue27,,, 'Плановые даты смены процента северной надбавки',,;
+
+ <<
+
+  [.] Фиксированная категория`
+
+  Категория на текущую дату            .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Процент начисления на текущую дату   .@@@@@
+
+  Категория на начало расчета          .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Процент начисления на начало расчета .@@@@@
+
+  Предоставлена справка о проживании не менее 5 лет в районах .@@@@@  .@@@@@@@@@@
+ `Дата предоставления справки`.@@@@@@@@@@
+
+ `Новая категория`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ `Дата начала новой категории`.@@@@@@@@@@
+
+    <.Перенести стаж в архив.>  <.Извлечь стаж из архива.>  <. Даты смены % СН .>
+ >>
+ end; // screen
+
+OverloadFormats brwServLen;
+
+     browse brwServLen;
+      show at (,12,,);
+      table Servlen1;
+      Fields
+       Servlen1.FromDate 'Стаж с..' ('', hcSLHistory, sci1Esc): [10,'DD/MM/YYYY'], Protect;
+       Servlen1.ToDate   '  по..' ('', hcSLHistory, sci1Esc)  : [10,'DD/MM/YYYY'], Protect;
+       ServLen1.Rate     'Коэф-т'   : [6.2], Protect;
+       KlKategSArch.Naikat 'Северная категория'   : [20], Protect;
+       Get_Proc() '% начисления'   : [10], Protect;
+       CatArch.name 'Льгота по справке'   : [10], Protect;
+       ServArch.Datesprav 'Дата предоставления справки'  : [10,'DD/MM/YYYY'], Protect;
+
+      end;   // brwServlen1Len
+
+
+Procedure ManagementFields( );{
+    if lookAtNorthZar( ) = false {
+
+     if CheckKategs( ) = true {
+
+       ShowHideFields(1);
+       exit;
+
+     }else{
+
+      ShowHideFields(0);
+
+     };
+    }else{
+
+      ShowHideFields(0);
+
+    };
+
+};
+
+procedure SetInitialFields( );{
+
+    Set Serv_Ext.Datesprav := date(0,0,0);
+    Set CatExt.code := ini_code;
+    Set CatExt.name := ini_name;
+
+};
+
+function ShowHideFields(mshow:Word = 0):boolean;{
+  result := false;
+  if mshow = 0 {
+     SetFieldAndLabelVisible(#CatExt.code, false);
+     SetFieldAndLabelVisible(#CatExt.name, false);
+     SetFieldAndLabelVisible(#Serv_Ext.Datesprav, false);
+     cfsSetProp('T_SCRSERVN_Предоставлена_справка_о_проживании_не_менее_5_лет_в_районах', cfpHidden, true);
+     result := true;
+  }else{
+     SetFieldAndLabelVisible(#CatExt.code, true);
+     SetFieldAndLabelVisible(#CatExt.name, true);
+     SetFieldAndLabelVisible(#Serv_Ext.Datesprav, true);
+     cfsSetProp('T_SCRSERVN_Предоставлена_справка_о_проживании_не_менее_5_лет_в_районах', cfpHidden, false);
+     result := true;
+  }
+}
+
+function CheckKategs( ):boolean;{
+ result := false;
+   if KlKategs.Kod = 10 or
+      KlKategs.Kod = 9 {
+        result := true;
+      }
+}
+
+function lookAtNorthZar( ):boolean;{
+  result := false;
+
+_try
+      {
+        sql select top 1 zarsignal.*
+            from zarsignal
+           where tabnzpl = :psntabn
+            into tNorthSignal byname ;
+       }
+        if getfirst tNorthSignal = tsOk{
+
+           SetInitialFields( );
+           result := true;
+        }
+
+
+}
+
+function Get_Proc():double;{
+        result := iRunStaj.GetPercServN(cPsn, KlKategSArch.Kod, Servlen1.ToDate);
+}
+
+
+HandleEvent
+
+ cmInit:{
+   inherited::handleevent(cmInit);
+
+   set SNG_sevKateg := LSchet.KategS;
+   set SNG_NorthProc := iRunStaj.GetPercServN(cPsn, SNG_sevKateg, FirstDayRas);
+   if (GetFirst SNG_KlKategS <> tsOk){}
+   ReScanPanel(#KlKategs);
+
+      if isvalid( #Serv_Ext ) = false{
+        insert Serv_Ext set Serv_Ext.servlen := Srv.NRec;
+       }
+
+   ManagementFields( );
+
+ }; //cmInit
+
+
+/* cmFirstModification:{    вызывает зависание в web
+  inherited::handleevent(cmFirstModification);
+    ManagementFields( );
+ }; //cmFirstModification */
+
+ cmPick:{
+   inherited::handleevent(cmPick);
+   case CurField of
+     #CatExt.code:
+     {
+        if(RunInterface( 'Z_STAFFCAT::PICKCATALOG2', cs_syscod, Sprav, comp(0), comp(0)) = cmDefault )
+        {
+              Set Serv_Ext.Lgota := Sprav;
+              update current Serv_Ext;
+        }
+     }
+   end; //Case
+
+ }; //cmPick
+
+ cmOk:{
+ //   inherited::handleevent(cmOk);
+
+  if (Message(chr(3) + 'Внимание! Стаж будет переведен в архив.' + chr(13) + chr(3) + 'Продолжить?', YesNo) = Yes)
+  {
+    iRunStaj.CreateHistSevStaj(LSchet.tPerson, sevKateg, newKateg, newDate);
+
+    cTypeStaj := iCatFunc.GetCatalogsNRec(ceNorthernService);
+
+
+    if (bSETARCH)
+      CreateSignal(newDate, 0);
+
+    ReReadRecord(#ServLen1);
+    SetVisibleFields();
+
+//add inherited-------------<<<
+    insert Serv_Ext set Serv_Ext.servlen := Servlen1.NRec;
+
+    if (GetFirst Serv_Ext where (( Srv.NRec == Serv_Ext.servlen )) = tsOk) {
+
+        Set Serv_Ext.Lgota := Comp(0);
+        Set Serv_Ext.Datesprav := ZeroDate;
+        update current Serv_Ext;
+    }
+
+// для отладки
+/* message('Srv.Nrec = '+Srv.Nrec);
+ message('Serv_Ext.Servlen = '+Serv_Ext.Servlen);
+ message('Servlen1.NRec = '+Servlen1.Nrec);
+ message('ServArch.servlen = '+ServArch.servlen);  */
+
+  ManagementFields( );
+
+    ReReadRecord(#ServArch);
+    ReReadRecord(#Serv_Ext);
+    ReReadRecord(#Srv);
+
+    ReReadRecord(#LSchet);
+    ReReadRecord(#KlKategS);
+    ReReadRecord(#Perexod);
+    ReReadRecord(#Persons);
+    ReReadRecord(#Appointments);
+
+  SelectField(#LSchetFilialNo);
+
+//add inherited------------->>>
+
+  }
+
+
+ };//cmCheckField
+
+ cmValue24:{
+ //   inherited::handleevent(cmValue24);
+
+  if (Message(chr(3) + 'Внимание! Стаж будет извлечен из архива.' + chr(13) + chr(3) + 'Продолжить?', YesNo) = Yes)
+  {
+    if (not bSETARCH)
+      iRunStaj.RollbackStajFromArchiv(LSchet.tPerson, ceNorthernService);
+    else
+    {
+      var dDate: date = ZeroDate;
+
+      if (GetFirst ServLen2 where (( LSchet.tPerson == ServLen2.Person and
+                                     slStaffServLenHistCur == ServLen2.CurRec )) = tsOk)
+        dDate := Add_Day(ServLen2.ToDate, 1);
+
+      CreateSignal(dDate, 1);
+      iRunStaj.RollbackStajFromArchivEx(LSchet.tPerson, sevKateg);
+    }
+
+    ReReadRecord(#ServLen1);
+    SetVisibleFields();
+
+
+//add inherited-------------<<<
+
+/* message('Srv.Nrec = '+Srv.Nrec);
+ message('Serv_Ext.Servlen = '+Serv_Ext.Servlen);
+ message('Servlen1.NRec = '+Servlen1.Nrec);
+ message('ServArch.servlen = '+ServArch.servlen); */
+
+
+   if (GetFirst ServArch where (( Srv.NRec == ServArch.servlen )) = tsOk)
+      {
+        delete current ServArch;
+      }
+
+  ManagementFields( );
+
+    ReReadRecord(#ServArch);
+    ReReadRecord(#Serv_Ext);
+    ReReadRecord(#Srv);
+
+    ReReadRecord(#LSchet);
+    ReReadRecord(#KlKategS);
+    ReReadRecord(#Perexod);
+    ReReadRecord(#Persons);
+    ReReadRecord(#Appointments);
+
+  SelectField(#LSchetFilialNo);
+//add inherited------------->>>
+
+  }
+
+
+};//cmValue24
+
+cmValue27:
+{
+  var PeremDate:date=0;
+  if GetFirst AppointmentsCur where ((Persons.AppointCur == AppointmentsCur.nRec)) = TsOk
+  {
+    PeremDate:=AppointmentsCur.AppointDate
+  }
+  if PeremDate=0
+    PeremDate:=Persons.AppDate;
+  if(sevKateg<>0 and ((KlKategs.FilialNo and 2)=0))
+    RunInterface('SNG_ServlenFunc::PlanDateChangeSN', cPsn, sevKateg, PeremDate);
+}
+
+  cmUpdateRecord: {
+    inherited::handleevent(cmUpdateRecord);
+    case CurField of
+       #KlKategs.Naikat:
+        {
+          ManagementFields( );
+        }
+       #Serv_Ext.Datesprav:
+        {
+           update current Serv_Ext;
+        }
+      #CatExt.Name:
+        {
+
+        }
+      #KlKategsNew.Naikat:
+        {
+
+        }
+    end;//Case
+
+    }; //cmUpdateRecord
+
+cmCheckField:
+{
+  inherited::handleevent(cmCheckField);
+  case curfield of
+
+   #KlKategs.Naikat:
+    {
+     ManagementFields( );
+    }
+
+    #Serv_Ext.Datesprav:
+    {
+     update current Serv_Ext;
+    }
+
+    #CatExt.code:{
+
+    }
+
+  end;  //case
+}
+
+end;
+
+end. // alter interface

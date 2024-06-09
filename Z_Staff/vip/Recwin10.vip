@@ -1,0 +1,18 @@
+#component "Z_Staff"
+
+alter Interface Recwin10;
+
+OverloadFormats scPersons;
+
+screen scPersons;
+  show at (,,, 1);
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO    ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt), protect;
+<<
+  Ф.И.О.                          .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end; // screen scPersons
+
+end.

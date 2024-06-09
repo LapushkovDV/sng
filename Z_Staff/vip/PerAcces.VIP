@@ -1,0 +1,515 @@
+#include PerAcces.VIH
+
+#component "Z_Staff"
+
+alter Interface SetPersonsAccess;
+
+overload
+  procedure MakeAccess(cRec: comp; wMask1, wMask2 : word; Code: s20);
+  procedure FillGroupsAndUsers;
+  public function IPerAccesByUserId.GetAccessMask(_wType: word; _cUser: comp = 0): word;
+  procedure CheckFieldOption;
+end;
+
+const
+  coTarRateAccess = 32768;
+end;
+
+Create view
+as select
+  (if(not IsValid(tntpServStav2), 0, GetValueForMT(tpServStav2.cServ, coTarRateAccess)))
+  (fieldname = fSNG_CanViewTaxRate)
+from
+  Groups Groups4Descr
+where
+((
+  GroupsAndUsers2.src == Groups4Descr.atl_nrec
+))
+;
+
+ExtendFormats brServStav, brUsers1;
+
+browse brServStav ('', hcstaff_DostupKatal, sci178Esc);
+  show at (,15,,);
+  table tpServStav2;
+Fields
+  fSNG_CanViewTaxRate 'Отображение', '"Окладов"':[8], checkbox, {font = {BackColor = if(AllUserAccess.Code <> word(6),ColorFPNeed,0) }};
+end;
+
+browse brUsers1 ('',, sci178Esc);
+  show at (,15,,);
+  table tpServStav2;
+Fields
+  fSNG_CanViewTaxRate 'Отображение', '"Окладов"':[8], checkbox, {font = {BackColor = if(AllUserAccess.Code <> word(6),ColorFPNeed,0) }};
+end;
+
+private procedure SNG_GetGroupAccess(AID: comp; _wType: word; var pCurWord1: word; var pCurWord2: word; var pCurWord4: word; var pCurWordSNG: word);
+{
+  var wResult: word = pCurWord1 + pCurWord2 + pCurWord4 + pCurWordSNG;
+
+  if (wResult = (7 + coTarRateAccess))
+    exit;
+
+  if (GetFirst tsData where (( AID == tsData.ID )) = tsOk)
+  {
+    if (GetFirst ServStav where (( _wType == ServStav.wTblCode and
+                                    tsData.ID == ServStav.cUnit    and
+                                    0 == ServStav.FilialNo (noindex) and
+                                    '1' == ServStav.LastUser (noindex) )) = tsOk)
+    {
+      if (pCurWord1 <> 1)
+        pCurWord1 := if((word(ServStav.cServ) and 1) > 0, 1, 0);
+
+      if (pCurWord2 <> 2)
+        pCurWord2 := if((word(ServStav.cServ) and 2) > 0, 2, 0);
+
+      if (pCurWord4 <> 4)
+        pCurWord4 := if((word(ServStav.cServ) and 4) > 0, 4, 0);
+
+      if (pCurWordSNG <> coTarRateAccess)
+        pCurWordSNG := if((word(ServStav.cServ) and coTarRateAccess) > 0, coTarRateAccess, 0);
+
+      wResult := pCurWord1 + pCurWord2 + pCurWord4 + pCurWordSNG;
+
+      if (wResult = (7 + coTarRateAccess))
+        exit;
+    }
+
+    SNG_GetGroupAccess(tsData.ParentID, _wType, pCurWord1, pCurWord2, pCurWord4, pCurWordSNG);
+  }
+}
+
+public function IPerAccesByUserId.GetAccessMask(_wType: word; _cUser: comp = 0): word;
+{
+  result := 0;
+
+  if (_cUser = 0)
+    _cUser := UserId();
+
+  var pCurWord1, pCurWord2, pCurWord4, pCurWordSNG: word = 0;
+
+  if (GetFirst ServStav where (( _wType == ServStav.wTblCode and
+                                  _cUser == ServStav.cUnit    and
+                                  0 == ServStav.FilialNo (noindex) and
+                                  '0' == ServStav.LastUser (noindex) )) = tsOk)
+  {
+    pCurWord1 := if((word(ServStav.cServ) and 1) > 0, 1, 0);
+    pCurWord2 := if((word(ServStav.cServ) and 2) > 0, 2, 0);
+    pCurWord4 := if((word(ServStav.cServ) and 4) > 0, 4, 0);
+    pCurWordSNG := if((word(ServStav.cServ) and coTarRateAccess) > 0, coTarRateAccess, 0);
+  }
+
+  result := pCurWord1 + pCurWord2 + pCurWord4 + pCurWordSNG;
+
+  if (result = (7 + coTarRateAccess))
+    exit;
+
+  GetGroups(_cUser);
+
+  #ifdef Atl60
+  _loop GrMembers where (( _cUser == GrMembers.ObjCode and
+                           0 == GrMembers.ObjType ))
+  #else
+  _loop GrMembers where (( _cUser == GrMembers.USERCODE ))
+  #end
+  {
+    SNG_GetGroupAccess(GrMembers.GROUPCODE, _wType, pCurWord1, pCurWord2, pCurWord4, pCurWordSNG);
+
+    result := pCurWord1 + pCurWord2 + pCurWord4 + pCurWordSNG;
+
+    if (result = (7 + coTarRateAccess))
+      exit;
+  }
+}
+
+procedure MakeAccess(cRec: comp; wMask1, wMask2 : word; Code: s20);
+{
+  var WinNum: word = 0;
+  var tmpRec: comp = 0;
+
+  for(WinNum := 1; WinNum <= 16; WinNum++) // 14->16
+  {
+    tmpRec := 0;
+
+    if (GetFirst tpServStav1 where (( cRec == tpServStav1.cUnit    and
+                                      WinNum == tpServStav1.wTblCode and
+                                      0 == tpServStav1.FilialNo and
+                                      Code == tpServStav1.LastUser )) = tsOk)
+      tmpRec := tpServStav1.NRec;
+
+    if (tmpRec <> 0)
+    {
+      delete tpServStav1 where (( tmpRec == tpServStav1.NRec ));
+      delete ServStav1 where (( tmpRec == ServStav1.NRec ));
+    }
+
+    ClearBuffer(#ServStav1);
+    ServStav1.cUnit := cRec;
+    ServStav1.wTblCode := WinNum;
+
+    if (Code = 6) and (wMask1 = 7)
+      ServStav1.cServ := wMask1 + coTarRateAccess;
+    else
+      ServStav1.cServ := case(WinNum; 1..4, 6: wMask1; wMask2);
+
+    ServStav1.FilialNo := 0;
+    ServStav1.LastUser := Code;
+    insert current ServStav1;
+
+    tpServStav1.Buffer := cast(type$tpServStav, type$tpServStav(ServStav1.Buffer));
+    insert current tpServStav1;
+  }
+}
+
+//HR-356
+procedure FillGroupsDescription;
+{
+  update GroupsAndUsers2
+    where ((coSPA_Group == GroupsAndUsers2.Code))
+    set GroupsAndUsers2.fullName := Groups4Descr.description;
+}
+
+procedure FillGroupsAndUsers;
+{
+  inherited::FillGroupsAndUsers;
+  FillGroupsDescription; //HR-356
+}
+
+procedure CheckFieldOption;
+{
+  inherited::CheckFieldOption;
+
+  if EditMode
+  {
+    if (AllUserAccess.Code = 6)
+      SetFieldOption(#fSNG_CanViewTaxRate,ofSelectable);
+    else
+      ClearFieldOption(#fSNG_CanViewTaxRate,ofSelectable);
+  }
+}
+
+HandleEvent
+
+cmInit:
+{
+  InitParams;
+  FillGroupsAndUsers;
+  mtClear(#AllUserAccess, mfNormal);
+
+  //Первое окно картотеки ---------------------------------------------------------
+  ClearBuffer(#AllUserAccess);
+  AllUserAccess.Code := 1;
+  AllUserAccess.Name := 'Общие сведения';
+  insert current AllUserAccess;
+  //Второе окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 2;
+  AllUserAccess.Name := 'Сведения об образовании';
+  insert current AllUserAccess;
+  //Третье окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 3;
+  AllUserAccess.Name := 'Анкетные данные, стаж';
+  insert current AllUserAccess;
+  //Четвертое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 4;
+  AllUserAccess.Name := 'Семейное положение.';
+  insert current AllUserAccess;
+  //Пятое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 5;
+  AllUserAccess.Name := 'Сведения о воинском учете';
+  insert current AllUserAccess;
+  //Шестое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 6;
+  AllUserAccess.Name := 'Сведения о работе на предприятии';
+  insert current AllUserAccess;
+  //Восьмое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 8;
+  AllUserAccess.Name := 'Выполняемая работа с начала трудовой деятельности';
+  insert current AllUserAccess;
+  //Седьмое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 7;
+  AllUserAccess.Name := 'Сведения об отпусках';
+  insert current AllUserAccess;
+  //Девятое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 9;
+  AllUserAccess.Name := 'Сведения о заболеваемости';
+  insert current AllUserAccess;
+  //Десятое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 10;
+  AllUserAccess.Name := 'Дополнительные таблицы';
+  insert current AllUserAccess;
+  //Одиннадцатое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 11;
+  AllUserAccess.Name := 'Пенсионный стаж';
+  insert current AllUserAccess;
+  //Двенадцатое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 12;
+  AllUserAccess.Name := 'Компетенции';
+  insert current AllUserAccess;
+  //Тринадцатое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 13;
+  AllUserAccess.Name := 'Банковские реквизиты';
+  insert current AllUserAccess;
+  //Четырнадцатое окно картотеки ---------------------------------------------------------
+  AllUserAccess.Code := 14;
+  AllUserAccess.Name := 'Приказы';
+  insert current AllUserAccess;
+  //Окно безопансоти, HR303, FIM ---------------------------------------------------------
+  AllUserAccess.Code := 15;
+  AllUserAccess.Name := 'Безопасность';
+  insert current AllUserAccess;
+  //Просмотр фотографий, HR303, FIM ---------------------------------------------------------
+  AllUserAccess.Code := 16;
+  AllUserAccess.Name := 'Просмотр фото';
+  insert current AllUserAccess;
+
+  LoadVipRef(DataProtector, 'C_COMMON::Protector');
+  DataProtector.LinkTo(cfsGetCurrentContainerSelf, 'MainWindow');
+  SetEditMode(false);
+
+  if (not(ReadMyDsk(bType, 'UserAccess_bType', false)))
+    bType := false;
+
+  SetInterfaceType;
+
+  pMarker.StoreName := 'UserAccess_Marker';
+  pMarker.Caption   := ('. Помечено: %d');
+  pMarker.AutoSave := false;
+  pMarker.LoadAuto := false;
+  pMarker.IsNeedCheckDelete := false;
+}
+
+cmValue5:
+{
+  inherited::handleEvent(cmValue5);
+  FillGroupsDescription; //HR-356
+}
+
+cmValue8:
+{
+  inherited::handleEvent(cmValue8);
+  FillGroupsDescription; //HR-356
+}
+
+cmCheckField:
+{
+  var tmpRec: comp = 0;
+
+  if(EditMode)
+  {
+    case CurField of
+
+      #fCanEdit:
+      {
+        if ( AllUserAccess.Code = 4 )
+        {
+          if ( word(OldFieldValue) = 1 )
+          {
+            // Убираем доступ для редактирования
+            if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                              AllUserAccess.Code == tpServStav1.wTblCode and
+                                              0 == tpServStav1.FilialNo and
+                                              GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+              tmpRec := tpServStav1.NRec;
+
+            if (tmpRec <> 0)
+            {
+              update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := 3;
+              update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := 3;
+            }
+          }
+          else
+          {
+            // Добавляем доступ для редактирования оснований
+            if ( fCanView = 1 ) or ( fCanEditVichet = 1 )
+            {
+              if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                                AllUserAccess.Code == tpServStav1.wTblCode and
+                                                0 == tpServStav1.FilialNo and
+                                                GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+                tmpRec := tpServStav1.NRec;
+
+              if (tmpRec <> 0)
+              {
+                update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := 7;
+                update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := 7;
+              }
+            }
+            else
+            {
+              ClearBuffer(#ServStav1);
+              ServStav1.cUnit := GroupsAndUsers.SRC;
+              ServStav1.wTblCode := AllUserAccess.Code;
+              ServStav1.cServ := 7;
+              ServStav1.FilialNo := 0;
+              ServStav1.LastUser := GroupsAndUsers.Code;
+              insert current ServStav1;
+
+              tpServStav1.Buffer := cast(type$tpServStav, type$tpServStav(ServStav1.Buffer));
+              insert current tpServStav1;
+            }
+          }
+        }
+        else
+        if ( AllUserAccess.Code = 6 )
+        {
+          if ( word(OldFieldValue) = 1 )
+          {
+            // Убираем доступ для редактирования
+            if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                              AllUserAccess.Code == tpServStav1.wTblCode and
+                                              0 == tpServStav1.FilialNo and
+                                              GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+              tmpRec := tpServStav1.NRec;
+
+            if (tmpRec <> 0)
+            {
+              update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := tpServStav1.cServ - 2;
+              update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := ServStav1.cServ - 2;
+            }
+          }
+          else
+          {
+            if (fCanView = 1) or (fSNG_CanViewTaxRate = 1)
+            {
+              if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                                AllUserAccess.Code == tpServStav1.wTblCode and
+                                                0 == tpServStav1.FilialNo and
+                                                GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+                tmpRec := tpServStav1.NRec;
+
+              if (tmpRec <> 0)
+              {
+                update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := tpServStav1.cServ + 2;
+                update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := ServStav1.cServ + 2;
+              }
+            }
+            else
+            {
+              ClearBuffer(#ServStav1);
+              ServStav1.cUnit := GroupsAndUsers.SRC;
+              ServStav1.wTblCode := AllUserAccess.Code;
+              ServStav1.cServ := 3;
+              ServStav1.FilialNo := 0;
+              ServStav1.LastUser := GroupsAndUsers.Code;
+              insert current ServStav1;
+
+              tpServStav1.Buffer := cast(type$tpServStav, type$tpServStav(ServStav1.Buffer));
+              insert current tpServStav1;
+            }
+          }
+        }
+        else
+        {
+          if (word(OldFieldValue) = 1)
+          {
+            // Убираем доступ для редактирования
+            if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                              AllUserAccess.Code == tpServStav1.wTblCode and
+                                              0 == tpServStav1.FilialNo and
+                                              GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+              tmpRec := tpServStav1.NRec;
+
+            if (tmpRec <> 0)
+            {
+              update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := 1;
+              update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := 1;
+            }
+          }
+          else
+          {
+            // Добавляем доступ для редактирования
+            if (fCanView = 1)
+            {
+              if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                                AllUserAccess.Code == tpServStav1.wTblCode and
+                                                0 == tpServStav1.FilialNo and
+                                                GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+                tmpRec := tpServStav1.NRec;
+
+              if (tmpRec <> 0)
+              {
+                update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := 3;
+                update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := 3;
+              }
+            }
+            else
+            {
+              ClearBuffer(#ServStav1);
+              ServStav1.cUnit := GroupsAndUsers.SRC;
+              ServStav1.wTblCode := AllUserAccess.Code;
+              ServStav1.cServ := 3;
+              ServStav1.FilialNo := 0;
+              ServStav1.LastUser := GroupsAndUsers.Code;
+              insert current ServStav1;
+
+              tpServStav1.Buffer := cast(type$tpServStav, type$tpServStav(ServStav1.Buffer));
+              insert current tpServStav1;
+            }
+          }
+        }
+
+        ReReadRecord();
+      }
+
+      #fSNG_CanViewTaxRate:
+      {
+        if (AllUserAccess.Code = 6)
+        {
+          if(word(OldFieldValue) = 1)
+          {
+            if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                              AllUserAccess.Code == tpServStav1.wTblCode and
+                                              0 == tpServStav1.FilialNo and
+                                              GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+              tmpRec := tpServStav1.NRec;
+
+            if (tmpRec <> 0)
+            {
+              update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := tpServStav1.cServ - coTarRateAccess;
+              update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := ServStav1.cServ - coTarRateAccess;
+            }
+          }
+          else
+          {
+            if ( fCanView = 1 ) or ( fCanEdit = 1 )
+            {
+              if (GetFirst tpServStav1 where (( GroupsAndUsers.SRC == tpServStav1.cUnit    and
+                                                AllUserAccess.Code == tpServStav1.wTblCode and
+                                                0 == tpServStav1.FilialNo and
+                                                GroupsAndUsers.Code == tpServStav1.LastUser )) = tsOk)
+                tmpRec := tpServStav1.NRec;
+
+              if (tmpRec <> 0)
+              {
+                update tpServStav1 where (( tmpRec == tpServStav1.NRec )) set tpServStav1.cServ := tpServStav1.cServ + coTarRateAccess;
+                update ServStav1 where (( tmpRec == ServStav1.NRec )) set ServStav1.cServ := ServStav1.cServ + coTarRateAccess;
+              }
+            }
+            else
+            {
+              ClearBuffer(#ServStav1);
+              ServStav1.cUnit := GroupsAndUsers.SRC;
+              ServStav1.wTblCode := AllUserAccess.Code;
+              ServStav1.cServ := 1 + coTarRateAccess;
+              ServStav1.FilialNo := 0;
+              ServStav1.LastUser := GroupsAndUsers.Code;
+              insert current ServStav1;
+
+              tpServStav1.Buffer := cast(type$tpServStav, type$tpServStav(ServStav1.Buffer));
+              insert current tpServStav1;
+            }
+          }
+        }
+
+        ReReadRecord();
+      }
+      else
+        inherited::handleEvent(cmCheckField);
+
+    end;
+  }
+}
+
+end;
+
+end.

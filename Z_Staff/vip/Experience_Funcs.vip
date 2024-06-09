@@ -1,0 +1,880 @@
+#include Experience_Funcs.vih
+#include AppFuncs.vih
+#include GetTKActions.vih
+
+#component "Z_Staff"
+
+alter interface Experience_Funcs;
+
+overload
+  function GetPriznSovm(iPrizn: integer; cSovm, cAddNrec2, cDog: comp): word;
+  public procedure IExperience_Funcs.InitExperience(cPerson: comp; wChoice: word);
+end;
+
+create view vSNG_DOG
+var
+  cRec: comp;
+as select
+  SpAllStaff.ResComp[3]
+from
+  SpAllStaff
+where
+((
+  cgAllStaffExp == SpAllStaff.wNoCon and
+  cRec          == SpAllStaff.cBaseT
+))
+;
+
+public procedure IExperience_Funcs.InitExperience(cPerson: comp; wChoice: word);
+{
+  LoadParam;
+
+  cPsn := cPerson;
+  wCh := wChoice;
+  mtClear(tnDel_tpExperience, mfClearFilters);
+  mtClear(tntpOrgList, mfNormal);
+  mtClear(tntpCatHist, mfNormal);
+
+  if (GetFirst Persons <> tsOk)
+    exit;
+
+  var bHave100: boolean = false;
+
+  var sFIOSort: string = Persons.FIO + '_' + string(Persons.NRec);
+
+  vExp.cPerson := cPerson;
+
+  vExp._loop nocache Experience
+  {
+    ClearBuffer(#tpExperience);
+    tpExperience.Person := vExp.Experience.Person;
+    tpExperience.cExperience := vExp.Experience.NRec;
+    tpExperience.EnterpriseName := vExp.Experience.EnterpriseName;
+    tpExperience.EntranceDate := vExp.Experience.EntranceDate;
+    tpExperience.RetirementDate := vExp.Experience.RetirementDate;
+    tpExperience.iAttr1 := integer(vExp.Experience.wAttr1);
+    tpExperience.wAttr2 := vExp.Experience.wAttr2;
+    tpExperience.Post := vExp.Experience.Post;
+    tpExperience.cReason := vExp.Experience.cReason;
+
+    if (bPRINTPODR)
+      tpExperience.str1 := vExp.Experience.str1;
+
+    tpExperience.str2 := vExp.Experience.str2;
+    tpExperience.JobOrderNmb := vExp.Experience.JobOrderNmb;
+    tpExperience.JobOrderDate := vExp.Experience.JobOrderDate;
+    tpExperience.GroupCode := vExp.Experience.GroupCode;
+    tpExperience.Foundation := vExp.Experience.Foundation;
+    tpExperience.EnterpriseLoc := vExp.Experience.EnterpriseLoc;
+    tpExperience.Choice := wChoice;
+    tpExperience.FIOSort := sFIOSort;
+    tpExperience.wYear := Year(tpExperience.EntranceDate);
+    tpExperience.wMonth := Month(tpExperience.EntranceDate);
+    tpExperience.cDop1 := vExp.Experience.cDop1;
+    tpExperience.cDop2 := vExp.Experience.cDop2;
+    tpExperience.FilialNo := vExp.Experience.FilialNo;
+    tpExperience.dDop1 := vExp.Experience.dDop1;
+    tpExperience.AppDopInfo := sGetAttr(coExperience, vExp.Experience.NRec, 'AppDopInfo');
+    tpExperience.sDopStr := vExp.Experience.sDopStr;
+    tpExperience.cSpr1 := vExp.Experience.cSpr1;
+    tpExperience.sCode := vExp.Experience.sCode;
+    tpExperience.sCodeDop := sGetAttr(coExperience, vExp.Experience.NRec, 'sCodeDop');
+    tpExperience.sTerrUsl := vExp.Experience.LastUser;
+
+    if (bPRINTPODR)
+      if (tpExperience.FilialNo = coStatusManualStandart) or (tpExperience.FilialNo = coStatusManualChanged)
+        tpExperience.str11 := tpExperience.str1;
+
+    tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+    tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+    if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+      if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+        insert current tpExperience;
+  }
+
+  if (Persons.IsEmployee = 'К') or (Persons.IsEmployee = 'Ф')
+    exit;
+
+  vApp.cPerson := cPerson;
+  vApp.pFormBeg := dFormBeg;
+
+  var tpExpBuffEx: type$tpExperience;
+
+  vApp._loop nocache Appointments
+  {
+    var tpExpBuff: type$tpExperience = tpExpBuffEx;
+    var tmpOrg: comp = if(vApp.Appointments.cFilialOrg <> 0, vApp.Appointments.cFilialOrg, cMYORG);
+    var dDateUv: date = ZeroDate;
+    var cSovm: comp = SH.Get_Hist_OnDate(Persons.NRec, vApp.Appointments.AppointDate);
+    var sOKZ: string = iWorkFunctions.GetAppOKZCode(vApp.Appointments.NRec);
+    var sWF: string = iWorkFunctions.GetAppWFCode(vApp.Appointments.NRec);
+
+    if (vApp.Appointments.cAddNrec2 <> 0) and (vApp.Appointments.lPrizn = 100)
+      if (vApp.GetFirst LSChet = tsOk)
+        if (vApp.GetFirst Persons = tsOk)
+          cSovm := SH.Get_Hist_OnDate(vApp.Persons.NRec, vApp.Appointments.AppointDate);
+
+    var wSovm: word = GetPriznSovm(vApp.Appointments.lPrizn, cSovm, vApp.Appointments.cAddNrec2, vApp.Appointments.ResComp[1]);
+
+    if (vApp.Appointments.cFilialOrg <> 0) and (vApp.Appointments.cFilialOrg <> cMYORG)
+    {
+      ClearBuffer(#tpOrgList);
+      tpOrgList.cOrg := vApp.Appointments.cFilialOrg;
+      tpOrgList.bMain := false;
+      insert current tpOrgList;
+    }
+
+    if (vApp.Appointments.lPrizn = 3) and (wSovm < 10)
+      continue;
+
+    case vApp.Appointments.lPrizn of
+
+      0:
+      {
+        if ( Persons.IsEmployee != 'Х' )
+          if ((Persons.DisDate <> ZeroDate) and (Persons.cDopRef2 = 0) and (vApp.Appointments.DismissDate = Persons.DisDate))
+             dDateUv := Persons.DisDate;
+      }
+
+      3:
+      {
+        if (vApp.Appointments.DismissDate <> ZeroDate)
+        {
+          vAppSovm.cPerson := vApp.Appointments.Person;
+          vAppSovm.Prizn := vApp.Appointments.lPrizn;
+          vAppSovm.pDopInf := vApp.Appointments.NRec;
+
+          if ( Persons.IsEmployee != 'Х' )
+            if (vAppSovm.GetFirst Appointments <> tsOk)
+              dDateUv := vApp.Appointments.DismissDate;
+        }
+      }
+
+      100:
+      {
+        dDateUv := vApp.Appointments.dOrderDisDate;
+        bHave100 := true;
+      }
+
+    end;
+
+    if (dDateUv <> ZeroDate) and (dDateUv < dFormBeg)
+      continue;
+
+    vApp._loop nocache AppHist
+    {
+      ClearBuffer(#tpExperience);
+      tpExperience.iAttr1 := GetCodeOper(vApp.AppHist.NRec, vApp.AppHist.CodOper, cSovm, vApp.AppHist.cInf1, vApp.AppHist.Category);
+
+      if (tpExperience.iAttr1 = coAction0)
+        continue;
+
+      if (tpExperience.iAttr1 = coAction9)
+        if (vApp.GetFirst SpAllStaff <> tsOk)
+          continue;
+
+      tpExperience.Person := vApp.Appointments.Person;
+      tpExperience.cExperience := 0;
+      tpExperience.EnterpriseName := GetOrgNRec(CalcOrgName(vApp.AppHist.DRec, tmpOrg));
+      tpExperience.EntranceDate := vApp.AppHist.DRec;
+      tpExperience.sTerrUsl := GetTerrUSL(tpExperience.Person, tpExperience.EntranceDate);
+      tpExperience.sCode := sOKZ;
+      tpExperience.sCodeDop := sWF;
+      tpExperience.RetirementDate := ZeroDate;
+      tpExperience.wAttr2 := wSovm;
+
+      if (vApp.Appointments.lPrizn = 3) and (tpExperience.wAttr2 < 10)
+        continue;
+
+      tpExperience.Post := vApp.Appointments.Post;
+      tpExperience.cReason := 0;
+
+      if (bPRINTPODR)
+        tpExperience.str1 := GetDepartment(vApp.Appointments.Department, tpExperience.EntranceDate);
+
+      tpExperience.str2 := sRPDNAME;
+      tpExperience.JobOrderNmb := vApp.AppHist.DocNmb;
+      tpExperience.JobOrderDate := vApp.AppHist.DocDate;
+      tpExperience.GroupCode := 1;
+      tpExperience.Foundation := 0;
+      tpExperience.EnterpriseLoc := 0;
+      tpExperience.Choice := wChoice;
+      tpExperience.FIOSort := sFIOSort;
+      tpExperience.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, vApp.AppHist.NRec, vApp.AppHist.Category);
+      tpExperience.cDop1 := coAppHist;
+      tpExperience.cDop2 := vApp.AppHist.NRec;
+      var cExp: comp = 0;
+      var dDate: date = ZeroDate;
+      tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+      if (tpExperience.iAttr1 = coAction2) and ((vApp.Appointments.lPrizn = 0) or (vApp.Appointments.lPrizn = 100)) and (vApp.Appointments.cDopInf <> 0)
+        if (vApp.GetFirst Old_Appointments = tsOk)
+        {
+          tpExperience.JobOrderNmb_Old := vApp.Old_Appointments.OrderNmb;
+          tpExperience.JobOrderDate_Old := vApp.Old_Appointments.OrderDate;
+          tpExperience.EntranceDate := vApp.Old_Appointments.AppointDate;
+        }
+
+      tpExperience.wYear := Year(tpExperience.EntranceDate);
+      tpExperience.wMonth := Month(tpExperience.EntranceDate);
+      tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+      tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+      if (tpExperience.iAttr1 = coAction9)
+      {
+        tpExperience.EntranceDate := vApp.SpAllStaff.ResDate[2];
+        tpExperience.str2 := 'договор';
+        tpExperience.JobOrderNmb := vApp.SpAllStaff.ResString[1];
+        tpExperience.JobOrderDate := vApp.SpAllStaff.ResDate[2];
+        tpExperience.str1 := '';
+        tpExperience.Post := 0;
+        tpExperience.AppDopInfo := '';
+
+        vSNG_DOG.cRec := vApp.SpAllStaff.NRec;
+        if (vSNG_DOG.GetFirst SpAllStaff = tsOk)
+          if (vSNG_DOG.SpAllStaff.ResComp[3] <> 0)
+            tpExperience.sTerrUsl := iCatFunc.GetCatalogsName(coGetAttr(coCatalogs, vSNG_DOG.SpAllStaff.ResComp[3], 'РКС/МКС'));
+      }
+
+      if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+        if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+        {
+          insert current tpExperience;
+
+          if (bPRINTPODR) and (tpExperience.iAttr1 <> coAction9)
+            CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+        }
+
+      if (tpExperience.iAttr1 = coAction9) and (dDateUv <> ZeroDate)
+      {
+        tpExperience.NRec := 0;
+        tpExperience.iAttr1 := coAction10;
+        tpExperience.EntranceDate := dDateUv;
+        tpExperience.JobOrderDate := dDateUv;
+        tpExperience.cDop1 := coAppointments;
+        tpExperience.cDop2 := vApp.Appointments.NRec;
+
+        if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+          if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+            insert current tpExperience;
+
+        dDateUv := ZeroDate;
+      }
+
+      if (dDateUv <> ZeroDate)
+        tpExpBuff := tpExperience.Buffer;
+    }
+
+    vMobilize.pPerson := cPerson;
+    vMobilize.pApp := vApp.Appointments.NRec;
+
+    vMobilize.pTypeOper := 66;
+
+    vMobilize._loop nocache ContDoc
+    {
+      if (((vMobilize.ContDoc.wYearPr <> 1) and (vMobilize.TitleDoc.wStatus <> 1)) and (vMobilize.ContDoc.wYearPr <> 2))
+        continue;
+
+      ClearBuffer(#tpExperience);
+      tpExperience.iAttr1 := 7;
+      tpExperience.Person := cPerson;
+      tpExperience.cExperience := 0;
+      tpExperience.EnterpriseName := GetOrgNRec(CalcOrgName(vMobilize.Vacations.FactYearBeg, tmpOrg));
+      tpExperience.EntranceDate := vMobilize.Vacations.FactYearBeg;
+      tpExperience.sTerrUsl := GetTerrUSL(tpExperience.Person, tpExperience.EntranceDate);
+      tpExperience.sCode := sOKZ;
+      tpExperience.sCodeDop := sWF;
+      tpExperience.RetirementDate := ZeroDate;
+      tpExperience.wAttr2 := wSovm;
+      tpExperience.Post := vApp.Appointments.Post;
+      tpExperience.cReason := 0;
+
+      if (bPRINTPODR)
+        tpExperience.str1 := GetDepartment(vApp.Appointments.Department, tpExperience.EntranceDate);
+
+      tpExperience.str2 := sRPDNAME;
+      tpExperience.JobOrderNmb := vMobilize.TitleDoc.DocNmb;
+      tpExperience.JobOrderDate := vMobilize.TitleDoc.DocDate;
+      tpExperience.GroupCode := 1;
+      tpExperience.Foundation := 0;
+      tpExperience.EnterpriseLoc := 0;
+      tpExperience.Choice := wChoice;
+      tpExperience.FIOSort := sFIOSort;
+      tpExperience.wYear := Year(tpExperience.EntranceDate);
+      tpExperience.wMonth := Month(tpExperience.EntranceDate);
+      var tmpAH: #TAppHist = iAH.AH_ViewStateOnDate(vApp.Appointments.NRec, tpExperience.EntranceDate);
+      tpExperience.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, tmpAH.NRec, tmpAH.Category);
+      tpExperience.cDop1 := coContDoc;
+      tpExperience.cDop2 := vMobilize.ContDoc.NRec;
+      var cExp: comp = 0;
+      var dDate: date = ZeroDate;
+      tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+      tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+      tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+      if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+        if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+        {
+          insert current tpExperience;
+
+          if (bPRINTPODR)
+            CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+        }
+    }
+
+    vMobilize.pTypeOper := 67;
+
+    vMobilize._loop nocache ContDoc
+    {
+      if (((vMobilize.ContDoc.wYearPr <> 1) and (vMobilize.TitleDoc.wStatus <> 1)) and (vMobilize.ContDoc.wYearPr <> 2))
+        continue;
+
+      ClearBuffer(#tpExperience);
+      tpExperience.iAttr1 := 8;
+      tpExperience.Person := cPerson;
+      tpExperience.cExperience := 0;
+      tpExperience.EnterpriseName := GetOrgNRec(CalcOrgName(vMobilize.ContDoc.dPrik, tmpOrg));
+      tpExperience.EntranceDate := vMobilize.ContDoc.dPrik;
+      tpExperience.sTerrUsl := GetTerrUSL(tpExperience.Person, tpExperience.EntranceDate);
+      tpExperience.sCode := sOKZ;
+      tpExperience.sCodeDop := sWF;
+      tpExperience.RetirementDate := ZeroDate;
+      tpExperience.wAttr2 := wSovm;
+      tpExperience.Post := vApp.Appointments.Post;
+      tpExperience.cReason := 0;
+
+      if (bPRINTPODR)
+        tpExperience.str1 := GetDepartment(vApp.Appointments.Department, tpExperience.EntranceDate);
+
+      tpExperience.str2 := sRPDNAME;
+      tpExperience.JobOrderNmb := vMobilize.TitleDoc.DocNmb;
+      tpExperience.JobOrderDate := vMobilize.TitleDoc.DocDate;
+      tpExperience.GroupCode := 1;
+      tpExperience.Foundation := 0;
+      tpExperience.EnterpriseLoc := 0;
+      tpExperience.Choice := wChoice;
+      tpExperience.FIOSort := sFIOSort;
+      tpExperience.wYear := Year(tpExperience.EntranceDate);
+      tpExperience.wMonth := Month(tpExperience.EntranceDate);
+      var tmpAH: #TAppHist = iAH.AH_ViewStateOnDate(vApp.Appointments.NRec, tpExperience.EntranceDate);
+      tpExperience.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, tmpAH.NRec, tmpAH.Category);
+      tpExperience.cDop1 := coContDoc;
+      tpExperience.cDop2 := vMobilize.ContDoc.NRec;
+      var cExp: comp = 0;
+      var dDate: date = ZeroDate;
+      tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+      tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+      tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+      if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+        if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+        {
+          insert current tpExperience;
+
+          if (bPRINTPODR)
+            CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+        }
+    }
+
+    if (bPRINTPODR)
+    {
+      vCatHist.pNRec := vApp.Appointments.Department;
+      vCatHist.pFormBeg := dFormBeg;
+
+      vCatHist._loop nocache CatHist
+        if (GetFirst tpCatHist where (( vCatHist.CatHist.NRec == tpCatHist.NRec and
+                                        vApp.Appointments.NRec == tpCatHist.cApp )) <> tsOk)
+          if (iStrFunc.isHitPeriod(vApp.Appointments.AppointDate, vApp.Appointments.DismissDate, vCatHist.CatHist.dat1))
+          {
+            ClearBuffer(#tpCatHist);
+            tpCatHist.NRec := vCatHist.CatHist.NRec;
+            tpCatHist.cApp := vApp.Appointments.NRec;
+            insert current tpCatHist;
+
+            ClearBuffer(#tpExperience);
+            tpExperience.iAttr1 := GetCodeOper(0, 5);
+            tpExperience.Person := vApp.Appointments.Person;
+            tpExperience.cExperience := 0;
+            tpExperience.EnterpriseName := GetOrgNRec(CalcOrgName(vCatHist.CatHist.dat1, tmpOrg));
+            tpExperience.EntranceDate := vCatHist.CatHist.dat1;
+            tpExperience.sTerrUsl := GetTerrUSL(tpExperience.Person, tpExperience.EntranceDate);
+            tpExperience.sCode := sOKZ;
+            tpExperience.sCodeDop := sWF;
+            tpExperience.RetirementDate := ZeroDate;
+            tpExperience.wAttr2 := wSovm;
+            tpExperience.Post := vApp.Appointments.Post;
+            tpExperience.cReason := 0;
+            tpExperience.str1 := GetDepartment(vApp.Appointments.Department, tpExperience.EntranceDate);
+            tpExperience.str2 := sRPDNAME;
+
+            if (vCatHist.GetFirst StrCont = tsOk)
+              if (vCatHist.GetFirst StrPart = tsOk)
+                if (vCatHist.GetFirst StrTitle = tsOk)
+                {
+                  tpExperience.JobOrderNmb := vCatHist.StrTitle.DocNmb;
+                  tpExperience.JobOrderDate := vCatHist.StrTitle.DocDate;
+                }
+
+            tpExperience.GroupCode := 1;
+            tpExperience.Foundation := 0;
+            tpExperience.EnterpriseLoc := 0;
+            tpExperience.Choice := wChoice;
+            tpExperience.FIOSort := sFIOSort;
+            tpExperience.wYear := Year(tpExperience.EntranceDate);
+            tpExperience.wMonth := Month(tpExperience.EntranceDate);
+            var tmpAH: #TAppHist = iAH.AH_ViewStateOnDate(vApp.Appointments.NRec, tpExperience.EntranceDate);
+            tpExperience.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, tmpAH.NRec, tmpAH.Category);
+            tpExperience.cDop1 := coCatHist;
+            tpExperience.cDop2 := vCatHist.CatHist.NRec;
+            var cExp: comp = 0;
+            var dDate: date = ZeroDate;
+            tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+            tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+            tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+            if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+              if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+              {
+                insert current tpExperience;
+
+                CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+              }
+          }
+    }
+
+    if (dDateUv <> ZeroDate)
+    {
+      if (tpExpBuff.cDop2 = 0)
+      {
+        var tmpAH: #TAppHist = iAH.AH_ViewStateOnDate(vApp.Appointments.NRec, dDateUv);
+
+        tpExpBuff.Person := vApp.Appointments.Person;
+        tpExpBuff.cExperience := 0;
+        tpExpBuff.EnterpriseName := GetOrgNRec(CalcOrgName(dDateUv, tmpOrg));
+        tpExpBuff.EntranceDate := dDateUv;
+        tpExpBuff.sTerrUsl := GetTerrUSL(tpExpBuff.Person, tpExpBuff.EntranceDate);
+        tpExpBuff.sCode := sOKZ;
+        tpExperience.sCodeDop := sWF;
+        tpExpBuff.RetirementDate := ZeroDate;
+        tpExpBuff.wAttr2 := wSovm;
+        tpExpBuff.Post := vApp.Appointments.Post;
+        tpExpBuff.cReason := 0;
+
+        if (bPRINTPODR)
+          tpExpBuff.str1 := GetDepartment(vApp.Appointments.Department, tpExpBuff.EntranceDate);
+
+        tpExpBuff.str2 := sRPDNAME;
+        tpExpBuff.GroupCode := 1;
+        tpExpBuff.Foundation := 0;
+        tpExpBuff.EnterpriseLoc := 0;
+        tpExpBuff.Choice := wChoice;
+        tpExpBuff.FIOSort := sFIOSort;
+        tpExpBuff.wYear := Year(tpExpBuff.EntranceDate);
+        tpExpBuff.wMonth := Month(tpExpBuff.EntranceDate);
+        tpExpBuff.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, tmpAH.NRec, tmpAH.Category);
+      }
+
+      ClearBuffer(#tpExperience);
+      tpExperience.Buffer := tpExpBuff;
+
+      var cRecZapret: comp = 0;
+      var sDocZapret, sNumZapret, sReasonZapret: string = '';
+      var dDateZapret: date = ZeroDate;
+      var bZapret: boolean = false;
+      var bSetOrder: boolean = false;
+
+      vDisApp1.cApp := vDisApp2.cApp := vApp.Appointments.NRec;
+
+      if (vDisApp1.GetFirst disAppoint1 = tsOk)
+        if (vDisApp1.GetLast ContDocDis1 = tsOk)
+        {
+          if (vDisApp1.GetFirst PartDocDis1 = tsOk)
+            if (vDisApp1.GetFirst TitleDocDis1 = tsOk)
+            {
+              tpExperience.cReason := if (vDisApp1.ContDocDis1.wAttrDoc2 = 0, vDisApp1.disAppoint1.cDisReason, vDisApp1.disAppoint1.cRef1);
+              tpExperience.JobOrderNmb := vDisApp1.TitleDocDis1.DOCNMB;
+              tpExperience.JobOrderDate := vDisApp1.TitleDocDis1.DOCDATE;
+
+              cRecZapret := vDisApp1.ContDocDis1.NRec;
+              bZapret := CheckZapret(cRecZapret, sDocZapret, sNumZapret, sReasonZapret, dDateZapret);
+              bSetOrder := true;
+            }
+        }
+        else
+          if (vDisApp2.GetFirst disAppoint1 = tsOk)
+            if (vDisApp2.GetFirst disAppoint2 = tsOk)
+              if (vDisApp2.GetLast ContDocDis2 = tsOk)
+                if (vDisApp2.GetFirst PartDocDis2 = tsOk)
+                  if (vDisApp2.GetFirst TitleDocDis2 = tsOk)
+                  {
+                    tpExperience.cReason := if (vDisApp2.ContDocDis2.wAttrDoc2 = 0, vDisApp2.disAppoint2.cDisReason, vDisApp2.disAppoint2.cRef1);
+                    tpExperience.JobOrderNmb := vDisApp2.TitleDocDis2.DOCNMB;
+                    tpExperience.JobOrderDate := vDisApp2.TitleDocDis2.DOCDATE;
+
+                    cRecZapret := vDisApp2.ContDocDis2.NRec;
+                    bZapret := CheckZapret(cRecZapret, sDocZapret, sNumZapret, sReasonZapret, dDateZapret);
+                    bSetOrder := true;
+                  }
+
+      if (bDISMISSSOVM) and (not bSetOrder) and (tpExperience.wAttr2 >= 10)
+      {
+        vDisApp3.cPsn := cPerson;
+
+        vDisApp3._loop ContDocDis3
+        {
+          var bUv: boolean = ((vDisApp3.ContDocDis3.wYearPr = 1) or (vDisApp3.ContDocDis3.wYearPr = 2));
+
+          if (vDisApp3.GetFirst disAppoint3 = tsOk) and (vDisApp3.disAppoint3.dOrderDisDate = dDateUv)
+            if (vDisApp3.GetFirst PartDocDis3 = tsOk)
+              if (vDisApp3.GetFirst TitleDocDis3 = tsOk) and ((bUv) or (vDisApp3.TitleDocDis3.wStatus = 1))
+              {
+                tpExperience.cReason := vDisApp3.disAppoint3.cDisReason;
+                tpExperience.JobOrderNmb := vDisApp3.TitleDocDis3.DOCNMB;
+                tpExperience.JobOrderDate := vDisApp3.TitleDocDis3.DOCDATE;
+
+                cRecZapret := vDisApp3.ContDocDis3.NRec;
+                bZapret := CheckZapret(cRecZapret, sDocZapret, sNumZapret, sReasonZapret, dDateZapret);
+                break;
+              }
+        }
+      }
+
+      if (vApp.Appointments.OrderDisDate <> ZeroDate)
+      {
+        tpExperience.JobOrderNmb := vApp.Appointments.OrderDisNmb;
+        tpExperience.JobOrderDate := vApp.Appointments.OrderDisDate;
+        tpExperience.cReason := vApp.Appointments.cDisReason;
+      }
+      else
+        if (tpExperience.JobOrderDate = ZeroDate)
+        {
+          tpExperience.JobOrderNmb := Persons.DisOrderNmb;
+          tpExperience.JobOrderDate := Persons.DisOrderDate;
+          tpExperience.cReason := vApp.Appointments.cDisReason;
+        }
+
+      tpExperience.NRec := 0;
+      tpExperience.EnterpriseName := GetOrgNRec(CalcOrgName(dDateUv, tmpOrg));
+      tpExperience.iAttr1 := GetCodeOper(0, 8, cSovm);
+
+      if (tpExperience.iAttr1 = coAction0)
+        continue;
+
+      if (trim(tpExperience.FIOSort) = '') // в случае отстутствия первичного буфера для мероприятия увольнения, заполняем данные здесь
+      {
+        if (bPRINTPODR)
+          tpExperience.str1 := GetDepartment(vApp.Appointments.Department, tpExperience.EntranceDate);
+
+        tpExperience.str2 := sRPDNAME;
+        tpExperience.GroupCode := 1;
+        tpExperience.Foundation := 0;
+        tpExperience.EnterpriseLoc := 0;
+        tpExperience.FIOSort := sFIOSort;
+        tpExperience.Person := cPerson;
+        tpExperience.Choice := wChoice;
+        tpExperience.Post := vApp.Appointments.Post;
+        var tmpAH: #TAppHist = iAH.AH_ViewStateOnDate(vApp.Appointments.NRec, tpExperience.EntranceDate);
+        tpExperience.AppDopInfo := GetAppDopInfo(vApp.Appointments.Person, vApp.Appointments.NRec, tmpAH.NRec, tmpAH.Category);
+      }
+
+      tpExperience.EntranceDate := dDateUv;
+      tpExperience.sTerrUsl := GetTerrUSL(tpExperience.Person, tpExperience.EntranceDate);
+      tpExperience.sCode := sOKZ;
+      tpExperience.sCodeDop := sWF;
+      tpExperience.wYear := Year(tpExperience.EntranceDate);
+      tpExperience.wMonth := Month(tpExperience.EntranceDate);
+      tpExperience.cDop1 := coAppointments;
+      tpExperience.cDop2 := vApp.Appointments.NRec;
+      var cExp: comp = 0;
+      var dDate: date = tpExperience.EntranceDate;
+      tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+      tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+      tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+      if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+        if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+        {
+          insert current tpExperience;
+
+          if (bPRINTPODR)
+            CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+
+          if (bZapret)
+          {
+            tpExperience.cReason := 0;
+            tpExperience.sDopStr := sReasonZapret;
+            tpExperience.str2 := sDocZapret;
+            tpExperience.JobOrderNmb := sNumZapret;
+            tpExperience.JobOrderDate := dDateZapret;
+            tpExperience.cDop1 := coSpAllStaff;
+            tpExperience.cDop2 := cRecZapret;
+            tpExperience.iAttr1 := coAction6;
+
+            tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate, tpExperience.str1);
+
+            tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+            tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+            if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+              if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+              {
+                insert current tpExperience;
+
+                if (bPRINTPODR)
+                  CreateHierNameOnDate(if(cExp <> 0, cExp, tpExperience.NRec), vApp.Appointments.Department, if(cExp <> 0, dDate, tpExperience.EntranceDate), GetRepParam('ppIEr'), GetRepParam('ppUpDownIEr'));
+
+              }
+          }
+        }
+    }
+  }
+
+  mtClear(#tpDogovor, mfNormal);
+
+  if (cSovm = 2)
+  {
+    var dTest: date = ZeroDate;
+
+    vDogPodr.cPerson := cPerson;
+    vDogPodr.pChoice := wChoice;
+
+    while (true)
+    {
+      ClearBuffer(#tpDogovor);
+
+      vDogPodr.dBeg := dTest;
+      vDogPodr.pAttr1 := coAction9;
+
+      if (vDogPodr.GetFirst tpExperience = tsOk)
+        tpDogovor.dBeg := vDogPodr.tpExperience.EntranceDate;
+
+      vDogPodr.dBeg := tpDogovor.dBeg;
+      vDogPodr.pAttr1 := coAction10;
+
+      if (vDogPodr.GetFirst tpExperience = tsOk)
+        tpDogovor.dEnd := vDogPodr.tpExperience.EntranceDate;
+
+      if (tpDogovor.dBeg <> ZeroDate)
+        insert current tpDogovor;
+      else
+        break;
+
+      if (tpDogovor.dEnd <> ZeroDate)
+        dTest := tpDogovor.dEnd;
+      else
+        break;
+    }
+  }
+
+  ClearBuffer(#tpOrgList);
+  tpOrgList.cOrg := cMYORG;
+  tpOrgList.bMain := true;
+  insert current tpOrgList;
+
+  _loop nocache tpOrgList
+  {
+    CreateOrgHist(tpOrgList.cOrg);
+
+    if (GetFirst Persons = tsOk)
+      _loop nocache tpOrgHist
+      {
+        if (not CheckAction(wActions, coTKAction3))
+          break;
+
+        if (GetFirst First_Appointments <> tsOk){}
+
+        var dAppDate: date = if (Persons.cPrizn2 = 0, Persons.AppDate, First_Appointments.AppointDate);
+
+        if (tpOrgList.bMain)
+          if (iStrFunc.isHitPeriod(dAppDate, Persons.DisDate, tpOrgHist.dDate))
+          {
+            if (cSovm = 2)
+              if (not TestDateDogovor(tpOrgHist.dDate))
+                continue;
+
+            var sText1: string = CalcOrgName(Sub_Day(tpOrgHist.dDate, 1), tpOrgList.cOrg);
+            var sText2: string = ' с ' + DateToStr(tpOrgHist.dDate, 'DD.MM.YYYY') + ' переименовано в ';
+            var sText3: string = tpOrgHist.sName;
+            ClearBuffer(#tpExperience);
+            tpExperience.Person := Persons.NRec;
+            tpExperience.cExperience := 0;
+            tpExperience.EnterpriseName := GetOrgNRec(tpOrgHist.sName);
+            tpExperience.EntranceDate := tpOrgHist.dDate;
+            tpExperience.RetirementDate := ZeroDate;
+            tpExperience.iAttr1 := coAction3;
+            tpExperience.wAttr2 := 0;
+            tpExperience.Post := 0;
+            tpExperience.cReason := 0;
+            tpExperience.str1 := '';
+            tpExperience.str2 := if(trim(tpOrgHist.sDocName) = '', sRPDNAME, tpOrgHist.sDocName);
+            tpExperience.JobOrderNmb := tpOrgHist.sDocNum;
+            tpExperience.JobOrderDate := tpOrgHist.dDocDate;
+            tpExperience.GroupCode := 0;
+            tpExperience.Foundation := 0;
+            tpExperience.EnterpriseLoc := 0;
+            tpExperience.Choice := wChoice;
+            tpExperience.FIOSort := sFIOSort;
+            tpExperience.wYear := Year(tpExperience.EntranceDate);
+            tpExperience.wMonth := Month(tpExperience.EntranceDate);
+            tpExperience.cDop1 := coAllMemo;
+            tpExperience.cDop2 := tpOrgHist.cRec;
+            var cExp: comp = 0;
+            var dDate: date = ZeroDate;
+            tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate);
+
+            tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+            tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+            tpExperience.sCode := GetOKZforORG(tpExperience.EntranceDate, tpExperience.Person, wChoice);
+
+            if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+              if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+              {
+                insert current tpExperience;
+                InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText3, 1);
+                InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText2, 2);
+                InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText1, 3);
+              }
+          }
+
+        if (bHave100)
+          vApp._loop nocache Appointments
+          {
+            if (vApp.Appointments.lPrizn <> 100)
+              continue;
+
+            if (tpOrgList.bMain) and (vApp.Appointments.cFilialOrg <> 0) and (vApp.Appointments.cFilialOrg <> cMYORG)
+              continue;
+
+            if (not tpOrgList.bMain) and (vApp.Appointments.cFilialOrg <> tpOrgList.cOrg)
+              continue;
+
+            if (iStrFunc.isHitPeriod(vApp.Appointments.AppointDate, vApp.Appointments.DismissDate, tpOrgHist.dDate))
+            {
+              var sText1: string = CalcOrgName(Sub_Day(tpOrgHist.dDate, 1), tpOrgList.cOrg);
+              var sText2: string = ' с ' + DateToStr(tpOrgHist.dDate, 'DD.MM.YYYY') + ' переименовано в ';
+              var sText3: string = tpOrgHist.sName;
+              ClearBuffer(#tpExperience);
+              tpExperience.Person := Persons.NRec;
+              tpExperience.cExperience := 0;
+              tpExperience.EnterpriseName := GetOrgNRec(tpOrgHist.sName);
+              tpExperience.EntranceDate := tpOrgHist.dDate;
+              tpExperience.RetirementDate := ZeroDate;
+              tpExperience.iAttr1 := coAction3;
+              tpExperience.wAttr2 := 0;
+              tpExperience.Post := 0;
+              tpExperience.cReason := 0;
+              tpExperience.str1 := '';
+              tpExperience.str2 := if(trim(tpOrgHist.sDocName) = '', sRPDNAME, tpOrgHist.sDocName);
+              tpExperience.JobOrderNmb := tpOrgHist.sDocNum;
+              tpExperience.JobOrderDate := tpOrgHist.dDocDate;
+              tpExperience.GroupCode := 0;
+              tpExperience.Foundation := 0;
+              tpExperience.EnterpriseLoc := 0;
+              tpExperience.Choice := wChoice;
+              tpExperience.FIOSort := sFIOSort;
+              tpExperience.wYear := Year(tpExperience.EntranceDate);
+              tpExperience.wMonth := Month(tpExperience.EntranceDate);
+              tpExperience.cDop1 := coAllMemo;
+              tpExperience.cDop2 := tpOrgHist.cRec;
+              var cExp: comp = 0;
+              var dDate: date = ZeroDate;
+              tpExperience.FilialNo := GetFilterStatus(wChoice, tpExperience.cDop1, tpExperience.cDop2, cPerson, cExp, dDate);
+
+              tpExperience.bReported := (GetStatusReportEx(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience, tpExperience.EntranceDate));
+              tpExperience.UUID := GetUUID(word(tpExperience.cDop1), tpExperience.Person, tpExperience.cDop2, tpExperience.cExperience);
+
+              tpExperience.sCode := GetOKZforORG(tpExperience.EntranceDate, tpExperience.Person, wChoice);
+
+              if (CheckOrderAction(tpExperience.iAttr1, tpExperience.EntranceDate, tpExperience.JobOrderDate, wY, wM, wActionsOrder))
+                if (not CheckExist(tpExperience.Person, tpExperience.Choice, tpExperience.iAttr1, tpExperience.JobOrderNmb, tpExperience.JobOrderDate, tpExperience.EntranceDate, tpExperience.FilialNo, tpExperience.wAttr2))
+                {
+                  insert current tpExperience;
+                  InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText3, 1);
+                  InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText2, 2);
+                  InsDeptLong(if(cExp <> 0, cExp, tpExperience.NRec), sText1, 3);
+                }
+            }
+          }
+      }
+  }
+
+  dFormBeg := ZeroDate;
+}
+
+function GetPriznSovm(iPrizn: integer; cSovm, cAddNrec2, cDog: comp): word;
+{
+  var bSovm: boolean = if(iPrizn = 3, (cAddNrec2 <> 0), (cSovm = 1) or ((iPrizn = 0) and (cSovm = 3)) or ((iPrizn = 100) and (cSovm = 3)));
+
+  if (bSovm)
+    result := 10;
+  else
+    result := 0;
+
+  if (cDog <> 0) and (cAddNrec2 <> 0)
+    if (vApp.GetFirst SpAllStaff = tsOk)
+    {
+      var dBeg: date = vApp.SpAllStaff.ResDate[2];
+      var dEnd: date = vApp.SpAllStaff.ResDate[3];
+      var dCalc: date = ZeroDate;
+
+      if (dBeg = ZeroDate) or
+         (dEnd = ZeroDate) or
+         (dEnd = date(31, 12, 9999)) or
+         (dBeg >= dEnd)
+        exit;
+
+      dCalc := Add_Months(dBeg, 6);
+
+      if (dCalc >= dEnd)
+      {
+        result := result + 1;
+        exit;
+      }
+
+      var bFind: boolean = false;
+
+      while (not bFind)
+      {
+        if (LoadWorkingTable(cAddNrec2, Month(dCalc), Year(dCalc)) = 0)
+        {
+          while (day(dCalc) <= Last_Day(dCalc))
+          {
+            if (WT_GetHoursInDayEx(day(dCalc), hkWorking, stPlanned, 0) > 0)
+            {
+              bFind := true;
+              break;
+            }
+            else
+            {
+              if (day(dCalc) < Last_Day(dCalc))
+                dCalc := Add_Day(dCalc, 1);
+              else
+              {
+                dCalc := Add_Day(dCalc, 1);
+                break;
+              }
+            }
+          }
+        }
+
+        if (dCalc > Add_Months(dEnd, 1)) and (not bFind)
+        {
+          dCalc := Add_Months(dBeg, 6);
+          break;
+        }
+      }
+
+      if (dCalc >= dEnd)
+        result := result + 1;
+      else
+        result := result + 2;
+    }
+}
+
+end.

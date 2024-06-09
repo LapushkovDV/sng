@@ -1,0 +1,397 @@
+#component "Z_Staff"
+
+#include PerAcces.VIH        // Разграничение доступа к картотеке
+
+alter interface Pensions;
+
+overload
+  procedure UpdateFieldVisibility;
+end;
+
+var OldPensReviseDate: date;
+
+create view
+ from Fortune  frtn,
+      Catalogs ctlg
+ where
+ ((
+    Persons.Nrec == frtn.cpers   and
+              20 == frtn.wchoice and
+      frtn.Cref1 == ctlg.Nrec
+ ));
+
+Create view PersonsReportsView
+   var vc_MainLink : Comp;
+       SNG_PENSIONS_Date1:date;
+       SNG_PENSIONS_PENSION1:comp;
+  from
+    katpodr katpodr1
+    , STATEPENSIONS
+    , sng_pensions
+    , Catalogs Catalogs_PLANPENS
+    , Catalogs Catalogs_osnov    
+    , partdoc 
+    , ContDoc 
+  where
+    (( Persons.nrec == STATEPENSIONS.CPERSON
+    and STATEPENSIONS.NREC == sng_pensions.NREC   
+    and sng_pensions.PLANPENS == Catalogs_PLANPENS.nrec
+    and           108      == PartDoc.TypeOper                      
+    and   PartDoc.Nrec     == ContDoc.cPart             
+    and   PartDoc.TypeOper == ContDoc.TypeOper
+    and   Persons.Nrec  == ContDoc.Person 
+    // and 98                     ==  Catalogs_osnov.code 
+    and  partdoc.cpref == Catalogs_osnov.nrec
+    ))
+  ; 
+ var VPerAccess : SetPersonsAccess;      // Переменная типа интерфейс SetPersonsAccess
+ #include RecwinWriteAccess.vpp
+ procedure UpdateFieldVisibility;
+    {
+    inherited :: UpdateFieldVisibility; 
+    // SetFieldAndLabelVisible(#KatPodr.Name, Persons.PensionerStatus = 1);
+    // SetFieldAndLabelVisible(#Persons.PensReviseDate, Persons.PensionerStatus = 1);
+     if (Persons.DisDate = ZeroDate)
+     {        
+      cfsSetProp('i_SCMAIN_DISDEP', cfpVisible, false);
+      cfsSetProp('L_SCMAIN_Подразделение_перед_увольнением_на_пенсию#1', cfpVisible, false);
+      cfsSetProp('L_SCMAIN_Основание_увольнения_на_пенсию_из_ПАО_"Сургутнефтегаз"', cfpVisible, false);
+      SetFieldAndLabelVisible(#Catalogs_osnov.code, false);
+      SetFieldAndLabelVisible(#Catalogs_osnov.name, false);
+      SetFieldAndLabelVisible(#sng_pensions_PENSION1, false);
+     }
+     else
+     {    
+      cfsSetProp('i_SCMAIN_DISDEP', cfpVisible, Persons.PensionerStatus = 1);
+      cfsSetProp('L_SCMAIN_Подразделение_перед_увольнением_на_пенсию#1', cfpVisible, Persons.PensionerStatus = 1);
+      cfsSetProp('L_SCMAIN_Основание_увольнения_на_пенсию_из_ПАО_"Сургутнефтегаз"', cfpVisible, Persons.PensionerStatus = 1);
+      SetFieldAndLabelVisible(#Catalogs_osnov.code, Persons.PensionerStatus = 1);
+      SetFieldAndLabelVisible(#Catalogs_osnov.name, Persons.PensionerStatus = 1);
+      SetFieldAndLabelVisible(#sng_pensions_PENSION1, Persons.PensionerStatus = 1);
+     }
+     cfsSetProp('b_SCRSOCSTRAH_Размер_пенсии', cfpVisible, false);
+     cfsSetProp('b_scrGosObesp_Размер_пенсии', cfpVisible, false);
+     cfsSetProp('L_SCRSOCSTRAH_Причина_выхода_на_пенсию', cfpVisible, false);
+     SetFieldAndLabelVisible(#PensionCauseCat1.Name, false);
+     SetFieldAndLabelVisible(#PensionCauseCat2.Name, false);
+     SetFieldAndLabelVisible(#StatePensions_SocStrah.Status,false);
+     cfsSetProp('L_SCRSOCSTRAH_Статус', cfpVisible, false);
+     SetFieldAndLabelVisible(#KatPodr.Name,false);
+     cfsSetProp('L_SCMAIN_Подразделение_перед_увольнением_на_пенсию', cfpVisible, false);
+    }
+
+function getCatName(fnrec: comp) : string;
+  {
+  #info PLV Инициализация
+    Result := '';
+
+    var nrec_tmp : comp;
+    var n : integer;
+    nrec_tmp := fnrec;
+    vc_MainLink := if(GetFirst katpodr1 Where(( 'ПАО СНГ' == katpodr1.kod))=tsOk, katpodr1.Nrec,0);
+
+  #info PLV Изменил подцепку и добавил проверку на главный каталог. Из-за этого в desctop зависает на web выкидывает по таймауту
+    if (getFirst katpodr1 where ((nrec_tmp == katpodr1.nrec)) = tsOk)
+    do
+    {
+        Result := katpodr1.name;
+        if(vc_MainLink = katpodr1.CPODR)
+          exit;
+        nrec_tmp := katpodr1.CPODR;
+    }
+    While(getFirst katpodr1 where ((nrec_tmp == katpodr1.nrec)) = tsOk)
+  }
+
+overloadformats scMain;
+  screen scMain;
+    show at (,,,5);
+  fields
+  StrahPolis.Nmb ('СНИЛС'): skip;
+  StrahPolis.GivenDate ('Дата регистрации'): skip;
+  sGosPensGenerStat ('Гос. пенсии - общий статус'): skip;
+  Persons.DisDate ('Дата увольнения'): skip;
+  Persons.DisOrderNmb ('Номер приказа на увольнение'): skip, {hyperlink = true};
+  Persons.DisOrderDate ('Дата приказа'): skip;
+  KatPodr.Name ('Подразделение перед увольнением на пенсию',, scStaffT2AddPick): protect;
+  [DisDep] getCatName(KatPodr.Nrec) ('Подразделение перед увольнением на пенсию',, scStaffT2AddPick): protect;
+  Persons.PensReviseDate ('Дата подтверждения статуса',, scStaffT2AddPick): NoProtect;
+  sng_pensions_PENSION1 ('Не выходит на связь'): NoProtect;
+  Catalogs_osnov.code ('код увольнения'): skip;
+  Catalogs_osnov.name ('Основание увольнения'): skip;
+  PensFondCat.Name ('Наименование пенсионного фонда',, scStaffT2AddPick): Protect;
+  Persons.dDat1    ('Дата регистрации в ПФ',, scStaffT2AddPick): NoProtect;
+  Persons.dDop2    ('Дата дата начала выплат',, scStaffT2AddPick): NoProtect;
+
+<<
+  `СНИЛС` .@@@@@@@@@@@@@@@@@  `Дата регистрации` .@@@@@@@@@@
+  `Государственные пенсии - общий статус` .@@@@@@@@@@@@@@@@@@@@@@@@
+  `Уволен` .@@@@@@@@@@          `Приказ №` .@@@@@@@@@@  `от`  .@@@@@@@@@@
+  `Подразделение перед увольнением на пенсию` .@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+  `Подразделение перед увольнением на пенсию` .@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Дата подтверждения статуса` .@@@@@@@@@@     [.] Не выходит на связь `
+  `Основание увольнения на пенсию из ПАО "Сургутнефтегаз":` .@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+  `Наименование ПФ`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Дата регистрации в ПФ`.@@@@@@@@@@ `Дата начала выплат`.@@@@@@@@@@
+>>
+  end;  
+
+overloadformats scrSocStrah;
+  screen scrSocStrah;
+    table StatePensions_SocStrah;
+    bevel b1 {0,4.5,0,0, bsRaised, bsHorizontal};
+    bevel b2 {0,9.5,0,0, bsRaised, bsHorizontal};
+  fields    
+    CatPensKind1.Name: pickbutton;
+    StatePensions_SocStrah.PensionDate: noprotect;
+    StatePensions_SocStrah.PensionEnd: noprotect;
+    infinityStr1: skip;
+    PensionCauseCat1.Name ('Причина ухода на пенсию'): pickbutton, Protect;
+    // sng_pensions.date1: noprotect; // HR-518
+    sng_pensions_date1: noprotect; // HR-518
+    PensDocCat1.Name: pickbutton, Protect;
+    PassportsSocStrah.Ser ('Серия'): skip;
+    PassportsSocStrah.Nmb ('Номер'): skip;
+    PassportsSocStrah.Givendate: skip;
+    PassportsSocStrah.Givendate: skip; //GivenByCat1.Name: skip; ???
+    StatePensions_SocStrah.Note;
+    StatePensions_SocStrah.Status:  [ list 'Нет', 'Пенсионер', 'Предпенсионер' ], skip;
+    StatePensions_SocStrah.PrePensDate;
+    // [PensionPlanDate] sub_months(StatePensions_SocStrah.PensionPlanDate,60);  // HR-518
+    StatePensions_SocStrah.PensionPlanDate;
+    StatePensions_SocStrah.PrePensPlanDate,skip;
+    // SNG_PENSIONS.PLANPENS: noprotect, pickButton; // HR-518
+    Catalogs_PLANPENS.name: noprotect, pickButton; // HR-518 
+  buttons
+    cmValue1,,, 'Размер пенсии сотрудника',, scStaffForButton;
+<<
+  `Вид пенсии`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@      <.  Размер пенсии   .>
+  `Дата начала` .@@@@@@@@@@@ `по` .@@@@@@@@@@@ .@@@@@@@@@@@
+  `Причина выхода на пенсию` .@@@@@@@@@@@@@@@@@@@@@@@@@  
+  `Дата ввода статуса` .@@@@@@@@@@@ 
+  
+  `Документ`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Реквизиты документа:
+  `серия`.@@@@@@@@@@@ `номер`.@@@@@@@@@@@@@@@@ `дата выдачи`.@@@@@@@@@@@
+  `кем выдан`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Дополнительная информация`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Статус`.@@@@@@@@@@@@@@@@@@@                 `Дата установления статуса "Предпенсионер"`  .@@@@@@@@@@@
+  `Плановая дата выхода на пенсию`.@@@@@@@@@@@ `Предполагаемая дата статуса "Предпенсионер"`.@@@@@@@@@@@
+  `Способ ввода даты планируемой пенсии` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+>>
+end;
+overloadformats scrGosObesp;
+screen scrGosObesp;
+  table StatePensions_GosOb;
+  bevel b1 {0,4.5,0,0, bsRaised, bsHorizontal};
+  bevel b2 {0,9.5,0,0, bsRaised, bsHorizontal};
+fields
+  CatPensKind2.Name: pickbutton;
+  StatePensions_GosOb.PensionDate: noprotect;
+  StatePensions_GosOb.PensionEnd: noprotect;
+  infinityStr2: skip;
+  PensionCauseCat2.Name ('Причина ухода на пенсию'): pickbutton, Protect;
+  // sng_pensions.date1: noprotect; // HR-518
+  sng_pensions_date1: noprotect; // HR-518
+  PensDocCat2.Name: pickbutton, Protect;
+  PassportsGosOb.Ser ('Серия'): skip;
+  PassportsGosOb.Nmb ('Номер'): skip;
+  PassportsGosOb.Givendate: skip;
+  PassportsGosOb.GivenBy: skip;  //GivenByCat2.Name: skip; 
+  StatePensions_GosOb.Note;
+buttons
+  cmValue2,,, 'Размер пенсии сотрудника',, scStaffForButton;
+<<
+  `Вид пенсии`  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@      <.  Размер пенсии   .>
+  `Дата начала` .@@@@@@@@@@@ `по` .@@@@@@@@@@@ .@@@@@@@@@@@
+  `Причина выхода на пенсию` .@@@@@@@@@@@@@@@@@@@@@@@@@
+  `Дата ввода статуса` .@@@@@@@@@@@ 
+
+  `Документ`    .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   Реквизиты документа:
+  `серия`.@@@@@@@@@@@ `номер`.@@@@@@@@@@@@@@@@ `дата выдачи`.@@@@@@@@@@@
+  `кем выдан`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+  `Дополнительная информация` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+end;
+
+procedure idle;
+{  
+  if (not WriteAccess(1)) //Запрещено редактирование
+    {      
+      ProtectRecord(#StatePensions_SocStrah, true);
+      ProtectRecord(#StatePensions_GosOb, true);
+      DisableCommand(cmValue1);
+      DisableCommand(cmValue2);
+      ProtectRecord(#CatPensKind1, true);
+      ProtectRecord(#CatPensKind2, true);      
+      ProtectRecord(#persons, true);      
+      ClearFieldOption(#sng_pensions_date1,ofSelectable);
+      ClearFieldOption(#sng_pensions_PENSION1,ofSelectable);
+      ProtectRecord(#PensDocCat1, true);       
+      ProtectRecord(#Catalogs_PLANPENS, true);     
+      ClearFieldOption(#CatPensKind2.Name,ofSelectable);  
+      ClearFieldOption(#CatPensKind1.Name,ofSelectable);  
+      ClearFieldOption(#PensDocCat1.Name,ofSelectable);  
+      ClearFieldOption(#StatePensions_SocStrah.PrePensDate,ofSelectable);  
+      ClearFieldOption(#StatePensions_GosOb.Note,ofSelectable);
+      ClearFieldOption(#StatePensions_SocStrah.Note,ofSelectable);
+      ClearFieldOption(#StatePensions_SocStrah.PensionPlanDate,ofSelectable);  
+      ClearFieldOption(#Catalogs_PLANPENS.name,ofSelectable);  
+      ClearFieldOption(#StatePensions_SocStrah.PensionDate,ofSelectable);  
+      ClearFieldOption(#StatePensions_SocStrah.PensionEnd,ofSelectable);  
+      ClearFieldOption(#StatePensions_GosOb.PensionDate,ofSelectable);  
+      ClearFieldOption(#StatePensions_GosOb.PensionEnd,ofSelectable);  
+      ClearFieldOption(#PensDocCat2.Name,ofSelectable);        
+    }
+} //procedure idle;
+
+
+handleevent
+  cmIdle:
+  {    
+    idle;     
+  }
+  cmProtectedInput:
+  {    
+    if (not WriteAccess(1))
+    {
+      Message('Внимание! У пользователя ' +UserName+ ' нет прав на изменение информации', Warning + OkButton);
+      stop;
+    }
+  }
+    cmDone:
+    {
+      inherited::handleEvent(cmDone);   
+
+      if (oldComp = Persons.cDopRef1
+      and oldDat1 = Persons.dDat1
+      and oldDat2 = Persons.dDop2 
+      and OldPensReviseDate <> Persons.PensReviseDate)
+      {
+        update current Persons;
+      }
+    }
+    cmInit:
+    {
+      if (not vPerAccess.ReadAccess(1))
+      {
+        Message('Внимание! У пользователя ' +UserName+ ' нет прав на просмотр информации', Warning + OkButton);
+        abort;
+        exit;
+      }
+
+      OldPensReviseDate := Persons.PensReviseDate;
+      SNG_PENSIONS_date1 :=  SNG_PENSIONS.date1;
+      SNG_PENSIONS_PENSION1 :=  SNG_PENSIONS.PENSION1;
+      inherited::handleEvent(cmInit);            
+    }  
+    cmPick:
+    {   
+     var ParentSav: comp;
+     case CurField of
+     #DisDep:
+      {
+      ParentSav := Persons.DisDepartment;
+
+      if (RunInterface(GetAnyPodr, ParentSav, 0) = cmDefault)
+        {
+        set Persons.DisDepartment := ParentSav;   
+        update current Persons;     
+        }
+      }      
+      #Catalogs_PLANPENS.name:
+      {
+        if (RunInterface('PickCatalog2', -31519, ParentSav, 0) = cmDefault)
+        {
+           if IsValid(#SNG_PENSIONS)
+        {              
+          set SNG_PENSIONS.PLANPENS := ParentSav;   
+          update current SNG_PENSIONS;              
+        }
+        else
+        {   
+          if not IsValid(#STATEPENSIONS)            
+          {               
+            STATEPENSIONS.CPERSON := persons.nrec; 
+            insert current STATEPENSIONS;                   
+          }
+          SNG_PENSIONS.nrec := STATEPENSIONS.NREC;                            
+          set SNG_PENSIONS.PLANPENS := ParentSav;              
+          insert current SNG_PENSIONS;                     
+        }         
+        }
+      }                 
+    end;
+    inherited::handleEvent(cmPick);
+    }
+    cmCheckField:
+     {     
+       if inherited::handleEvent(cmCheckField) = tsOk
+       {             
+         case CurField of         
+           #SNG_PENSIONS_Date1,#SNG_PENSIONS_pension1:
+           {            
+             if IsValid(#SNG_PENSIONS)
+             {              
+               if curfield = #SNG_PENSIONS_Date1
+                 SNG_PENSIONS.date1 := SNG_PENSIONS_Date1; 
+               else
+                 SNG_PENSIONS.pension1 := SNG_PENSIONS_pension1; 
+               update current SNG_PENSIONS;                     
+             }
+             else
+             {   
+              if not IsValid(#STATEPENSIONS)            
+              {               
+                STATEPENSIONS.CPERSON := persons.nrec; 
+                insert current STATEPENSIONS;                              
+              }
+              SNG_PENSIONS.nrec := STATEPENSIONS.NREC;              
+              if curfield = #SNG_PENSIONS_Date1
+                SNG_PENSIONS.date1 := SNG_PENSIONS_Date1; 
+              else
+                SNG_PENSIONS.pension1 := SNG_PENSIONS_pension1; 
+              insert current SNG_PENSIONS;                 
+            }
+          }                  
+         #StatePensions_SocStrah.PensionPlanDate:
+         {
+          StatePensions_SocStrah.PrePensPlanDate := sub_months(StatePensions_SocStrah.PensionPlanDate,60);          
+          update current StatePensions_SocStrah;
+          redrawpanel(CurTable);
+         }      
+       end;
+       }       
+     }
+  end;
+
+ExtendTabbedSheets Pensions;
+
+tabbedSheet TS;
+
+screen scrG 'Выходное пособие';
+ table frtn
+
+ fields
+
+  ctlg.Name('Вид пенсии')     :        skip, protect;
+  frtn.Docsum('Сумма выплаты'):[12.2,'\2p[|-]36`666`666`666`666.88'], left, skip, protect;
+  frtn.Docdate('Дата приказа'):        skip, protect;
+  frtn.Docnmb('Номер приказа'):        skip, protect;
+
+buttons
+
+<<
+
+   Вид пенсии    .@@@@@@@@@@@@@@@@@@@@@@@@@
+   Сумма выплаты .@@@@@@@@@@@@@@@
+   Дата приказа  .@@@@@@@@@@  `Номер приказа`.@@@@@@@@@@@@@@@@@@@@@@@@@
+
+>>
+end;
+
+end;
+end. // interface Pensions

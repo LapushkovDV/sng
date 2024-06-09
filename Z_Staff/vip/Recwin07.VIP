@@ -1,0 +1,77 @@
+#component "Z_Staff"
+
+alter Interface Recwin07;
+
+overload
+  function WriteAccess(wWindNum: word): boolean;
+end;
+
+var oExtAttr: iExtAttr;
+	ExtAttrID : comp;
+	LgotEnd: date;
+
+function WriteAccess(wWindNum: word): boolean;
+{
+  var IsArchEdit: boolean = if(not IsValid(#Persons), true, if(Persons.IsEmployee = 'У', boGetTune('UP.STAFF.RECEPTION.IsArchEdit'), true));
+  result := (vPerAccess.WriteAccess(wWindNum) and IsArchEdit);
+
+  if (result)
+    if(IsValid(#Persons))
+    {
+      var tmpSemafors: type$X$Semafors;
+      if (GetSemaphoreBlocker('ReceptionMain_'+string(Persons.NRec), sfExclusive, tmpSemafors) = tsOk)
+        if (tmpSemafors.UserCode <> UserID)
+          result := false;
+    }
+}
+
+OverloadFormats scPersons;
+
+screen scPersons;
+  show at (,,98,2);
+  table tmpPersons;
+fields
+  tmpPersons.TABNMB ('Табельный номер'), protect;
+  tmpPersons.FIO ('Фамилия, Имя, Отчество',, scStaffReceptionT2Butt),
+  { Font = { BackColor = if(trim(tmpPersons.FIO) = '', ColorNeed, 0); }}, protect;
+
+  wTypeVac ('Тип отпуска',, sci1Esc): NoProtect;
+  
+  LgotEnd ('Конец использования льготного отпуска',, sci147Esc): NoProtect;
+
+<<
+  Ф.И.О.   .@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   [.] Трудовые отпуска`
+                                                                     [.] Прочие отпуска  `
+  Конец использования льготного отпуска .@@@@@@@@@@                  [.] Компенсации     `
+>>
+end; // screen scPersons
+
+handleEvent
+	cmOnVipLoad:
+	{
+		if(inherited::handleEvent(cmOnVipLoad)=heOk)
+		{
+		  ExtAttrID:=oExtAttr.CreateAttr(coPersons, 'Конец использования льготного отпуска', cgAttrType_Date);
+		  LgotEnd := oExtAttr.dGetAttr(coPersons, tmpPersons.nRec, 'Конец использования льготного отпуска') ;
+		}
+	}
+	
+	cmCheckField:
+	{
+		case CurField of
+		#LgotEnd:
+		{	
+			oExtAttr.dSetAttrID(coPersons, tmpPersons.nRec, ExtAttrID, LgotEnd);
+		}
+		end;
+	}
+	cmInsertRecord:
+	{
+		  inherited::handleevent(cmInsertRecord);
+		  if(oExtAttr.ValueExistsID(coPersons, 0, ExtAttrID))
+		  oExtAttr.DeleteValueID(coPersons, 0, ExtAttrID);
+		  oExtAttr.dSetAttrID(coPersons, tmpPersons.nRec, ExtAttrID, LgotEnd);
+	}
+	end;
+
+end.

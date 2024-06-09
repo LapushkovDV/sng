@@ -1,0 +1,45 @@
+#component "Z_Staff"
+
+alter Interface SetPersonsTypePr;
+
+overload
+  procedure FillGroupsAndUsers;
+end;
+
+//HR-356
+procedure FillGroupsDescription;
+{
+  _loop GroupsAndUsers2
+  {
+    if (GroupsAndUsers2.Code = coSPA_Group) and
+       (GetFirst Groups1 where (( GroupsAndUsers2.SRC == Groups1.ATL_NREC )) = tsOk)
+    {
+      GroupsAndUsers2.FULLNAME := Groups1.DESCRIPTION;
+      update current GroupsAndUsers2;
+    }
+  }
+}
+
+procedure FillGroupsAndUsers;
+{
+  inherited::FillGroupsAndUsers;
+  FillGroupsDescription; //HR-356
+}
+
+HandleEvent
+
+cmValue5:
+{
+  inherited::handleEvent(cmValue5);
+  FillGroupsDescription; //HR-356
+}
+
+cmValue8:
+{
+  inherited::handleEvent(cmValue8);
+  FillGroupsDescription; //HR-356
+}
+
+end;//HandleEvent
+
+end.//interface

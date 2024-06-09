@@ -1,0 +1,41 @@
+#component "Z_Staff"
+
+alter interface SelectPsn;
+
+overload
+  function _CheckAllPers(_ie: string): boolean;
+  procedure ActivateBounds;
+end;
+
+create view Psn
+bounds AllKands as 'К' == Persons.IsEmployee Ordered By Persons.FIO
+bounds AllFiz as 'Ф' == Persons.IsEmployee Ordered By Persons.FIO
+;
+
+function _CheckAllPers(_ie: string): boolean;
+{
+  result := (('С' = _ie) or ('У' = _ie) or ('К' = _ie) or ('Ф' = _ie));
+}
+
+private procedure ActivateBounds;
+{
+  case StatPers of
+
+    0: PushBounds(tbPersIsEmployee); //работающие
+
+    1: PushBounds(tbAllPers); //текущие
+
+    2: PushBounds(tbPersInArchive);//в архиве
+
+    3: PushBounds(tbAllPersons);//Все физические лица: сотрудники и бывшие сотрудники
+
+    4: PushBounds(tbDisPersons);// Уволенные сотрудники
+
+    6: PushBounds(tbAllKands); //  кандидаты
+
+    7: PushBounds(tbAllFiz); // физ.лица
+
+  end; //case
+}
+
+End.

@@ -1,0 +1,55 @@
+#component "Z_Staff"
+
+#include DeptIer.vih
+
+alter interface GetApp;
+
+var
+  DepIer: DepartIer;
+
+overloadFormats brAllApp;
+
+Create view AllApp
+
+As select
+  DepIer.GetFulDepNameEx(CatDept.NRec)
+    (fieldname = DeptNameIer)
+from
+  Persons SNG_PSN
+
+bounds Pens_bound = Appointments.Person /== SNG_PSN.NRec and
+                   1 /== SNG_PSN.PensionerStatus (noindex);
+;
+
+browse brAllApp (,, sci1Esc);
+  table Appointments;
+fields
+  fAppTabN 'Табельный','номер' ('Табельный номер'): [10], protect;
+  fLSTabN 'Табельный','номер ЛС' ('Табельный номер лицевого счета'): [10], protect;
+  Appointments.AppointDate 'Дата','назначения'
+    ('Дата назначения на должность'): [15], Protect;
+  Appointments.DateEnd 'Назначен по'
+    ('Дата окончания назначения на должность'): [15], Protect;
+  Appointments.DismissDate 'Дата ухода' ('Дата ухода с должности'): [15], Protect;
+  DeptNameIer  'Подразделение' ('Подразделение'): [30], Protect;
+  CatPost.Name 'Должность' ('Должность'): [30], Protect;
+  Appointments.Rate 'Кол-во ставок' ('Количество ставок'): [10.3], Protect;
+end;
+
+HandleEvent
+
+cmInit:
+{
+  inherited::handleEvent(cmInit);
+
+  var bOnlyPens: boolean = false;
+  ReadMyDsk(bOnlyPens, 'RPD_ONLYPENS_'+string(UserID), false);
+  if (bOnlyPens)
+    PushBounds(tbPens_bound);
+  else
+    PopBounds(tbPens_bound);
+}
+
+end;
+
+end.

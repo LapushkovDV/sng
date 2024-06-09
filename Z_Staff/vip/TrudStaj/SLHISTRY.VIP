@@ -1,0 +1,754 @@
+#component "Z_STAFF"
+
+#include ServlenFunc.vih
+#include Pickcat.vih
+#include SNG_exRunStaj.vih
+
+#doc
+Докомпиляция интерфейса "Просмотр истории текущего стажа"
+#end
+
+Alter InterFace ServLenHistory;
+  show at (,, 85, 27);
+
+const
+  coSysCodeCatPriznak: integer = -31679; //системный код справочника "Признак стажа"
+end;
+
+var
+  cur_catalog: comp;
+  oServlenExt: iServlenExt;
+  oSNG_exRunStaj: iSNG_exRunStaj;
+
+overload 
+  procedure ReCalcCurPeriod;
+  procedure ReCalcStaj;
+  procedure CalcServLenOnDate(dOnDate: Date);
+end;
+
+
+Procedure ReCalcCurPeriodSng; forward;
+Procedure ReCalcCurPeriod_MODIFY; forward;
+
+create view vServLenHistory
+var   exServLenAllStaj: string; // string; лет+мес+дней
+      exServLenOnStaj : string; // string; лет+мес+дней
+      exYearsP        : Integer;
+      exMonthsP       : Integer;
+      exDaysP         : Integer;
+
+
+as select Sng_ServlenExt.nrec
+from
+  Sng_ServlenExt,
+  Catalogs CatPriznak
+where
+((
+  Servlen.nRec == Sng_ServlenExt.servlen and
+  Sng_ServlenExt.Priznak == CatPriznak.nRec
+));
+
+
+Procedure ReCalcCurPeriod;
+{ ReCalcCurPeriod_MODIFY();
+ if (GetFirst fastfirstrow Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    {
+      if ( Catalogs.syscode = 9132 or Catalogs.syscode = 64 )
+        {
+          ReCalcCurPeriodSng();
+        }
+    }
+}
+
+procedure ReCalcStaj;
+{ inherited::ReCalcStaj;
+ if (GetFirst fastfirstrow Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    {
+      if ( Catalogs.syscode = 9132 or Catalogs.syscode = 64 )
+        {
+          oSNG_exRunStaj.ReCalcStajSng(cPerson, cPosition);
+          set exServLenAllStaj:= oSNG_exRunStaj.NRunStrStajSmartSng(Persons.NRec, cPosition, Cur_Date);
+          ReCalcCurPeriodSng();
+
+        }
+    }
+}
+
+procedure CalcServLenOnDate(dOnDate: Date);
+{ inherited::CalcServLenOnDate(dOnDate);
+ if (GetFirst fastfirstrow Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    {
+      if ( Catalogs.syscode = 9132 or Catalogs.syscode = 64 )
+        {
+          oSNG_exRunStaj.ReCalcStajSng(cPerson, cPosition);
+          set exServLenOnStaj := oSNG_exRunStaj.NRunStrStajSmartForDateSng(Persons.NRec, cPosition, dOnDate);
+          ReCalcCurPeriodSng();
+
+        }
+    }
+}
+
+overloadFormats
+           scrServLenTitle;
+    screen scrServLenTitle;
+           show at (,,,3.5)
+    table SLFeatureCat;
+     Fields
+       CatAlg1.Name        : Skip;
+       ServLenAllStaj      : Skip;
+       exServLenAllStaj    : Skip;
+       dParDate            ('', hcSLHistory, sci14Esc): Protect;
+       ServLenOnStaj       : Skip;
+       exServLenOnStaj     : Skip;
+<<
+ Наименование стажа: .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+ Продолжительность стажа на текущий день: .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+ Продолжительность стажа на.@@@@@@@@@@    .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+
+>>
+    end; // scrServLenTitle
+
+
+panel panServLenHistory;
+  table ServLen;
+
+  ExtendFormats brwServLen;
+
+  browse brwServLen;
+  show at (,19,,);
+  Fields
+    Sng_ServlenExt.zamount 'Кол-во дней' (,,sci14Esc): [12], skip;
+    CatPriznak.name 'Признак стажа' (,,sci14Esc): [12], Protect;
+    Sng_ServlenExt.pred 'Предприятие' (,,sci14Esc): [20], Protect;
+    Sng_ServlenExt.org  'Орг.единица' (,,sci14Esc): [20], Protect;
+    Sng_ServlenExt.dol  'Должность' (,,sci14Esc): [20], Protect;
+    Sng_ServlenExt.osn  'Основание' (,,sci14Esc): [20], Protect;
+  end; // brwServLen
+
+  OverloadFormats
+         brwServLenEdit;
+  browse brwServLenEdit;
+  show at (,19,,);
+  Fields
+    FromDate 'Стаж с..' ('', hcSLHistory, sci1378Esc): [12,'DD/MM/YYYY'], NoProtect, centered;
+    ToDate   '  по..' ('', hcSLHistory, sci1378Esc)  : [12,'DD/MM/YYYY'], NoProtect, centered;
+    Rate     'Коэф-т' ('', hcSLHistory, sci178Esc)     : [6.2], noProtect, noDel, centered;
+    CatAlg.Name     'Уточнение стажа' ('Уточнение стажа', hcSLHistory, sci1378Esc) : [30], Protect, centered;
+    sss1 'Алгоритм расчета', ('Алгоритм расчета', hcStaffReceptionT2SL): [30], Skip, centered;
+    HaveDiscription  'Примечание' ('Примечание', hcSLHistory, sci178Esc): [3], NoProtect, centered;
+    Sng_ServlenExt.zamount 'Кол-во дней' (,,sci1378Esc): [12], Protect;
+    CatPriznak.name 'Признак стажа' (,,sci1378Esc): [12], Protect, pickbutton;
+    Sng_ServlenExt.pred 'Предприятие' (,,sci1378Esc): [20], NoProtect;
+    Sng_ServlenExt.org  'Орг.единица' (,,sci1378Esc): [20], NoProtect;
+    Sng_ServlenExt.dol  'Должность' (,,sci1378Esc): [20], NoProtect;
+    Sng_ServlenExt.osn  'Основание' (,,sci1378Esc): [20], NoProtect;
+  end; // brwServLenEdit
+
+  OverloadFormats
+           scrServLenHistoryCur;
+    screen scrServLenHistoryCur;
+     show at (,4.5,,18) fixed_y;
+     Fields
+       FromDate  ('', hcSLHistory, sci14Esc)        : [10,'DD/MM/YYYY'], Protect;
+       CatAlg.Name  ('', hcSLHistory, sci14Esc)        : Skip;
+       Rate              : [5.2], Skip;
+   //    [StajBCur]
+         SmartPart(YearsB,  'год ', 'года ', 'лет ', 1) +
+         SmartPart(MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+         SmartPart(DaysB,   'день', 'дня', 'дней', 1): skip;
+
+        SmartPart(Sng_ServlenExt.YearsB,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(Sng_ServlenExt.MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(Sng_ServlenExt.DaysB,   'день', 'дня', 'дней', 1): skip;
+   //    [StajPCur]
+         SmartPart(YearsP,  'год ', 'года ', 'лет ', 1) +
+         SmartPart(MonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+         SmartPart(DaysP,   'день', 'дня', 'дней', 1): skip;
+
+        SmartPart(exYearsP,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(exMonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(exDaysP,   'день', 'дня', 'дней', 1):[15], skip;
+
+       sNameSA: skip, {Font = {color = ColorSysblack}};
+       ServLenBolnAndSA: skip;
+       str1: skip;
+
+      Sng_ServlenExt.zamount: skip;
+      CatPriznak.name: skip;
+      Sng_ServlenExt.pred: skip;
+      Sng_ServlenExt.org: skip;
+      Sng_ServlenExt.dol: skip;
+      Sng_ServlenExt.osn: skip;
+<<
+
+ Стаж за период `с`.@@@@@@@@@@@ по настоящее время
+`Уточнение стажа:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Коэффициент:`.@@@@@@
+`Стаж на начало периода:`.@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+`Стаж за период:`        .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+.@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Примечание:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Кол-во дней` .@@@@@ `Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Предприятие` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Орг.единица` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Должность`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Основание`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+    end; // scrServLenHistoryCur
+
+
+  ExtendFormats scrServLenHistoryCurEdit;
+  screen scrServLenHistoryCurEdit;
+    show at (, 4.5,, 18) fixed_y;
+    fields
+      Sng_ServlenExt.zamount: skip;
+      CatPriznak.name: Protect, pickbutton;
+      Sng_ServlenExt.pred: NoProtect;
+      Sng_ServlenExt.org: NoProtect;
+      Sng_ServlenExt.dol: NoProtect;
+      Sng_ServlenExt.osn: NoProtect;
+<<
+
+
+
+
+
+
+
+
+`Кол-во дней` .@@@@@ `Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Предприятие` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Орг.единица` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Должность`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Основание`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+  end; // scrServLenHistoryCurEdit
+
+
+OverloadFormats
+           scrServLenHistoryOld;
+    screen scrServLenHistoryOld;
+     show at (,4.5,,18) fixed_y;
+     Fields
+       FromDate ('', hcSLHistory, sci14Esc)        : [10,'DD/MM/YYYY'], Protect;
+       ToDate   ('', hcSLHistory, sci14Esc)        : [10,'DD/MM/YYYY'], Protect;
+       CatAlg.Name     ('', hcSLHistory, sci14Esc)        : Skip;
+       Rate     : [5.2], Skip;
+
+        SmartPart(YearsB,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysB,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(Sng_ServlenExt.YearsB,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(Sng_ServlenExt.MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(Sng_ServlenExt.DaysB,   'день', 'дня', 'дней', 1): skip;
+
+        SmartPart(YearsE,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsE, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysE,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(Sng_ServlenExt.YearsE,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(Sng_ServlenExt.MonthsE, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(Sng_ServlenExt.DaysE,   'день', 'дня', 'дней', 1): skip;
+
+        SmartPart(YearsP,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysP,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(exYearsP,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(exMonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(exDaysP,   'день', 'дня', 'дней', 1):[15], skip;
+      sNameSA: skip, {Font = {color = ColorSysblack}};
+      ServLenBolnAndSA: skip;
+      str1: skip;
+    fields
+      Sng_ServlenExt.zamount: skip;
+      CatPriznak.name: skip;
+      Sng_ServlenExt.pred: skip;
+      Sng_ServlenExt.org: skip;
+      Sng_ServlenExt.dol: skip;
+      Sng_ServlenExt.osn: skip;
+<<
+
+ Стаж за период `с`.@@@@@@@@@@@`по`.@@@@@@@@@@@
+`Уточнение стажа:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Коэффициент:`.@@@@@@
+`Стаж на начало периода:`.@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+`Стаж на конец периода:` .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+`Стаж за период:`        .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+.@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Примечание:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Кол-во дней` .@@@@@ `Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Предприятие` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Орг.единица` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Должность`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Основание`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+    end; // scrServLenHistoryOld
+
+  OverloadFormats
+         scrServLenHistoryOldEdit;
+  screen scrServLenHistoryOldEdit;
+    show at (, 4.5,, 18) fixed_y;
+     Fields
+       FromDate ('', hcSLHistory, sci1378Esc)        : [10,'DD/MM/YYYY'], NoProtect;
+       ToDate   ('', hcSLHistory, sci1378Esc)        : [10,'DD/MM/YYYY'], NoProtect;
+       CatAlg.Name     ('', hcSLHistory, sci1378Esc)        : NoProtect;
+       Rate     : [5.2], Skip;
+        //[StajBOldEdit]
+        SmartPart(YearsB,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysB,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(Sng_ServlenExt.YearsB,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(Sng_ServlenExt.MonthsB, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(Sng_ServlenExt.DaysB,   'день', 'дня', 'дней', 1): skip;
+        //[StajEOldEdit]
+        SmartPart(YearsE,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsE, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysE,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(Sng_ServlenExt.YearsE,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(Sng_ServlenExt.MonthsE, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(Sng_ServlenExt.DaysE,   'день', 'дня', 'дней', 1): skip;
+        //[StajPOldEdit]
+        SmartPart(YearsP,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(MonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(DaysP,   'день', 'дня', 'дней', 1):[15], skip;
+
+        SmartPart(exYearsP,  'год ', 'года ', 'лет ', 1) +
+        SmartPart(exMonthsP, 'месяц ', 'месяца ', 'месяцев ', 1) +
+        SmartPart(exDaysP,   'день', 'дня', 'дней', 1):[15], skip;
+
+      sNameSA: skip, {Font = {color = ColorSysblack}};
+      ServLenBolnAndSA: skip;
+      str1;
+    fields
+      Sng_ServlenExt.zamount: skip;
+      CatPriznak.name: Protect, pickbutton;
+      Sng_ServlenExt.pred: NoProtect;
+      Sng_ServlenExt.org: NoProtect;
+      Sng_ServlenExt.dol: NoProtect;
+      Sng_ServlenExt.osn: NoProtect;
+<<
+
+ Стаж за период `с`.@@@@@@@@@@@`по`.@@@@@@@@@@@
+`Уточнение стажа:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Коэффициент:`.@@@@@@
+`Стаж на начало периода:`.@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+`Стаж на конец периода:` .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+`Стаж за период:`        .@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@
+.@@@@@@@@@@@@@@@@@@@@@@@ .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Примечание:` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Кол-во дней` .@@@@@ `Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Предприятие` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Орг.единица` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Должность`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Основание`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+  end; // scrServLenHistoryOldEdit
+
+  ExtendFormats scrServLenHistoryFirstEdit;
+
+  screen scrServLenHistoryFirstEdit;
+    show at (, 4.5,, 18) fixed_y;
+    fields
+      Sng_ServlenExt.zamount: skip;
+      CatPriznak.name: Protect, pickbutton;
+      Sng_ServlenExt.pred: NoProtect;
+      Sng_ServlenExt.org: NoProtect;
+      Sng_ServlenExt.dol: NoProtect;
+      Sng_ServlenExt.osn: NoProtect;
+<<
+
+
+
+
+
+
+
+
+
+`Кол-во дней` .@@@@@ `Признак стажа`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Предприятие` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Орг.единица` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Должность`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Основание`   .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+>>
+  end; // scrServLenHistoryFirstEdit
+
+Procedure ReCalcCurPeriod_MODIFY;
+{ // перерасчет стажа за период
+  var allDay   : integer = 0;
+  var numAlg   : word;
+  var calcDate : date;
+
+  DateBeg := ServLen.FromDate;
+  numAlg  := 0;
+
+  if (GetFirst Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  if (Day(ServLen.ToDate) <> 0)
+    DateEnd  := ServLen.ToDate;
+  else
+    DateEnd  := Cur_Date;
+
+  calcDate := DateEnd;
+
+       case numAlg of
+          0: // Стандартный алгоритм
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) *
+                               ServLen.Rate);
+              if (Day(ServLen.ToDate) <> 0)
+                allDay := allDay + 1;
+              }
+          1: // Алгоритм ПФ РФ
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) *
+                               ServLen.Rate);
+              if (Day(ServLen.ToDate) <> 0)
+                allDay := allDay + 1;
+              }
+          2: // Алгоритм ТК РФ
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) *
+                               ServLen.Rate);
+              if (Day(ServLen.ToDate) <> 0)
+                allDay := allDay + 1;
+              }
+          3: // Алгоритм расчета страхового стажа
+              {
+              YearsP := MonthsP := DaysP := 0;
+              iRunStaj.CalcStrahStaj(ServLen.FromDate, Sub_Day(calcDate, 1), YearsP, MonthsP, DaysP);
+              }
+          4: // Алгоритм расчета страхового стажа + 1 день
+              {
+              YearsP := MonthsP := DaysP := 0;
+              iRunStaj.CalcStrahStaj(ServLen.FromDate, calcDate, YearsP, MonthsP, DaysP);
+              }
+          5: // Для выслуги лет с непрерывным периодом
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) *
+                               ServLen.Rate);
+              }
+          6: // По дням
+             {
+               if (ServLen.FromDate <> Date(0,0,0)) and (ServLen.ToDate <> Date(0,0,0))
+                  DaysP := CalcDaysBetweenDates(ServLen.FromDate, calcDate, false) * ServLen.Rate;
+               else
+                  DaysP := 0;
+               exit;
+             }
+          else
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) *
+                               ServLen.Rate);
+              if (Day(ServLen.ToDate) <> 0)
+                allDay := allDay + 1;
+              }
+        end; //case
+
+  if (ServLen.FromDate <> Date(0,0,0))
+    {
+      if ( numAlg <> 3 ) and ( numAlg <> 4 )
+      {
+        set YearsP := DivI(allDay, 360);
+        if (YearsP < 0)
+          set YearsP := 0;
+
+        set MonthsP := DivI(allDay mod 360, 30);
+        if (MonthsP < 0)
+          set MonthsP := 0;
+
+        set DaysP := allDay mod 30;
+        if (DaysP < 0)
+          set DaysP := 0;
+      }
+    }
+  else
+    {
+    set YearsP   := 0;
+    set MonthsP  := 0;
+    set DaysP    := 0;
+    }
+
+  if ( ( numAlg = 5 ) and ( iRunStaj.fTestFor5Alg(ServLen.Person, ServLen.Position) ) )
+    {
+      var dToDate: date;
+
+      if ( ServLen.ToDate <> date(0, 0, 0) )
+        dToDate := ServLen.ToDate;
+      else
+        dToDate := Cur_Date;
+
+      if ( ( Day(ServLen.FromDate) = 1 ) and ( Day(dToDate) = Last_Day(dToDate) ) and
+           ( ( Day(dToDate) = 28 ) or ( Day(dToDate) = 29 ) or ( Day(dToDate) = 30 ) ) )
+        {
+          DaysP := 0;
+
+          if ( MonthsP < 11 )
+            MonthsP++;
+          else
+            {
+              MonthsP := 0;
+              YearsP++;
+            }
+        }
+      else
+        if ( ( Day(ServLen.FromDate) = 1 ) and ( Day(dToDate) = Last_Day(dToDate) ) )
+          DaysP := 0;
+        else
+          if ( Day(Sub_Day(ServLen.FromDate, 1)) = Day(dToDate) )
+            {
+              DaysP := 0;
+
+              if ( MonthsP < 11 )
+                MonthsP++;
+              else
+                {
+                  MonthsP := 0;
+                  YearsP++;
+                }
+            }
+          else
+            {
+              if ( Day(ServLen.ToDate) <> 0 )
+                allDay := allDay + 1;
+
+              if ( ServLen.FromDate <> Date(0,0,0) )
+                {
+                  set YearsP := DivI(allDay, 360);
+
+                  if ( YearsP < 0 )
+                    set YearsP := 0;
+
+                  set MonthsP := DivI(allDay mod 360, 30);
+
+                  if ( MonthsP < 0 )
+                    set MonthsP := 0;
+
+                  set DaysP := allDay mod 30;
+
+                  if ( DaysP < 0 )
+                    set DaysP := 0;
+                }
+            }
+    }
+
+  if ( ( numAlg = 2 ) and
+       ( Day(ServLen.FromDate) = 1 ) and
+       ( Day(DateEnd) = Last_Day(DateEnd) ) )
+    {
+    if (DaysP >= 28)
+      MonthsP++;
+    set DaysP := 0;
+    }
+  }
+
+Procedure ReCalcCurPeriodSng;
+  { // перерасчет стажа за период
+  var allDay   : integer = 0;
+  var numAlg   : word;
+  var calcDate : date;
+
+  DateBeg  := ServLen.FromDate;
+  numAlg          := 0;
+
+  if (GetFirst Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  if (Day(ServLen.ToDate) <> 0)
+    DateEnd  := ServLen.ToDate;
+  else
+    DateEnd  := Cur_Date;
+
+  calcDate := DateEnd;
+
+      if (GetFirst SNG_ServLenext where (( ServLen.Nrec == SNG_ServLenext.Servlen )) <> tsOk) exit;
+
+       case numAlg of
+          0: // Стандартный алгоритм
+          {
+            allDay := longint(((Year(calcDate)  - Year(ServLen.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLen.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLen.FromDate))) * 1 );
+              if (Day(ServLen.ToDate) <> 0)
+                allDay := allDay + 1;
+          }
+          6: // По дням
+          {
+            if (ServLen.FromDate <> Date(0,0,0)) and (ServLen.ToDate <> Date(0,0,0))
+              exDaysP := CalcDaysBetweenDates(ServLen.FromDate, calcDate, false) * ServLen.Rate;
+            else
+              exDaysP := 0;
+            exit;
+          }
+        end; //case
+
+  if (ServLen.FromDate <> Date(0,0,0))
+    {
+      if ( numAlg <> 3 ) and ( numAlg <> 4 )
+      {
+        set exYearsP := DivI(allDay, 360);
+        if (exYearsP < 0)
+          set exYearsP := 0;
+
+        set exMonthsP := DivI(allDay mod 360, 30);
+        if (exMonthsP < 0)
+          set exMonthsP := 0;
+
+        set exDaysP := allDay mod 30;
+        if (exDaysP < 0)
+          set exDaysP := 0;
+      }
+    }
+  else
+    {
+    set exYearsP   := 0;
+    set exMonthsP  := 0;
+    set exDaysP    := 0;
+    }
+  }
+
+
+  handleEvent
+
+    cmInsertRecord:
+    {
+      if inherited:: handleEvent(cmInsertRecord) = heOk
+       {
+          oServlenExt.InsertRecord(Servlen.Person, Servlen.Position, Servlen.nRec);
+       }
+
+    }
+
+    cmDeleteRecord:
+    {
+      var ext_nrec: comp = Sng_ServlenExt.nRec;
+
+      // Если запись Servlen удалена, то также нужно удалить и запись Sng_ServlenExt
+      if inherited:: handleEvent(cmDeleteRecord) = heOk {
+        oServlenExt.DeleteRecord(ext_nrec);
+        oServlenExt.UpdatePositionGaps(cPerson, cPosition);
+      }
+    }
+
+    cmPositionChanged:
+    {
+
+      if inherited:: handleEvent(cmPositionChanged) = heOk {
+        if isEdit = True {
+          oServlenExt.InsertRecord(Servlen.Person, Servlen.Position, Servlen.nRec);
+        }
+      }
+      ReScanPanel(#ServLen);
+    }
+
+    cmUpdateRecord:
+    {
+        if(Catalogs.syscode = 9132 and isEdit = true)
+        {
+         SNG_ServLenext.daysB := daysB;
+        }
+
+      if update current Sng_ServlenExt = TsOk {};
+      if inherited::handleEvent(cmUpdateRecord) = heOK {};
+    }
+  end; // handleEvent
+
+end; // panel servLenHistory
+
+tableEvent table Sng_ServlenExt
+
+  cmUpdateRecord: {
+    if inherited::handleEvent(cmUpdateRecord) = heOK {
+      update current Sng_ServlenExt;
+    }
+  }
+
+end;
+
+handleEvent
+ cmInit:{
+      inherited::handleevent(cmInit);
+
+//     cfsSetProp('L_SCRSERVLENHISTORYCUR_Коэффициент:', cfpHidden, true);
+//     cfsSetProp('L_SCRSERVLENHISTORYFIRSTEDIT_Коэффициент:', cfpHidden, true);
+       cfsSetProp('L_SCRSERVLENHISTORYCUR_Примечание:', cfpHidden, true);
+       cfsSetProp('L_SCRSERVLENHISTORYFIRSTEDIT_Примечание:', cfpHidden, true);
+       cfsSetProp('i_SCRSERVLENHISTORYFIRSTEDIT_SERVLEN.STR1', cfpHidden, true);
+//     SetFieldAndLabelVisible(#Servlen.Rate, false);
+
+       if GetFirst Sng_ServlenExt = tsOk {};
+
+       ReScanPanel(#ServLen);
+
+    }
+
+
+  cmEdit:
+  {
+    if inherited:: handleEvent(cmEdit) = heOk
+    {
+        oServlenExt.InsertRecord(Servlen.Person, Servlen.Position, Servlen.nRec);
+        ReScanPanel(#ServLen);
+    }
+  }
+
+  cmPick:
+  {
+
+    if inherited:: handleEvent(cmPick) = heAbort {
+      abort;
+      exit;
+    }
+
+    case CurField of
+      #CatPriznak.name:
+      {
+        RunInterface('Z_StaffCat::PickCatalog2', coSysCodeCatPriznak, Sng_ServlenExt.Priznak, comp(0), comp(0));
+        SetModified(true);
+        UpdateTable;
+      }
+
+    end;
+
+  }
+
+  cmCheckField:
+  {
+
+    if inherited:: handleEvent(cmCheckField) = heAbort {
+      abort;
+      exit;
+    }
+
+    case CurField of
+
+      #Servlen.FromDate:
+      {
+        set Sng_ServlenExt.zamount := oServlenExt.CalcGapBefore(Servlen.Person, Servlen.Position, Servlen.FromDate);
+      }
+
+    end;
+
+    SetModified(true);
+    UpdateTable;
+
+  }
+
+end;
+
+end.

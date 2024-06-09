@@ -1,0 +1,445 @@
+#component "Z_Staff"
+
+alter interface PersonOtpuskSetups;
+
+create view
+as select
+  *
+from
+  Catalogs JobNatureCatCard,
+  KlKatego KlKategoAppCur
+where
+((
+  Persons2.JobNature == JobNatureCatCard.NRec and
+  Appointments2.EmpCategory == KlKategoAppCur.NRec
+))
+;
+
+HandleEvent
+
+  cmRecalcAllSums:
+    {
+      if DelFormat
+      {
+        if (Message(''#3'Запустить функцию привязки персональных отпусков ?',
+                YesNo+Confirmation) = Yes)
+        {
+          StartNewVisual(vtRotateVisual, vfTimer+vfBreak,
+            'Идет привязка записей о персональных отпусках', 1);
+
+          if (DelOtpusk = 0) // Удалять Все ранее привязанные отпуска
+          {
+            delete all PersVacationAlg;
+            delete all PersVacation;
+          }
+
+          _loop Persons2
+            {
+
+              if (getfirst Appointments2 = tsOk) {} // Позиционируемся на Appointments
+              if (getfirst PostCat2 = tsOk)      {} // Позиционируемся на подразделение
+              if (getfirst Conscription2 = tsOk) {}
+              if (getfirst JobNatureCatCard = tsOk) {}
+              if (getfirst KlKategoAppCur = tsOk) {}
+
+//------------------------------------------------------------------------------
+      //Разграничение доступа
+      //Нет доступа к подразделению
+      if not VuserAcs.Exists(Persons2.Department)
+        continue;
+
+              var cKateg: comp = Appointments2.EmpCategory;
+              var cJobNature: comp = Persons2.JobNature;
+              var wKategoKod: word = KlKategoAppCur.Kod;
+              var iSysCode: integer = JobNatureCatCard.SysCode;
+
+              if (cKateg = 0)
+                continue;
+
+              if  ((wKategoKod = 2) or (wKategoKod = 4) or (wKategoKod = 5)) and (cJobNature = 0)
+                continue;
+//------------------------------------------------------------------------------
+
+              // Фильтры
+
+              if ((UserDeskRep.ResWord[2] and 1) <> 0)  // фильтр по подразделениям
+              if (UserDeskRep.ResComp[1] <> Comp(0))   // единичный фильтр
+                {
+                if (UserDeskRep.ResComp[1] <> Persons2.Department)
+                  Continue ;
+                }
+              else  // множественный фильтр
+                if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[31] == PickRep.wList        and
+                              Persons2.Department == PickRep.cRec
+                                            )) <> tsOk )
+                Continue ;
+
+              if ((UserDeskRep.ResWord[2] and 2) <> 0)  // фильтр по категориям
+              if (UserDeskRep.ResComp[2] <> Comp(0))   // единичный фильтр
+                {
+                if (UserDeskRep.ResComp[2] <> Appointments2.EmpCategory)
+                  Continue
+                }
+              else  // множественный фильтр
+                if ( GetFirst PickRep Where ((
+                              UserName                 == PickRep.OwnName      and
+                              UserDeskRep.NRec         == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[32]  == PickRep.wList        and
+                              Appointments2.EmpCategory == PickRep.cRec
+                                            )) <> tsOk )
+                Continue ;
+
+              if ((UserDeskRep.ResWord[2] and 4) <> 0)  // фильтр по должностям (профессиям)
+              if (UserDeskRep.ResComp[3] <> Comp(0))   // единичный фильтр
+                {
+                if (UserDeskRep.ResComp[3] <> Appointments2.Post)
+                  Continue
+                }
+              else  // множественный фильтр
+                if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[33] == PickRep.wList        and
+                              Appointments2.Post       == PickRep.cRec
+                                            )) <> tsOk )
+                Continue ;
+
+              if ((UserDeskRep.ResWord[2] and 8) <> 0)  // фильтр по сотрудникам
+              if (UserDeskRep.ResComp[4] <> Comp(0))   // единичный фильтр
+                {
+                if (UserDeskRep.ResComp[4] <> Persons2.NRec)
+                {
+                  Continue;
+                }
+                }
+              else  // множественный фильтр
+                if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[34] == PickRep.wList        and
+                              Persons2.NRec           == PickRep.cRec
+                                            )) <> tsOk )
+                Continue ;
+
+              if ((UserDeskRep.ResWord[2] and 16) <> 0)  // фильтр по образованию
+              if (UserDeskRep.ResComp[5] <> Comp(0))   // единичный фильтр
+                {
+                    if (UserDeskRep.ResComp[5] <> Persons2.Education)
+                      Continue;
+                }
+              else  // множественный фильтр
+                if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[35] == PickRep.wList        and
+                              Persons2.Education      == PickRep.cRec
+                                            )) <> tsOk )
+                Continue;
+
+              if ((UserDeskRep.ResWord[2] and 32) <> 0)  // фильтр по возрасту
+                {
+                  if (day(Persons2.BornDate) > 0)
+                  {
+                    //Age := RassStaz(Persons2.BornDate);
+                    Age := VStrFunc.GetCountYears(Persons2.BornDate, Sub_Day(Cur_Date, 1));
+                    if  (Age < UserDeskRep.ResWord[4]) OR (Age > UserDeskRep.ResWord[5])
+                      Continue;
+                  } else Continue;
+                }
+
+              if ((UserDeskRep.ResWord[2] and 64) <> 0)  // фильтр по выслуге
+                {
+                  if (day(Persons2.AppDate) > 0)
+                  {
+                    STAZ := RassStaz(Persons2.AppDate);
+                    if  (STAZ < UserDeskRep.ResWord[6]) OR (STAZ > UserDeskRep.ResWord[7])
+                      Continue;
+                  } else Continue;
+                }
+
+              if ((UserDeskRep.ResWord[2] and 128) <> 0)  // фильтр воинская обязанность
+              {
+              if (getfirst Conscription2 <> tsOk)
+                Continue;
+              if (UserDeskRep.ResComp[6] <> Comp(0))   // единичный фильтр
+                {
+                if (UserDeskRep.ResComp[6] <> Conscription2.ConsRel)
+                  Continue;
+                }
+              else  // множественный фильтр
+              {
+                if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[36] == PickRep.wList        and
+                              Conscription2.ConsRel   == PickRep.cRec
+                                            )) <> tsOk )
+                Continue ;
+              }
+              }
+
+              if ((UserDeskRep.ResWord[2] and 256) <> 0)  // фильтр по семейному положению
+              { if (UserDeskRep.ResComp[7] <> Comp(0))   // единичный фильтр
+                  { if (UserDeskRep.ResComp[7] <> Persons2.FamilyState)
+                      Continue;
+                  }
+                else  // множественный фильтр
+                {if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[37] == PickRep.wList        and
+                              Persons2.FamilyState    == PickRep.cRec
+                                            )) <> tsOk )
+                  Continue ;
+                }
+              }
+
+              if ((UserDeskRep.ResWord[2] and 1024) <> 0)  // фильтр по характеру работы
+              {
+                if (UserDeskRep.ResComp[8] <> Comp(0))   // единичный фильтр
+                  { if (UserDeskRep.ResComp[8] <> Persons2.JobNature)
+                      Continue;
+                  }
+                else  // множественный фильтр
+                {if ( GetFirst PickRep Where ((
+                              UserName                == PickRep.OwnName      and
+                              UserDeskRep.NRec        == PickRep.cUserDeskRep and
+                              UserDeskRep.ResWord[38] == PickRep.wList        and
+                              Persons2.JobNature      == PickRep.cRec
+                                            )) <> tsOk )
+                  Continue ;
+                }
+              }
+
+              if ((UserDeskRep.ResWord[2] and 512) <> 0)  // фильтр по полу
+              {
+                var fSex : word;
+                case Persons2.Sex of
+                 'М': fSex := 0;
+                 'Ж': fSex := 1;
+                 else fSex := 2;
+                end; //case
+
+                if (fSex <> UserDeskRep.ResWord[8])
+                  Continue ;
+
+              }
+              // Если дошли до этого места, значит, запись удовлетворяет фильтрам
+
+              if (DelOtpusk = 1) // Удалять ранее привязанные отпуска
+              {
+                _loop PersVacation where ((Persons2.Nrec == PersVacation.cPersons))
+                {
+                  delete all PersVacationAlg where ((PersVacation.Nrec == PersVacationAlg.cPersVacation));
+                  delete all PersVacation where ((Persons2.Nrec == PersVacation.cPersons));
+                }
+              }
+
+              if (DelOtpusk = 2) // Удалять ранее привязанные отпуска
+              {
+                _loop tmpPersVacation
+                {
+                  case wKategoKod of
+                    1:
+                    {
+                      case tmpPersVacation.cKotPus of
+
+                        10,11,12: {}
+
+                        else
+                          continue;
+
+                      end;
+                    }
+                    2:
+                    {
+                      if (iSysCode <> -31675) and (iSysCode <> -31676)
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                          10,11,12: {}
+
+                          else
+                            continue;
+
+                        end;
+                      }
+                      else
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                            10,11: {}
+
+                            else
+                              continue;
+
+                          end;
+                      }
+                    }
+                    3:
+                    {
+                      case tmpPersVacation.cKotPus of
+
+                          10,11: {}
+
+                          else
+                            continue;
+
+                        end;
+                    }
+                    4,5:
+                    {
+                      if (iSysCode <> -31675) and (iSysCode <> -31676)
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                            10,11,13: {}
+
+                            else
+                              continue;
+
+                          end;
+                      }
+                      else
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                            10,11: {}
+
+                            else
+                              continue;
+
+                          end;
+                      }
+                    }
+                  end;
+
+                _loop PersVacation where ((Persons2.Nrec == PersVacation.cPersons and tmpPersVacation.cKotPus == PersVacation.cKotPus))
+                  if (PersVacation.dBegExist = tmpPersVacation.dBegExist and PersVacation.dEndExist = tmpPersVacation.dEndExist)
+                  {
+                    delete all PersVacationAlg where ((PersVacation.Nrec == PersVacationAlg.cPersVacation));
+                    delete all PersVacation1 where ((PersVacation.Nrec == PersVacation1.Nrec));
+                  }
+                }
+              }
+
+              var DaysOtp: word = 0;
+
+              _loop tmpPersVacation
+                {
+                  DaysOtp := 0;
+
+                  case wKategoKod of
+                    1:
+                    {
+                      case tmpPersVacation.cKotPus of
+
+                        10: DaysOtp := 28;
+
+                        11: DaysOtp := 16;
+
+                        12: DaysOtp := 10;
+
+                      end;
+                    }
+                    2:
+                    {
+                      if (iSysCode <> -31675) and (iSysCode <> -31676)
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                          10: DaysOtp := 28;
+
+                          11: DaysOtp := 16;
+
+                          12: DaysOtp := 3;
+
+                        end;
+                      }
+                      else
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                          10: DaysOtp := 28;
+
+                          11: DaysOtp := 8;
+
+                        end;
+                      }
+                    }
+                    3:
+                    {
+                      case tmpPersVacation.cKotPus of
+
+                        10: DaysOtp := 28;
+
+                        11: DaysOtp := 16;
+
+                      end;
+                    }
+                    4,5:
+                    {
+                      if (iSysCode <> -31675) and (iSysCode <> -31676)
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                          10: DaysOtp := 28;
+
+                          11: DaysOtp := 16;
+
+                          13: DaysOtp := 14;
+
+                        end;
+                      }
+                      else
+                      {
+                        case tmpPersVacation.cKotPus of
+
+                          10: DaysOtp := 28;
+
+                          11: DaysOtp := 8;
+
+                        end;
+                      }
+                    }
+                  end;
+
+                  if (DaysOtp = 0)
+                    continue;
+
+                  if (GetFirst KlOtpuskAll where (( tmpPersVacation.cKotPus == KlOtpuskAll.KOTPUS )) = tsOk)
+                  {
+                    ClearBuffer(#PersVacation);
+                    PersVacation.cPersons    := Persons2.Nrec;
+                    PersVacation.cKotPus     := KlOtpuskAll.KOTPUS; // KOTPUS
+                    PersVacation.TypeOtp     := KlOtpuskAll.TypeOtp;
+                    PersVacation.AlgSumm     := 0;
+                    PersVacation.SummOtp     := KlOtpuskAll.SummOtp;
+                    PersVacation.GivOtp      := KlOtpuskAll.GivOtp;
+                    PersVacation.wCountDay   := DaysOtp; // DaysOtp
+                    PersVacation.dVacCoef    := 1;
+                    PersVacation.RESCOMP[2]  := coGetTune('UP.ZAR.VidStaj');
+                    insert current PersVacation;
+                  }
+                }
+            NextVisual;
+            }
+
+          StopVisual('', 0) ;
+          Message('Операция успешно завершена.', OkButton + Information);
+          DisableCommand(cmRecalcAllSums);
+        }
+      } else
+          {
+            EnableCommand(cmValue1);
+            DelFormat:= true;
+            SetFormat(scrDelFilters);
+          }
+    }
+
+end;
+
+end.

@@ -1,0 +1,42 @@
+#component "Z_STAFF"
+#include ScheduleFunc.vih
+
+alter interface  StaffGetTariff
+
+
+
+create view tarstavview
+as select
+  catalogs.nrec, Groups.Name, KlSisOpl.*
+from
+  catalogs CatTarZName, Groups gr, KlSisOpl, catalogs
+where
+((
+  tarstav.tarzone == CatTarZName.nRec and  tarstav.cGroup == gr.Atl_Nrec
+  and TarStav.SisOpl == KlSisOpl.SisOpl
+));
+
+
+overloadformats rrr;
+browse rrr 'Тарифные ставки';
+  table TarStav;
+fields
+  { font = { bold = (TarStav.Razr = 1); color = if(TarStav.lField1 = 1, ColorSysGray, 0)}};
+  KlSisOpl.NaSisOpl        'Система', 'оплаты' : [16], protect, noAutoSize;
+  TarStav.DateBeg 'Дата', 'начала' : [12], protect, centered;
+  TarStav.DateEnd 'Дата', 'окончания' : [12], protect, centered;
+  TarStav.CodTar  'Уровень тарифа/',  'Уровень зарплаты': [16], Protect, noAutoSize;
+  TarStav.TarGroup 'Тарифная', 'группа' : [10], protect;
+  TarStav.Razr    'Вид тарифа/', 'Структура Зарплаты' : [16], protect, noAutoSize;
+  TarStav.Tarif   'Тариф', '(оклад)' :          [16, 3, '\3p[|-]36`666`666`666`666.888'], protect, noAutoSize;
+  TarStav.TarMin  'Мин.гарантир.', 'оклад (тариф)' ('Минимальный гарантированный оклад'):
+                                                [16, 3, '\3p[|-]36`666`666`666`666.888'], protect, noAutoSize;
+  TarStav.TarMax  'Макс.гарантир.', 'оклад (тариф)' ('Максимальный гарантированный оклад'):
+                                                [16, 3, '\3p[|-]36`666`666`666`666.888'], protect, noAutoSize;
+  CatTarZName.Code 'Тарифная зона/', 'Область для зарплаты': [16], Protect, noAutoSize;
+  gr.Name     'Группа' ('Наименование группы доступа'): protect;
+  TarStav.priznakD 'Признак к', 'должности' : [10], protect, centered;
+end;
+
+
+end.

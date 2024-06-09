@@ -1,0 +1,17 @@
+#component 'Z_Staff'
+#doc
+Интерфейс "Функции работы с таблицей Persons"
+#end
+alter interface PersonsFunctions cacheable;
+overload
+  function GetStrErrorINN(errorCode: word): string;
+end;
+
+function GetStrErrorINN(errorCode: word): string;
+{
+  result := inherited :: GetStrErrorINN(errorCode); 
+  if result = 'Ошибка в ИНН: КС'
+    result := 'Ошибка в ИНН: введен некорректный номер (контрольная сумма)';
+}
+
+end.

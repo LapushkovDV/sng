@@ -1,0 +1,11 @@
+#include epSystem.vih
+
+handler with replace Z_SNG_Staff_BeforeEnterModule on ExtensionPoint epBeforeEnterModule
+                     (aContour: String; aModule: String)
+Action
+{
+  if (Pos('STAFFMAINMENU', aModule) = 1)
+    boSetTune('UP.STAFF.LOCK', true);
+
+  Result := True;
+}

@@ -1,0 +1,102 @@
+#component "Z_STAFF"
+
+#include Pickcat.vih
+#include RunStaj.vih         // Функции расчета стажей
+#include MainLschetForPersons.vih // нахождение основного л\с
+#include PersCopyUser.VIH
+
+#doc
+Просмотр и корректировка записей о стажах
+#end
+Alter interface AllStaj;
+
+var Pr_CloseEdit : word;
+
+Create view
+from
+  Sng_ServlenExt,
+  Synonym Catalogs CatTmp;
+
+panel panStaj;
+table ServLen;
+
+ HandleEvent
+
+cmSetDefault:
+{
+  var cRec: comp;
+  cPosition := 0;
+  cRec      := 0;
+  RunInterface(StaffServLenEdit, Persons.Nrec, cPosition, cRec);
+
+  if not DisableUpdLSchet
+    if (GetFirst ServLen
+          where (( Persons.NRec == ServLen.Person   and
+                   cPosition    == ServLen.Position and
+              slStaffServLenCur == ServLen.CurRec)) = tsOK)
+    {
+      MLFP.GetMainLschet(Persons.Nrec, cLschet);
+
+      if getfirst LSchet = tsOk
+        case SLPositionCat.SysCode of
+          epStaffSLCont: // Непрерывный стаж для б/листа
+          {
+            LSchet.DatNPS := ServLen.FromDate;
+            update current LSchet;
+          }
+
+          epStaffSLNorth: // Северный стаж
+          {
+            LSchet.DatN13 := ServLen.FromDate;
+            update current LSchet;
+          }
+
+          epStaffSL13: // Стаж для выслуги лет
+          {
+            LSchet.DatNVIs := ServLen.FromDate;
+            update current LSchet;
+          }
+
+        end;
+    }
+
+  ReReadRecord(#ServLen);
+  if GetFirst FastFirstRow CatTmp where ((cPosition == CatTmp.nRec)) = TsOk
+    if(CatTmp.SysCode<>epStaffSLNorth)
+      Pr_CloseEdit:=0;
+  if(Pr_CloseEdit>0 and cRec<>0)
+  {
+    ProcessCommand(cmStaffEdit);
+  }
+  else
+    abort;
+}
+
+cmDeleteRecord:
+{
+
+  var servN : comp = Comp(0);
+  ServN := ServLen.Nrec;
+
+  inherited::handleevent(cmDeleteRecord);
+    if ( GetFirst ServLen where (( ServN == ServLen.Nrec )) <> tsOk ) {
+
+         delete Sng_ServlenExt where ServN = Sng_ServlenExt.servlen;
+
+     }
+}
+
+end;   //
+end; //panel
+HandleEvent
+  cmInit:
+    {
+      if(CloseEdit>=100)
+      {
+        set Pr_CloseEdit:=1;
+        set CloseEdit:=CloseEdit-100;
+      }
+      inherited::handleevent(cmInit);
+    }
+end;
+End.
