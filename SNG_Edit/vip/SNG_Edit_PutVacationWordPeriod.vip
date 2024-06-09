@@ -83,7 +83,7 @@ where
   and              _cWorkPeriod == workperiod.nrec
   and Edit_PutVacation.vComp[1] == KlOtpusk.NRec
   and Edit_PutVacation.vComp[2] == WorkPeriodOst.NRec
-and WorkPeriod.cAppointment == WP_Appoint.NRec
+    and WorkPeriod.cAppointment == WP_Appoint.NRec
 ))
 ;
 function fGetNextNum: word;
