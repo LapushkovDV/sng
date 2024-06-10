@@ -1,4 +1,5 @@
-alter dictionary;
+#include Fld_decl.inc
+
 Create Table SNG_EDIT "Анкетный редактор для списочных интерфейсов"
   With Table_CODE = 13575
   With Replace
@@ -14,7 +15,7 @@ Create Table SNG_EDIT "Анкетный редактор для списочных интерфейсов"
 , vDateTime  : array[1..10] of DateTime "DateTime значение"
 , vLongint   : array[1..10] of Longint  "Longint значение"
 , vComp      : array[1..10] of Comp     "Comp значение"
-, vMemo      : lVar "memo значение"
+, vMemo      : lVar
 )
 with Index
 (

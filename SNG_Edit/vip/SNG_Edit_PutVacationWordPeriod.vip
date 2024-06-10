@@ -21,7 +21,7 @@ end;
 
 */
 #include SNG_Edit_PutVacationWordPeriod.vih
-Interface SNG_Edit_PutVacationWordPeriod 'QRY базовый объект';
+Interface SNG_Edit_PutVacationWordPeriod 'EDIT';
 //function funVisibleRemaind( wParam_Get : word ): integer; forward;
 function CalcRemaindPutVac(dVacDate, dWPB, dWPE: date; cPutVctn: comp; wProvidW: word): integer; forward;
 table struct mt_WorkAndAccVac
@@ -95,7 +95,7 @@ function fGetNextNum: word;
     Result := PutVacDop.wNum + 1;
 }
 
-function checkSap( _cPutVacation : comp) : boolean; {
+function checkSap( _cEdit_PutVacation : comp) : boolean; {
    message('тут проверка в SAP пойдет');
    result := true;
 }
@@ -171,7 +171,7 @@ handleevent
      or putvac_cur.cKlOtpusk    <> Edit_PutVacation.vComp[1]
      or putvac_cur.cWPRemain    <> Edit_PutVacation.vComp[2]
      or putvac_cur.cPutVacation <> Edit_PutVacation.vComp[3] {
-       if checkSap(putvac_cur.nrec) {
+       if checkSap(Edit_PutVacation.nrec) {
         putvac_cur.wTypeVac     := Edit_PutVacation.vLongint[1];
         putvac_cur.wDayCount    := Edit_PutVacation.vLongint[2];
         putvac_cur.wSumWay      := Edit_PutVacation.vLongint[3];

@@ -1,0 +1,2 @@
+#include Fld_decl.inc
+drop table SNG_EDIT;
