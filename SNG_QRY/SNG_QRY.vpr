@@ -95,10 +95,10 @@
 			<File Name="SNG_QRY.prj" PosX="26" PosY="27" OpenEditor="True"/>
 			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="26" PosY="42" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="17" PosY="24" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="16" PosY="356" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="1" PosY="355" OpenEditor="True" Active="True"/>
 			<File Name="vip\QRY_TEMPLATES.pan" PosX="80" PosY="51" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="1" PosY="96" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="31" PosY="702" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="10" PosY="196" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="4" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="31" PosY="238" OpenEditor="True"/>
 		</FileList>

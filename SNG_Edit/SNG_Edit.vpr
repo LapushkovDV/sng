@@ -94,7 +94,7 @@
 		<FileList>
 			<File Name="SNG_Edit.prj" PosX="37" PosY="23" OpenEditor="True"/>
 			<File Name="..\..\erp91\CompSrc\Z\Z_Staff\vip\WorkPeriods.vip" PosX="1" PosY="28" OpenEditor="True"/>
-			<File Name="vip\SNG_Edit_PutVacationWordPeriod.vip" PosX="34" PosY="104" OpenEditor="True" Active="True"/>
+			<File Name="vip\SNG_Edit_PutVacationWordPeriod.vip" PosX="38" PosY="170" OpenEditor="True" Active="True"/>
 			<File Name="vip\SNG_Edit_PutVacationWordPeriod.vih" PosX="41" PosY="14" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>

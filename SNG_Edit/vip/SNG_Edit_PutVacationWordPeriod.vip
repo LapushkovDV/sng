@@ -86,6 +86,7 @@ where
     and WorkPeriod.cAppointment == WP_Appoint.NRec
 ))
 ;
+
 function fGetNextNum: word;
 {
   Result := 1;
@@ -93,6 +94,12 @@ function fGetNextNum: word;
   if GetLast PutVacDop where (( workperiod.nrec == PutVacDop.cWorkPeriod )) = tsOk
     Result := PutVacDop.wNum + 1;
 }
+
+function checkSap( _cPutVacation : comp) : boolean; {
+   message('тут проверка в SAP пойдет');
+   result := true;
+}
+
 window wEdit_PutVacation 'Редактирование ' ,Gray;
 //show at (10, 3, 40, 10);
 
@@ -145,7 +152,6 @@ end;
 handleevent
  cmOK: {
 
-   message('тут проверка в SAP пойдет');
 
    if not isvalidall(tnputvac_cur) {
      insert putvac_ins set
@@ -156,14 +162,26 @@ handleevent
      set _cPutVac := putvac_ins.nrec;
    }
    if getfirst putvac_cur <> tsOK then exit;
-    putvac_cur.wTypeVac     := Edit_PutVacation.vLongint[1];
-    putvac_cur.wDayCount    := Edit_PutVacation.vLongint[2];
-    putvac_cur.wSumWay      := Edit_PutVacation.vLongint[3];
-    putvac_cur.wProvidWay   := Edit_PutVacation.vLongint[4];
-    putvac_cur.cKlOtpusk    := Edit_PutVacation.vComp[1];
-    putvac_cur.cWPRemain    := Edit_PutVacation.vComp[2];
-    putvac_cur.cPutVacation := Edit_PutVacation.vComp[3];
-   update current putvac_cur;
+
+
+    if  putvac_cur.wTypeVac     <> Edit_PutVacation.vLongint[1]
+     or putvac_cur.wDayCount    <> Edit_PutVacation.vLongint[2]
+     or putvac_cur.wSumWay      <> Edit_PutVacation.vLongint[3]
+     or putvac_cur.wProvidWay   <> Edit_PutVacation.vLongint[4]
+     or putvac_cur.cKlOtpusk    <> Edit_PutVacation.vComp[1]
+     or putvac_cur.cWPRemain    <> Edit_PutVacation.vComp[2]
+     or putvac_cur.cPutVacation <> Edit_PutVacation.vComp[3] {
+       if checkSap(putvac_cur.nrec) {
+        putvac_cur.wTypeVac     := Edit_PutVacation.vLongint[1];
+        putvac_cur.wDayCount    := Edit_PutVacation.vLongint[2];
+        putvac_cur.wSumWay      := Edit_PutVacation.vLongint[3];
+        putvac_cur.wProvidWay   := Edit_PutVacation.vLongint[4];
+        putvac_cur.cKlOtpusk    := Edit_PutVacation.vComp[1];
+        putvac_cur.cWPRemain    := Edit_PutVacation.vComp[2];
+        putvac_cur.cPutVacation := Edit_PutVacation.vComp[3];
+       update current putvac_cur;
+     }
+   }
    delete current Edit_PutVacation;
   closewindow(wEdit_PutVacation);
  }

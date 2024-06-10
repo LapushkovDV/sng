@@ -352,7 +352,6 @@ function GetLogFile_debug: string; {
 
 Procedure MyLog(_str: string);
 {
-  // !!!!!!!!!!!!!!!закомментировать в проде строку ниже"!!!!!!!!!!!! иначе будет тормозить
 //  LogStrToFile(GetLogFile_debug, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
 
   if not _needlog then exit;
