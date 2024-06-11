@@ -1,0 +1,29 @@
+/*************************************************************************************************\
+* Наименование:                                                                                   *
+* Контур/Модуль:                                                                                  *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+
+#ifnDef _SNG_EDIT_PUTVACATIONWORKPERIOD_INCLUDED_
+#define _SNG_EDIT_PUTVACATIONWORKPERIOD_INCLUDED_
+#component "SNG_EDIT"
+
+ObjInterface oSNG_Edit_PutVacationWorkPeriod;
+public:
+#doc
+#end
+
+#doc
+Запустить окно редактирования
+#end
+Procedure RunEditWindow(__cPutVac, __cWorkPeriod : comp);
+
+end;
+
+VipInterface SNG_Edit_PutVacationWorkPeriod Implements oSNG_Edit_PutVacationWorkPeriod #Licensed_Free;
+
+#end

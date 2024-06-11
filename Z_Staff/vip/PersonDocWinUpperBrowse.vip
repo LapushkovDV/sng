@@ -1,13 +1,25 @@
 #component 'Z_Staff'
 #include ActionJsonCreate.vih //HR-617 PA0004 - Инвалидность
 
-alter interface PersonDocWinUpperBrowse;
+alter interface PersonDocWinUpperBrowse EscClose, doAccept, Blue;
 
 var newRec:comp=0;
 
 overload
   function SetNewRec: boolean;
   procedure PrivateInitObj(IsStudent : boolean);
+  public procedure objPersonDocWinUpperBrowse.InitObj(TitlePar         : string;
+                          EntryPointPar     : comp;
+                          HumanPar          : boolean;
+                          NrecDocPar        : comp;
+                          SettingFields     : integer;
+                          lowerScreenPar    : PersonDocWinLowerScreen;
+                          SemaphorePar      : PersonDocWinSemaphore;
+                          IsUseSemaphorePar : boolean;
+                          IsStudentPar      : boolean;
+                          IsRPDPar          : boolean;
+                          wRunParam         : word;
+                          PDW: objref);
 end;
 
 overloadFormats brwPassports;
@@ -94,17 +106,79 @@ private procedure PrivateInitObj(IsStudent : boolean);
     oArchiveFuncs.InitFuncData(0, true);
   }
 }
+public procedure objPersonDocWinUpperBrowse.InitObj(TitlePar         : string;
+                        EntryPointPar     : comp;
+                        HumanPar          : boolean;
+                        NrecDocPar        : comp;
+                        SettingFields     : integer;
+                        lowerScreenPar    : PersonDocWinLowerScreen;
+                        SemaphorePar      : PersonDocWinSemaphore;
+                        IsUseSemaphorePar : boolean;
+                        IsStudentPar      : boolean;
+                        IsRPDPar          : boolean;
+                        wRunParam         : word;
+                        PDW: objref);
+{
 
-browse brwPassports;
+  TitleDoc       := TitlePar;
+  EntryPoint     := EntryPointPar;
+  Human          := HumanPar;
+  NrecDoc        := NrecDocPar;
+  LowerScreen    := lowerScreenPar;
+  Semaphore      := SemaphorePar;
+  IsStudent      := IsStudentPar;
+  IsUseSemaphore := IsUseSemaphorePar;
+
+  LoadVipInterface(vPCU);
+
+  if (SettingFields = 1)
+  {
+    SetHelpAndStatusContext(brwPassports, #NameDocCat.Name    , sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.Ser      , sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.Nmb      , sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.GivenDate, sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.ToDate   , sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #fOsnDoc            , sci1478EnEsc, '');
+    SetHelpAndStatusContext(brwPassports, #fPredOsn           , sci1478EnEsc, '');
+  }
+
+  if (wRunParam = 0)
+  {
+    SetHelpAndStatusContext(brwPassports, #NameDocCat.Name    , sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.Ser      , sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.Nmb      , sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.GivenDate, sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #Passports.ToDate   , sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #fOsnDoc            , sci1478Esc, '');
+    SetHelpAndStatusContext(brwPassports, #fPredOsn           , sci1478Esc, '');
+    DisableCommand(cmDefault);
+  }
+
+  SetFilterDoc(wRunParam, EntryPoint);
+  PrivateInitObj(IsStudent);
+
+  var cRec: comp = 0;
+
+  if (IsValid(#Passports))
+    cRec := Passports.nRec;
+
+  LowerScreen.InitObj(EntryPoint, Human, cRec, IsRPDPar, IsStudent, IsUseSemaphorePar, wRunParam);
+  LowerScreen.UpdateRecord(cRec, fOsnDoc, fPredOsn);
+
+  IsUpdate := true;
+  ReReadRecord(#Passports);
+}
+
+browse brwPassports(,, sci1378EnEsc);
   show();
   table Passports;
 fields
   { font = { bold = (fOsnDoc = '+') or (NrecDoc = Passports.nrec);}};
   NameDocCat.Name     'Документ' ('Наименование документа', hcStaffPersDocName, sci1378EnEsc): [30], Protect;
-  Passports.Ser       'Серия', 'документа' ('Серия документа', hcStaffPersDocGivenDate, sci178EnEsc): [10], Protect, NoAutoSize;
-  Passports.Nmb       'Номер', 'документа' ('Номер документа', hcStaffPersDocGivenDate, sci178EnEsc): [10], Protect, NoAutoSize;
-  Passports.GivenDate 'Дата', 'выдачи' ('Когда выдан документ', hcStaffPersDocGivenDate, sci178EnEsc): [14], Protect, NoAutoSize;
-  Passports.ToDate    'Дата', 'окончания' ('Срок действия документа', hcStaffPersDocToDate, sci178EnEsc): [14], Protect, NoAutoSize;
+  Passports.Ser       'Серия', 'документа' ('Серия документа', hcStaffPersDocGivenSer, sci178EnEsc): [10], Protect, NoAutoSize;
+  Passports.Nmb       'Номер', 'документа' ('Номер документа', hcStaffPersDocGivenNmb, sci178EnEsc): [10], Protect, NoAutoSize;
+  Passports.GivenDate 'Дата', 'действия с' ('Когда выдан документ', hcStaffPersDocGivenDate, sci178EnEsc): [14], Protect, NoAutoSize;
+  Passports.ToDate    'Дата', 'действия по' ('Срок действия документа', hcStaffPersDocToDate, sci178EnEsc): [14], Protect, NoAutoSize;
   fOsnDoc             'Осн.', 'док.' ('Является основным документом сотрудника',, sci1378EnEsc): [5], Protect, NoAutoSize;
   fPredOsn            'Пред.','док.' ('Предыдущий (не актуальный) документ сотрудника',, sci1378EnEsc): [7], Protect, NoAutoSize;
   [ImageOnArchive1] oArchiveFuncs.GetImageState(cgDoc_1802, Passports.nRec, m_sCurrentBarKod) 'А' ('Состояние документа в архиве',,) : [2], image;

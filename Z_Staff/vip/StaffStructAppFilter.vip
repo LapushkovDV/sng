@@ -1,0 +1,6 @@
+#component "Z_Staff"
+
+alter interface StaffStructAppFilter 'Фильтр по сотрудникам';
+
+
+end.

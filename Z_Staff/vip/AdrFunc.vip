@@ -87,7 +87,7 @@ public function GetFullAddressInd(NRecAddressN: comp): string;
   {
     if vAddressN.AddressN.wTypeCat <> coUserCat
     {
-      result := sFullAddress;
+      result := CheckATDTerrName(sFullAddress);
       exit;
     }
     sAddress1 := trim(vAddressN.AddressN.sAddress1);
@@ -106,6 +106,6 @@ public function GetFullAddressInd(NRecAddressN: comp): string;
     if sSubPart <> ''
       sFullAddress := trim(sFullAddress + ', ' + sSubPart);
   }
-  result := if(sDopInfo <> '', string(sFullAddress + ', ' + sDopInfo), sFullAddress);
+  result := CheckATDTerrName(if(sDopInfo <> '', string(sFullAddress + ', ' + sDopInfo), sFullAddress));
 }
 End.

@@ -333,8 +333,7 @@ cmInit:
     cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Просмотр');
   else
     cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Изменить');
-  ReReadRecord(#Attestation);
-  ReScanPanel(tnNoTable);
+//  ReReadRecord(#Attestation);
 }
 
 cmEditMedkom:
@@ -347,8 +346,7 @@ cmEditMedkom:
     cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Просмотр');
   else
     cfsSetProp('b_scrMedkomBtn_Изменить', cfpTitle, 'Изменить');
-  ReReadRecord(#Attestation);
-  ReScanPanel(tnNoTable);
+//  ReReadRecord(#Attestation);
 }
 
 cmOkMedkom:
@@ -510,7 +508,9 @@ cmViewMedkom:
 
 cmSetDefault:
 {
-  SetMedkom;
+  if(bIns)
+    SetMedkom;
+  abort;
 }
 
 cmDeleteRecord:
@@ -524,6 +524,16 @@ cmDeleteRecord:
 end;
 
 HandleEvent
+cmInit:
+{
+  inherited::HandleEvent(cmInit);
+  if not IsValid(#Attestation)
+  {
+    bEdit := true;
+    bIns := true;
+  }
+}
+
 cmInsert:
 {
   inherited::HandleEvent(cmInsert);

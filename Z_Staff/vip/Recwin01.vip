@@ -47,7 +47,7 @@ From
   , Catalogs NextPostCat
   , Catalogs DeptCat
   , Catalogs MainPostCat1
-  
+
   , GroupMembers GrpMems4Serv //HR303, FIM
   , ServStav ServStavPhoto    //HR303, FIM
   , ServStav ServStavPhotoGrp //HR303, FIM
@@ -491,7 +491,7 @@ function GetFullStr(_cNrec: comp; _cParent: comp):WideString;
    if (getfirst staffstruct where(( Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
    {
 //      result := StaffStruct.longname + ''#13#10;
-      result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-895
+      result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-985
       nrec_tmp:= StaffStruct.Department;
    }
 

@@ -13,12 +13,12 @@
 #doc
   #CompTitle
 #end
-#include SNG_Edit.ver
+#include SNG_EDIT.ver
 
 #params
 [vip]
 LicenseControlInclude=""
 #end
 
-#make "vip\SNG_Edit_PutVacationWordPeriod.vip"
+#make "vip\SNG_Edit_PutVacationWorkPeriod.vip"
 #make "vip\WorkPeriods.vip"

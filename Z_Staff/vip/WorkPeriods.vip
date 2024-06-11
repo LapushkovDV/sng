@@ -1,4 +1,4 @@
-#include SNG_Edit_PutVacationWordPeriod.vih
+#include SNG_Edit_PutVacationWorkPeriod.vih
 #include WorkPeriods.vih
 
 #component "Z_Staff"
@@ -527,8 +527,8 @@ cmEdit:
 {
   case WorkPeriod.wTypePEriod of
     cnWP_Work: {
-      var iSNG_Edit_PutVacationWordPeriod : SNG_Edit_PutVacationWordPeriod;
-      iSNG_Edit_PutVacationWordPeriod.RunEditWindow(PutVacation.nrec, WorkPeriod.nrec);
+      var iSNG_Edit_PutVacationWorkPeriod : SNG_Edit_PutVacationWorkPeriod;
+      iSNG_Edit_PutVacationWorkPeriod.RunEditWindow(PutVacation.nrec, WorkPeriod.nrec);
     }
   end;
   rereadrecord;
@@ -538,8 +538,8 @@ cmInsertRecord: {
  }
 cmInsert: {
 
-  var iSNG_Edit_PutVacationWordPeriod : SNG_Edit_PutVacationWordPeriod;
-  iSNG_Edit_PutVacationWordPeriod.RunEditWindow(0h, WorkPeriod.nrec);
+  var iSNG_Edit_PutVacationWorkPeriod : SNG_Edit_PutVacationWorkPeriod;
+  iSNG_Edit_PutVacationWorkPeriod.RunEditWindow(0h, WorkPeriod.nrec);
   rereadrecord;
   stop; abort; exit;
  }

@@ -57,7 +57,6 @@ With Index
 
 function setOklad:double; forward;                                              //ganeev_ii HR-52
 function GetDsStr(): string; forward;
-
 //<Iva HR-985
 function GetSngRec(c: comp): string;
 var i: byte;
@@ -294,7 +293,7 @@ function GetFullStr(_cNrecDep:comp; _cNrec: comp):WideString;
                                     Appointments.StaffStr == StaffStruct.nRec)) = tsOk )
        {
          cDeart := StaffStruct.Department;
-         result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-895
+         result := StaffStruct.longname + '  (' + GetSngRec(Appointments.Staffstr) + ')' + ''#13#10;   //Iva HR-985
        }
    do
    {
@@ -335,7 +334,7 @@ Procedure DisAbleAppointments; //HR-283, FIM
   ClearFieldOption(#fldAppWorkRegimeCat_fixed, ofSelectable);
   if CurAppointSheet = 1                                             // HR-485
     {
-      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false); 
+      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.PERIODOW',        cfpVisible, false);
     }
 } //DisAbleAppointments;
@@ -346,7 +345,7 @@ Procedure EnAbleAppointments; //HR-283, FIM
   SetFieldOption(#fldAppWorkRegimeCat_fixed, ofSelectable);
   if CurAppointSheet = 1                                             // HR-485
     {
-      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false); 
+      cfsSetProp('L_SCRAPPOINTMENTS1_Период',                       cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.PERIODOW',        cfpVisible, false);
     }
 } //EnAbleAppointments
@@ -1217,26 +1216,26 @@ procedure SetFiltrAppoint;
     1 : // Назначения
     {
       // { HR-485
-      ClearFieldState(#AppPayModelCat.NaSisOpl,    sfVisible);  
-      ClearFieldState(#TarStav.TarZone,            sfVisible);  
-      ClearFieldState(#Appointments.TaxRate,       sfVisible);    
-      ClearFieldState(#AppPayCurrencyCat.SimvolV,  sfVisible);  
-      ClearFieldState(#_persOklad,                 sfVisible);  
-      ClearFieldState(#fldAppWorkRegimeCat_fixed,  sfVisible);  
-      ClearFieldState(#OverworkCalculation,        sfVisible); 
-      ClearFieldState(#Appointments.PeriodOW,      sfVisible);  
+      ClearFieldState(#AppPayModelCat.NaSisOpl,    sfVisible);
+      ClearFieldState(#TarStav.TarZone,            sfVisible);
+      ClearFieldState(#Appointments.TaxRate,       sfVisible);
+      ClearFieldState(#AppPayCurrencyCat.SimvolV,  sfVisible);
+      ClearFieldState(#_persOklad,                 sfVisible);
+      ClearFieldState(#fldAppWorkRegimeCat_fixed,  sfVisible);
+      ClearFieldState(#OverworkCalculation,        sfVisible);
+      ClearFieldState(#Appointments.PeriodOW,      sfVisible);
 
-      cfsSetProp('b_SCRAPPOINTMENTS1_>>',                           cfpVisible, false); 
+      cfsSetProp('b_SCRAPPOINTMENTS1_>>',                           cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.DDOP2',           cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_FDISMISGROUND',                cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_FDISMISSREASON',               cfpVisible, false);
 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Сис-ма_оплаты',                cfpVisible, false); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Тарифная_зона',                cfpVisible, false); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Оклад/ставка',                 cfpVisible, false); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Персональный_оклад',           cfpVisible, false); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Режим',                        cfpVisible, false); 
-      cfsSetProp('L_SCRAPPOINTMENTS1_Учет_сверхурочных',            cfpVisible, false);  
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сис-ма_оплаты',                cfpVisible, false);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Тарифная_зона',                cfpVisible, false);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Оклад/ставка',                 cfpVisible, false);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Персональный_оклад',           cfpVisible, false);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Режим',                        cfpVisible, false);
+      cfsSetProp('L_SCRAPPOINTMENTS1_Учет_сверхурочных',            cfpVisible, false);
       cfsSetProp('i_SCRAPPOINTMENTS1_STARZONE1',                    cfpVisible, false);
 
       cfsSetProp('T_SCRAPPOINTMENTS1_ФОТ',                          cfpVisible, false);  //HR-855
@@ -1245,58 +1244,58 @@ procedure SetFiltrAppoint;
       // ------------------------------------------------------------------------------
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpOrigin_X, 17);    //Условие приема
-      cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpOrigin_Y, 203); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условие',                      cfpOrigin_Y, 203);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTSTYPEMOVE.NAME',    cfpOrigin_X, 134);
        cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTSTYPEMOVE.NAME',   cfpOrigin_Y, 203);
 
     // ------------------------------------------------------------------------------
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpOrigin_X, 160);
-      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpOrigin_Y, 263); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpOrigin_X, 314);   
+      cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpOrigin_Y, 263);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpOrigin_X, 314);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpOrigin_Y, 263);
 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_X, 399); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_Y, 263); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_X, 532); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_Y, 263); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_X, 399);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpOrigin_Y, 263);
+      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_X, 532);
+      cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpOrigin_Y, 263);
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Среднесписочный_коэффициент',  cfpSize_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_I_KATEGORY',                   cfpSize_X, 38);
       cfsSetProp('T_SCRAPPOINTMENTS1_Классность_водителя',          cfpSize_X, 110);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.EMPRATE',         cfpSize_X, 38);
-    
+
     // ------------------------------------------------------------------------------
 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_X, 19); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_Y, 283); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.CATEGORY',        cfpOrigin_X, 130); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_X, 19);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Разряд',                       cfpOrigin_Y, 283);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.CATEGORY',        cfpOrigin_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPOINTMENTS.CATEGORY',        cfpOrigin_Y, 283);
 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_X, 19); 
-      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_Y, 303); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_X, 19);
+      cfsSetProp('T_SCRAPPOINTMENTS1_Сетка',                        cfpOrigin_Y, 303);
       cfsSetProp('i_SCRAPPOINTMENTS1_TARSTAV.CODTAR',               cfpOrigin_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_TARSTAV.CODTAR',               cfpOrigin_y, 303);
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpOrigin_X, 19);   //Условия вред.
-      cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpOrigin_Y, 323); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPWORKCONDCAT.NAME',          cfpOrigin_X, 130); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpOrigin_Y, 323);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPWORKCONDCAT.NAME',          cfpOrigin_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPWORKCONDCAT.NAME',          cfpOrigin_Y, 323);
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Таб.N_из_ЛС',                  cfpOrigin_X, 17);
-      cfsSetProp('T_SCRAPPOINTMENTS1_Таб.N_из_ЛС',                  cfpOrigin_Y, 343); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_TBNLS',                        cfpOrigin_X, 130); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Таб.N_из_ЛС',                  cfpOrigin_Y, 343);
+      cfsSetProp('i_SCRAPPOINTMENTS1_TBNLS',                        cfpOrigin_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_TBNLS',                        cfpOrigin_Y, 343);
 
       cfsSetProp('T_SCRAPPOINTMENTS1_Доп.хар-ка',                  cfpOrigin_X, 17);
-      cfsSetProp('T_SCRAPPOINTMENTS1_Доп.хар-ка',                  cfpOrigin_Y, 363); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPDOPATTRCAT.NAME',          cfpOrigin_X, 130); 
+      cfsSetProp('T_SCRAPPOINTMENTS1_Доп.хар-ка',                  cfpOrigin_Y, 363);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPDOPATTRCAT.NAME',          cfpOrigin_X, 130);
       cfsSetProp('i_SCRAPPOINTMENTS1_APPDOPATTRCAT.NAME',          cfpOrigin_Y, 363);
-    
-      cfsSetProp('T_SCRAPPOINTMENTS1_Льгот._пенсия',                cfpOrigin_X, 17); 
+
+      cfsSetProp('T_SCRAPPOINTMENTS1_Льгот._пенсия',                cfpOrigin_X, 17);
       cfsSetProp('T_SCRAPPOINTMENTS1_Льгот._пенсия',                cfpOrigin_Y, 383);
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_X, 124); 
-      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_Y, 383);  
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_X, 124);
+      cfsSetProp('i_SCRAPPOINTMENTS1_APPPRIVPENSIONCAT.NAME',       cfpOrigin_Y, 383);
 
       //-------------------------------------------------------------------------------------
 
@@ -1305,7 +1304,7 @@ procedure SetFiltrAppoint;
       cfsSetProp('T_SCRAPPOINTMENTS1_Условия',                      cfpTitle, 'Условия вред.');
 
       ReReadRecord(#Appointments);
-      //} 
+      //}
       typeAppointPrizn := 0;
       pushBounds(tbTypeAppoint);
       if ( comp(Persons.AppointCur) <> comp(0) )
@@ -1591,6 +1590,8 @@ handleEvent
 
     cfsSetProp('b_SCRAPPBUTTONS1_Договоры', 'Hidden',  true);
     cfsSetProp('b_SCRAPPBUTTONS3_Договоры', 'Hidden',  true);
+    cfsSetProp('b_SCRAPPBUTTONS1_Ставки', 'Hidden',  true);  //HR-991
+    cfsSetProp('b_SCRAPPBUTTONS3_Ставки', 'Hidden',  true);  //HR-991
 
     setOklad;
 

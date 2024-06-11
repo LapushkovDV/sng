@@ -1,0 +1,28 @@
+#component "Z_Staff"
+
+alter interface FiltrForStaffStruct  'Фильтр по штатным единицам';
+
+overloadFormats scrEd1;
+
+  screen scrEd1 (, hcStaffstructmenu3, sci1Esc);
+    fields
+      TypePost('Ставки, которые следует показывать '):
+        [list 'Все',
+            'Действующие',
+            'Закрытые'], protect;
+      date1  ('С даты'): [10,'DD/MM/YYYY'], noProtect;
+      date2  ('По дату'): [10,'DD/MM/YYYY'], noProtect;
+
+    buttons
+      cmOk, default,, 'Применить фильтр';
+      cmCancel,,, 'Отмена',;
+<<
+ `Шт.ед.`     .@@@@@@@@@@@@@@@@@@
+
+ `За период c`.@@@@@@@@@@  по  .@@@@@@@@@@
+
+ <.Выполнить.>               <. Отмена  .>
+>>
+  end; // screen scrEd1
+
+end.
