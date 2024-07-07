@@ -92,14 +92,13 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="19" PosY="28" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_TEST.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="33" PosY="191" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vip" PosX="32" PosY="36" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vih" PosX="1" PosY="70" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_Process_QRY_INSTANCE.vip" PosX="133" PosY="276" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="16" PosY="405" OpenEditor="True" Active="True"/>
+			<File Name="SNG_QUE.prj" PosX="34" PosY="46" OpenEditor="True"/>
+			<File Name="vip\QUE_REST.vip" PosX="15" PosY="7" OpenEditor="True"/>
+			<File Name="..\..\..\ATL6\TempGal\vip\QUE_REST.vih" PosX="5" PosY="31" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vip" PosX="19" PosY="16" OpenEditor="True"/>
+			<File Name="..\..\..\ATL6\TempGal\vip\QUE_INCOME_BASE.vih" PosX="1" PosY="15" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="29" PosY="55" OpenEditor="True"/>
+			<File Name="..\..\..\ATL6\TempGal\vip\QUE_ProcessMessIncomeQueue.vih" PosX="12" PosY="48" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
