@@ -80,6 +80,14 @@ Function InsertEntriesForReview_Single(_TypeEvent : string[20];
 #end
 Procedure SetPoolRecordsReadyToGenerateJSON(_cMainParent : comp);
 
+#doc
+Очищение очереди от "старых" сообщений
+
+Удаление записей из очереди старше количества дней, определенных в настройках
+ QUE_OUT_CLEAR_COUNT_DAYS_SUCCESS - количество дней для хранения записей успешной передачи
+ QUE_OUT_CLEAR_COUNT_DAYS_ERROR   - количество дней для хранения записей передачи с ошибкой
+#end
+procedure ClearQUE_OldRows;
 
 #doc
 Обработка записей в QUE_EntriesForReview
@@ -108,9 +116,36 @@ _TypeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete, coQUE_
 function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string) : boolean;
 
 #doc
+Положить уже исполненное сообщение в очередь.
+Используется если сообщение отправлено не через очередь, но надо видеть результат интеграции в ней
+
+_success - boolean, true - сообщение отправлено успешно, false - при отправке сообщения возникла ошибка
+             данный параметр определяет в каком статусе будет создана запись в очереди
+             true  - статус будет coQUE_SuccessTransToExtSystem
+             false - статус будет coQUE_ErrorTransToExtSystem
+_bodyMessage - tptr, ссылка на длинную строку с содержимым сообщения
+_bodyAnswer  - tptr, ссылка на длинную строку с содержимым ответа от системы-приемника при отправке
+_codeReciptSystem - string, код системы-получателя
+_TypeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete, coQUE_TypeEvent_Update)
+_description - string, краткое описание, теги, ключевые слова
+#end
+function InsertProcessedMessageDirectToQueue( _success : boolean;
+                                             _bodyMessage : tptr;
+                                             _bodyAnswer  : tptr;
+                                             _codeReciptSystem : string;
+                                             _TypeEvent : string;
+                                             _description : string
+                                             ) : boolean;
+
+#doc
 Получить строковое название статуса записей на рассмотрение QUE_EntriesForReview
 #end
 Function GetNameStatusEntriesForReview(_Status : word) : string;
+
+#doc
+Получить номер позиции вхождения _text в длинную строку tptr
+#end
+function GetPosTextInLongStr(_text : string; _longStr : tptr) : longint;
 
 #doc
 Получить картинку статуса записей на рассмотрение QUE_EntriesForReview

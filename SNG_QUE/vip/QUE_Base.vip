@@ -132,6 +132,7 @@ from
  , QUE_EntriesForReview QUE_EntrCopyToQueue
  , QUE_EntriesForReview QUE_EntrCopyToQueueUp
  , QUE_OUT QUE_OUT_Copy
+ , QUE_LOG QUE_LOG_Copy
  , QUE_EntriesForReview QUE_EntrRvwLoop_status
  , QRY_Instance QRY_Instance_1
  , QRY_Template QRY_INST_TMPLT_1
@@ -156,7 +157,11 @@ from
        ))
 ;
 
-
+function GetPosTextInLongStr(_text : string; _longStr : tptr) : longint; {
+  var iQUE_INCOME_BASE : QUE_INCOME_BASE;
+  var _wideStr : widestring[2097151] = iQUE_INCOME_BASE.longstring_to_widestring(_longStr);
+  result := instr(_text, _wideStr)
+}
 
 function encrypt(_str:string):string;{
   var _strres : string = '';
@@ -341,12 +346,37 @@ Function GetNameStatusQueue(_Status : word) : string; cacheable;{
    coQUE_SuccessTransToExtSystem        : result := 'успешно передана'                                  //  успешно передана
    coQUE_NotAllPoolRcrdTransToExtSystem : result := 'не все записи из пула переданы во внешнюю систему' //  не все записи из пула переданы во внешнюю систему
    coQUE_ErrorFindInstanceInReciept     : result := 'Экземпляр запроса не подписан на внешние системы'  // 5; //  Экземпляр запроса не подписан на внешние системы
-   coQUE_ErrButWillContinueTryToSend    : result := 'Ошибка передачи, но еще будем пробовать'           // 6; //  Ошибка передачи, но еще будем пробовать
+   coQUE_ErrButWillContinueTryToSend    : result := 'Ошибка передачи, будут еще попытки'           // 6; //  Ошибка передачи, но еще будем пробовать
    coQUE_TryToSend                      : result := 'Обрабатывается сейчас'                             // 7; //  обрабатывается сейчас
   else {
     result := '--неизвестный статус--' //
   }
  end;
+}
+
+procedure RunClearQUE(_FirstDate : datetime; _status : word); {
+ StartNewVisual(vtRotateVisual, vfTimer , 'Очистка исходящей очереди', 1);
+  _loop QUE_OUT_Copy where ((_FirstDate >> QUE_OUT_Copy.datetime_in
+                            and _status == QUE_OUT_Copy.status (noindex))) {
+     _loop QUE_LOG_Copy where ((QUE_OUT_Copy.nrec == QUE_LOG_Copy.cQUE_OUT)) {
+       delete current QUE_LOG_Copy;
+     }
+    delete current QUE_OUT_Copy;
+   }
+ stopvisual;
+}
+procedure ClearQUE_OldRows; {
+
+  if wgettune('QUE_OUT_CLEAR_COUNT_DAYS_SUCCESS') > 0 {
+    var _FirstDate : datetime = _DateTime1(add_day(cur_date,-1*wgettune('QUE_OUT_CLEAR_COUNT_DAYS_SUCCESS')),0);
+    RunClearQUE(_FirstDate, coQUE_SuccessTransToExtSystem) ;
+  }
+
+  if wgettune('QUE_OUT_CLEAR_COUNT_DAYS_ERROR') > 0 {
+    var _FirstDate : datetime = _DateTime1(add_day(cur_date,-1*wgettune('QUE_OUT_CLEAR_COUNT_DAYS_ERROR')),0);
+    RunClearQUE(_FirstDate, coQUE_ErrorTransToExtSystem);
+  }
+
 }
 
 Function GetImageStatusQueue(_Status : word) : string; cacheable;{
@@ -616,7 +646,7 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp; _codeReci
     QUE_OUT_Copy.RecipientSystem    := _codeReciptSystem; // string     "Код системы получателя";
     QUE_OUT_Copy.cQUE_EntriesReview := QUE_EntrRvwIns.nrec;
     QUE_OUT_Copy.JSON               := QUE_EntrRvwIns.JSON;
-
+    QUE_OUT_Copy.atl_owner          := userid;
    result := 0h;
    if insert current QUE_OUT_Copy = tsOK {
      result := QUE_OUT_Copy.nrec;
@@ -640,6 +670,7 @@ coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
     QUE_OUT_Copy.DateTime_in        := _curDateTime;
     QUE_OUT_Copy.RecipientSystem    := _codeReciptSystem; // string     "Код системы получателя";
     QUE_OUT_Copy.cQUE_EntriesReview := 0h;
+    QUE_OUT_Copy.atl_owner          := userid;
 
    if insert current QUE_OUT_Copy <> tsOK {
     exit;
@@ -659,6 +690,82 @@ coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
    QUE_OUT_Copy.Status := coQUE_ReadyTransfToExtSystem;
 
    if update current QUE_OUT_Copy <> tsOK {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+
+   deletefile(_bodyMessageFile);
+   HttpConnect_Free(m_service);
+   result := true;
+}
+
+function InsertProcessedMessageDirectToQueue( _success : boolean;
+                                             _bodyMessage : tptr;
+                                             _bodyAnswer  : tptr;
+                                             _codeReciptSystem : string;
+                                             _TypeEvent : string;
+                                             _description : string
+                                             ) : boolean; {
+/*
+_TypeEvent
+coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
+coQUE_TypeEvent_Delete = 'DELETE'; // Событие обновление
+coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
+*/
+   result := false;
+   clearbuffer(tnQUE_OUT_Copy);
+    QUE_OUT_Copy.Status             := if(_success, coQUE_SuccessTransToExtSystem, coQUE_ErrorTransToExtSystem);
+    QUE_OUT_Copy.TypeEvent          := _TypeEvent;
+    QUE_OUT_Copy.TryCount           := 1;
+    QUE_OUT_Copy.cParent            := 0h;
+    QUE_OUT_Copy.QRY_Instance_code  := 'DIRECT INSERT PROCESSED MESSAGE';
+    QUE_OUT_Copy.DateTime_in        := _curDateTime;
+    QUE_OUT_Copy.RecipientSystem    := _codeReciptSystem; // string     "Код системы получателя";
+    QUE_OUT_Copy.cQUE_EntriesReview := 0h;
+    QUE_OUT_Copy.log_string         := _description;
+    QUE_OUT_Copy.atl_owner          := userid;
+
+   if insert current QUE_OUT_Copy <> tsOK {
+    exit;
+   }
+
+   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+   var _bodyMessageFile : string = GenerateNewFile + '.bodymsg';
+
+   HttpConnect_SaveToFileEx(m_service, _bodyMessage, _bodyMessageFile, cpUTF8, false);
+
+   if not importfiletomemo(QUE_OUT_Copy.JSON, _bodyMessageFile, false) {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+
+   if update current QUE_OUT_Copy <> tsOK {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+    deletefile(_bodyMessageFile);
+
+    insert QUE_LOG_SNDMSG set
+       QUE_LOG_SNDMSG.cQUE_OUT     := QUE_OUT_Copy.nrec
+     , QUE_LOG_SNDMSG.DateTime_try := _curdatetime
+     , QUE_LOG_SNDMSG.LOG_STRING   := _description
+     , QUE_LOG_SNDMSG.status       := QUE_OUT_Copy.Status
+    ;
+
+   _bodyMessageFile := GenerateNewFile + '.bodyansw';
+
+   HttpConnect_SaveToFileEx(m_service, _bodyAnswer, _bodyMessageFile, cpUTF8, false);
+
+   if not importfiletomemo(QUE_LOG_SNDMSG.LOG_TEXT, _bodyMessageFile, false) {
+      deletefile(_bodyMessageFile);
+      HttpConnect_Free(m_service);
+      exit;
+     }
+
+   if update current QUE_LOG_SNDMSG <> tsOK {
       deletefile(_bodyMessageFile);
       HttpConnect_Free(m_service);
       exit;

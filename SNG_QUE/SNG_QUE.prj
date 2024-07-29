@@ -47,7 +47,7 @@ LicenseControlInclude=""
 #make "vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip"
 
 #make "vip\QUE_Process_QRY_TEMPLATE.vip"
-#make "vip\QUE_Process_QRY_INSTANCE.vip"
+//#make "vip\QUE_Process_QRY_INSTANCE.vip"
 
 #make "vip\SNG_AbsenceEmployees.vip"
 #make "vip\QUE_SendMessToExtSys_oilix_absence.vip"

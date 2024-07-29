@@ -92,13 +92,13 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="26" PosY="27" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="17" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="26" PosY="42" OpenEditor="True"/>
-			<File Name="vip\QRY_TEMPLATES.vip" PosX="17" PosY="24" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="2" PosY="345" OpenEditor="True" Active="True"/>
-			<File Name="vip\QRY_TEMPLATES.pan" PosX="61" PosY="107" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.vip" PosX="1" PosY="20" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="11" PosY="381" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.pan" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="1" PosY="96" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="10" PosY="196" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="104" PosY="989" OpenEditor="True" Active="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="4" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="31" PosY="238" OpenEditor="True"/>
 		</FileList>
@@ -153,7 +153,7 @@
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="568" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="source\QRY\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="710" NumIndex="1" MarkerType="mtNumBookmark" Comment="if TblINST_TMPLTSP."/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="591" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
-			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="1007" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="1008" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="350" NumIndex="1" MarkerType="mtNumBookmark" Comment="if GetLogFile_debug"/>
 		</MarkerList>
 		<BreakPointList>

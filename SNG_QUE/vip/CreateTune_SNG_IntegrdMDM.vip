@@ -41,4 +41,7 @@ Action
   TR.AddTune(     ttSYSTUNE, 'dMDMIntegration_Tokendmdm', 'dMDMIntegration', 'Token', ftString, '', '100', hcNoContext);
   TR.AddTune(    ttUserTune, 'dMDMIntegration_Test', 'dMDMIntegration', 'Тестовый режим', ftString, '', '100', hcNoContext);
 
+  TR.AddPart(ttSYSUSERTUNE,'QUE_OUT','SNG','Исходящая очередь','');
+  TR.AddTune(     ttSYSTUNE, 'QUE_OUT_CLEAR_COUNT_DAYS_SUCCESS', 'QUE_OUT', 'Количество дней для хранения записей успешной передачи', ftword, '', '100', hcNoContext);
+  TR.AddTune(     ttSYSTUNE, 'QUE_OUT_CLEAR_COUNT_DAYS_ERROR'  , 'QUE_OUT', 'Количество дней для хранения записей передачи с ошибкой', ftword, '', '100', hcNoContext);
 }

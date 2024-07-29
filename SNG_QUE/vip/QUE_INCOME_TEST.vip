@@ -18,7 +18,7 @@ end;
 
 VipInterface QUE_INCOME_TEST #Licensed_Free;
 
-Interface QUE_INCOME_TEST 'Работа с входящей очередью. ТЕСТОВЫЙ ИНТЕРФЕЙС', CYAN;
+Interface QUE_INCOME_TEST 'Демонстрация функционала входящей очереди', CYAN;
 
 create view
  var

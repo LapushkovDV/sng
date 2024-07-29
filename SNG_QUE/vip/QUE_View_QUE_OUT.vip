@@ -12,11 +12,24 @@
 
 
 Interface QUE_View_QUE_OUT 'Интерфейс просмотра очереди исходящих сообщений',  cyan;
+
+table struct tFiltr (
+  crec : comp
+)
+with index (
+ ind0 = crec
+);
 create view
  var
     _crec
   , _cParent : comp;
-  iQUE_BASE : QUE_BASE;
+
+    _fltDTBeg
+  , _fltDTEnd : datetime;
+
+    _fltFindtextInLong : String;
+
+    iQUE_BASE : QUE_BASE;
  as select
      iQUE_BASE.GetNameStatusQueue(QUE_OUT_BR.status) (FieldName = StatusNameQueue)
    , iQUE_BASE.GetNameStatusQueue(QUE_LOG_BR.status) (FieldName = LogStatusNameQueue)
@@ -24,12 +37,96 @@ create view
  from
    QUE_OUT QUE_OUT_BR
  , QUE_LOG QUE_LOG_BR
+ , tFiltr
  where ((
                  _cParent == QUE_OUT_BR.cParent
       and QUE_OUT_BR.nrec == QUE_LOG_BR.cQUE_OUT
+      and QUE_OUT_BR.atl_owner == x$users.atl_nrec
+
  ))
 // Bounds ForTree = _cParent == QUE_EntrForReview_BR.cParent
+bounds FiltrDates     _fltDTBeg <<= QUE_OUT_BR.datetime_in (NoIndex)
+                 and _fltDTEnd >>= QUE_OUT_BR.datetime_in (NoIndex)
+bounds FiltrLongStr QUE_OUT_BR.nrec /== tFiltr.crec
 ;
+
+procedure fillTabletFiltr; {
+   delete all tFiltr;
+   if trim(_fltFindtextInLong) <> '' {
+  _loop  QUE_OUT_BR {
+    if QUE_OUT_BR.cParent <> 0h then continue;
+         var _FilePath : string = iQUE_BASE.GenerateNewFile+'.memo';
+
+           if not ExportMemoToFile(QUE_OUT_BR.JSON, _FilePath, false) then exit;
+
+           var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
+           var _longValue : TPtr = HttpConnect_LoadFromFile (m_service //fn        : LongInt,
+                                                          , _FilePath // sFileName : String,
+                                                          , cpUTF8 // Encoding  : LongInt
+                                                         ) ;
+           //deletefile(_FilePath);
+      if iQUE_BASE.GetPosTextInLongStr( _fltFindtextInLong, _longValue) > 0 then
+        insert tFiltr set cRec := QUE_OUT_BR.nrec
+     }
+   }
+}
+
+window winSetFltr;
+screen scrSetFltr;
+ fields
+  _fltDTBeg : NoProtect, {Font={BackColor=if(_fltDTBeg = to_date(0,0,0),ColorNeed,0)}};
+  _fltDTEnd : NoProtect, {Font={BackColor=if(_fltDTEnd = to_date(0,0,0),ColorNeed,0)}};
+  _fltFindtextInLong : NoProtect;
+
+ buttons
+     cmValue1,[singleLine],,;
+     cmCancel,[singleLine],,;
+<<
+Период: с .@@@@@@@@@@@@@@@ по .@@@@@@@@@@@@@@@
+
+Текст в теле сообщения .@@@@@@@@@@@@@@@@@@@@@@@@
+
+ <.  Применить  .>      <.   Отмена   .>
+>>
+end;
+windowevent winSetFltr;
+cmValue1 : {
+  if _fltDTBeg = to_date(0,0,0) {
+    message('Пустое начало периода фильтра', error);
+    stop;abort;exit;
+  }
+  if _fltDTEnd = to_date(0,0,0) {
+    message('Пустое окончание периода фильтра', error);
+    stop;abort;exit;
+  }
+  if _fltDTEnd < _fltDTBeg {
+    message('Начало периода больше окончания', error);
+    stop;abort;exit;
+  }
+
+  closewindowex(winSetFltr, cmdefault);
+}
+end;
+end;
+
+procedure clearFiltr; {
+  popbounds(tbFiltrDates);
+  popbounds(tbFiltrLongStr);
+  rereadrecord;
+}
+procedure SetFiltr; {
+  if runwindowmodal(winSetFltr) = cmDefault
+    then {
+           PushBounds(tbFiltrDates);
+           if trim(_fltFindtextInLong) <> '' {
+             fillTabletFiltr;
+             addBounds(tbFiltrLongStr);
+           }
+         }
+    else clearFiltr;
+   rereadrecord;
+}
+
 function GetImageStatusQueue: string; {
   Result:=iQUE_BASE.GetImageStatusQueue(QUE_OUT_BR.Status);
 }
@@ -37,6 +134,7 @@ function GetImageStatusQueue: string; {
 function GetLogImageStatusQueue: string; {
   Result:=iQUE_BASE.GetImageStatusQueue(QUE_LOG_BR.Status);
 }
+
 window winQUE_OUT_BR 'Просмотр очереди исходящих сообщений', cyan;
   tree trQUE_OUT_BR (,,Sci1Esc);
     show at ( ,,80,15);
@@ -44,12 +142,13 @@ window winQUE_OUT_BR 'Просмотр очереди исходящих сообщений', cyan;
     Fields
     QUE_OUT_BR.DateTime_in           'Очередь','время создания' : [5]  , Protect, nopickbutton;
     [Img_StatusQueue]  GetImageStatusQueue() 'Очередь','статус' : [4]  , Image;
+    x$users.xu$loginname             'Пользователь','добавивший запись'     : [10] , Protect, nopickbutton;
     QUE_OUT_BR.RecipientSystem       'Система','получатель'     : [10] , Protect, nopickbutton;
     QUE_OUT_BR.TypeEvent             'Событие',''               : [10] , Protect, nopickbutton;
     QUE_OUT_BR.DateTime_in           'Дата-время ','создания записи' : [5] , Protect, nopickbutton;
     QUE_OUT_BR.DateTime_out          'Дата-время ','передачи'   : [5] , Protect, nopickbutton;
     StatusNameQueue                  'Очередь','статус'         : [10] , Protect, nopickbutton;
-    QUE_OUT_BR.log_string            'Описание','статуса'       : [8] , Protect, nopickbutton;
+    QUE_OUT_BR.log_string            'Описание, теги','ключевые слова'       : [8] , Protect, nopickbutton;
     QUE_OUT_BR.TryCount              'Кол-во','попыток'         : [5] , Protect, nopickbutton;
   end;
 
@@ -92,10 +191,31 @@ cmValue5: {
     then putfiletoclient(_file,false)
      else message('Ошибка экспорта мемо-поля',error)
 }
+cmValue6 : {
+  if QUE_OUT_BR.status = coQUE_INCOME_Error then {
+    update current QUE_OUT_BR set QUE_OUT_BR.status := coQUE_INCOME_ReadyToProcess; // Готова к обработке
+  }
+  rereadrecord;
+}
+cmValue7: {
+SetFiltr;
+
+}
+cmValue8: {
+clearFiltr;
+}
+
 cmHotKeys: {
   case curtable of
-    tnQUE_LOG_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_LOG'));
-    tnQUE_OUT_BR : PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_MSG'));
+    tnQUE_LOG_BR :  {
+         PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_LOG'));
+       }
+    tnQUE_OUT_BR : {
+        if QUE_OUT_BR.status = coQUE_INCOME_Error
+         then enablecommand(cmValue6)
+         else disablecommand(cmValue6);
+         PutHotCommand(RunMenu('mnuQUE_View_QUE_OUT_MSG'));
+       }
   end;
 }
 
@@ -144,4 +264,10 @@ mnuQUE_View_QUE_OUT_LOG Menu {
 
 mnuQUE_View_QUE_OUT_MSG Menu {
   - 'Скачать файл сообщения', cmValue5;
+--------------;
+  - 'Установить фильтр', cmValue7;
+  - 'Снять фильтр', cmValue8 ;
+--------------;
+  - 'Заново поставить сообщение в очередь на отправку', cmValue6;
+
 }
