@@ -202,6 +202,7 @@ PROCEdURE FillInsertTables(_nrow : longint; _file : string); {
        Upcase('Творительный') : tDeclension.decl_tp := _recArray[_i].value
        Upcase('Предложный'  ) : tDeclension.decl_pp := _recArray[_i].value
     end;
+/* debug
     var _value : string = _recArray[_i].value;
 
     mylog('_nrow'+_nrow +' | '+ _value );
@@ -212,6 +213,7 @@ PROCEdURE FillInsertTables(_nrow : longint; _file : string); {
     mylog(' | ConvertUtf8ToOem = ' + _value);
     ConvertOemToUtf8(_recArray[_i].value, _value);
     mylog(' | ConvertOemToUtf8 = ' + _value);
+    // debug end */
   }
   insert current tDeclension;
 } // PROCEdURE FillInsertTableeNaklSFO(_log: string);

@@ -155,7 +155,12 @@ Function CheckFileFillValues(_file: string): boolean;
         }
 
       for(_i := 1; _I <= getLimit(_recArray); _i++) {
-        xlReadFromMatrixEx(_idMatrix, nrow, _recArray[_i].column, _recArray[_i].value);
+        //на вебе кодировка какая то левая в строку приходит, потому переходим на медленный вариант xlGetCellValue xlReadFromMatrixEx(_idMatrix, nrow, _recArray[_i].column, _recArray[_i].value);
+
+        //var _iCellStr : string ='';
+        xlGetCellValue(nrow, _recArray[_i].column, _recArray[_i].value);
+        //mylog('_iCellStr = ' + _iCellStr)
+
       } // for(_i:=1; _I<= getLimit(_recArray);_i++)
      FillInsertTables  (nrow, _file);
       //if _recArray[1].value = '' then break;
