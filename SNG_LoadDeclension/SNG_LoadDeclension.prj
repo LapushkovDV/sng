@@ -1,0 +1,22 @@
+//------------------------------------------------------------------------------
+// SNG_QRY
+//------------------------------------------------------------------------------
+
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+// #include galaktika.vil
+
+#component "SNG_QRY"
+#define CompTitle Генерация JSON по шаблонам
+#doc
+  #CompTitle
+#end
+#params
+[vip]
+LicenseControlInclude=""
+#end
+#include SNG_LoadDeclension.ver
+
+#make "vip\SNG_LoadDeclension.vip"

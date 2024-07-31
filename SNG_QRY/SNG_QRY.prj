@@ -38,6 +38,7 @@ end;
 #make "vip\QRY_ALG_USER_GET_PROBATION_BY_CONTDOC.vip"
 #make "vip\QRY_ALG_USER_TAXRATE_BY_APPHIST.vip"
 #make "vip\QRY_ALG_USER_TEST.vip"
+#make "vip\LoadDeclension.vip"
 /*
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_VACATION.vip"
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_PA2006"

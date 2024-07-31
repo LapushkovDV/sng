@@ -1,0 +1,3 @@
+#version SNG_QRY 0.54.0.1 '#CompTitle'
+  required
+#include GloRequired.ver

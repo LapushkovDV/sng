@@ -1,0 +1,462 @@
+/*************************************************************************************************\
+* Наименование: Загрузка склонений                                                                *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+ОЕ
+Для catalogs.syscode= -11 запомнить catalogs.nrec,
+catalogs.mainlink = catalogs.nrec
+
+должности
+Для catalogs.syscode= 49 запомнить catalogs.nrec,
+catalogs.c_parent = catalogs.nrec
+
+профессии
+Для catalogs.syscode= 13 запомнить catalogs.nrec,
+catalogs.c_parent = catalogs.nrec
+
+штатные должности
+таблица staffstruct.longname
+\*************************************************************************************************/
+Table Struct tDeclension (
+   Name    : string
+ , decl_rp : string
+ , decl_dp : string
+ , decl_vp : string
+ , decl_tp : string
+ , decl_pp : string
+)
+with index (
+ ind0 = Name
+);
+#component "SNG"
+Interface LoadDeclension 'Загрузка склонений во внешние атрибуты';
+#include VarsTypes.var
+#declare attrvalpadegbytype(cotable,type)
+ and             #cotable == an_rp_#type.wtable
+ and 'Родительный падеж'  == an_rp_#type.name
+ and   an_rp_#type.wtable == av_rp_#type.wtable
+ and       cat_#type.nrec == av_rp_#type.crec
+ and     an_rp_#type.nrec == av_rp_#type.cattrnam
+
+ and             #cotable == an_dp_#type.wtable
+ and   'Дательный падеж'  == an_dp_#type.name
+ and   an_dp_#type.wtable == av_dp_#type.wtable
+ and       cat_#type.nrec == av_dp_#type.crec
+ and     an_dp_#type.nrec == av_dp_#type.cattrnam
+
+ and              #cotable == an_vp_#type.wtable
+ and  'Винительный падеж' == an_vp_#type.name
+ and   an_vp_#type.wtable == av_vp_#type.wtable
+ and       cat_#type.nrec == av_vp_#type.crec
+ and     an_vp_#type.nrec == av_vp_#type.cattrnam
+
+ and             #cotable == an_tp_#type.wtable
+ and 'Творительный падеж' == an_tp_#type.name
+ and   an_tp_#type.wtable == av_tp_#type.wtable
+ and       cat_#type.nrec == av_tp_#type.crec
+ and     an_tp_#type.nrec == av_tp_#type.cattrnam
+
+ and             #cotable == an_pp_#type.wtable
+ and   'Предложный падеж' == an_pp_#type.name
+ and   an_pp_#type.wtable == av_pp_#type.wtable
+ and       cat_#type.nrec == av_pp_#type.crec
+ and     an_pp_#type.nrec == av_pp_#type.cattrnam
+#end
+create view
+  var
+   _isError : boolean = false;
+    ListName   : string = 'Лист1';
+
+    StrResult
+  , File_input
+  , _logFile   : string= '';
+
+    typeTable  : word = 0;
+
+as select
+   catalogs.nrec
+from
+    Catalogs
+
+  , Catalogs cat_oe_main
+  , Catalogs cat_oe
+  , attrnam an_rp_oe
+  , attrval av_rp_oe
+  , attrnam an_dp_oe
+  , attrval av_dp_oe
+  , attrnam an_vp_oe
+  , attrval av_vp_oe
+  , attrnam an_tp_oe
+  , attrval av_tp_oe
+  , attrnam an_pp_oe
+  , attrval av_pp_oe
+
+  , Catalogs cat_dolj_main
+  , Catalogs cat_dolj
+  , attrnam an_rp_dolj
+  , attrval av_rp_dolj
+  , attrnam an_dp_dolj
+  , attrval av_dp_dolj
+  , attrnam an_vp_dolj
+  , attrval av_vp_dolj
+  , attrnam an_tp_dolj
+  , attrval av_tp_dolj
+  , attrnam an_pp_dolj
+  , attrval av_pp_dolj
+
+  , Catalogs cat_prof_main
+  , Catalogs cat_prof
+  , attrnam an_rp_prof
+  , attrval av_rp_prof
+  , attrnam an_dp_prof
+  , attrval av_dp_prof
+  , attrnam an_vp_prof
+  , attrval av_vp_prof
+  , attrnam an_tp_prof
+  , attrval av_tp_prof
+  , attrnam an_pp_prof
+  , attrval av_pp_prof
+
+  , staffstruct cat_ststr
+  , attrnam an_rp_ststr
+  , attrval av_rp_ststr
+  , attrnam an_dp_ststr
+  , attrval av_dp_ststr
+  , attrnam an_vp_ststr
+  , attrval av_vp_ststr
+  , attrnam an_tp_ststr
+  , attrval av_tp_ststr
+  , attrnam an_pp_ststr
+  , attrval av_pp_ststr
+
+  , attrnam an_check
+  , tDeclension
+  where ((
+          //ОЕ Для catalogs.syscode= -11 запомнить catalogs.nrec, catalogs.mainlink = catalogs.nrec
+                         -11 == cat_oe_main.syscode
+        and cat_oe_main.nrec == cat_oe.mainlink (noindex)
+#attrvalpadegbytype(cocatalogs,oe)
+
+  // должности Для catalogs.syscode= 49 запомнить catalogs.nrec, catalogs.c_parent = catalogs.nrec
+                      and 49 == cat_dolj_main.syscode
+      and cat_dolj_main.nrec == cat_dolj.cparent
+#attrvalpadegbytype(cocatalogs,dolj)
+
+ // профессии Для catalogs.syscode= 13 запомнить catalogs.nrec, catalogs.c_parent = catalogs.nrec
+                      and 13 == cat_prof_main.syscode
+      and cat_prof_main.nrec == cat_prof.cparent
+#attrvalpadegbytype(cocatalogs,prof)
+
+#attrvalpadegbytype(costaffstruct,ststr)
+  // штатные должности таблица staffstruct.longname
+  ))
+
+;
+procedure MyLog(_log : string); {
+    if _logFile = '' then _logFile := GetStringParameter('Files', 'OutputFilesDirectory', 0) + 'LoadDeclension_'+DateToStr(Cur_date, 'YYYYMMDD') + '_' + timetostr(Cur_time, 'HH.MM.SS') + '_' + UserName + '.log';
+  //  logstrtofile(_logFile,ShortStrToWin(_log));
+    logstrtofile(_logFile,_log);
+}
+
+PROCEdURE fillrecArrayByTypeTable;
+{
+    var _npp: byte;
+        _npp := 1;
+    SetLimit(_recArray, 0);
+    SetLimit(_recArray, 1);
+    _recArray[_npp].def := 'Имя'         ; SetLimit(_recArray, GetLimit(_recArray) + 1); _npp++;
+    _recArray[_npp].def := 'Родительный' ; SetLimit(_recArray, GetLimit(_recArray) + 1); _npp++;
+    _recArray[_npp].def := 'Дательный'   ; SetLimit(_recArray, GetLimit(_recArray) + 1); _npp++;
+    _recArray[_npp].def := 'Винительный' ; SetLimit(_recArray, GetLimit(_recArray) + 1); _npp++;
+    _recArray[_npp].def := 'Творительный'; SetLimit(_recArray, GetLimit(_recArray) + 1); _npp++;
+    _recArray[_npp].def := 'Предложный'  ;
+}
+
+#include OpenFileExcelSearchCells.vpp
+
+
+/*          if GetFirst FastFirstRow cat_search where ((_cCatalogs == cat_search.NRec)) = tsOk {
+            Case _NCase of
+             1 : _res := cat_search.name
+             2 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Родительный падеж')
+             3 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Дательный падеж')
+             4 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Винительный падеж')
+             5 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Творительный падеж')
+             6 : _res := sgetattr(coCatalogs, cat_search.nrec, 'Предложный падеж')
+            end;
+*/
+
+PROCEdURE FillInsertTables(_nrow : longint; _file : string); {
+ clearbuffer(tntDeclension);
+ var _i : word = 0;
+  for(_i := 1; _I <= getLimit(_recArray); _i++)
+  {
+    case upcase(_recArray[_i].def) of
+       Upcase('Имя'         ) : tDeclension.Name    := _recArray[_i].value
+       Upcase('Родительный' ) : tDeclension.decl_rp := _recArray[_i].value
+       Upcase('Дательный'   ) : tDeclension.decl_dp := _recArray[_i].value
+       Upcase('Винительный' ) : tDeclension.decl_vp := _recArray[_i].value
+       Upcase('Творительный') : tDeclension.decl_tp := _recArray[_i].value
+       Upcase('Предложный'  ) : tDeclension.decl_pp := _recArray[_i].value
+    end;
+    var _value : string = _recArray[_i].value;
+
+    mylog('_nrow'+_nrow +' | '+ _value );
+    mylog(' | dos ' + ShortStrToDOS(_value) );
+    mylog(' | win ' + ShortStrToWin(_value) );
+    mylog(' | Oem2Ansi ' + Oem2Ansi(_value));
+    ConvertUtf8ToOem(_recArray[_i].value, _value);
+    mylog(' | ConvertUtf8ToOem = ' + _value);
+    ConvertOemToUtf8(_recArray[_i].value, _value);
+    mylog(' | ConvertOemToUtf8 = ' + _value);
+  }
+  insert current tDeclension;
+} // PROCEdURE FillInsertTableeNaklSFO(_log: string);
+
+Window winLoadDeclension;
+Screen scrLoadDeclension;
+  show at (,,, 11);
+  Fields
+    ListName   : NoProtect,{Font = {backcolor = if(ListName = '', colorneed,0);}};
+    File_input :  Protect, PickButton,{Font = {backcolor = if(File_input = '', colorneed,0);}};
+    typeTable : noprotect;
+    StrResult : Skip,{Font = {backcolor = if(_isError, 10,0);}};
+  buttons
+    cmOK,,,;
+    cmValue1,,,;
+    cmCancel,,,;
+<<'Загрузка '
+Наименование листа.@@@@@@@@@@@@@@@@ EXCEL Файл.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+Что обрабатываем:
+      (.) - ОЕ               `
+      (.) - должности        `
+      (.) - профессии        `
+      (.) - штатные должности`
+  .@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  <.Обработать файл.>   <.Заполнить склонения.>        <.    Отмена   .>
+>>
+end;
+#declare colorneed (FldCondition)
+{Font={BackColor=if(#FldCondition,ColorNeed,0)}}
+#end
+browse brLoadDeclension;
+  show at (,12,, );
+ table tDeclension;
+fields
+  tDeclension.Name    'Имя'                : [3] , Protect, nopickbutton, #colorneed(tDeclension.Name    = '');
+  tDeclension.decl_rp 'Родительный падеж'  : [3] , Protect, nopickbutton, #colorneed(tDeclension.decl_rp = '');
+  tDeclension.decl_dp 'Дательный падеж'    : [3] , Protect, nopickbutton, #colorneed(tDeclension.decl_dp = '');
+  tDeclension.decl_vp 'Винительный падеж'  : [3] , Protect, nopickbutton, #colorneed(tDeclension.decl_vp = '');
+  tDeclension.decl_tp 'Творительный падеж' : [3] , Protect, nopickbutton, #colorneed(tDeclension.decl_tp = '');
+  tDeclension.decl_pp 'Предложный падеж'   : [3] , Protect, nopickbutton, #colorneed(tDeclension.decl_pp = '');
+end;
+end;
+procedure checkanstr(_wtable : word; _name : string); {
+   if getfirst an_check where ((_wtable == an_check.wtable
+                              and _name == an_check.name)) <> tsOK {
+     insert an_check set
+        an_check.wtable := _wtable
+      , an_check.name   := _name
+      , an_check.attrtype := cgAttrType_Str
+     ;
+   }
+}
+windowevent winLoadDeclension;
+cmOK: {
+    checkanstr(coCatalogs, 'Родительный падеж' );
+    checkanstr(coCatalogs, 'Дательный падеж'   );
+    checkanstr(coCatalogs, 'Винительный падеж' );
+    checkanstr(coCatalogs, 'Творительный падеж');
+    checkanstr(coCatalogs, 'Предложный падеж'  );
+
+    checkanstr(coStaffStruct, 'Родительный падеж' );
+    checkanstr(coStaffStruct, 'Дательный падеж'   );
+    checkanstr(coStaffStruct, 'Винительный падеж' );
+    checkanstr(coStaffStruct, 'Творительный падеж');
+    checkanstr(coStaffStruct, 'Предложный падеж'  );
+
+    if File_input = '' {
+     message('не выбран excel файл',error) ;
+     stop;abort;exit;
+    }
+    if ListName = '' {
+     message('не указан EXCEL лист',error);
+     stop;abort;exit;
+    }
+  delete all tDeclension;
+  set StrResult := '';
+  StartNewVisual(vtRotateVisual, vfTimer, 'Он сказал поехали и махнул рукой', 1);
+    fillrecArrayByTypeTable;
+    MyLog( '***********************************************************************');
+    MyLog('before File_input ' + File_input);
+
+    var _srvFileName : string = GetStringParameter('Files', 'OutputFilesDirectory', 0) + OleGenerateGUID+'.xlsx';
+    mylog('_srvFileName = ' +_srvFileName);
+//    CopyMoveFile(File_input,_srvFileName,false, ecmfClientFrom + ecmfServerTo );
+    GetFileFromClient(File_input, true);
+    File_input := ConvertClientPathToSrv(File_input);
+    MyLog('after File_input ' + File_input);
+
+
+
+
+    set _isError := not CheckFileFillValues(File_input);
+   if visualizationactive  StopVisual('The End',vfTimer);
+   if visualizationactive  StopVisual('The End',vfTimer);
+
+    if _isError then  {
+      StrResult := 'При обработке файла возникли ошибки';
+      disablecommand(cmvalue1);
+      message(StrResult, error);
+      putfiletoclient(_logFile, false);
+    } else {
+      enablecommand(cmvalue1);
+      /*debug*/
+      //putfiletoclient(File_input,true);
+      putfiletoclient(_logFile, false);
+      //debug end*/
+    }
+ if visualizationactive  StopVisual('The End',vfTimer);
+ if visualizationactive  StopVisual('The End',vfTimer);
+ if getfirst tDeclension = tsOK {}
+ rereadrecord;
+} // cmOK
+cmValue1 :{
+_logFile := GetStringParameter('Files', 'OutputFilesDirectory', 0) + 'LoadDeclension_'+DateToStr(Cur_date, 'YYYYMMDD') + '_' + timetostr(Cur_time, 'HH.MM.SS') + '_' + UserName + '.log';
+
+
+
+#declare updatedeclension(type,typepadeg,padegname,padeg)
+              _needupdate := true;
+              if getfirst an_#typepadeg = tsOK {
+               if getfirst av_#typepadeg = tsOK {
+                 if av_#typepadeg.vstring = tDeclension.decl_#padeg then _needupdate := false;
+                 }
+               }
+              if _needupdate then {
+               mylog('"'+tDeclension.name+'"' + ' добавлен/обновлен #padegname -> "'+tDeclension.decl_#padeg+'"' );
+               ssetattr(coCatalogs, cat_#type.nrec, '#padegname', tDeclension.decl_#padeg);
+             }
+#end
+  var _needupdate : boolean = false;
+  StartNewVisual(vtRotateVisual, vfTimer, 'Просмотр справочника', 1);
+    case typeTable of
+     0 : {
+            mylog('');
+            mylog('Обрабатываем ОЕ');
+           if getfirst cat_oe_main <> tsOK then {
+             StrResult := 'Не найден элемент CATALOGS.syscode = -11';
+             mylog(StrResult);
+             message(StrResult, error);
+             _IsError := True;
+             rereadrecord;
+             if visualizationactive  StopVisual('The End',vfTimer);
+             stop; abort; exit;
+           }
+          _loop cat_oe {
+            setvisualheader('Просмотр справочника' +
+             + ''#13'' + cat_oe.name);
+            if getfirst tDeclension where ((cat_oe.name == tDeclension.name)) = tsOK {
+              #updatedeclension(oe,rp_oe,Родительный падеж,rp)
+              #updatedeclension(oe,rp_oe,Дательный падеж,dp)
+              #updatedeclension(oe,rp_oe,Винительный падеж,vp)
+              #updatedeclension(oe,rp_oe,Творительный падеж,tp)
+              #updatedeclension(oe,rp_oe,Предложный падеж,pp)
+            }
+          }
+     }
+     1 : {
+            mylog('');
+            mylog('Обрабатываем должности');
+          if getfirst cat_dolj_main <> tsOK then {
+             StrResult := 'Не найден элемент CATALOGS.syscode = 49';
+             mylog(StrResult);
+             message(StrResult, error);
+             _IsError := True;
+             rereadrecord;
+             if visualizationactive  StopVisual('The End',vfTimer);
+             stop; abort; exit;
+           }
+          _loop cat_dolj {
+            setvisualheader('Просмотр справочника' +
+             + ''#13'' + cat_dolj.name);
+            if getfirst tDeclension where ((cat_dolj.name == tDeclension.name)) = tsOK {
+              #updatedeclension(dolj,rp_dolj,Родительный падеж,rp)
+              #updatedeclension(dolj,dp_dolj,Дательный падеж,dp)
+              #updatedeclension(dolj,vp_dolj,Винительный падеж,vp)
+              #updatedeclension(dolj,tp_dolj,Творительный падеж,tp)
+              #updatedeclension(dolj,pp_dolj,Предложный падеж,pp)
+            }
+          }
+     }
+     2 : {
+            mylog('');
+            mylog('Обрабатываем профессии');
+          if getfirst cat_prof_main <> tsOK then {
+             StrResult := 'Не найден элемент CATALOGS.syscode = 13';
+             mylog(StrResult);
+             message(StrResult, error);
+             _IsError := True;
+             rereadrecord;
+             if visualizationactive  StopVisual('The End',vfTimer);
+             stop; abort; exit;
+           }
+          _loop cat_prof {
+            setvisualheader('Просмотр справочника' +
+             + ''#13'' + cat_prof.name);
+            if getfirst tDeclension where ((cat_prof.name == tDeclension.name)) = tsOK {
+              #updatedeclension(prof,rp_prof,Родительный падеж,rp)
+              #updatedeclension(prof,dp_prof,Дательный падеж,dp)
+              #updatedeclension(prof,vp_prof,Винительный падеж,vp)
+              #updatedeclension(prof,tp_prof,Творительный падеж,tp)
+              #updatedeclension(prof,pp_prof,Предложный падеж,pp)
+            }
+          }
+     }
+     3 : {
+            mylog('');
+            mylog('Обрабатываем штатные должности');
+           _loop cat_ststr {
+            setvisualheader('Просмотр справочника' +
+             + ''#13'' + cat_ststr.longname);
+            if getfirst tDeclension where ((cat_ststr.longname == tDeclension.name)) = tsOK {
+              #updatedeclension(ststr,rp_ststr,Родительный падеж,rp)
+              #updatedeclension(ststr,dp_ststr,Дательный падеж,dp)
+              #updatedeclension(ststr,vp_ststr,Винительный падеж,vp)
+              #updatedeclension(ststr,tp_ststr,Творительный падеж,tp)
+              #updatedeclension(ststr,pp_ststr,Предложный падеж,pp)
+            }
+       }
+     }
+    end;
+
+   if visualizationactive  StopVisual('The End',vfTimer);
+   StrResult := 'Обработка завершена';
+   mylog(StrResult);
+   putfiletoclient(_logFile, false);
+   message(StrResult);
+}
+cminit :{
+  disablecommand(cmvalue1);
+}
+end;
+handleevent // фейса
+cminit:{
+
+  runwindowmodal(winLoadDeclension) ;
+  closeinterface(-1);
+}
+cmpick:{
+  case curfield of
+   #File_input: {
+      File_input := GetFileName('*.xlsx;*.xls', 'Выбор файла со склонениями');
+    }
+  end;
+rereadrecord;
+}
+
+end;
+end.
