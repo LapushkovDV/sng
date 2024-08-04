@@ -16,7 +16,7 @@ def init_db():
 
     cur.execute('CREATE TABLE IF NOT EXISTS files (guid uuid PRIMARY KEY,'
                                     'name varchar (150) NOT NULL,'
-                                    'extention varchar (10) NOT NULL,'
+                                    'extension varchar (10) NOT NULL,'
                                     'description text,'
                                     'date_added date DEFAULT CURRENT_TIMESTAMP);'
                                     )

@@ -117,22 +117,23 @@
 			<BreakPoint FileName="Source\FILESREF_File_hRef.Vip" Line="228"/>
 		</BreakPointList>
 		<CompileMessengerList>
-			<CompileMessenger Name="C:\Galaktika\_git\sng\FilesRef\FilesRef\FilesRef.prj" DateTimeStart="45409,6334451157" DateTimeCompile="6,18287085671909E-5" StateHistory="False">
+			<CompileMessenger Name="C:\Galaktika\_git\sng\FilesRef\FilesRef\FilesRef.prj" DateTimeStart="45506,6127561574" DateTimeCompile="0,000287824070255738" StateHistory="False">
 				<CompileMessageList>
-					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="43" SourceColumn="1"/>
-					<CompileMessage MessageType="mtError" MessageText="Нет такой функции, поля или метода : ISJSONCLIENT" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="807" SourceColumn="21"/>
-					<CompileMessage MessageType="mtEndCompile" MessageText="27.04.2024 15:12:15"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="44" SourceColumn="1"/>
+					<CompileMessage MessageType="mtError" MessageText="Нет такой функции, поля или метода : ISJSONCLIENT" SourceFileName="C:\Galaktika\_git\sng\FilesRef\FilesRef\SOURCE\FILESREF_File_hRef.Vip" SourceLine="849" SourceColumn="21"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="02.08.2024 14:42:47"/>
 				</CompileMessageList>
 			</CompileMessenger>
 		</CompileMessengerList>
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
-			<File Name="FilesRef.prj" PosX="34" PosY="23" OpenEditor="True"/>
+			<File Name="FilesRef.prj" PosX="28" PosY="58" OpenEditor="True"/>
 			<File Name="..\..\..\..\GAL\Frm\Inc\GloTypes.inc" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="Source\FILESREF_File_hRef.Vip" PosX="81" PosY="671" OpenEditor="True" Active="True"/>
+			<File Name="Source\FILESREF_File_hRef.Vip" PosX="78" PosY="284" OpenEditor="True" Active="True"/>
 			<File Name="Source\Algoritm_File_hRef.vip" PosX="42" PosY="211" OpenEditor="True"/>
 			<File Name="Source\FILESREF_File_hRef.Vih" PosX="45" PosY="129" OpenEditor="True"/>
 			<File Name="..\..\..\..\Viper\bin\5.5.40.0\Source\excepts.inc" PosX="17" PosY="92" OpenEditor="True"/>
+			<File Name="Source\FILESREF_CreateTune.vip" PosX="37" PosY="22" OpenEditor="True"/>
 		</FileList>
 		<ProjectItems>
 			<ProjectCompileFile FileName="FilesRef.prj" Priority="0">

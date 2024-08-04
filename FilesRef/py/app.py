@@ -92,13 +92,13 @@ def not_found(error):
 def load_file():
     # init_db.init_db
     if not request.json:
-    #or not 'filename' in request.json or not 'extention' in  request.json or not 'data' in request.json:
+    #or not 'filename' in request.json or not 'extension' in  request.json or not 'data' in request.json:
         abort(400)
 
     try:
         filename = request.json['filename']
         filename = filename.replace(' ','_')
-        extention = request.json.get('extention', "")
+        extention = request.json.get('extension', "")
         description = request.json.get('description',"")
         b64 = request.json.get('data', "")
     except:
@@ -135,9 +135,9 @@ def load_file():
     cur = conn.cursor()
     values=[guid, filename, extention, description]
     try:
-        str_insert = "INSERT INTO files (guid, name, extention, description ) VALUES (%s,%s,%s,%s)"
+        str_insert = "INSERT INTO files (guid, name, extension, description ) VALUES (%s,%s,%s,%s)"
         cur.execute(str_insert,tuple(values))
-        #cur.execute("INSERT INTO files (guid, name, extention, description ) VALUES ('6ceec737-5d63-47b5-bea5-77b900c37b96', 'name', 'ext', '')")
+        #cur.execute("INSERT INTO files (guid, name, extension, description ) VALUES ('6ceec737-5d63-47b5-bea5-77b900c37b96', 'name', 'ext', '')")
         #books = cur.fetchall()
         conn.commit()
     except (Exception, psycopg2.DatabaseError) as error:
@@ -159,12 +159,12 @@ def get_file(file_uuid):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    select_Query = "select name, extention from files where guid = %s limit 1"
+    select_Query = "select name, extension from files where guid = %s limit 1"
     values = [file_uuid]
 
     try:
         cur.execute(select_Query,tuple(values))
-        #cur.execute("select name, extention from files limit 1")
+        #cur.execute("select name, extension from files limit 1")
         file_record = cur.fetchone()
     except (Exception, psycopg2.DatabaseError) as error:
         return jsonify({'status': '0','message':'DB Exception','URL':''}) , 401
@@ -218,7 +218,7 @@ def delete_file(file_uuid):
 
     try:
         cur.execute(select_Query,tuple(values))
-        #cur.execute("select name, extention from files limit 1")
+        #cur.execute("select name, extension from files limit 1")
     except (Exception, psycopg2.DatabaseError) as error:
         return jsonify({'status': '0','message':'DB exception'}),401 #error #{'error': 'DB exception'}
 

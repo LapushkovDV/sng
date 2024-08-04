@@ -32,6 +32,9 @@ with index (
  ind0 = Name
 );
 #component "SNG"
+
+vipinterface LoadDeclension #Licensed_Free;
+
 Interface LoadDeclension 'Загрузка склонений во внешние атрибуты';
 #include VarsTypes.var
 #declare attrvalpadegbytype(cotable,type)
