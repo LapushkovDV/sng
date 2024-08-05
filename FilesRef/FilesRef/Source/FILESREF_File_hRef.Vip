@@ -159,6 +159,7 @@ Function Add_File_THRU_API_ERPPNATIVE(_sfile : string;
                                      ): boolean;
 {
  result := false;
+ //EnableTimeLog; // debug
   /*
   в этой функции пробует использовать родные метиоды ЕРП по работе с HTTP запросами и JSON
   */
@@ -308,12 +309,13 @@ Function Add_File_THRU_API_ERPPNATIVE(_sfile : string;
       putfiletoclient(_File, false);
       _File := GenerateNewFile+'_lResponse.log';
       HttpConnect_SaveToFileEx(m_service, lResponse, _File, cpUTF8, false);
-      putfiletoclient(_File, false);
+
+         putfiletoclient(_File, false);
 
      }
     // Exit;
   }
-
+  if timelog_status <> 0 then
     {
      timelog('  after  HttpConnect_EDISendRequestEx(m_service, lAddUrl, lToken, tmpFile, POST, true, sHeader, 0) ' + longint(lResponse));
      timelog('  after  HttpConnect_GetLongStringLength(m_service, lResponse) = ' + HttpConnect_GetLongStringLength(m_service, lResponse));
@@ -326,6 +328,7 @@ Function Add_File_THRU_API_ERPPNATIVE(_sfile : string;
   var jObjectResponse : TPtr;
   jObjectResponse := HttpConnect_JSONObjectByLongString(m_service, lResponse);
 
+  if timelog_status <> 0 then
    {
     timelog('HttpConnect_JsonCount(m_service, jObjectResponse) = ' + HttpConnect_JsonCount(m_service, jObjectResponse));
     timelog('  after  HttpConnect_JSONObjectByLongString(m_service, lResponse) =' + longint(jObjectResponse));
@@ -334,7 +337,7 @@ Function Add_File_THRU_API_ERPPNATIVE(_sfile : string;
    var _sRESGUID    : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'UUID');
    var _sRESMESSAGE : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'message');
    var _sRESSTATUS  : string = HttpConnect_JsonObjectValueByName(m_service,jObjectResponse,'status');
-
+  if timelog_status <> 0 then
   {
      timelog('  _sRESGUID ' + _sRESGUID);
      timelog('  _sRESMESSAGE ' + _sRESMESSAGE);

@@ -92,15 +92,18 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QRY.prj" PosX="17" PosY="25" OpenEditor="True"/>
+			<File Name="SNG_QRY.prj" PosX="25" PosY="41" OpenEditor="True"/>
 			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="26" PosY="42" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="1" PosY="20" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="11" PosY="381" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="13" PosY="16" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.pan" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QRY_OUT.vih" PosX="1" PosY="96" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="104" PosY="989" OpenEditor="True" Active="True"/>
-			<File Name="vip\QRY_INSTANCE.vip" PosX="4" PosY="25" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="104" PosY="989" OpenEditor="True"/>
+			<File Name="vip\QRY_INSTANCE.vip" PosX="11" PosY="12" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.pan" PosX="31" PosY="238" OpenEditor="True"/>
+			<File Name="vip\LoadDeclension.vip" PosX="25" PosY="38" OpenEditor="True" Active="True"/>
+			<File Name="vip\OpenFileExcelSearchCells.vpp" PosX="116" PosY="158" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vih" PosX="59" PosY="86" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -155,6 +158,8 @@
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 2" Line="591" NumIndex="2" MarkerType="mtNumBookmark" Comment="Fill_Tmp_alg_One('%GetRollCatalogsByPadeg(%VALUE%,TRUE,1)%','');"/>
 			<Marker FileName="vip\QRY_OUT.vip" Caption="Нумерованная закладка 1" Line="1008" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QRY_Base.vip" Caption="Нумерованная закладка 1" Line="350" NumIndex="1" MarkerType="mtNumBookmark" Comment="if GetLogFile_debug"/>
+			<Marker FileName="vip\OpenFileExcelSearchCells.vpp" Caption="Нумерованная закладка 1" Line="163" NumIndex="1" MarkerType="mtNumBookmark" Comment="xlReadFromMatrix(nrow, _recArray[_i].column, _recArray[_i].value) then"/>
+			<Marker FileName="vip\LoadDeclension.vip" Caption="Нумерованная закладка 1" Line="306" NumIndex="1" MarkerType="mtNumBookmark"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
