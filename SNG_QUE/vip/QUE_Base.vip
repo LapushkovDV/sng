@@ -1064,7 +1064,7 @@ procedure ProcessEntriesForReview; {
  _try
     {
       sql
-      select top 10000
+      select top 1000
          QUE_EntriesForReview.nrec as cEntriesForReview
        , QUE_EntriesForReview.QRY_Instance_code as QRY_Instance_code
        , QUE_EntriesForReview.DateTime_in as DateTime_in
