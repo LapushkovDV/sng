@@ -1064,7 +1064,7 @@ procedure ProcessEntriesForReview; {
  _try
     {
       sql
-      select top 100
+      select top 10000
          QUE_EntriesForReview.nrec as cEntriesForReview
        , QUE_EntriesForReview.QRY_Instance_code as QRY_Instance_code
        , QUE_EntriesForReview.DateTime_in as DateTime_in
@@ -1098,7 +1098,7 @@ procedure CopyEntriesForReviewToQueue; {
  _try
     {
       sql
-      select top 100
+      select top 10000
          QUE_EntriesForReview.nrec as cEntriesForReview
        , QUE_EntriesForReview.QRY_Instance_code as QRY_Instance_code
        , QUE_EntriesForReview.DateTime_in as DateTime_in
@@ -1140,7 +1140,7 @@ procedure ProcessQueueOut; {
  _try
     {
       sql
-      select top 100
+      select top 500
          QUE_OUT.nrec as cQue_OUT
        , QUE_OUT.DateTime_in as DateTime_in
       from QUE_OUT
