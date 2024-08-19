@@ -26,6 +26,17 @@ end;
 type String_xMaxEl  = Array [1..coMaxElemets] of widestring[2000] ;
 
 var _arrQRY_USER_ALG : Array [1..1] of IQRY_ALG_USER;
+var _arrQryId: Array [1..1] of tptr;
+
+Table Struct tqryID
+(
+  QRY_INST_CODE : string
+ ,npp           : longint
+)
+with index
+(
+ tmp_tqryID01 = QRY_INST_CODE
+);
 
 Table Struct tmp_UserAlt
 (
@@ -105,6 +116,7 @@ var
 //  JSONObj_Array : tptr;
   JSONObj : TPtr;
   iAddressFunc : AddressFunc;
+  _logDebug : string = GetStringParameter('Files','OutputFilesDirectory',0)+ '\QRY_debug.log';
 as select
   tCheckFields_1.FieldNam
 from
@@ -126,6 +138,7 @@ from
  , catalogs cat_search
 
  , tmp_UserAlt
+ , tqryID
 
 ;
 
@@ -153,7 +166,11 @@ function GetFormula : string; {
  }
 }
 
-
+procedure FreeqryIDs; {
+  _loop tqryID sqlFreeStr(_arrQryId[tqryID.npp]);
+  delete all tqryID;
+  setlimit(_arrQryId,0);
+}
 
 function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
    if BoundActive(tbbyQRY_TMPLTNrec) {
@@ -190,7 +207,8 @@ function TestQueryTemplate(_fcQRY_TMPLT : comp; var _err : string): boolean; {
     } while (not MemoFile.EOF);
    MemoFile.Close;
 
-  objQuery := queryManager.createQuery(_qryID);
+  var queryManager1 : IQueryManager(vipQueryManager) new;
+  objQuery := queryManager1.createQuery(_qryID);
   if (objQuery.execute.errorCode != tsOk) then {
     _err := 'Ошибка проверки записей'+ objQuery.ErrorCode;
     mylog(_err);
@@ -1182,98 +1200,124 @@ function replaceMacro(_FieldName : string): string; {
 function ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var _iRes : iResultSet; var _err : string): boolean;{
  result := false;
  ClearFuncCache; // при каждом запросе будем очищать
- if getfirst QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
-   _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
-   mylog(_err);
-   exit;
-  }
 
- if BoundActive(tbbyQRY_INSTNrec) {
-     popbounds(tbbyQRY_INSTNrec);
- }
- set _cQRY_INST := QRY_Instance_1.nrec;
-  pushbounds(tbbyQRY_INSTNrec);
+//  if getfirst tqryID where ((_fQRY_INST_CODE == tqryID.QRY_INST_CODE)) <> tsOK  { // тут проьблема с разедлямой поматью... не очищается объект
+       if getfirst fastfirstrow QRY_Instance_1 where ((_fQRY_INST_CODE == QRY_Instance_1.code)) <> tsOK then {
+         _err := 'Не найден экземпляр запроса по коду "' + _fQRY_INST_CODE + '"';
+         mylog(_err);
+         exit;
+        }
 
- setFieldSynonims;
+       if BoundActive(tbbyQRY_INSTNrec) {
+           popbounds(tbbyQRY_INSTNrec);
+       }
+       set _cQRY_INST := QRY_Instance_1.nrec;
+        pushbounds(tbbyQRY_INSTNrec);
 
- if not checkFieldsDuplicate(_err) {
-   mylog(_err);
-   result := false;
-   exit;
- }
+       setFieldSynonims;
 
- if getfirst QRY_INST <> tsOK {
-   _err := 'Не найден запрос ';
-   mylog(_err);
-   result := false;
-   exit;
- }
-  if getfirst QRY_INST_FLD <> tsOK {
-   _err := 'Не найдены поля запроса ';
-   mylog(_err);
-   result := false;
-   exit;
-  }
+       if not checkFieldsDuplicate(_err) {
+         mylog(_err);
+         result := false;
+         exit;
+       }
 
-
- if getfirst QRY_INST_TMPLT <> tsOK {
-   _err := 'Не найден шаблон в запросе';
-   mylog(_err);
-   result := false;
-   exit;
- }
-
-  var objQuery: iQuery;
-  var _qryID   : tPtR;
-  var oResultSet : IResultSet;
-
-  sqlFreeStr(_qryID);
-  _qryID := 0;
-    if VisualizationActive then setvisualheader('заполнение полей запроса');
-  MysqlAddStr(_qryID, ' select ');
-   var _isFirstStep : boolean = True;
-  _loop QRY_INST_FLD {
-     MysqlAddStr(_qryID, if(_isFirstStep,'',',')+replaceMacro(QRY_INST_FLD.FieldName)  + if(trim(QRY_INST_FLD.FieldSynonim) <> '',' as "'  +trim(QRY_INST_FLD.FieldSynonim)+'"',''));
-    _isFirstStep := false;
-  }
+       if getfirst QRY_INST <> tsOK {
+         _err := 'Не найден запрос ';
+         mylog(_err);
+         result := false;
+         exit;
+       }
+        if getfirst QRY_INST_FLD <> tsOK {
+         _err := 'Не найдены поля запроса ';
+         mylog(_err);
+         result := false;
+         exit;
+        }
 
 
-  MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_INST_TMPLT.TABLECODE));
-  _loop QRY_INST_TMPLTSP {
-     if QRY_INST_TMPLTSP.TABLECODE > 0 //  на случай, если нет спецификации т.е. JOIN
-      MysqlAddStr(_qryID, QRY_INST_TMPLTSP.join_type + ' ' +TblINST_TMPLTSP.XF$NAME + ' ' + QRY_INST_TMPLTSP.SynonimName + ' on ' + QRY_INST_TMPLTSP.JoinTerms);
-    }
-  MysqlAddStr(_qryID, ' where');
-  MysqlAddStr(_qryID, '(');
-  //условия в секцию WHERE из шаблона
-   MemoFile.OpenMemo(QRY_INST_TMPLT.WhereTerms);
-   do {
-      var StringValue1 : string = '';
-      MemoFile.readln(StringValue1);
-      MysqlAddStr(_qryID, StringValue1);
-    } while (not MemoFile.EOF);
-   MemoFile.Close;
+       if getfirst QRY_INST_TMPLT <> tsOK {
+         _err := 'Не найден шаблон в запросе';
+         mylog(_err);
+         result := false;
+         exit;
+       }
 
-  // добавляем условия в секцию WHERE из экземпляра
-   MemoFile.OpenMemo(QRY_INST.AddWhereTerms);
-   do {
-      var StringValue1 : string = '';
-      MemoFile.readln(StringValue1);
-      MysqlAddStr(_qryID, StringValue1);
-    } while (not MemoFile.EOF);
-   MemoFile.Close;
-  MysqlAddStr(_qryID, ')');
-  MysqlAddStr(_qryID, _addWhereString);
+        var _qryID   : tPtR = 0;
+
+        sqlFreeStr(_qryID);
+        _qryID := 0;
+          if VisualizationActive then setvisualheader('заполнение полей запроса');
+        MysqlAddStr(_qryID, ' select ');
+         var _isFirstStep : boolean = True;
+        _loop QRY_INST_FLD {
+           MysqlAddStr(_qryID, if(_isFirstStep,'',',')+replaceMacro(QRY_INST_FLD.FieldName)  + if(trim(QRY_INST_FLD.FieldSynonim) <> '',' as "'  +trim(QRY_INST_FLD.FieldSynonim)+'"',''));
+          _isFirstStep := false;
+        }
+
+
+        MysqlAddStr(_qryID, ' from '+GetTableNameByCode(QRY_INST_TMPLT.TABLECODE));
+        _loop QRY_INST_TMPLTSP {
+           if QRY_INST_TMPLTSP.TABLECODE > 0 //  на случай, если нет спецификации т.е. JOIN
+            MysqlAddStr(_qryID, QRY_INST_TMPLTSP.join_type + ' ' +TblINST_TMPLTSP.XF$NAME + ' ' + QRY_INST_TMPLTSP.SynonimName + ' on ' + QRY_INST_TMPLTSP.JoinTerms);
+          }
+        MysqlAddStr(_qryID, ' where');
+        MysqlAddStr(_qryID, '(');
+        //условия в секцию WHERE из шаблона
+         MemoFile.OpenMemo(QRY_INST_TMPLT.WhereTerms);
+         do {
+            var StringValue1 : string = '';
+            MemoFile.readln(StringValue1);
+            MysqlAddStr(_qryID, StringValue1);
+          } while (not MemoFile.EOF);
+         MemoFile.Close;
+
+        // добавляем условия в секцию WHERE из экземпляра
+         MemoFile.OpenMemo(QRY_INST.AddWhereTerms);
+         do {
+            var StringValue1 : string = '';
+            MemoFile.readln(StringValue1);
+            MysqlAddStr(_qryID, StringValue1);
+          } while (not MemoFile.EOF);
+         MemoFile.Close;
+        MysqlAddStr(_qryID, ')');
+
+/*
+       setlimit(_arrQryId,getlimit(_arrQryId) + 1);
+        insert tqryID set
+          tqryID.QRY_INST_CODE := _fQRY_INST_CODE
+         ,tqryID.npp       := getlimit(_arrQryId)
+        ;
+     _arrQryId[tqryID.npp] := _qryID;
+   }
+*/
+
+  var _qryID_from_arrQry : tptr = _arrQryId[tqryID.npp];
+  var _qryID_new : tptr;
+  sqlFreeStr(_qryID_new);
+/*
+  sqlAddStr(_qryID_new, _qryID_from_arrQry);
+  MysqlAddStr(_qryID_new, _addWhereString);
+*/
+
+  sqlAddStr(_qryID_new, _qryID);
+  MysqlAddStr(_qryID_new, _addWhereString);
+
+  var objQuery: iQuery new;
+
   if VisualizationActive then setvisualheader('SQL проверка запроса');
-  objQuery := queryManager.createQuery(_qryID);
+var queryManager1 : IQueryManager(vipQueryManager) new;
+  objQuery := queryManager1.createQuery(_qryID_new);
   if (objQuery.execute.errorCode != tsOk) then {
     _err := 'Ошибка проверки записей в запросе '+ objQuery.ErrorCode;
     mylog(_err);
-    sqlFreeStr(_qryID);
+    sqlFreeStr(_qryID_new);
     Exit;
   }
   if VisualizationActive then setvisualheader('SQL передача запроса в объект');
  _iRes := objQuery.getResultSet;
+// freevipinterface(objQuery);
+ sqlFreeStr(_qryID_new);
  result := true;
 }
 function ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var _iRes : iResultSet; var _err : string): boolean;{
@@ -1296,7 +1340,7 @@ function ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE : string; _Roo
 
 function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean;{
   StartNewVisual(vtRotateVisual, vfTimer,'Выполнение запроса',0);
-  var _iRes : iResultSet;
+  var _iRes : iResultSet new;
   result := false;
 
   if not ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, '',_iRes,_err) then exit;
@@ -1317,24 +1361,25 @@ function TestQueryInstance(_fQRY_INST_CODE : string; var _err : string): boolean
 
 
 function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string; _RootTableNrec : comp; var FNservice, _JSON : tptr; var _err : string; _strParameter : string = ''): boolean;{
-  var _iRes : iResultSet;
+  var _iRes : iResultSet new;
   result := false;
 
   if not ExecuteQueryInstanceWithAddNrecRootTable(_fQRY_INST_CODE, _RootTableNrec, _iRes, _err) then exit;
 
   if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err, _strParameter) then exit;
 
+  freevipinterface(_iRes);
   result := true;
 }
 
 function GenerateJSONFromQueryInstanceWithAddWhereString(_fQRY_INST_CODE : string; _addWhereString : string; var FNservice, _JSON : tptr; var _err : string; _strParameter : string = ''): boolean;{
-  var _iRes : iResultSet;
+  var _iRes : iResultSet new;
   result := false;
 
   if not ExecuteQueryInstanceWithAddWhereString(_fQRY_INST_CODE, _addWhereString, _iRes, _err) then exit;
 
   if not generateJSONByResultSet(_fQRY_INST_CODE, _iRes, FNservice, _JSON, _err, _strParameter) then exit;
-
+  freevipinterface(_iRes);
   result := true;
 }
 

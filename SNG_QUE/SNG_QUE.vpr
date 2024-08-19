@@ -96,12 +96,12 @@
 			<File Name="vip\QUE_REST.vip" PosX="15" PosY="7" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vip" PosX="19" PosY="16" OpenEditor="True"/>
 			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="32" PosY="50" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="14" PosY="20" OpenEditor="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="23" PosY="1101" OpenEditor="True" Active="True"/>
 			<File Name="vip\QUE_BASE.vih" PosX="27" PosY="18" OpenEditor="True"/>
 			<File Name="vip\QUE_RecipientSystems.vip" PosX="31" PosY="49" OpenEditor="True"/>
-			<File Name="vip\QUE_View_QUE_EntriesForReview.vip" PosX="25" PosY="12" OpenEditor="True"/>
+			<File Name="vip\QUE_View_QUE_EntriesForReview.vip" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QUE_View_QUE_EntriesForReview.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_TEST.vip" PosX="49" PosY="148" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_TEST.vip" PosX="15" PosY="117" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

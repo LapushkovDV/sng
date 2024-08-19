@@ -121,6 +121,7 @@ create view
 var
      _logQUE_OUT
    , _interfaceName : string; //глобальная
+//  iQRY_OUT : QRY_OUT;
  as select
  QUE_OUT_Copy.nrec
 from
@@ -453,7 +454,7 @@ function getRootTableNameByInstanceCode(_InstanceCode : string) : string; cachea
    result := '----- не найден экземпляр запроса с кодом "' + _InstanceCode+'"  -----';
    if getfirst fastfirstrow QRY_Instance_1 where ((_InstanceCode == QRY_Instance_1.code)) = tsOK then {
    if getfirst fastfirstrow QRY_INST_TMPLT_1 where ((QRY_Instance_1.cTmplt == QRY_INST_TMPLT_1.nrec)) = tsOK {
-      var iQRY_OUT : QRY_OUT new;
+      var iQRY_OUT : QRY_OUT  new;
       result := iQRY_OUT.GetTableNameByCode(QRY_INST_TMPLT_1.TABLECODE)
     }
    }
@@ -529,9 +530,10 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp); {
         or QUE_EntrRvwGenJSON.Status = coPreQUE_AwaitProcessRelatedRcrd) // ожидает генерацию в связанных
        then exit;
 
-  var iQRY_OUT : QRY_OUT new;
+
   var _err : string = '';
-  var FNservice, _JSON : tptr;
+  var FNservice, _JSON : tptr = 0;
+  var iQRY_OUT : QRY_OUT  new;
   if not iQRY_OUT.GenerateJSONFromQueryInstanceWithAddWhereString(QUE_EntrRvwGenJSON.QRY_Instance_code, QUE_EntrRvwGenJSON.AddWhereStr, FNservice, _JSON, _err){
       var __log : string = iQRY_OUT.GetLogFile;
        ImportFileToMemo(QUE_EntrRvwGenJSON.JSON, __log, false);
@@ -539,6 +541,7 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp); {
        QUE_EntrRvwGenJSON.DateTime_genJSON := _curdatetime;
        QUE_EntrRvwGenJSON.err    := _err;
       update current QUE_EntrRvwGenJSON;
+      deletefile(__log);
    }
   else {
       var _jsonFile : string = iQRY_OUT.GenerateNewFile+'.json';
@@ -547,6 +550,7 @@ Procedure GenerateJSONInEntriesForReview(_cQUE_EntriesForReview : comp); {
        QUE_EntrRvwGenJSON.Status := coPreQUE_ReadyToTransferToQueue;
        QUE_EntrRvwGenJSON.DateTime_genJSON := _curdatetime;
       update current QUE_EntrRvwGenJSON;
+      deletefile(_jsonFile);
   }
 }
 
@@ -1078,6 +1082,8 @@ procedure ProcessEntriesForReview; {
     else {
       exit;
     }
+
+ // iQRY_OUT.FreeqryIDs;
  _loop tmpEntriesForReview ordered by tmpEntriesForReview.DateTime_in {
     if getfirst QRY_Instance_1 where (( tmpEntriesForReview.QRY_Instance_code == QRY_Instance_1.CODE)) = tsOK {
      if getfirst QRY_RECIPT where ((QRY_Instance_1.nrec == QRY_RECIPT.cQRY_Instance)) <> tsOK {
@@ -1090,6 +1096,7 @@ procedure ProcessEntriesForReview; {
     GenerateJSON_from_EntriesForReviewRecords(tmpEntriesForReview.cEntriesForReview);
 //    SetStatusGenerateJSON(tmpEntriesForReview.cEntriesForReview);
   }
+// iQRY_OUT.FreeqryIDs;
 }
 
 procedure CopyEntriesForReviewToQueue; {

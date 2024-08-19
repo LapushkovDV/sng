@@ -90,6 +90,11 @@ function GenerateJSONFromQueryInstanceByNrecRootTable(_fQRY_INST_CODE : string;
 #end
 Function GetFormula : string;
 
+#doc
+Очистить кэш подготовленных запросов
+#end
+procedure FreeqryIDs;
+
 
 end;
 

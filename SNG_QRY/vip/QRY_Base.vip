@@ -352,7 +352,8 @@ function GetLogFile_debug: string; {
 
 Procedure MyLog(_str: string);
 {
-//  LogStrToFile(GetLogFile_debug, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+
+  // debug LogStrToFile(GetLogFile_debug, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
 
   if not _needlog then exit;
   _str := DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': '+_str + ''#13'';
