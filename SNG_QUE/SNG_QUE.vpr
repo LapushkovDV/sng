@@ -96,7 +96,7 @@
 			<File Name="vip\QUE_REST.vip" PosX="15" PosY="7" OpenEditor="True"/>
 			<File Name="vip\QUE_INCOME_BASE.vip" PosX="19" PosY="16" OpenEditor="True"/>
 			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="32" PosY="50" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="23" PosY="1101" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="7" PosY="553" OpenEditor="True" Active="True"/>
 			<File Name="vip\QUE_BASE.vih" PosX="27" PosY="18" OpenEditor="True"/>
 			<File Name="vip\QUE_RecipientSystems.vip" PosX="31" PosY="49" OpenEditor="True"/>
 			<File Name="vip\QUE_View_QUE_EntriesForReview.vip" PosX="1" PosY="1" OpenEditor="True"/>
@@ -157,6 +157,7 @@
 			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 2" Line="394" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 1" Line="338" NumIndex="1" MarkerType="mtNumBookmark" Comment="DecodeFileToBase64(_FilePath, _FilePathEncode);"/>
 			<Marker FileName="vip\QUE_ProcessMessIncomeQueue_QRY_TEMPLATE.vip" Caption="Нумерованная закладка 1" Line="285" NumIndex="1" MarkerType="mtNumBookmark" Comment="tQRY_TEMPLATESP.DESCRIPTION :="/>
+			<Marker FileName="vip\QUE_BASE.vip" Caption="Нумерованная закладка 1" Line="553" NumIndex="1" MarkerType="mtNumBookmark" Comment="//deletefile(_jsonFile);"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
@@ -166,7 +167,7 @@
 			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
 			<BreakPoint FileName="source\InterfaceSqlJournResp.vip" Line="491"/>
 			<BreakPoint FileName="SNG_QUE.prj" Line="28"/>
-			<BreakPoint FileName="vip\QUE_BASE.vip" Line="326"/>
+			<BreakPoint FileName="vip\QUE_BASE.vip" Line="327"/>
 		</BreakPointList>
 		<CompileMessengerList>
 			<CompileMessenger Name="C:\Galaktika\_git\sng\SNG_QUE\SNG_QUE.prj" DateTimeStart="45374,4369725926" DateTimeCompile="0,000342222221661359" StateHistory="False">
