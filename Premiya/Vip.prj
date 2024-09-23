@@ -204,7 +204,6 @@ end;
 #make "Vip\KPI_Report.vip"
 #make "Vip\GP_GetFIOPostByPeriod.Vip"
 //------------------------------------------
-#make "Vip\KPI_Report.vip"
 
 #component "GP_ZP"
 #make "Vip\GP_GetPodalN.Vip"

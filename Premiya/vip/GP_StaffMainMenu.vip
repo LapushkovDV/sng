@@ -36,13 +36,6 @@ StaffMotivationMenu Menu
     - 'Настройка доступа по подразделениям(Мотивация) ',cmRunInterface('gp_zar_user(0)'),'Настройка режимов пользователей',hczarusers;
    -------;
   //#3727 такой же пункт есть в Настройка  - Администрирование - Утилиты ЭМ
-   - 'Создать организацию для сотрудника', cmRunInterface('GP_Staff::GP_CreateOrgForPers'), 'Создать организацию для сотрудника',,,, scMenuCtx,,,;
-   -------;
-   - 'КИС. Сравнение процентов'         , cmRunInterface('GP_Staff::GP_KPI_Compare'     ), 'КИС. Сравнение процентов',,,, scMenuCtx,,,;
-   - 'КИС. Загрузка сумм фондов'        , cmRunInterface('GP_Staff::GP_KPI_Fond_Import' ), 'КИС. Загрузка сумм фондов',,,, scMenuCtx,,,;
-   - 'КИС. Загрузка процентов в премии' , cmRunInterface('GP_Staff::GP_KPI_DOC_Raise_Import' ), 'КИС. Загрузка процентов в премии',,,, scMenuCtx,,,;
-   - 'КИС. Загрузка Видов производства' , cmRunInterface('GP_Staff::GP_KPI_Vid_Proizv_Imp' ), 'КИС. Загрузка Видов производства',,,, scMenuCtx,,,;
-
   }
  -------;
  - 'Ведение показателей премирования' , cmRunInterface('GP_KPI_Edit'), 'Ведение показателей премирования',,,, scMenuCtx,,,;

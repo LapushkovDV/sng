@@ -71,13 +71,13 @@ var
    Marker_Count :longint;
     wc_nrec : comp;//  - var_name, тип должен совпадать с типом маркера
    KauMarkerName:string;
-   Marker_Tmp :longint;
+   Marker_Tmp :tptr;
    #mrkfld_(Persons)
    //---------------
-   DepList :longint;
+   DepList :tptr;
    //------------------------
    VidKat      : string[100];
-   MarkKat:longint;
+   MarkKat : tptr;
 //**********************************************
 // Таблицы
 //**********************************************

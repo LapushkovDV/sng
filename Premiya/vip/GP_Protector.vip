@@ -29,7 +29,7 @@ Interface GP_Protector;
   create view
     var
       // хэндл контейнера, контролами которого управляет Протектор
-      ProtectedContainer: longint;
+      ProtectedContainer: tptr;
       // статус-контекст для режима "только чтение"
       FProtectedStatusCtx: TStatusCtx;
       // признак автоматической установки палитры управляемых окон, соответствующей текущему режиму
@@ -230,7 +230,7 @@ Interface GP_Protector;
 //------------------------------------------------------------------------------
 //                                                реализации методов IProtector2
 //------------------------------------------------------------------------------
-  procedure IGP_Protector2.LinkToExt(ContainerId: longint; SubContainerStr: string; ProcessEmbedded: boolean);
+  procedure IGP_Protector2.LinkToExt(ContainerId: tptr; SubContainerStr: string; ProcessEmbedded: boolean);
   
   {
     ProtectedContainer := ContainerID;
@@ -248,12 +248,14 @@ Interface GP_Protector;
     var Res             : integer; Res             :=0 ;
     EmbeddedPanels := InitMarker('', sizeof(longint), 10, 10);
 
+
     Res := cfsSetCurrentContainer(ProtectedContainer);
 
     if Res <> 0 {
       Message('Текущий контейнер не установлен (' + string(Res) + ')    ', Error + OkButton);
       exit;
     }
+
 
     SubContainerStr := Upcase(Trim(SubContainerStr));
 

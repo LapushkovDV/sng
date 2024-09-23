@@ -1143,7 +1143,7 @@ end;
 //*****************************************************************************
 procedure FullTables(sqlHandle : string; tableHandle : longint; Prim:string='');
 { timelog('FullTables:'+Prim);
-  var stmt             : Longint;
+  var stmt             : tptr;
   var ExecuteErrorCode : longint;
   _try
     {
@@ -1298,7 +1298,7 @@ Procedure RunFRPdf(frType : word ; sName : string);
     }
   else
     {
-      var rHandle : longint=0;
+      var rHandle : tptr;
 
       case frType of
         0 : rHandle := FRCreate(KPIReportStream         );

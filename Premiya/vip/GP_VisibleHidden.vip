@@ -76,7 +76,7 @@ Where
   and sSubContName    == UserDeskRep.sSubContName
   */
       UserId()          == UserDeskRep.cGrRepPl
-  and 65000           == UserDeskRep.NREP     
+  and 65000           == UserDeskRep.NREP
   and sModulName      == UserDeskRep.REPNAME(noindex)
   and sInterfaceName  == UserDeskRep.REPOPI(noindex)
   and sSubContName    == UserDeskRep.RESNAME[1](noindex)
@@ -416,7 +416,7 @@ Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInter
 
           if IsBit(wTmpCollumn, wBit)
           { //timelog('  sFieldName='+sFieldName+', отображаем')
-      
+
             // показываем
             Case ObjType of
             cfcColumn,         // колонка в браузе
@@ -424,8 +424,8 @@ Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInter
                cfsSetProp(sFieldName, cfpHidden, False);
             else
               cfsSetProp(sFieldName, cfpVisible, True);
-               
-            end;   
+
+            end;
           } //if IsBit
           else
           { // скрываем
@@ -433,12 +433,12 @@ Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInter
             cfcColumn,         // колонка в браузе
             cfcTreeColumn  :   // колонка дерева
                cfsSetProp(sFieldName, cfpHidden, True);
-            else   
+            else
                cfsSetProp(sFieldName, cfpVisible, False);
-            end;   
+            end;
             //timelog('  sFieldName='+sFieldName+', скрываем')
-      
-          }  
+
+          }
         }
       End; //Case ObjType
     } //for
