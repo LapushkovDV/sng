@@ -1,0 +1,841 @@
+#include DicTypes.def           // Словарные типы данных.
+
+Create table GP.GP_KPI_Alg "Справочник алгоритмов KPI"
+  With table_Code = 31720
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    Code         : string[10] "Код",
+    Name         : string "Наименование",
+    Formula      : string "Формула расчета",
+    Type_ALG     : word "Тип Алгоритма" ,
+    Type_Calc    : word "Тип Расчета 1 - текст",
+    Option:word "Опции расчета алгоритма" ,
+    mAlg         : LVar "Текстовый Алгоритм"
+
+  )
+  With index
+  (
+    KPI_Alg01 = NRec(Unique, Surrogate, Journal),
+    KPI_Alg02 = Type_ALG+Code
+  );
+
+Create table GP.GP_KPI "Справочник показателей премирования"
+  With table_Code = 31721
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    Kod          : string[10] "Код",
+    Name         : string "Наименование",
+    cKatEd       : ref(KatEd) "Единица измерения",
+    cKPI_Alg     : ref(GP_KPI_Alg) "Алгоритм"
+  )
+  With index
+  (
+    KPI01 = NRec(Unique, Surrogate, Journal),
+    KPI02 = Name
+  );
+
+Create table GP.GP_KPI_Chief "Руководители и исполнители KPI"
+  With table_Code = 31722
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    cStaffStr    : ref(StaffStruct) "СЕ ШР",
+    cPodrChief   : ref(Catalogs) "Подразделение руководителя",
+    cPostChief   : ref(Catalogs) "Должность руководителя",
+    cExecutor    : ref(Persons) "Исполнитель",
+    cKPI         : ref(GP_KPI) "Показатель",
+    dBegin       : date "Дата начала действия",
+    dEnd         : date "Дата окончания действия"
+  )
+  With index
+  (
+    ChiefKPI01 = NRec(Unique, Surrogate, Journal),
+    ChiefKPI02 = cStaffStr + cExecutor,
+    ChiefKPI03 = cKPI
+  );
+Create table GP.GP_KPI_Plan "Плановые значения KPI"
+  With table_Code = 31723
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    cChiefKPI    : ref(GP_KPI_Chief) "Руководитель и исполнитель",
+    cStaffStr    : ref(StaffStruct) "Оцениваемая единица ШР",
+    cPodr        : ref(Catalogs) "Оцениваемое подразделение",
+    cPost        : ref(Catalogs) "Оцениваемая должность",
+    dBegin       : date "Дата начала действия",
+    dEnd         : date "Дата окончания действия",
+    UdVes        : tSumma "Удельный вес",
+    LowLimit     : tSumma "Нижняя граница премирования",
+    HighLimit    : tSumma "Верхняя граница премирования",
+    Plan         : tSumma "Плановое значение",
+    UcPeriod     : ref(Catalogs) "Учетный период (4005)",
+    Notice       : string "Примечание"
+  )
+  With index
+  (
+    PlanKPI01 = NRec(Unique, Surrogate, Journal),
+    PlanKPI02 = cPodr + cPost,
+    PlanKPI03 = cStaffStr,
+    PlanKPI04 = cChiefKPI
+  );
+
+  Create table GP.GP_KPI_RAise_StS "Привязка премий к штатному расписанию"
+  With table_Code = 31766
+  With replace
+  With TableOptions Branched
+  (  NRec           : comp "Номер записи"
+   , CODE           : string[30] "Код подразделения"
+   , Name           : string "Подразделение"
+   , Department     : Ref(Catalogs) "Ссылка на подразделение"
+   , Post           : Ref(Catalogs) "Должность"
+   , cVidProizv     : REf(Spkau) "Вид производства"
+   , cKategoty      : Ref(KlKatego) "Категория"
+   , cStaffStruct   : Ref(StaffStruct) "Ссылка на штатное расписание"
+   , NPP            : Longint "= StaffStruct.SeqNmb"
+  )
+  With index
+  (
+     GP_KPI_RAise_StS01 = NRec(Unique, Surrogate, Journal)
+    ,GP_KPI_RAise_StS02 = cStaffStruct(Unique)
+    ,GP_KPI_RAise_StS03 = CODE+Name+NPP
+    ,GP_KPI_RAise_StS04 = Name+Code+NPP
+    ,GP_KPI_RAise_StS05 = Department+NPP
+  );
+
+  //---------------------------
+  Create table GP.GP_KPI_RAise_StS_SP "Премий к штатному расписанию"
+  With table_Code = 31767
+  With replace
+  With TableOptions Branched
+  (  NRec           : comp             "Номер записи"
+   , cStaffStruct   : Ref(StaffStruct) "Ссылка на штатное расписание"
+   , cDoplata       : Ref(Catalogs)    "Тип премии"
+   , Datan          : date             "Начало действия процента"
+   , Datok          : date             "Окончание действия процента"
+   , Procent        : tSumma           "Процент"
+   , Summa          : tSumma           "Сумма"
+   , SortKay        : string[50]       "Ключ сортировки"
+  )
+  With index
+  (
+     GP_KPI_R_StS_SP01 = NRec(Unique, Surrogate, Journal)
+    ,GP_KPI_R_StS_SPP2 = cStaffStruct+Datan+ cDoplata+SortKay
+    ,GP_KPI_R_StS_SP03 = cStaffStruct+cDoplata+Datan+SortKay
+  );
+
+Create table GP.GP_TypeDocs "Типы док-в в системе контроля доступа"
+  With table_Code = 31728
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    Name       : string "Наименование",
+    wType      : Word "Тип документа +100 ведомости прем.",
+    Code       : String[20] "Код",
+    wTable     : Word       "Код таблицы"
+  )
+  With index
+  (
+    TypeDocs01 = NRec(Unique, Surrogate, Journal),
+    TypeDocs02 = Name,
+    TypeDocs03 = wType
+  );
+
+Create table GP.GP_Status "Статусы док-в в системе контроля доступа"
+  With table_Code = 31729
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    cTypeDoc   : ref(GP_TypeDocs) "Тип документа",
+    Code       : string[5] "Код",
+    Name       : string "Наименование",
+    IsDefault  : boolean "Статус по умолчанию"
+  )
+  With index
+  (
+    Status01 = NRec(Unique, Surrogate, Journal),
+    Status02 = cTypeDoc + Code
+  );
+
+Create table GP.GP_RoleGroups "Группы ролей пользователей"
+  With table_Code = 31725
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    Name       : string "Наименование"
+  )
+  With index
+  (
+    RoleGroups01 = NRec(Unique, Surrogate, Journal),
+    RoleGroups02 = Name
+  );
+
+Create table GP.GP_Roles "Роли пользователей"
+  With table_Code = 31726
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    cRoleGroup : ref(GP_RoleGroups) "Группа ролей",
+    Name       : string "Наименование",
+    IsAdmin    : boolean "Роль администратора"
+  )
+  With index
+  (
+    Roles01 = NRec(Unique, Surrogate, Journal),
+    Roles02 = cRoleGroup + Name
+  );
+
+
+
+
+Create table GP.GP_StatusRoles "Роли статуса в системе контроля доступа"
+  With table_Code = 31730
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    cStatus    : ref(GP_Status) "Статус",
+    cRole      : ref(GP_Roles) "Роль",
+    Access     : word "Доступ"
+  )
+  With index
+  (
+    StatusRoles01 = NRec(Unique, Surrogate, Journal),
+    StatusRoles02 = cStatus + cRole,
+    StatusRoles03 = cRole
+  );
+
+Create table GP.GP_StatusChange "Возможные переходы статусов"
+  With table_Code = 31731
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    Code       : string[5] "Код",
+    cStatusFrom: ref(GP_Status) "Текущий статус",
+    cStatusTo  : ref(GP_Status) "Новый статус"
+  )
+  With index
+  (
+    StatusChange01 = NRec(Unique, Surrogate, Journal),
+    StatusChange02 = cStatusFrom + Code,
+    StatusChange03 = cStatusTo + cStatusFrom
+  );
+
+Create table GP.GP_StatusChangeRoles "Роли перехода в системе контроля доступа"
+  With table_Code = 31732
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    cStatusChange: ref(GP_StatusChange) "Переход статусов",
+    cRole        : ref(GP_Roles) "Роль"
+  )
+  With index
+  (
+    StatusChangeRoles01 = NRec(Unique, Surrogate, Journal),
+    StatusChangeRoles02 = cStatusChange + cRole,
+    StatusChangeRoles03 = cRole
+  );
+
+Create table GP.GP_UserRoles "Роли пользователя"
+  With table_Code = 31727
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    cRoleGroup : ref(GP_RoleGroups) "Группа ролей",
+    cUser      : ref(X$Users) "Пользователь",
+    cRole      : ref(GP_Roles) "Роль"
+  )
+  With index
+  (
+    UserRoles01 = NRec(Unique, Surrogate, Journal),
+    UserRoles02 = cRoleGroup + cUser,
+    UserRoles03 = cRole + cUser
+  );
+
+//-------------------------------------------
+  //20170920
+  Create table GP.GP_KPI_GroupPers "Группы персонала"
+  With table_Code = 31737
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,Name           : String[200] "Наименование"
+    ,Description    : String      "Описание"
+  )
+  With index
+  (
+    GP_KPI_GroupPers01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_GroupPers02 = Code,
+    GP_KPI_GroupPers03 = Name
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_GroupPers_SP "Связь Групп персонала с категориями"
+  With table_Code = 31738
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,cGroupPers     : Ref(GP_KPI_GroupPers) "Группы персонала"
+    ,cKlKatego      : Ref(KlKatego)         "Категории персонала"
+    ,Description    : String   "Описание"
+  )
+  With index
+  (
+    GP_KPI_GrPers_SP01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_GrPers_SP02 = cGroupPers+Code,
+    GP_KPI_GrPers_SP03 = cKlKatego+Code
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_TypeVed "Типы ведомостей"
+  With table_Code = 31743
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,Name           : String[200] "Наименование"
+    ,Description    : String      "Описание"
+    ,KodDoc         : Word        "Код документа по KatDoc"
+    ,wType          : word        "Тип ведомости"
+  )
+  With index
+  (
+    GP_KPI_TypeVed01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_TypeVed02 = Code,
+    GP_KPI_TypeVed03 = Name,
+    GP_KPI_TypeVed04 = wType+Code,
+    GP_KPI_TypeVed05 = wType+Name
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_Raise "Таблица премий"
+  With table_Code = 31739
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,Name           : String[200] "Наименование"
+    ,cDoplata       : Ref(Catalogs)   "Ссылка на доплату- Catalogs"
+    ,Description    : String[200] "Описание"
+    ,dBegin         : Date        "Дата начала действия премии"
+    ,dEnd           : Date        "Дата окончания действия премии"
+    ,TypePeriod     : Word        "Периодичность:1-мес.яц,2-кв.,3-год"
+    ,cAlg_CRP       : Ref(GP_KPI_ALG)        "Алгоритм расчета целевого размера(ЦРП)"
+    ,cAlg_Summa     : Ref(GP_KPI_ALG)        "Алгоритм расчета базы для расчета"
+    ,cAlg_KoefKorr  : Ref(GP_KPI_ALG)        "Алгоритм расчета корр. коэффициента"
+    ,cGP_TYPEDOCS   : Ref(GP_TYPEDOCS) "Тип ведомости"
+  )
+  With index
+  (
+    GP_KPI_Raise01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_Raise02 = Code+dBegin,
+    GP_KPI_Raise03 = Name+dBegin,
+    GP_KPI_Raise04 = cGP_TYPEDOCS+DBegin,
+    GP_KPI_Raise05 = cDoplata+DBegin
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_Fond "Фонды премий"
+  With table_Code = 31740
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,Name           : String[200] "Наименование"
+    ,cGroupPers     : Ref(GP_KPI_GROUPPERS)   "Ссылка на группу персонала"
+    ,cKPI_Raise     : comp                     "Ссылка на премию для распределения фонда"
+    ,PercentToFond  : tProc                    "Процент от плановой премии в фонд"    ,Description    : String      "Описание"
+  )
+  With index
+  (
+    GP_KPI_Fond01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_Fond02 = cGroupPers+Code,
+    GP_KPI_Fond03 = cKPI_Raise+Code
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_NormPercent "Нормативные % премии по группам перс."
+  With table_Code = 31741
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+   , cGP_KPI_Raise  : ref(GP_KPI_Raise) "Тип премии"
+   , cGroupPers     : ref(GP_KPI_GroupPers) "Группа персонала"
+   , Code           : String[20] "Код группы персонала"
+   , Percent        : tProc      "Процент"
+  )
+  With index
+  (
+    GP_KPI_NormPercent01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_NormPercent02 = cGP_KPI_Raise+Code,
+    GP_KPI_NormPercent03 = cGroupPers+Code
+  );
+    //Поля для отображения в ведомости премирования
+  Create table GP.GP_KPI_Fields "Поля для показа в ведомостях"
+  With table_Code = 31742
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,Name           : String[200] "Наименование"
+    ,Description    : String      "Описание"
+    ,Npp            : Word        "Номер поля"
+    ,cDoc           : Comp        "Ссылка на GP_KPI_Raise, GP_KPI_Fond"
+    ,cGP_KPI_Alg    : Ref(GP_KPI_Alg)    "Алгоритм расчета значения поля"
+    ,Option         : Word        "1- редактирования, 2 итоги"
+    ,wType          : Word        "Тип (0 - GP_KPI_Raise,1 -GP_KPI_Fond)"
+    ,wTypeFld       : Word        "0-s,1-f,2-d,3-t,4-ан.,5-c-s,6-т-ца,7-b"
+    ,KodGroup       : Longint     "Код аналитики или таблицы, c-s.syscode"
+    ,Len            : Word        "Ширина поля для отображения"
+    ,Razr           : Word        "Кол-во разрядов после запятой"
+    ,Npp_It         : Word        "Номер поля на итоговой закладке"
+    ,cGP_KPI_Alg_CHK: Ref(GP_KPI_Alg)    "Алгоритм контроля (не 0 Err)"
+    ,Razdel         : word "Раздел 1 отр.время,2 начисл."
+    ,Sub            : word "Номер столбца в подразделе"
+    //-------------------
+    , Rep_FLD_N : Word_x10 "Номера столбцов для отчетов"
+  )
+  With index
+  (
+    GP_KPI_Fields01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_Fields02 = wType+cDoc+Npp,
+    GP_KPI_Fields03 = wType+cDoc+Code
+  );
+
+
+
+    //-------------------------------------------
+  Create table GP.GP_KPI_DocSumFond "Суммы фондов по ведомости премирования"
+  With table_Code = 31744
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp   "Номер записи"
+    ,cGP_KPI_Fond   : ref(GP_KPI_Fond)   "Ссылка на фонд"
+    ,cDoc           : Comp   "Ссылка на ведомость ->GP_KPIDoc"
+    ,wType          : Word       "0 - премии, 1 - фонды"
+    ,Summa          : tSumma "Сумма фонда"
+    ,Rasp           : tSumma "Распределено"
+  )
+  With index
+  (
+    GP_KPI_DocSumFond01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_DocSumFond02 = wType+cDoc+cGP_KPI_Fond,
+    GP_KPI_DocSumFond03 = cGP_KPI_Fond+wType+cDoc
+  );
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_Doc "Ведомости"
+  With table_Code = 31745
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+   , DocNumber      : string[100] "Номер ведомости"
+   , DocDate        : date "Дата ведомости"
+   , DocCreate      : DateTime "Дата создания"
+   , wMonth         : Byte "Месяц"
+   , wKvartal       : Byte "Квартал"
+   , wYear          : Word "Год"
+   , wYearKvartal   : Word "Год квартала"
+   , wType          : Word "Тип документа 0 - премии, 1 фонды"
+   , cStatus        : ref(GP_Status) "Статус"
+   , cCreator       : ref(x$users) "Создатель"
+   , cExecutor      : ref(Persons) "Исполнитель"
+   , cChiefStaffStr : ref(StaffStruct) "Должность ответственного"
+   , Description    : String "Комментарий"
+   , cKatPodr       : ref(Katpodr) "Подразделение"
+   //в ТЗ Есть
+   , HArrName       : S60_x10   "Массив наименований полей"
+   , HArrComp       : tNRec_x10 "Массив резервных ссылок"
+   , HArrReserve    : tNRec_x10 "Массив резервных параметров"
+   , cGP_KPI_FOND   : Ref(GP_KPI_FOND) "Фонд"
+   , cGP_KPI_TypeVed : Ref(GP_KPI_TypeVed) "Тип ведомости"
+   , Summa           : tSumma "Сумма"
+   , Coef            : tSumma "Корректирующий коэффициент"
+   , Summa_Base      : tSumma "Базовая сумма премии"
+   , Summa_CRP       : tSumma "Размер целевого значения премии"
+   , wYearPrem       : word "Год для годовой премии"
+
+  )
+  With index
+  (
+    GP_KPI_Doc01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_Doc02 = wType+wYear+wMonth+DocNumber,
+    GP_KPI_Doc03 = wType+wYear+wMonth+DocDate,
+    GP_KPI_Doc04 = cKatpodr+wType+wYear+wMonth+DocDate+DocNumber
+  );
+
+  //-------------------------------------------
+  //Поля для отображения в ведомости премирования
+  Create table GP.GP_KPI_DOC_SP "Спецификация ведомости КПИ"
+  With table_Code = 31746
+  With replace
+  With TableOptions Branched
+  (
+     NRec           : comp "Номер записи"
+    ,Code           : String[30]  "Код"
+    ,cPersons       : ref(Persons) "Сотрудник"
+    ,cLschet        : ref(Lschet)  "Лицевой счет"
+    ,cKatPodr       : ref(Katpodr) "Подразделение"
+    ,cPost          : Ref(Catalogs) "Должность"
+    ,cKlKatego      : Ref(KlKatego) "Категория"
+    ,Tabn           : Longint "Табельный номер"
+    ,StrTabn        : String[20] "Табельный номер, строчный"
+    ,Fio            : String[50] "Фио работника"
+    ,wType          : Word "Тип документа 0 - премии, 1 фонды"
+    ,cGP_KPI_Doc    : ref(GP_KPI_Doc)   "Документ"
+    ,cGP_KPI_Raise  : ref(GP_KPI_Raise)  "Тип премии"
+    ,cGP_KPI_Fond   : ref(GP_KPI_Fond)   "Тип фонда"
+    ,Option         : Word_x20    "Битовый Статус поля 1 расч.2 -изм."
+    ,fArrValue      : S60_x20     "Значения полей"
+    ,cAppointments  : Ref(Appointments) "Назначение сотрудника"
+  )
+  With index
+  (
+    GP_DOC_SP01 = NRec(Unique, Surrogate, Journal),
+    GP_DOC_SP02 = cGP_KPI_Doc+cGP_KPI_Raise+Tabn+StrTabn,
+    GP_DOC_SP03 = cGP_KPI_Doc+Fio+cPersons,
+    GP_DOC_SP04 = cPersons+wType,
+    GP_DOC_SP05 = cLschet+wType,
+    GP_DOC_SP06 = cKatPodr+wType+Tabn+StrTabn
+  );
+
+  Create table GP.GP_KPI_Doc_Raise "Ведомости ->типы премий"
+  With table_Code = 31747
+  With replace
+  With TableOptions Branched
+  (  NRec           : comp "Номер записи"
+   , cGP_KPI_Raise  : ref(GP_KPI_Raise) "Тип премии"
+   , cGP_KPI_DOC    : ref(GP_KPI_Doc)   "Ведомость"
+   // Дублируем из GP_KPI_Fields - может и не надо
+   , fArrName   : S60_x20   "Массив наименований полей спецификации"
+   , fArrType   : Word_x20  "Тип полей спецификации"
+   , fArrKodGr  : Word_x20  "Аналитика полей спецификации"
+   , fArrAlg    : Word_x20  "Алгоритмы полей спецификации"
+   , fArrOpt    : Word_x20  "Опции полей спецификации"
+   , fArrLen    : Word_x20  "Ширина полей полей спецификации"
+   , fArrRazr   : Word_x20  "Разрядность полей полей спецификации"
+  )
+  With index
+  (
+    GP_DOC_Raise01 = NRec(Unique, Surrogate, Journal),
+    GP_DOC_Raise02 = cGP_KPI_Doc+cGP_KPI_Raise,
+    GP_DOC_Raise03 = cGP_KPI_Raise+cGP_KPI_Doc
+  );
+
+
+  //--- 20171007 -----------------------
+  Create table GP.GP_KPI_Pers_Raise "Персональный набор премий"
+  With table_Code = 31748
+  With replace
+  With TableOptions Branched
+  (  NRec           : comp "Номер записи"
+   , cDoplata       : ref(Catalogs) "Тип премии"
+   , cPersons       : ref(Persons)  "Сотрудник"
+   , cAppoint       : ref(Appointments)  "Вакансия"
+   , FromDate       : date "C даты"
+   , ToDate         : date "по дату"
+   , Procent        : tSumma "Процент"
+   , cTitleDoc      : Ref(TitleDoc) "Приказ"
+   , cContDoc       : Ref(ContDoc)  "содержимое приказа"
+   , Summa          : tSumma "Сумма"
+  )
+  With index
+  (
+    GP_Pers_Raise01 = NRec(Unique, Surrogate, Journal),
+    GP_Pers_Raise02 = cPersons+FromDate,
+    GP_Pers_Raise03 = cAppoint+FromDate,
+    GP_Pers_Raise04 = cContDoc+cPersons+cDoplata+FromDate,
+    GP_Pers_Raise05 = FromDate
+
+  );
+
+   //1754 необходимо разработать отдельный функционал по разграничению прав доступа по подразделениям аналогичному в модуле ЗП
+ // На базе USERRIGHTS 16056
+ Create table GP.GP_USERRIGHTS "GP Права пользователей на подразделения"
+  With table_Code = 31752
+  With replace
+  With TableOptions Branched
+  (
+     NRec       : comp "Номер записи"
+    ,OWNNAME    : string[60]   "имя пользователя"
+    ,CGROUP     : comp         "ссылка на вышестоящее подразделение"
+    ,CRECDS     : ref(KatPodr) "ссылка на KatPodr"
+    ,NAME       : string[200]  "наименование подразделения"
+    ,KOD        : string[20]   "код подразделения"
+    ,ISLEAF     : word         "признак нижнего уровня"
+    ,MARKED     : string[1]    "'+' - поле помечено"
+    ,CUSER      : comp         "Ссылка на пользователя"
+    //----
+    ,wType      : word         "0 мотивация,1 СКУД"
+  )
+  With index
+  (
+    GP_USERRIGHTS01 = NRec(Unique, Surrogate, Journal)
+   ,GP_USERRIGHTS02 = CRECDS  + OWNNAME+ wType
+   ,GP_USERRIGHTS03 = OWNNAME + CGROUP + NAME +wType
+   ,GP_USERRIGHTS04 = OWNNAME + CGROUP + KOD  +wType
+   ,GP_USERRIGHTS05 = CRECDS  + CUSER  + wType
+   ,GP_USERRIGHTS06 = CUSER   + CGROUP + NAME +wType
+   ,GP_USERRIGHTS07 = CUSER   + CGROUP + KOD  +wType
+   //--------------------------
+   ,GP_USERRIGHTS12 = wType   + CRECDS  + OWNNAME
+   ,GP_USERRIGHTS13 = wType   + OWNNAME + CGROUP + NAME
+   ,GP_USERRIGHTS14 = wType   + OWNNAME + CGROUP + KOD
+   ,GP_USERRIGHTS15 = wType   + CRECDS  + CUSER
+   ,GP_USERRIGHTS16 = wType   + CUSER   + CGROUP + NAME
+   ,GP_USERRIGHTS17 = wType   + CUSER   + CGROUP + KOD
+
+  );
+
+ Create table GP.GP_KPI_Statements "Ведомости оценки выполнения KPI"
+  With table_Code = 31733
+  With replace
+  With TableOptions Branched
+  (
+    NRec           : comp "Номер записи",
+    DocNumber      : string[100] "Номер ведомости",
+    DocDate        : date "Дата ведомости",
+    cStatus        : ref(GP_Status) "Статус",
+    cExecutor      : ref(Persons) "Исполнитель",
+    cChiefStaffStr : ref(StaffStruct) "Должность ответственного"
+  )
+  With index
+  (
+    KPI_Statements01 = NRec(Unique, Surrogate, Journal),
+    KPI_Statements02 = DocDate + DocNumber
+  );
+
+Create table GP.GP_KPI_StatementSpec "Спецификация ведомости оценки выпол. KPI"
+  With table_Code = 31734
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    cStatement   : ref(GP_KPI_Statements) "Ведомость",
+    PosNumber    : longint "Номер позиции",
+    cKPI         : ref(GP_KPI) "Показатель",
+    cStaffStr    : ref(StaffStruct) "Оцениваемая единица ШР",
+    cPodr        : ref(Catalogs) "Оцениваемое подразделение",
+    cPost        : ref(Catalogs) "Оцениваемая должность",
+    cUcPeriod    : ref(Catalogs) "Учетный период (4005)",
+    UdVes        : tSumma "Удельный вес",
+    LowLimit     : tSumma "Нижняя граница премирования",
+    HighLimit    : tSumma "Верхняя граница премирования",
+    Plan         : tSumma "Плановое значение",
+    Fact         : tSumma "Фактическое значение",
+    ImplProc     : tSumma "Процент выполнения",
+    DocDate      : date "Дата ведомости" ,
+    wOption      : word "Флаги, 1 - изм"
+  )
+  With index
+  (
+    StatementSpec01 = NRec(Unique, Surrogate, Journal),
+    StatementSpec02 = cStatement + PosNumber,
+    StatementSpec03 = cPodr + cPost+DocDate,
+    StatementSpec04 = cStaffStr + DocDate,
+    StatementSpec05 = cKPI + DocDate
+
+
+  );
+
+  Create table GP.GP_KPI_ALG_SPEC "Алгоритмы - Спецификация"
+  With table_Code = 31736
+  With replace
+  With TableOptions Branched
+  (
+    NRec           : comp "Номер записи",
+    cGP_KPI_ALG    : Ref(GP_KPI_ALG) "Алгоритм",
+    Key            : string[20] "Ключ" ,
+    Number         : word "Порядковый номер",
+    Formula        : string[150] "Формула",
+    Prim           : string[150] "Примечание"
+  )
+  With index
+  (
+    GP_KPI_ALG_SPEC01 = NRec(Unique, Surrogate, Journal),
+    GP_KPI_ALG_SPEC02 = cGP_KPI_ALG+Number
+  );
+
+
+
+    Create table GP.GP_KPI_Excl_Kateg "Исключения из показателя для категорий"
+  With table_Code = 31773
+  With replace
+  With TableOptions Branched
+  (   NRec           : comp "Номер записи"
+    , cGP_KPI        : ref(GP_KPI) "Показатель"
+    , cKlKatego      : ref(KlKatego) "Категория"
+    , Kateg          : word   "код категории"
+    , Name           : String[100] "Наименование категории"
+  )
+  With index
+  (
+    GP_KPI_Excl_Kateg01 = NRec(Unique, Surrogate, Journal)
+   ,GP_KPI_Excl_Kateg02 = cGP_KPI  + cKlKatego
+   ,GP_KPI_Excl_Kateg03 = cGP_KPI  + Kateg
+   ,GP_KPI_Excl_Kateg04 = cGP_KPI  + Name
+  );
+
+
+  //-------------------------------------------
+  Create table GP.GP_KPI_Excl_Kat_D "Искл. из искл.категорий"
+  With table_Code = 31774
+  With replace
+  With TableOptions Branched
+  (   NRec           : comp "Номер записи"
+    , cGP_KPI_Excl_Kateg        : ref(GP_KPI_Excl_Kateg) "Исключения из категорий"
+    , cKatPodr       : ref(KatPodr) "подразделение"
+    , wYear          : word   "Год исключения"
+    , wMonth         : word   "Месяц исключения"
+    , DocNumber      : string[150]   "Номер документа о прим. показателя"
+    , DocDate        : Date          "Дата документа о прим. показателя"
+  )
+  With index
+  (
+    GP_KPI_Excl_Kat_D01 = NRec(Unique, Surrogate, Journal)
+   ,GP_KPI_Excl_Kat_D02 = cGP_KPI_Excl_Kateg  + wYear+wMonth+cKatPodr
+   ,GP_KPI_Excl_Kat_D03 = cGP_KPI_Excl_Kateg  +cKatPodr + wYear+wMonth
+  );
+
+
+  Create table GP.GP_KPI_Pers_Class "Премии за классность и т.п."
+  With table_Code = 31753
+  With replace
+  With TableOptions Branched
+  (  NRec           : comp "Номер записи"
+   , cDoplata       : ref(Catalogs) "Тип премии"
+   , cPersons       : ref(Persons)  "Сотрудник"
+   , cAppoint       : ref(Appointments)  "Вакансия"
+   , FromDate       : date "C даты"
+   , ToDate         : date "по дату"
+   , Procent        : tSumma "Процент"
+   , cTitleDoc      : Ref(TitleDoc) "Приказ"
+   , cContDoc       : Ref(ContDoc)  "содержимое приказа"
+   , Summa          : tSumma "Сумма"
+   , Vidopl         : word "Вид оплат"
+   , DocNumber      : string[30] "Номер приказа"
+   , DocDate        : Date       "Дата приказа"
+   , Fio            : String[50] "Фамилия, Имя, Отчество"
+   //--- #816 для привязки водителей и секретарей к ЗГД
+   , cLink_App      : Ref(Appointments) "Связать с назначением др. сотр."
+   , cLink_Pers     : Ref(Persons) "Связать с картотекой др. сотр."
+   , cLink_Staff    : Ref(StaffStruct) "Связать с картотекой др. сотр."
+  )
+  With index
+  (
+    GP_Pers_Class01 = NRec(Unique, Surrogate, Journal),
+    GP_Pers_Class02 = cDoplata+cPersons+FromDate,
+    GP_Pers_Class03 = cAppoint+FromDate,
+    GP_Pers_Class04 = cContDoc+cPersons+cDoplata+FromDate,
+    GP_Pers_Class05 = Vidopl+Fio+FromDate,
+    GP_Pers_Class06 = Fio+Vidopl+FromDate,
+    GP_Pers_Class07 = FromDate,
+    GP_Pers_Class08 = cLink_Pers+Vidopl,
+    GP_Pers_Class09 = cLink_Staff+Vidopl
+  );
+
+Create table GP.GP_TarStavExt "Расширение таблицы тарифных ставок"
+  With table_Code = 31724
+  With replace
+  With TableOptions Branched
+  (
+    NRec         : comp "Номер записи",
+    cTarStav     : ref(TarStav) "Тарифная ставка",
+    NameT3       : string "Наименование тарифа для Т-3",
+    GropuT3      : string "Группировка для Т-3",
+    SchemeName   : string "Наименование схемы",
+    MonthlyBonus        : array[1..3] of tSumma "Целевой размер месячной премии",
+    cMonthlyBonusType   : array[1..3] of comp "Вид оплаты месячной премии",
+    QuarterlyBonus      : tSumma "Целевой размер квартальной премии",
+    cQuarterlyBonusType : ref(Catalogs) "Вид оплаты квартальной премии",
+    AnnualBonus         : tSumma "Целевой размер годовой премии",
+    cAnnualBonusType    : ref(Catalogs) "Вид оплаты годовой премии",
+    PersonalBonus       : array[1..5] of tSumma "Персональная надбавка",
+    cProfStatus         : array[1..5] of comp "Профессиональный статус",
+    //20171010
+    cGP_KPI_GroupPers   : comp "Группа Персонала" //Ref на GP_KPI_GroupPers
+  )
+  With index
+  (
+    TarStav01 = NRec(Unique, Surrogate, Journal),
+    TarStav02 = cTarStav
+  );
+
+
+Create table GP.GP_StatusChangeLog "История изменения статусов"
+  With table_Code = 31735
+  With replace
+  With TableOptions Branched
+  (
+    NRec       : comp "Номер записи",
+    wTbl       : word "Код таблицы",
+    cDoc       : comp "Документ",
+    DateOper   : _DateTime "Дата операции",
+    cStatusFrom: ref(GP_Status) "Предыдущий статус",
+    cStatusTo  : ref(GP_Status) "Новый статус",
+    cUser      : ref(X$Users) "Пользователь",
+    Notice     : string "Примечание"
+  )
+  With index
+  (
+    StatusChangeLog01 = NRec(Unique, Surrogate, Journal),
+    StatusChangeLog02 = wTbl + cDoc + DateOper
+  );
+
+
+  Create table GP.GP_KPI_Doc_Z "Ведомости - привязка к реестрам в ЗП"
+  With table_Code = 31772
+  With replace
+  With TableOptions Branched
+  (   NRec           : comp "Номер записи"
+    , cGP_KPI_Doc    : ref(GP_KPI_Doc) "Ведомость премирования"
+    , cSys_Mbf       : ref(sys_Mbf)    "Ведомости в зарплате"
+    , cGP_KPI_Raise  : ref(GP_KPI_Raise) "ссылка на премию"
+    , cDoplata       : ref(Catalogs)     "ссылка на доплату"
+    , cKatPodr       : ref(KatPodr)      "Подразделение"
+    //---------------------------------- sys_mbf
+    , NMNEM          : string[150]     "Наименование(sys_mbf)"
+    , NMPODR         : string[150]     "Подразделение(sys_mbf)"
+    , DATAN          : date            "Дата начала(sys_mbf)"
+    , DATOK          : date            "Дата окончания(sys_mbf)"
+    //---------------------------------- GP_KPI_Doc
+    , DocNumber      : string[100] "Номер ведомости"
+    , DocDate        : date "Дата ведомости"
+    , DocCreate      : DateTime "Дата создания"
+    , wMonth         : Byte "Месяц"
+    , wKvartal       : Byte "Квартал"
+    , wYear          : Word "Год"
+    , wYearKvartal   : Word "Год квартала"
+    , wType          : Word "Тип документа 0 - премии, 1 фонды"
+  )
+  With index
+  (
+    GP_KPI_Doc_Z01 = NRec(Unique, Surrogate, Journal)
+   ,GP_KPI_Doc_Z02 = cGP_KPI_Doc  + NMNEM
+   ,GP_KPI_Doc_Z03 = cSys_Mbf
+   ,GP_KPI_Doc_Z04 = wType + wYear + wMonth + DocNumber + NMNEM
+   ,GP_KPI_Doc_Z05 = cKatPodr + wYear + wMonth + DocNumber + NMNEM
+  );

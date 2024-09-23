@@ -160,8 +160,8 @@ from
 ;
 procedure MyLog(_log : string); {
     if _logFile = '' then _logFile := GetStringParameter('Files', 'OutputFilesDirectory', 0) + 'LoadDeclension_'+DateToStr(Cur_date, 'YYYYMMDD') + '_' + timetostr(Cur_time, 'HH.MM.SS') + '_' + UserName + '.log';
-  //  logstrtofile(_logFile,ShortStrToWin(_log));
-    logstrtofile(_logFile,_log);
+    logstrtofile(_logFile,ShortStrToWin(_log));
+  //  logstrtofile(_logFile,_log);
 }
 
 PROCEdURE fillrecArrayByTypeTable;
@@ -342,8 +342,10 @@ _logFile := GetStringParameter('Files', 'OutputFilesDirectory', 0) + 'LoadDeclen
                  }
                }
               if _needupdate then {
-               mylog('"'+tDeclension.name+'"' + ' добавлен/обновлен #padegname -> "'+tDeclension.decl_#padeg+'"' );
-               ssetattr(coCatalogs, cat_#type.nrec, '#padegname', tDeclension.decl_#padeg);
+               mylog('Элемент '+String(cat_#type.nrec)+' | "'+tDeclension.name+'"' + ' добавлен/обновлен #padegname -> "'+tDeclension.decl_#padeg+'"' );
+               if '#type' <> 'ststr'
+                then ssetattr(coCatalogs, cat_#type.nrec, '#padegname', tDeclension.decl_#padeg)
+                else ssetattr(coStaffStruct, cat_#type.nrec, '#padegname', tDeclension.decl_#padeg);
              }
 #end
   var _needupdate : boolean = false;

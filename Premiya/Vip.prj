@@ -1,0 +1,210 @@
+//пробуем собрать 31 атлантисом
+
+#warning убрать после перевода всех баз на exe от _2018_10_19_
+
+#if(#__TOOLVERSION__ >= 5005.031)
+#DEFINE _2018_08_12_
+#end
+#if(#__TOOLVERSION__ >= 5005.032)
+#DEFINE _2018_10_19_
+#end
+#if(#__TOOLVERSION__ >= 5005.033)
+#DEFINE _2019_02_13_
+#end
+
+#DEFINE _2019_12_18_
+
+#statusline "statgal"
+#include PreDefs.inc
+
+#include GALNET.CCM
+#include STAFF.CCM
+#include GALNET.CSC
+#include ExcelFormat.inc
+#include FldColor.inc
+#include GloConst.inc
+#include coConst.inc   // глобальные константы таблиц словаря
+#include cfg_all.inc   // константы для использования конфигуратора
+#include cfg_err.inc
+#include Reports.inc
+#include KauConst.inc
+#include Staff.csc
+#include Staff.inc
+#include Money.ccm
+#include Money.csc
+#include mnplan.inc
+#include CommonC.inc
+#include Taxes.inc
+#include Excel.inc
+#include Tunes.inc
+#include Mark.inc       // константы команд пометки (разные для Atl 3.03 и 5.1)
+#include DelRaise.inc
+#include BuhConst.inc
+#include KatDoc.inc
+#IFDEF _2018_08_12_
+#include SKK.const
+#include WT.Inc
+#include Otpusk.inc
+#ENDIF
+#IFDEF _2019_02_13_
+#include PrVidoplChoice.inc
+#ENDIF
+end;
+//-----------------------------
+#include GloTypes.inc
+#include GloFuncs.inc
+//-----------------------------
+#include C_ExtClass.vil
+#include C_COMMON.vil
+#include C_JOIN.vil
+#include C_TUNE.vil
+//-----------------------------
+#include F_PODOT.vil
+//-----------------------------
+#include L_BaseDoc.vil
+#include L_KatOrg.vil
+#include L_MCU.vil
+//-----------------------------
+#include M_MnPlan.vil
+//-----------------------------
+#include Z_Calc.vil
+#include Z_Calendar.vil
+#include Z_KATPODR.vil
+#include Z_Zar.vil
+#include Z_Sredn.vil
+#include Z_Staff.vil
+#include Z_StaffCat.vil
+#include Z_StaffOrders.vil
+#include Z_StaffSHR.vil
+#include Z_MP.vil
+
+//-----------------------------------
+// Описания объектов
+//-----------------------------------
+#include GetAttrTable.vih
+#include GtKauTbl.vih
+#include WorkPeriods.vih
+
+//-------------------
+
+//-------------------
+// Параметры
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
+//******************************************
+
+//******************************************
+
+#DEFINE _GP_
+#DEFINE _2020_09_30_ // для обновления
+//-----------------------------------
+// Путь для сохранения excel Отчетов
+//-----------------------------------
+const
+//-------------------- коды настраиваемых отчетов
+#include GP_Report.Inc
+end;
+
+#include GP_Staff.vil
+//-----------------------------------
+// Макроопределения
+//-----------------------------------
+#include GP_Declare.Vpp
+
+//---------------------------------------------------
+//Регистрация дополнительных пунктов меню модуля "Управление персоналом"
+//---------------------------------------------------
+#component "GP_Common"
+#include GP_Static_Function.Vih
+#make "Vip\GP_Static_Function.Vip"
+#make "Vip\GP_CreateTune_Common.vip"
+#make "Vip\GP_MenuDynamic.vip"
+#make "Vip\GP_Status.vip"
+#include GP_KatPodr_Func.vih
+#make "Vip\GP_KatPodr_Func.Vip"
+#include GP_Odecl.Vih
+#make "Vip\GP_Odecl.Vip"
+#include GP_WorkTable.Vih
+#make "Vip\GP_WorkTable.Vip"
+#include GP_TypeDocs.vih
+#make "Vip\GP_TypeDocs.vip"
+
+#make "Vip\GP_StatusAccessEdit.vip"
+
+#make "Vip\GP_UserAccessService.vip"
+#make "Vip\GP_RoleGroups.vip"
+#make "Vip\GP_UserFilterStoreDSK.vip"
+#make "Vip\GP_UserFilterCatalogs.vip"
+#make "Vip\GP_UserFilter.vip"
+#make "Vip\GP_UserFilterAnalit.vip"
+#make "Vip\GP_UserFilterList.vip"
+#make "Vip\GP_UserFilterNotes.vip"
+#make "Vip\GP_UserFilterSost.vip"
+#make "Vip\GP_UserFilterDopTables.vip"
+#make "Vip\GP_UserFilterKlKatego.vip"
+#make "Vip\GP_UserFilterRoles.vip"
+#make "Vip\GP_UserFilterYesNo.vip"
+#make "Vip\GP_UserFilterBuhSchet.vip"
+#make "Vip\GP_QueryBuilder.vip"
+#make "Vip\GP_xlMatrixUtil.vip"
+#make "Vip\GP_Protector.vip"
+#make "Vip\GP_PickTypeDocs.vip"
+#make "Vip\GP_Log.vih"
+#make "Vip\GP_StatusChange.vip"
+#make "Vip\GP_VisibleHidden.vip"
+#make "Vip\GP_Field_Flt.Vip"
+#make "Vip\GP_PodrFilterDef.Vip"
+#make "Vip\GP_StatusAndRolesAccessEdit.vip"
+#make "Vip\GP_RoleAccessEdit.vip"
+#make "Vip\GP_RolesView.vip"
+#make "Vip\GP_StatusPickAndEdit.vip"
+#make "Vip\GP_RolesAndUsers.vip"
+#make "Vip\GP_UserRolesView.vip"
+#make "Vip\GP_PickRoles.vip"
+//********************************************
+//Мотивация. Ведение справочных данных
+//********************************************
+#component "GP_Staff"
+//-------------------------------
+#make "Vip\GP_CreateTune_Staff.vip"
+#make "Vip\GP_StaffMainMenu.vip"
+#make "Vip\GP_Zar_user.vip" // права на подразделения в мотивации
+#make "Vip\GP_KPI_AlgPickAndEdit.vip"
+#make "Vip\GP_KPI_Edit.vip"
+#make "Vip\GP_ListKPI.vip"
+#make "Vip\GP_KPI_GroupPersEdit.vip"
+#make "Vip\GP_KPI_FondEdit.vip"
+#make "Vip\GP_KPI_TypeVedEdit.vip"
+#make "Vip\GP_KPI_RaiseEdit.vip"
+#make "Vip\GP_KPI_PersEdit.vip"
+#make "Vip\GP_KPI_PersClassEdit.vip"
+#make "Vip\GP_KPI_Raise_StsEdit.vip"
+#make "Vip\GP_KPI_RaiseProc.vip"
+// Мотивация. Проведение оценки
+#make "Vip\GP_KPI_Alg.vip"
+#make "Vip\GP_KPI_ALG_USER_TEST.Vip"
+#make "Vip\GP_KPI_Statements.vip"
+#make "Vip\GP_PickChiefPost.vip"
+#make "Vip\GP_StatementOfEvaluationKPI.vip"
+#make "Vip\GP_SummaryStatementKPI.vip"
+// Мотивация. Ведомости
+#make "Vip\GP_KPI_Doc_Base.Vip"
+#make "Vip\GP_KPI_Doc_FondEdit.Vip"
+#make "Vip\GP_KPI_Doc_FondPrint.Vip"
+#make "Vip\GP_KPI_Doc_DisEdit.Vip"
+#make "Vip\GP_KPI_Doc_RaiseEdit.Vip"
+#make "Vip\GP_KPI_Doc_RaiseEdit_SP.Vip"
+#make "Vip\GP_KPI_Doc_RaiseSvod.Vip"
+#make "Vip\GP_KPI_Doc_RaiseSvodF.Vip"
+#make "Vip\GP_KPI_NormPercent.Vip" //#3674
+
+#make "Vip\KPI_Report.vip"
+#make "Vip\GP_GetFIOPostByPeriod.Vip"
+//------------------------------------------
+#make "Vip\KPI_Report.vip"
+
+#component "GP_ZP"
+#make "Vip\GP_GetPodalN.Vip"

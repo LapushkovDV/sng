@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<Viper Version="5005020000">
+	<ProjectManager>
+		<ProjectName>Premiya</ProjectName>
+		<ProjectVarList>
+			<ProjectVar Name="$[GalExe]" Value="C:\Galaktika\GAL\exe\"/>
+			<ProjectVar Name="$[Tmp]" Value="C:\Temp\Viper\"/>
+			<ProjectVar Name="$[GalSrc]" Value="C:\Galaktika\GAL\Frm\"/>
+		</ProjectVarList>
+		<CoreVip>
+			<VipParameters>
+				<AtlDir>C:\Galaktika\Viper\bin\5.5.40.0\Exe</AtlDir>
+				<StrictVip>True</StrictVip>
+				<ClearResource>True</ClearResource>
+				<DebugInfo>False</DebugInfo>
+				<LocalInfo>False</LocalInfo>
+			</VipParameters>
+			<VipDebug>
+				<ActiveConfigure>по умолчанию</ActiveConfigure>
+				<DebugConfigList>
+					<DebugConfig Name="по умолчанию"/>
+				</DebugConfigList>
+			</VipDebug>
+			<VipFiles>
+				<OutputResource>$[ProjectPath]\$[ProjectName]$[ExtRes]</OutputResource>
+				<SubServientResource>$[ProjectPath]\Atlantis.res</SubServientResource>
+				<ConfWorkResource>$[ProjectPath]\Viper.crf</ConfWorkResource>
+				<OutputDirectory>$[ProjectPath]\$[ProjectName]</OutputDirectory>
+				<TemporaryDirectory>$[Tmp]</TemporaryDirectory>
+				<IncludeList>
+					$[GalSrc]\*
+					$[AtlPath]\*
+					$[PROJECTPATH]\*
+					..\..\..\..\GAL\Viper 5.5\Sources\src\*
+				</IncludeList>
+				<ResourceList>
+					$[GalExe]\C_ExtFun.res
+					$[GalExe]\C_JOIN.res
+					$[GalExe]\C_StatLine.res
+					$[GalExe]\C_Common.res
+					$[GalExe]\C_Tune.res
+					$[GalExe]\C_ExpImp.res
+					$[GalExe]\F_UserReport.res
+					$[GalExe]\F_KATDOC.res
+					$[GalExe]\L_SOPRDOC.res
+					$[GalExe]\L_SKLAD.res
+					$[GalExe]\L_COMMON.res
+					$[GalExe]\C_EXTCLASS.res
+					$[GalExe]\m_mnplan.res
+					$[GalExe]\m_tpp.res
+				</ResourceList>
+			</VipFiles>
+			<VipMessages>
+				<VerboseMake>True</VerboseMake>
+				<WarnScreenDuplicateNames>True</WarnScreenDuplicateNames>
+				<WarnConvertInteger>True</WarnConvertInteger>
+				<WarnConvertReal>True</WarnConvertReal>
+				<WarnConvertString>True</WarnConvertString>
+				<WarnConvertDateTime>True</WarnConvertDateTime>
+				<WarnNoInterfaceLicense>True</WarnNoInterfaceLicense>
+			</VipMessages>
+			<VipDatabase>
+				<Name>по умолчанию</Name>
+			</VipDatabase>
+			<VipFR>
+				<PackFR>True</PackFR>
+			</VipFR>
+		</CoreVip>
+		<ActiveIndex>1</ActiveIndex>
+		<ProjectItems>
+			<ProjectCompileFile FileName="Vip.prj" Priority="0">
+				<CoreVip>
+					<VipParameters>
+						<StrictVip>True</StrictVip>
+					</VipParameters>
+				</CoreVip>
+			</ProjectCompileFile>
+		</ProjectItems>
+		<DatabaseConfiguration>
+			<ConfigurationList>
+				<VipDatabase>
+					<Name>по умолчанию</Name>
+					<DatabaseName>..\..\GAL910\DATA_EM</DatabaseName>
+					<DatabaseDriver>1</DatabaseDriver>
+					<DatabaseID>RUSSIA</DatabaseID>
+					<SqlServerParameters>ncacn_ip_tcp:localhost[32777]</SqlServerParameters>
+					<HwKeyTransport>1</HwKeyTransport>
+					<HwKeyDirectory>localhost:55555</HwKeyDirectory>
+					<LicFileName>..\..\..\sup\exe\License.lic</LicFileName>
+				</VipDatabase>
+			</ConfigurationList>
+		</DatabaseConfiguration>
+		<FileList>
+			<File Name="Vip.prj" PosX="20" PosY="125" OpenEditor="True"/>
+			<File Name="vip\GP_VisibleHidden.vip" PosX="3" PosY="1" OpenEditor="True"/>
+			<File Name="vip\GP_PodrFilterDef.Vip" PosX="28" PosY="16" OpenEditor="True"/>
+			<File Name="vip\GP_MenuDynamic.vip" PosX="1" PosY="78" OpenEditor="True"/>
+			<File Name="vip\GP_StaffMainMenu.vip" PosX="43" PosY="204" OpenEditor="True" Active="True"/>
+		</FileList>
+		<DebugOptions StopOnStartup="False"/>
+		<MarkerList>
+			<Marker FileName="Vip\GP_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="213" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Vip\GP_DocFieldsStateService.vip" Caption="Нумерованная закладка 1" Line="676" NumIndex="1" MarkerType="mtNumBookmark" Comment="if (getfirst fastfirstrow mFields"/>
+			<Marker FileName="Vip\GP_DocFieldsStateService.vip" Caption="Нумерованная закладка 2" Line="172" NumIndex="2" MarkerType="mtNumBookmark" Comment="inner join r_WorkPlace on r_WorkPlace.cUsers = :(pR_Users) // r_Users.NRec"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusPickAndEdit.vip" Caption="Нумерованная закладка 1" Line="117" NumIndex="1" MarkerType="mtNumBookmark" Comment="Status := New(MR_Status, InitForTypeDoc(RoleGroups.GetGroupByName(RoleGroupName),));"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusAccessEdit.vip" Caption="Нумерованная закладка 1" Line="239" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
+			<Marker FileName="SOURCE\COMMON\MR_TypeDocs.vip" Caption="Нумерованная закладка 1" Line="151" NumIndex="1" MarkerType="mtNumBookmark" Comment="message('NOT IsValid(tnMR_RoleGroups) ',error);"/>
+			<Marker FileName="SOURCE\Report\NASTRFORMREP.vip" Caption="Нумерованная закладка 1" Line="297" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SOURCE\MR_Base.Vip" Caption="Нумерованная закладка 1" Line="196" NumIndex="1" MarkerType="mtNumBookmark" Comment="LoadVipRef(DataProtector, 'C_COMMON::PROTECTOR');"/>
+			<Marker FileName="SOURCE\MR_Base.Vip" Caption="Нумерованная закладка 2" Line="195" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SOURCE\COMMON\MR_StatusAndRolesAccessEdit.vip" Caption="Нумерованная закладка 1" Line="161" NumIndex="1" MarkerType="mtNumBookmark" Comment="_loop"/>
+			<Marker FileName="SOURCE\FilesRef\MR_File_hRef.Vip" Caption="Нумерованная закладка 2" Line="478" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="SOURCE\FilesRef\MR_File_hRef.Vip" Caption="Нумерованная закладка 1" Line="281" NumIndex="1" MarkerType="mtNumBookmark" Comment="FillPS1_MR_FILEHREF_#parameter(_sFile, _sfileRES, #par1);"/>
+			<Marker FileName="SOURCE\NewRas\ViewPerShbl.vip" Caption="Нумерованная закладка 1" Line="1011" NumIndex="1" MarkerType="mtNumBookmark" Comment=",coKatSopr //_wTable    : word; указать код таблицы документа системы"/>
+			<Marker FileName="Source\SHK_VIP.vip" Caption="Нумерованная закладка 1" Line="299" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst"/>
+			<Marker FileName="Source\SHK_InOut_KatMC.vpp" Caption="Нумерованная закладка 1" Line="154" NumIndex="1" MarkerType="mtNumBookmark" Comment="var iRes : IResultSet = GetResultQueryForKatMC(GetTMPLTByName(_ActionName), _pIdent);"/>
+			<Marker FileName="..\..\..\..\GAL9\!Gal_Source\Z_M_L_F_C_5539_20211025\SRC\CompSrc\L\L_SoprDoc\vip\CanEditDocument.vpp" Caption="Нумерованная закладка 1" Line="32" NumIndex="1" MarkerType="mtNumBookmark" Comment="var cUser : comp = m_objDescriptors.GetXUserByDescr(sDescr);"/>
+			<Marker FileName="Source\shk_barcodeFunc.vip" Caption="Нумерованная закладка 1" Line="51" NumIndex="1" MarkerType="mtNumBookmark" Comment="if (getfirst shk_barcodeLink where ((tmp == shk_barcodelink.barcode(length = 250))) = tsOk) {"/>
+			<Marker FileName="Source\Algoritm_shk_barcode_Generate_Setup.vip" Caption="Нумерованная закладка 1" Line="199" NumIndex="1" MarkerType="mtNumBookmark" Comment="var __ShkTidkGalOld : word = __ShkTidkGal;"/>
+			<Marker FileName="Source\Algoritm_shk_barcode_Generate.vip" Caption="Нумерованная закладка 1" Line="129" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\shk_barcode_Print.vip" Caption="Нумерованная закладка 1" Line="366" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst _fillValue"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 2" Line="573" NumIndex="2" MarkerType="mtNumBookmark" Comment="MakeMoveForESB(  cKatSopr"/>
+			<Marker FileName="Source\SHK_TEMPLATES.vip" Caption="Нумерованная закладка 2" Line="67" NumIndex="2" MarkerType="mtNumBookmark" Comment="function Get"/>
+			<Marker FileName="Source\SHK_InOut.pan" Caption="Нумерованная закладка 1" Line="49" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\Algoritm_shk_barcode_setParam.vip" Caption="Нумерованная закладка 1" Line="188" NumIndex="1" MarkerType="mtNumBookmark" Comment="set _etable :=  getTableCodeByViddoc()"/>
+			<Marker FileName="Source\shk_barcode_Generate.pan" Caption="Нумерованная закладка 1" Line="181" NumIndex="1" MarkerType="mtNumBookmark" Comment="cfsSetProp('c_BRSSHK_BARCODELINK_SHK_TSD.NAME_ТСД'          ,'Visible',(wgettune('SHK.CONNECTIONTYPE') = 1));"/>
+			<Marker FileName="Source\SHK_InOut.vip" Caption="Нумерованная закладка 2" Line="1135" NumIndex="2" MarkerType="mtNumBookmark" Comment="if _pIdent = co_BatchMode and"/>
+			<Marker FileName="Source\SHK_USB_export_saldobox.vip" Caption="Нумерованная закладка 1" Line="86" NumIndex="1" MarkerType="mtNumBookmark" Comment="set _cSHKObj := _iSHK_TEMPLATES.fnSelObjActions(coTypeDocBoxSaldo);"/>
+			<Marker FileName="Source\SHK_ADMIN_PANEL.vip" Caption="Нумерованная закладка 1" Line="143" NumIndex="1" MarkerType="mtNumBookmark" Comment="if not checkDestPathfromTune then processtext(_JSONfile, vfNewTitle Or vfMacroSize, 'Сгенерированный JSON OBJECTVALUES');"/>
+			<Marker FileName="C_Barcode.prj" Caption="Нумерованная закладка 1" Line="100" NumIndex="1" MarkerType="mtNumBookmark" Comment="coTypeDocBoxSaldo = 101423 ;//100000+1430 Сальдо по ячейкам хранения"/>
+			<Marker FileName="Source\SHK_Base.vip" Caption="Нумерованная закладка 1" Line="597" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\shk_barcode_Generate.vip" Caption="Нумерованная закладка 1" Line="312" NumIndex="1" MarkerType="mtNumBookmark" Comment="if getfirst fastfirstrow k"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 2" Line="451" NumIndex="2" MarkerType="mtNumBookmark" Comment="}"/>
+			<Marker FileName="Source\SHK_TEMPLATES.pan" Caption="Нумерованная закладка 1" Line="335" NumIndex="1" MarkerType="mtNumBookmark" Comment="SHKObjSP_BTN.CloseDoc   'Закрывать','после нажатия' ('Закрывать документ после выполнения действия по кнопке') : [3] , [List 0 'Нет','Да'],Protect;"/>
+			<Marker FileName="Source\SHK_TEMPLATES.vip" Caption="Нумерованная закладка 1" Line="199" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 2" Line="641" NumIndex="2" MarkerType="mtNumBookmark" Comment="_ckatBox_to := _iSHK_InOut.GetKATBOXNRECByIdent(_ActionSpName, _tElements.value);"/>
+			<Marker FileName="Source\SHK_InOut_InvTab.vpp" Caption="Нумерованная закладка 1" Line="395" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="Source\SHK_InOut_InvTab.vpp" Caption="Нумерованная закладка 2" Line="459" NumIndex="2" MarkerType="mtNumBookmark" Comment="}"/>
+			<Marker FileName="Source\SHK_MakeMove.vip" Caption="Нумерованная закладка 1" Line="1972" NumIndex="1" MarkerType="mtNumBookmark" Comment="if ((wDefine and 16) &lt;&gt; 16)"/>
+			<Marker FileName="Source\SHK_InOut.vip" Caption="Нумерованная закладка 1" Line="425" NumIndex="1" MarkerType="mtNumBookmark" Comment="_BatchTerms := replace(_BatchTerms ,'#(CurDateBatchDays)',datetostr(add_day(cur_date,(-1)*BatchDays),'DD,MM,YYYY'));"/>
+			<Marker FileName="Source\SHK_InOut_KatBoxSaldo.vpp" Caption="Нумерованная закладка 1" Line="619" NumIndex="1" MarkerType="mtNumBookmark" Comment="if"/>
+			<Marker FileName="Source\SHK_InOut_KatSopr.vpp" Caption="Нумерованная закладка 1" Line="680" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\need_domestic_production.vip" Caption="Нумерованная закладка 2" Line="945" NumIndex="2" MarkerType="mtNumBookmark" Comment="#insertupdatevalues(tValueOrgSklad,tOrgSklad,cOrgSklad)"/>
+			<Marker FileName="vip\orders_registry.vip" Caption="Нумерованная закладка 1" Line="609" NumIndex="1" MarkerType="mtNumBookmark" Comment=", tMc.edizm       := katotped.abbr"/>
+			<Marker FileName="vip\orders_registry.vip" Caption="Нумерованная закладка 2" Line="609" NumIndex="2" MarkerType="mtNumBookmark" Comment=", tMc.edizm       := katotped.abbr"/>
+			<Marker FileName="vip\interactive_report.vip" Caption="Нумерованная закладка 2" Line="616" NumIndex="2" MarkerType="mtNumBookmark" Comment="_loop"/>
+			<Marker FileName="vip\interactive_report.vip" Caption="Нумерованная закладка 1" Line="765" NumIndex="1" MarkerType="mtNumBookmark" Comment="filltTree;"/>
+			<Marker FileName="vip\Ostatki_katmarsh_fantom_report.vip" Caption="Нумерованная закладка 1" Line="280" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\KatMarshStruct_report.vip" Caption="Нумерованная закладка 1" Line="124" NumIndex="1" MarkerType="mtNumBookmark" Comment="AND NORMAS.RASX &gt; 0"/>
+			<Marker FileName="vip\KatMarshStruct_report.vip" Caption="Нумерованная закладка 2" Line="504" NumIndex="2" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\demand_report.vip" Caption="Нумерованная закладка 2" Line="967" NumIndex="2" MarkerType="mtNumBookmark" Comment="if getfirst bufspplam &lt;&gt; tsOK then continue;"/>
+			<Marker FileName="vip\demand_report.vip" Caption="Нумерованная закладка 1" Line="662" NumIndex="1" MarkerType="mtNumBookmark" Comment="if not CheckMC(katmc.nrec) continue;"/>
+			<Marker FileName="vip\need_domestic_production.vip" Caption="Нумерованная закладка 1" Line="631" NumIndex="1" MarkerType="mtNumBookmark" Comment="_loop tBufSpPplamAnalRow2 {"/>
+		</MarkerList>
+		<BreakPointList>
+			<BreakPoint FileName="Vip.prj" Line="90"/>
+			<BreakPoint FileName="SOURCE\MR_RolesAndUsers.vip" Line="13"/>
+			<BreakPoint FileName="Source\shk_barcodeFunc.vip" Line="218"/>
+			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="206"/>
+			<BreakPoint FileName="Source\SHK_MakeMove.vip" Line="802"/>
+			<BreakPoint FileName="vip\demand_report.vip" Line="822"/>
+			<BreakPoint FileName="vip\demand_report.vip" Line="785"/>
+		</BreakPointList>
+		<CompileMessengerList>
+			<CompileMessenger Name="C:\Galaktika\_git\sng\Premiya\Vip.prj" DateTimeStart="45558,5705226736" DateTimeCompile="0,000102326390333474" StateHistory="False">
+				<CompileMessageList>
+					<CompileMessage MessageType="mtWarning" MessageText="убрать после перевода всех баз на exe от _2018_10_19_" SourceFileName="C:\Galaktika\_git\sng\Premiya\Vip.prj" SourceLine="3" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Скобки без параметров &quot;()&quot; необязательны" SourceFileName="C:\GALAKTIKA\GAL\FRM\SRC\COMPSRC\Z\Z_STAFF\VIP\WorkPeriods.vih" SourceLine="512" SourceColumn="28">
+						<StackIncludeList>
+							<StackInclude FileName="C:\Galaktika\_git\sng\Premiya\Vip.prj" Line="86" Column="1"/>
+						</StackIncludeList>
+					</CompileMessage>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="28" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="70" SourceColumn="51"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="76" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="194" SourceColumn="45"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="199" SourceColumn="31"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="265" SourceColumn="45"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="275" SourceColumn="30"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="276" SourceColumn="37"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="278" SourceColumn="27"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="297" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="360" SourceColumn="29"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="363" SourceColumn="33"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="366" SourceColumn="33"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="370" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="374" SourceColumn="33"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="379" SourceColumn="33"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="382" SourceColumn="45"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="393" SourceColumn="36"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="393" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="407" SourceColumn="25"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="408" SourceColumn="31"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="409" SourceColumn="17"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="423" SourceColumn="29"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Static_Function.Vip" SourceLine="457" SourceColumn="21"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="30" SourceColumn="91"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="31" SourceColumn="91"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="32" SourceColumn="108"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="33" SourceColumn="113"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="34" SourceColumn="101"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="35" SourceColumn="130"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="41" SourceColumn="69"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="53" SourceColumn="99"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_CreateTune_Common.vip" SourceLine="80" SourceColumn="70"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_MenuDynamic.vip" SourceLine="24" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_MENUDYNAMIC. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_MenuDynamic.vip" SourceLine="124" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="26" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="52" SourceColumn="105"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="60" SourceColumn="80"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="67" SourceColumn="107"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="75" SourceColumn="78"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="81" SourceColumn="74"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="87" SourceColumn="61"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="117" SourceColumn="38"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Status.vip" SourceLine="122" SourceColumn="91"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Такой тип уже есть : GP_KatPodr_Func" SourceFileName="C:\GALAKTIKA\_GIT\SNG\PREMIYA\VIP\GP_KatPodr_Func.Vih" SourceLine="18" SourceColumn="3">
+						<StackIncludeList>
+							<StackInclude FileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip" Line="11" Column="1"/>
+						</StackIncludeList>
+					</CompileMessage>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip" SourceLine="25" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_KATPODR_FUNC_o$GP_KatPodr_Func_MyGetKatPodr_isVisible_InPickInterface локальная переменная wNewTune:Word, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip(145), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip" SourceLine="192" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_KATPODR_FUNC_o$GP_KatPodr_Func_MyGetKatPodr_Boss локальная переменная _pDepartment:Comp, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip(199), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip" SourceLine="286" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_KatPodr_Func.Vip" SourceLine="524" SourceColumn="20"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Odecl.Vip" SourceLine="64" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Odecl.Vip" SourceLine="137" SourceColumn="51"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Odecl.Vip" SourceLine="248" SourceColumn="55"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Переменная logfile_odecl:String интерфейса GP_COMMON::GP_ODECL, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_Odecl.Vip(60), не была использована" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Odecl.Vip" SourceLine="349" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="19" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="88" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="295" SourceColumn="24"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="300" SourceColumn="25"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="320" SourceColumn="28"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Integer -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="350" SourceColumn="59"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение Даты к числу недостаточного размера" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="615" SourceColumn="25"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Byte)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="619" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение Даты к числу недостаточного размера" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_WorkTable.Vip" SourceLine="619" SourceColumn="54"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_TypeDocs.vip" SourceLine="24" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_TypeDocs. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_TypeDocs.vip" SourceLine="116" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusAccessEdit.vip" SourceLine="39" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_StatusAccessEdit. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusAccessEdit.vip" SourceLine="266" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Переменная UserAccessService:GP_UserAccessService интерфейса GP_COMMON::GP_STATUSACCESSEDIT, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusAccessEdit.vip(17), не была использована" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusAccessEdit.vip" SourceLine="266" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserAccessService.vip" SourceLine="35" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_UserAccessService. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserAccessService.vip" SourceLine="224" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_RoleGroups.vip" SourceLine="1" SourceColumn="1078"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_RoleGroups. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_RoleGroups.vip" SourceLine="1" SourceColumn="2168"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterStoreDSK.vip" SourceLine="1" SourceColumn="992"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_UserFilterStoreDSK. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterStoreDSK.vip" SourceLine="1" SourceColumn="2093"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilter.vip" SourceLine="1" SourceColumn="1017"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_UserFilter. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilter.vip" SourceLine="1" SourceColumn="1795"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterList.vip" SourceLine="1" SourceColumn="173"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_UserFilterList. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterList.vip" SourceLine="1" SourceColumn="3385"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterNotes.vip" SourceLine="1" SourceColumn="1058"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterSost.vip" SourceLine="22" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_USERFILTERSOST_GP_IUserFilter_Pick локальная переменная cRec:Comp, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterSost.vip(53), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterSost.vip" SourceLine="65" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterDopTables.vip" SourceLine="17" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterKlKatego.vip" SourceLine="1" SourceColumn="1001"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterRoles.vip" SourceLine="1" SourceColumn="87"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterYesNo.vip" SourceLine="1" SourceColumn="1035"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_UserFilterYesNo. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_UserFilterYesNo.vip" SourceLine="1" SourceColumn="1753"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_QueryBuilder.vip" SourceLine="18" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (Word -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_QueryBuilder.vip" SourceLine="293" SourceColumn="54"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_QueryBuilder. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_QueryBuilder.vip" SourceLine="346" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_xlMatrixUtil.vip" SourceLine="14" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_xlMatrixUtil. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_xlMatrixUtil.vip" SourceLine="103" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Protector.vip" SourceLine="22" SourceColumn="3"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Protector.vip" SourceLine="251" SourceColumn="54"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_Protector.vip" SourceLine="271" SourceColumn="95"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusChange.vip" SourceLine="16" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Отсутствует информация о лицензировании GP_StatusChange. Помечаем как не лицензированный." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_StatusChange.vip" SourceLine="159" SourceColumn="5"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="27" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="104" SourceColumn="51"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="111" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="134" SourceColumn="46"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="142" SourceColumn="90"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Integer)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="308" SourceColumn="46"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="355" SourceColumn="48"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="450" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="451" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="452" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="453" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="454" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="457" SourceColumn="49"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_VISIBLEHIDDEN_oiGP_VisibleHidden_SetVisibleForField локальная переменная ObjContainerName:String, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip(295), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="480" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_VISIBLEHIDDEN_oiGP_VisibleHidden_SetVisibleForField локальная переменная sTitle:String, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip(301), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="480" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_VISIBLEHIDDEN_oiGP_VisibleHidden_SetVisibleForField локальная переменная sObjType:String, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip(323), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="480" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_VISIBLEHIDDEN_oiGP_VisibleHidden_GetArrSubContName локальная переменная Res:Integer, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip(492), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="532" SourceColumn="1"/>
+					<CompileMessage MessageType="mtInfo" MessageText="В функции (процедуре) m_GP_VISIBLEHIDDEN_oiGP_VisibleHidden_GetArrSubContName локальная переменная sCollumnTitle:String, объявленная в C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip(494), не используется." SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="532" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="566" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="567" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="568" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="569" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="570" SourceColumn="47"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="705" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="706" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="707" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="708" SourceColumn="44"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Приведение типа с возможной потерей точности (LongInt -&gt; Word)" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_VisibleHidden.vip" SourceLine="709" SourceColumn="44"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="26" SourceColumn="1"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="397" SourceColumn="30"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="397" SourceColumn="78"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="397" SourceColumn="105"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="411" SourceColumn="31"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="411" SourceColumn="80"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="411" SourceColumn="108"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="418" SourceColumn="31"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="418" SourceColumn="80"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="418" SourceColumn="108"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="422" SourceColumn="31"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="422" SourceColumn="80"/>
+					<CompileMessage MessageType="mtWarning" MessageText="Значение преобразовано к строке" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_PodrFilterDef.Vip" SourceLine="422" SourceColumn="108"/>
+					<CompileMessage MessageType="mtInfo" MessageText="Компиляция ведется без файла контроля лицензий!" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_ZAR_USER.VIP" SourceLine="28" SourceColumn="3"/>
+					<CompileMessage MessageType="mtError" MessageText="Таблица GROUPMEMBERS отсутствует в словаре" SourceFileName="C:\Galaktika\_git\sng\Premiya\VIP\GP_ZAR_USER.VIP" SourceLine="133" SourceColumn="5"/>
+					<CompileMessage MessageType="mtEndCompile" MessageText="23.09.2024 13:41:42"/>
+				</CompileMessageList>
+			</CompileMessenger>
+		</CompileMessengerList>
+	</ProjectManager>
+</Viper>

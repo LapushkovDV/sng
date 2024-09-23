@@ -13,10 +13,6 @@
 #doc
   #CompTitle
 #end
-#params
-[vip]
-LicenseControlInclude=""
-#end
 #include SNG_QRY.ver
 const
  coYOUDONTHAVETOSEETHIS = 'YOUDONTHAVETOSEETHIS';
@@ -26,6 +22,7 @@ end;
 #make "vip\QRY_TEMPLATES.vip"
 #make "vip\QRY_INSTANCE.vip"
 #make "vip\QRY_OUT.vip"
+#make "vip\LoadDeclension.vip"
 #make "vip\QRY_INSTANCE_TEST.vip"
 #make "vip\QRY_ALG_USER_WERKS_BY_ORGEH.vip"
 #make "vip\QRY_ALG_USER_PERSK_BY_CONTDOC.vip"
@@ -38,8 +35,6 @@ end;
 #make "vip\QRY_ALG_USER_GET_PROBATION_BY_CONTDOC.vip"
 #make "vip\QRY_ALG_USER_TAXRATE_BY_APPHIST.vip"
 #make "vip\QRY_ALG_USER_TEST.vip"
-#make "vip\LoadDeclension.vip"
-/*
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_VACATION.vip"
 #make "vip\QRY_ALG_USER_GET_ALL_LIMIT_PA2006"
 #make "vip\QRY_ALG_USER_VALUES_BY_STERR.vip"
@@ -49,4 +44,16 @@ end;
 #make "vip\QRY_ALG_USER_PHONE_BY_PERSONS.vip"
 #make "vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip"
 #make "vip\QRY_ALG_USER_POS_EXIST_BY_SERVLEN_PERIOD.vip"
-*/
+#make "vip\QRY_ALG_USER_NORTHEN_RATE_BY_CONTDOC.vip"
+#make "vip\QRY_ALG_USER_LGART_BY_APPOINTMENTS.vip"
+#make "vip\QRY_ALG_USER_SOLST_BY_KLNDR.vip"
+#make "vip\QRY_ALG_USER_DAY_FIELDS_BY_KLNDR.vip"
+#make "vip\QRY_ALG_USER_LEAVE_DATE_BY_TITLEDOC.vip"
+#make "vip\QRY_ALG_USER_MOTTY_BY_GRAFIK.vip"
+#make "vip\QRY_ALG_USER_SUBTY_FAMSA_BY_PSNLINKS.vip"
+#make "vip\QRY_ALG_USER_ANSVH_BY_APPHIST.vip"
+#make "vip\QRY_ALG_USER_RPD_40_MASSN.vip"
+#make "vip\QRY_ALG_USER_ANSVH_BY_TITLEDOC.vip"
+#make "vip\QRY_ALG_USER_DATE_OTPUSK.vip"
+#make "vip\QRY_ALG_USER_HPERN_BY_PERSONS.vip"
+#make "vip\QRY_ALG_USER_SERVLEN_POS_BY_SNG_EDIT.vip"
