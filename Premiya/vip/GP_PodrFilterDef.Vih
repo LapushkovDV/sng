@@ -47,22 +47,22 @@ procedure Mylog(w :string );
 // перенести данные из маркера в маркер
 //================================
 // Копирует данные из маркера fromMarker в маркер toMarker
-procedure MarkCopyMarkers(fromMarker : LongInt ; toMarker : LongInt) ;
+procedure MarkCopyMarkers(fromMarker : tptr ; toMarker : tptr) ;
 // перенести в Pick
-Procedure Mark2Pic(fromMarker : LongInt ;wListDest : word) ;
-Procedure Pic2Mark(toMarker : LongInt ;wListDest : word) ;
+Procedure Mark2Pic(fromMarker : tptr ;wListDest : word) ;
+Procedure Pic2Mark(toMarker : tptr ;wListDest : word) ;
 //================================
 // перенести данные из заданного маркера в маркер по имени
 //================================
-procedure MarkCopyMyToCat(fromMarker :longint;nmmarker :string) ;
+procedure MarkCopyMyToCat(fromMarker :tptr;nmmarker :string) ;
 //================================
 // перенести данные в заданный маркер из маркера по имени
 //================================
-  procedure MarkCopyCatToMy(fromMarker :longint;nmmarker :string) ;
+  procedure MarkCopyCatToMy(fromMarker :tptr;nmmarker :string) ;
 // получить фильтр по подразделению в кадрах(catalogs) 
-public Function GetPodrFilterName(wMarker :longint ):string  ;
-public Function GetPodrFilterName1(wMarker :longint;wwhist:boolean;wdate_hist:date ):string  ;
-public Function GetKatPodrFilterName(wMarker :longint ):string  ;
+public Function GetPodrFilterName(wMarker :tptr):string  ;
+public Function GetPodrFilterName1(wMarker :tptr;wwhist:boolean;wdate_hist:date ):string  ;
+public Function GetKatPodrFilterName(wMarker :tptr):string  ;
 // получить значение на уровне
 Function katpodrGetLevel(wwpodr:string;wcnrec : comp; wlev :word ) :string ;
 // получить значение на уровне
@@ -90,7 +90,7 @@ Licensed (free)
 #end
 parameters
 (tp_spr :word ;
- marker :longint ;
+ marker :tptr ;
  namefilter :string 
  )
 ;

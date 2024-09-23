@@ -116,7 +116,8 @@ HandleEvent
 cmInsert:{
   if (not IsValidAll(tnGP_Roles)) exit;
 
-  var m,i:longint;
+  var m : tptr;
+  var i : longint;
   if (CurTable=tnGP_StatusRoles) {
     m:=InitMarker('',8,0,1);
     if (RunInterface(GP_StatusPickAndEdit,cCurTypeDoc,cgiPickMult,0,m,'')=cmDefault) {
@@ -141,7 +142,7 @@ cmInsert:{
     }
     DoneMarker(m,'');
   } else if (CurTable=tnGP_StatusChangeRoles) {
-    m:=InitMarker('',8,0,1);
+    m := InitMarker('',8,0,1);
     if (RunInterface(GP_StatusChangePickAndEdit,cCurTypeDoc,m)=cmDefault) {
       var cRec:comp;
       for(i:=0;i<GetMarkerCount(m);i++) {

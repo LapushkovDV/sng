@@ -48,7 +48,7 @@ var
   pLschet :comp;//ссылка на лиц.счет
   pPersons:comp;
   pKatpodr:comp;
-  Marker_Spec:Longint; // Для убирания лишних людей
+  Marker_Spec:tptr; // Для убирания лишних людей
 //-------- Настройки
   NPOEM_OWN_Raise_FORM_DEL_waste:boolean;//При переформировании ведомостей 101-103 убирать "лишних" сотрудников
 //-----------------------

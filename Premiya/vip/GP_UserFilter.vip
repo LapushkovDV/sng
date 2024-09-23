@@ -12,7 +12,8 @@
 
 interface GP_UserFilter;
 
-var NoField,mFilter:longint;
+var NoField : longint;
+    mFilter:tptr;
     FilterStr,SaveName:string;
 
 implementation GP_IUserFilter.GetFilterStr abstract;

@@ -1009,7 +1009,7 @@ var wErr:word;
     // подберм с доп. фильтра
   if UserDeskRep.ReSComp[1]>0
   if IsValidAll(#AllMemo)
-  {  var ww_hfile : longint;
+  {  var ww_hfile : tptr;
     var ww_sMem  :string;
     var ww_first:boolean;
     ww_hfile := CreateFileHandle('');

@@ -27,5 +27,5 @@ public:
   constructor InitForTypeDoc(TypeDocName:string);
 end;
 
-VipInterface GP_StatusPickAndEdit Parameters(cCurTypeDoc:comp; Mode:word; cStatus:comp; hMarker:Longint;stypeDoc:string='') #Licensed_Free;
+VipInterface GP_StatusPickAndEdit Parameters(cCurTypeDoc:comp; Mode:word; cStatus:comp; hMarker:tptr;stypeDoc:string='') #Licensed_Free;
 #endif

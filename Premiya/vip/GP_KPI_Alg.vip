@@ -444,7 +444,7 @@ var _wFldType:word;
   where (( _wFldType == GP_KPI_FIELDS.wType ));
 } //Procedure Fill_tmp_Fields;
 
-Function MysqlAddStr(var query_handle: longInt; add_query_str: string): longInt;
+Function MysqlAddStr(var query_handle: tptr; add_query_str: string): tptr;
 {
    Result:=sqlAddStr(query_handle, add_query_str);
    if timelog_Status>2 timelog(add_query_str)
@@ -2074,7 +2074,7 @@ function getEM_KOEFF_ERS(_pLschet : comp; _dateEnd: date) : double;
 */
 if timelog_Status>2 Timelog('getEM_KOEFF_ERS. Подготовка запроса');
 result := 0;
-      var hstr : longint = 0;
+      var hstr : tptr = 0;
 /*
     MysqlAddStr(hstr, 'Select                                  ');
     MysqlAddStr(hstr, '       t.Koef   as vDouble              ');
@@ -2205,7 +2205,7 @@ if getfirst FaStFirstRow App1 where ((GP_KPI_DOC_SP.cAppointments == App1.nrec))
 
 if timelog_Status>2 Timelog('GetEm_KoeffBTK. Подготовка запроса');
 result := 0;
-      var hstr : longint = 0;
+      var hstr : tptr = 0;
     MysqlAddStr(hstr, 'select top 1                ');
     MysqlAddStr(hstr, '        s.ADDDOUBLE[1] as vDouble        ');
     MysqlAddStr(hstr, '      from                     ');
@@ -2279,7 +2279,7 @@ function Get_KOEFKACHESTTRUDA(_cPodr : comp;_wMonth,_wYear : word): double;
      {
        if timelog_Status>2 Timelog('Get_KOEFKACHESTTRUDA. Подготовка запроса');
         result := 0;
-              var hstr : longint = 0;
+              var hstr : tptr = 0;
             MysqlAddStr(hstr, 'select top 1                                             ');
             MysqlAddStr(hstr, '                     Spec.ImplProc  as vDouble                        ');
             MysqlAddStr(hstr, '                    from GP_KPI_Statements Statements      ');
@@ -3460,7 +3460,7 @@ var
 //    в GP_KPI_Raise.cAlg_Summa
     isAllOk   :boolean;
     iError    :longint;
-    stmt:Longint;
+    stmt:tptr;
     ExecuteErrorCode : longint;
     _PKatpodr :comp;
     _wMonth,_wYear:word;

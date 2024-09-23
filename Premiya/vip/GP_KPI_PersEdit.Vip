@@ -66,7 +66,7 @@ var
    isFilterRun  :boolean;
    wc_nrec : comp;//  - var_name, тип должен совпадать с типом маркера
    KauMarkerName:string;
-   Marker_Tmp :longint;
+   Marker_Tmp :tptr;
 
    #mrkfld_(Persons)
    #mrkfld_(CatRaise)

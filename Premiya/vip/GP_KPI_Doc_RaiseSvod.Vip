@@ -70,7 +70,7 @@ var
 //------- фильтры
   Marker_Count :longint;
   KauMarkerName:string;
-  Marker_Tmp :longint;
+  Marker_Tmp :tptr;
   wFilter    :longint;
 
 //----------------------------------------------

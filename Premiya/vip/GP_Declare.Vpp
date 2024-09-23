@@ -33,8 +33,8 @@ end;
 // } // Procedure SetFilterName(ww_field :longint;
 //------------------------------------------------------------------------------
 #declare mrkfld_ (name)
-   Marker_#(name) :longint; //маркер для задания выбора
-   Marker_#(name)_A :longint;//маркер для отбора
+   Marker_#(name) :tptr; //маркер для задания выбора
+   Marker_#(name)_A :tptr;//маркер для отбора
    Count_#(name) :longint; //кол-во записей в маркере
    filtr_#(name)  :string; //наименование фильтра
 #end

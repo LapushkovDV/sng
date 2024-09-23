@@ -45,7 +45,7 @@ with index
 Create view vGB_VisibleHidden
 Var
   cUserId        : comp;
-  ContainerId    : longint; // указатель корневого контейнера
+  ContainerId    : tptr; // указатель корневого контейнера
   sModulName     : string;  // Имя модуля
   sInterfaceName : string;  // Имя интерфейса
   sSubContName   : string;  // наименование субконтейнера: брауз, скрин и др.
@@ -120,7 +120,7 @@ Function IsBit (field: word; n: word): boolean;
 //------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
-Procedure SetVisibleHidden(_ContainerId: longint; _SubContainerStr: string);
+Procedure SetVisibleHidden(_ContainerId: tptr; _SubContainerStr: string);
 {
   var ObjFullName      : string;
   var ObjSelf          : longint;
@@ -287,7 +287,7 @@ Procedure MakeBuferNastr;
 //------------------------------------------------------------------------------
 // ПРОЦЕДУРА SetVisibleForField
 //------------------------------------------------------------------------------
-Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInterfaceName: string; _sSubContName: string);
+Procedure SetVisibleForField(_ContainerId: tptr; _sModulName: string; _sInterfaceName: string; _sSubContName: string);
 {
   var ObjFullName      : string;
   var ObjSelf          : longint;
@@ -482,7 +482,7 @@ Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInter
 //------------------------------------------------------------------------------
 // ПРОЦЕДУРА GetArrSubContName - формирует строковый массив из названий видимых областей
 //------------------------------------------------------------------------------
-Procedure GetArrSubContName(_ContainerId: longint; var _ArrSubContName: TArrSubContName);
+Procedure GetArrSubContName(_ContainerId: tptr; var _ArrSubContName: TArrSubContName);
 {
   var ObjFullName   : string;
   var ObjSelf       : longint;

@@ -31,7 +31,7 @@ with index
 vipinterface GP_Field_Flt Parameters(
          wIntMode:word
         ;cRec:comp
-        ;Marker_vib:Longint
+        ;Marker_vib:tptr
         ;sTitleKod:string
         ;sTitleName:string
         )

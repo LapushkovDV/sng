@@ -8,7 +8,7 @@
 VipInterface GP_PickCatalogWithOneRec      licensed (FREE)    Parameters(iEntryPoint : Integer; cCurPos : Comp);
 VipInterface GP_PickCatForPhysicalPerson   licensed (FREE)    Parameters(iEntryPoint : Integer; cCurPos : Comp);
 VipInterface GP_PickStaffStruct            licensed (FREE)    Parameters(Mode : word; cStaffStruct : comp;
-       PostName : string; cDep : comp = 0; cPost : comp = 0; hMarker : longint = 0; PeriodBegin:date=ZeroDate);
+       PostName : string; cDep : comp = 0; cPost : comp = 0; hMarker : tptr = 0; PeriodBegin:date=ZeroDate);
 VipInterface iEMReportGraphics             licensed (FREE);
 VipInterface iEMReportGraphicsNew          licensed (FREE)    Parameters(wYear : word);
 VipInterface iEMTabWorkTime                licensed (FREE)    Parameters(sPodr : string; dBeg : date; dEnd : date; wMode: word);

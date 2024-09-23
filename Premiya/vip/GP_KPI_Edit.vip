@@ -485,7 +485,7 @@ procedure DropFilter;
 }
 
 procedure SetFilter;
-var m:longint;
+var m:tptr;
 {
   StartNewVisual(vtRotateVisual, vfTimer, 'Установка фильтра...', 0);
 
@@ -592,7 +592,8 @@ cmPick:{
       }
     }
     #PostOc.Name:{
-      var PickMultMarker,MarkerCount,i:longint;
+      var PickMultMarker : tptr;
+      var MarkerCount,i:longint;
 
       PickMultMarker := InitMarker('', 8, 10, 10);
       cStaffStr:=GP_KPI_Plan.cStaffStr;

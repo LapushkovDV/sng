@@ -39,28 +39,28 @@ Interface GP_Protector;
   var sLastError:string;
 
   // все не защищенные от редактирования контролы
-  var NonProtectedControls: array[1] of longint;
+  var NonProtectedControls: array[1] of tptr;
   // контролы с pickbutton
-  var PickableControls: array[1] of longint;
+  var PickableControls: array[1] of tptr;
   // контролы с CalendarButton
-  var DatedControls: array[1] of longint;
+  var DatedControls: array[1] of tptr;
   // контролы с calcbutton
-  var CalcableControls: array[1] of longint;
+  var CalcableControls: array[1] of tptr;
   // контролы со spinbutton
-  var SpinnableControls: array[1] of longint;
+  var SpinnableControls: array[1] of tptr;
   // контролы с выпадающим списком
-  var ListControls: array[1] of longint;
+  var ListControls: array[1] of tptr;
 
   // все редактируемые контролы (кроме мемо-полей)
-  var EditControls: array[1] of longint;
+  var EditControls: array[1] of tptr;
   // оригинальные статус-строки контролов
   var StatusCtxs: array[1] of TStatusCtx;
 
   // окна (для автоматического изменения палитры)
-  var Windows: array[1] of longint;
+  var Windows: array[1] of tptr;
 
   // embedded-панели
-  var EmbeddedPanels: longint;
+  var EmbeddedPanels: tptr;
 
 //------------------------------------------------------------------------------
   property AutoPalette: boolean absolute FAutoPalette;
@@ -86,9 +86,9 @@ Interface GP_Protector;
   }
 
 //------------------------------------------------------------------------------
-  procedure ProcessControls(ContainerId: longint; ProcessChildWindows: boolean);
+  procedure ProcessControls(ContainerId: tptr; ProcessChildWindows: boolean);
   {
-    var SubContainerList: longint;
+    var SubContainerList: tptr;
 
     // несортированный маркер для развертки дерева контейнеров
     SubContainerList := InitMarker('', sizeof(longint), if(ProcessChildWindows, 1, 40), 50, false);
@@ -97,14 +97,14 @@ Interface GP_Protector;
     InsertMarker(SubContainerList, ContainerId);
 
     while GetMarkerCount(SubContainerList) > 0 {
-      var CurrentContainer: longint;
+      var CurrentContainer: tptr;
       var ObjFullName: string;
-      var ObjSelf: longint;
-      var ObjContainer: longint;
-      var ObjType: longint;
+      var ObjSelf: tptr;
+      var ObjContainer: tptr;
+      var ObjType: tptr;
 
       var I: integer;
-      var ObjList: array [1] of longint;
+      var ObjList: array [1] of tptr;
 
       // очередной контейнер
       GetMarker(SubContainerList, 0, CurrentContainer);

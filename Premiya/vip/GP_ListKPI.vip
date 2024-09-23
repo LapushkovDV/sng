@@ -170,7 +170,7 @@ end;
 end;//WinFilter
 
 procedure FillListKPI;
-var m:longint;
+var m:tptr;
     d1,d2:date;
     cRec:comp;
 {

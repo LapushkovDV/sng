@@ -114,7 +114,7 @@ var
    Marker_Count :longint;
    isFilterRun  :boolean;
    wc_nrec : comp;//  - var_name, тип должен совпадать с типом маркера
-   Marker_Tmp :longint;
+   Marker_Tmp :tptr;
 
    #mrkfld_(Persons)
    #mrkfld_(KlKatego)
@@ -690,7 +690,7 @@ Function GetCurRec : comp;
 //-------------------------------------------------
 Function GetFilterName(_Field:Longint) :boolean;
 var pTopRec  : comp;
-var hStrFilter:longint;
+var hStrFilter:tptr;
 { delete all tmp_flt_field;
   Result:=False;
   timelog('GP_KPI_Doc_RaiseEdit_Sp->GetFilterName');
@@ -1114,7 +1114,7 @@ Function Fill_Tmp_Val:boolean;
 var ii:word;
 { Result:=false;
   delete all tmp_kpi_Doc_Val;
-  var stmt:Longint;
+  var stmt : tptr;
   var ExecuteErrorCode : longint=0;
   var _Pdoc :comp;
   _Pdoc:=Gp_KPI_DOC.Nrec;
@@ -1295,7 +1295,7 @@ Function FillTmp_KPI_Raise(_pDoc:comp) :boolean;
   var jj:word=0;
   var _wErr:Longint;// код ошибки установки свойств
   Delete all  Tmp_KPI_Raise;
-  var stmt:Longint;
+  var stmt:tptr;
   var ExecuteErrorCode : longint;
   var ww_str:string='';
   Result:=False;

@@ -18,13 +18,13 @@ ObjInterface GP_IQueryBuilder;
   procedure AddToSelect(s:string);                 //Добавить строку в предложение Select
   procedure AddToFrom(s:string);                   //Добавить строку в предложение From
   procedure AddCondition(s:string;val:variant=''); //Добавить ограничение в условие " on (...)" предложения From
-  procedure AddConditionMarker(s:string;m:longint);//Добавить ограничения из маркера в условие " on (...)" предложения From
+  procedure AddConditionMarker(s:string;m:tptr);//Добавить ограничения из маркера в условие " on (...)" предложения From
   procedure AddToWhere(s:string;val:variant='');   //Добавить ограничение в предложение Where
-  procedure AddToWhereMarker(s:string;m:longint);  //Добавить ограничения из маркера в предложение Where
+  procedure AddToWhereMarker(s:string;m:tptr);  //Добавить ограничения из маркера в предложение Where
   procedure AddToGroupBy(s:string);                //Добавить строку в предложение Group By
-  function Make(hStr:longint=0;DebugeMode:boolean=false):longint;//Сгенерировать текст запроса
-  function MakeCriteriaFromMarker(s:string;m:TPtr):longint;//Сгенерировать текст ограничения из маркера
-  procedure AddCriteriaFromMarker(var hStr:longint;s:string;m:TPtr); //Сгенерировать текст ограничения из маркера
+  function Make(hStr:tptr=0;DebugeMode:boolean=false):tptr;//Сгенерировать текст запроса
+  function MakeCriteriaFromMarker(s:string;m:TPtr):tptr;//Сгенерировать текст ограничения из маркера
+  procedure AddCriteriaFromMarker(var hStr:tptr;s:string;m:TPtr); //Сгенерировать текст ограничения из маркера
   procedure DropTmpTables;
 end;
 

@@ -162,7 +162,7 @@ table struct tmpGP_KPI_DOC_SP
 , cGP_KPI_Raise  : comp               "Тип премии"
 , cGP_KPI_Fond   : comp               "Тип фонда"
 , cAppointments  : comp               "Назначение сотрудника"
-, wTypeLine      : word              "Тип строки 0 - данные, 1 - Итоги"   
+, wTypeLine      : word              "Тип строки 0 - данные, 1 - Итоги"
 , dValue         : Array [1..20] of tSumma
 )
 With index
@@ -178,7 +178,7 @@ With index
 
 //*****************************************************************************
 create view
-var 
+var
   pType
 , pRaiseType: word;
   pGP_KPI_DOC
@@ -187,7 +187,7 @@ var
   pMonth
 , pYear     : word;
   npp       : longint;
-as select 
+as select
   GP_KPI_Doc.Nrec,tmpFields.*,tmpPremia.*
 from
   GP_KPI_Doc
@@ -220,7 +220,7 @@ from
 , GP_TYPEDOCS
 , Katpodr KatPodr1
 , KatOrg KatOrg1
-where 
+where
 ((
     pGP_KPI_DOC                == GP_KPI_DOC.NRec
 AND GP_KPI_DOC.cKatpodr        == KatPodr.Nrec
@@ -254,7 +254,7 @@ AND ( 0 <> AppointmentsNach.Person
     )
 AND AppointmentsNach.Person       == PersonNach .NRec
 
-)) 
+))
 
 ;
 
@@ -267,7 +267,7 @@ var iCatFunc   : CatalogsFunctions;            // Переменная типа интерфейс Cata
 var iStrFunc   : StringFunctions;
 //*****************************************************************************
   SQL QUERY SqltmpGP_KPI_DOC_SP =
-    SELECT 
+    SELECT
        SP.NRec                   AS NRec
      , SP.Code                   AS Code
      , SP.cPersons               AS cPersons
@@ -297,17 +297,17 @@ var iStrFunc   : StringFunctions;
     WHERE (:pDoc = SP.cGP_KPI_DOC) ;
 //*****************************************************************************
   SQL QUERY SqltmpGP_KPI_DOC_SP_Raise =
-    SELECT 
+    SELECT
        SP.NRec                   AS NRec
      , SP.Code                   AS Code
      , SP.cPersons               AS cPersons
      , Coalesce(P.FIO, '')       AS sPersons
      , SP.cLschet                AS cLschet
      , SP.cKatPodr               AS cKatPodr
-     , Coalesce(KP.Name, '')     AS KatPodrName  
+     , Coalesce(KP.Name, '')     AS KatPodrName
      , Coalesce(KP.Kod , '')     AS KatPodrCode
      , SP.cPost                  AS cPost
-     , Coalesce(CP.Name, '')     AS sPost  
+     , Coalesce(CP.Name, '')     AS sPost
      , SP.cKlKatego              AS cKlKatego
      , Coalesce(KK.NAIKAT, '')   AS KKName
      , Coalesce(KK.Kod   , '')   AS KKCode
@@ -343,7 +343,7 @@ var iStrFunc   : StringFunctions;
       , F.Option   as Option
       , F.KODGROUP as KODGROUP
       , F.RAZDEL   as RAZDEL
-      , F.SUB      as Sub 
+      , F.SUB      as Sub
       , F.Sub+CASE F.RAZDEL
               WHEN 2 THEN 1000
               WHEN 1 THEN 2000
@@ -375,7 +375,7 @@ var iStrFunc   : StringFunctions;
          , F.Option   as Option
          , F.KODGROUP as KODGROUP
          , F.RAZDEL   as RAZDEL
-         , F.SUB      as Sub 
+         , F.SUB      as Sub
          , F.Sub +CASE F.RAZDEL
               WHEN 2 THEN 1000
               WHEN 1 THEN 2000
@@ -521,10 +521,10 @@ Function GetMenu(MenuName : string) : longint;
            timelog('KPI_REPORT->GetMenu:'+tmpPremia.NAME);
 
            if (isNeedSepr)
-             {        
+             {
                AddMenuItem(MenuID,'separator',1);
                isNeedSepr := false;
-             }  
+             }
            AddMenuItemEx2(MenuID, tmpPremia.Name, tmpPremia.Name, '', cmRunInterface,0,'GP_STAFF::KPIREPORT(' + string(tmpPremia.cDoc) + ', ' + string(tmpPremia.cGp_KPI_RAISE) + ')');
          }
      }
@@ -592,7 +592,7 @@ Procedure GroupData;
           {
             ClearBuffer(#tmpGrPodrFond);
             tmpGrPodrFond.cPodr           := tmpPodrFond.cPodr;
-            tmpGrPodrFond.PodrName        := tmpPodrFond.PodrName;     
+            tmpGrPodrFond.PodrName        := tmpPodrFond.PodrName;
             tmpGrPodrFond.PodrKod         := tmpPodrFond.PodrKod;
             if (insert current tmpGrPodrFond = tsOk)
               {}
@@ -607,7 +607,7 @@ Procedure GroupData;
                 if (update current tmpFields_F = tsOk)
                   {}
               }
-            
+
             if (tmpFields_F.NumCol <= 60)
               {
                 set tmpGrPodrFond.dValue[tmpFields_F.NumCol] := tmpGrPodrFond.dValue[tmpFields_F.NumCol] + TryDouble(GetValue(tmpFields_F.npp));
@@ -615,9 +615,9 @@ Procedure GroupData;
                 set tmpGrPodrFond.cField[tmpFields_F.NumCol] := if (tmpGrPodrFond.cField[tmpFields_F.NumCol] = comp(0), tmpFields_F.NRec  , tmpGrPodrFond.cField[tmpFields_F.NumCol]);
               }
           }
-           
+
         if (update current tmpGrPodrFond = tsOk)
-          {}   
+          {}
       }
 
   StopVisual('', 0);
@@ -661,7 +661,7 @@ Function GetReportName : string;
          //Годовая премия - руководители среднего звена
          '030.2'
        , '30.02' : result := 'Годовая ведомость премирования руководителей';
-         //Квартальная премия - руководители среднего звена   
+         //Квартальная премия - руководители среднего звена
          '31.02' : result := 'Квартальная ведомость премирования руководителей';
          //Ежемесячная премия  - руководители среднего звена
          '32.02' : result := 'Месячная ведомость премирования руководителей среднего звена';
@@ -833,10 +833,10 @@ Function GetSum(_npp : word) : string;
   if (_npp > 0 AND _npp <= GP_KPI_Doc_Max_FLD_SP)
     {
       if (GetFirst GP_KPI_Doc_SP <> tsOk)
-        {  
+        {
           if (tmpGP_KPI_Doc_SP.wTypeLine = 1)
             if (GetFirst tmpFields_F where (( _npp == tmpFields_F.Npp )) = tsok)
-              if (tmpFields_F.wTypeFld = 1) 
+              if (tmpFields_F.wTypeFld = 1)
                 result := DoubleToStr(tmpGP_KPI_Doc_SP.dValue[_Npp], '[|-]3 666 666 666.88');
 
           exit;
@@ -1152,7 +1152,7 @@ procedure FullTables(sqlHandle : string; tableHandle : longint; Prim:string='');
       stmt := sqlAllocStmt;
       ExecuteErrorCode:=sqlPrepare(stmt,sqlHandle);
       if (ExecuteErrorCode = 0)
-        { 
+        {
           sqlBindParamByName(stmt,'pDoc'      , pGP_KPI_DOC);
           sqlBindParamByName(stmt,'pType'     , pType);
           sqlBindParamByName(stmt,'pFieldDoc' , pFieldDoc);
@@ -1163,15 +1163,15 @@ procedure FullTables(sqlHandle : string; tableHandle : longint; Prim:string='');
 
           ExecuteErrorCode := SqlExecute(stmt);
           if (ExecuteErrorCode = 0)
-            { 
+            {
               ExecuteErrorCode := SqlFetchIntoByName(stmt, tableHandle);
               ReReadRecord(tableHandle);
               timelog('  FullTables отобрали '+string(RecordsInTable(tableHandle)));
               if (ExecuteErrorCode <> 0)
-                Message('Ошибка : ' + string(ExecuteErrorCode)); 
+                Message('Ошибка : ' + string(ExecuteErrorCode));
             }
-          else 
-            Message('Ошибка : ' + string(ExecuteErrorCode)); 
+          else
+            Message('Ошибка : ' + string(ExecuteErrorCode));
         }
       else
         Message('Ошибка : ' + string(ExecuteErrorCode));
@@ -1191,9 +1191,9 @@ Procedure CheckNullColumn;
 
   var nn : word; nn := 20;
 
-  _LOOP tmpGP_KPI_DOC_SP   
+  _LOOP tmpGP_KPI_DOC_SP
     if (nn <= 0)
-      break;  
+      break;
     else
       _LOOP tmpFields
         if (nn <= 0)
@@ -1262,7 +1262,7 @@ Procedure InsTotalRecor;
               vals[i] += Double(Replace(GP_KPI_Doc_SP.fArrValue[i], ',', '.'));
             }
 
-  if (bTotal) 
+  if (bTotal)
     {
       ClearBuffer(#tmpGP_KPI_DOC_SP);
       tmpGP_KPI_DOC_SP.NRec           := GetNextNRec(tntmpGP_KPI_DOC_SP, 0);
@@ -1308,18 +1308,22 @@ Procedure RunFRPdf(frType : word ; sName : string);
       if FROpenReport(rHandle, sName)
         if (FROpenReport(rHandle, sName))
           {
-#IFDEF _2019_02_13_
+/*
+# IFDEF _2019_02_13_
             var ExportParam:String;
             //'Pages=1-5;Picture=False;DeleteEmptyRows=True;OpenAfterExport=True'
             ExportParam:='ShowDialog=False;OpenAfterExport=True';
-#ELSE
+# ELSE
             var exportParam : frxPDFExportParam;
             ClearAdvRecord(exportParam);
             FRGetDefaultParameters(frExportPDF, exportParam);
             ExportParam.Pages:='';
             ExportParam.ShowDialog := False;
             ExportParam.OpenAfterExport := True;
-#ENDIF
+# ENDIF
+*/
+            var ExportParam:String;
+            ExportParam:='ShowDialog=False;OpenAfterExport=True';
 
             if (FRSetParameters(rHandle, frExportPDF, exportParam))
               FRExportReport(rHandle, frExportPDF, '');
@@ -1332,7 +1336,7 @@ Procedure RunFRPdf(frType : word ; sName : string);
 //*****************************************************************************
 window winMonth 'Выбор периода' DoAccept, EscClose, Cyan;
   Show at (, , 32, 5);
-Panel pWinMonth;  
+Panel pWinMonth;
 Screen scrMonth (, , sci13Esc);
 Fields
   pMonth   ('Отчетный период')    :  [LIST 1'Январь'
@@ -1347,14 +1351,14 @@ Fields
                                            ,'Октябрь'
                                            ,'Ноябрь'
                                            ,'Декабрь'], protect;
-  pYear        ('Год отчета')                 : NoProtect, SpinButton [1, 1900, 2100];    
+  pYear        ('Год отчета')                 : NoProtect, SpinButton [1, 1900, 2100];
 Buttons
   cmOK    , Default , , 'Печать', , sci1Esc;
   cmCancel,         , , 'Отмена', ,        ;
 <<
     `Месяц`.@@@@@@@@@@@@@@@
     `Год`  .@@@@@@@@@@@@@@@
-        
+
  <. Печать .>     <. Отмена .>
 >>
 end;
@@ -1376,7 +1380,7 @@ property pDoc : comp read pGP_KPI_DOC write SetCurrentPosition(result);
 //*****************************************************************************
 HandleEvent
 
-cmInit: 
+cmInit:
   {
     timelog_init;
     timelog('KPIReport->cmInit:pGP_KPI_DOC='+string(pGP_KPI_DOC)+',pRaise='+string(pRaise));
@@ -1425,7 +1429,7 @@ cmInit:
        {
          set pFieldDoc := GP_KPI_Doc.cGP_KPI_TypeVed;
          set pRaiseType := 3;
-       } 
+       }
        101
      , 102
      , 103
@@ -1448,7 +1452,7 @@ cmInit:
 
     delete all tmpGP_KPI_DOC_SP;
     FullTables(SqlTmpGP_KPI_DOC_SP_Raise, #tmpGP_KPI_DOC_SP,'SqlTmpGP_KPI_DOC_SP_Raise->tmpGP_KPI_DOC_SP');
-                  
+
     FullTables(SqlTmp_KPI_Fields, #tmpFields,'SqlTmp_KPI_Fields->tmpFields');
 
     InsTotalRecor;

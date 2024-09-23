@@ -282,7 +282,7 @@ var
    isFilterRun  :boolean;////признак работы ограничений
    wc_nrec : comp;//  - var_name, тип должен совпадать с типом маркера
    KauMarkerName:string;
-   Marker_Tmp :longint;
+   Marker_Tmp :tptr;
    #mrkfld_(KatPodr)
    #mrkfld_(Status)
 
@@ -700,7 +700,7 @@ Function Filltmp_Staff_Raise:boolean;
 #ENDIF
 
   var _wErr:Longint;// код ошибки установки свойств
-  var stmt:Longint;
+  var stmt:tptr;
   var ExecuteErrorCode : longint;
   var ww_str:string='';
   Result:=False;
@@ -1555,13 +1555,17 @@ end;// end DataStream
 // Заточен под вывод одного документа
 //-------------------------------------------------------
 Function PrintDocumentFast:boolean;
-var FReport: LongInt;
+var FReport: tptr;
     ReportNames: array [0..0] of String;
-#IFDEF _2019_02_13_
+/*
+# IFDEF _2019_02_13_
     ExportParam:String;
-#ELSE
+# ELSE
+
     ExportParam:frxPDFExportParam;
-#ENDIF
+# ENDIF
+*/
+    ExportParam:String;
 { Result:=True;
   var boPrintToPDF:boolean=true;
   Fill_Tmp_Print_Fond;
@@ -1577,16 +1581,19 @@ var FReport: LongInt;
     if (count(ReportNames)>0)
     { if (FROpenReport(FReport, ReportNames[0]))
       {
-#IFDEF _2019_02_13_
+        ExportParam:='OpenAfterExport=True';
+/*
+# IFDEF _2019_02_13_
         //'Pages=1-5;Picture=False;DeleteEmptyRows=True;OpenAfterExport=True'
         ExportParam:='OpenAfterExport=True';
-#ELSE
+# ELSE
         ClearAdvRecord(ExportParam);
         FRGetDefaultParameters(frExportPDF, ExportParam);
         ExportParam.Pages:='';
         ExportParam.ShowDialog := False;
         ExportParam.OpenAfterExport := True;
-#endif //_2019_02_13_
+# endif //_2019_02_13_
+*/
         if (FRSetParameters(FReport, frExportPDF, ExportParam))
          FRExportReport(FReport, frExportPDF, '');
       } //if (FROpenReport(FReport, ReportNames[0]))
@@ -2563,7 +2570,7 @@ var nRazdel:word;
               _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'% премии, план');
               _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'Плановый размер премии.');
               //--- Коэффициенты премирования
-        			_npp++;Ins_tmp_print_shap(_npp,_wRazdel,'коэф. производства');
+                                _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'коэф. производства');
               _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'коэф. качества');
               _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'коэф. технологической и трудовой дисциплины');
               _npp++;Ins_tmp_print_shap(_npp,_wRazdel,'Из фонда руководителя');
@@ -2634,13 +2641,16 @@ var nRazdel:word;
 // Печать документа
 //---------------------
 function PrintDocument(bMulti:boolean) :Boolean;
-var FReport: LongInt;
+var FReport: tptr;
     ReportNames: array [0..0] of String;
-#IFDEF _2019_02_13_
+/*
+# IFDEF _2019_02_13_
     ExportParam:String;
-#ELSE
+# ELSE
     ExportParam:frxPDFExportParam;
-#ENDIF
+# ENDIF
+*/
+    ExportParam:String;
     var _Prev_RazDel:word;
 { Result:=False;
   //UpdateTable;
@@ -2760,16 +2770,19 @@ var FReport: LongInt;
         if (count(ReportNames)>0)
         if (FROpenReport(FReport, ReportNames[0]))
         {
-#IFDEF _2019_02_13_
+/*
+# IFDEF _2019_02_13_
           //'Pages=1-5;Picture=False;DeleteEmptyRows=True;OpenAfterExport=True'
           ExportParam:='ShowDialog=False;OpenAfterExport=True';
-#ELSE
+# ELSE
           ClearAdvRecord(ExportParam);
           FRGetDefaultParameters(frExportPDF, ExportParam);
           ExportParam.Pages:='';
           ExportParam.ShowDialog := False;
           ExportParam.OpenAfterExport := True;
-#ENDIF
+# ENDIF
+*/
+          ExportParam:='ShowDialog=False;OpenAfterExport=True';
           if (FRSetParameters(FReport, frExportPDF, ExportParam))
            FRExportReport(FReport, frExportPDF, '');
         } //if (FROpenReport(FReport, ReportNames[0]))

@@ -1,18 +1,3 @@
-//пробуем собрать 31 атлантисом
-
-#warning убрать после перевода всех баз на exe от _2018_10_19_
-
-#if(#__TOOLVERSION__ >= 5005.031)
-#DEFINE _2018_08_12_
-#end
-#if(#__TOOLVERSION__ >= 5005.032)
-#DEFINE _2018_10_19_
-#end
-#if(#__TOOLVERSION__ >= 5005.033)
-#DEFINE _2019_02_13_
-#end
-
-#DEFINE _2019_12_18_
 
 #statusline "statgal"
 #include PreDefs.inc
@@ -41,14 +26,10 @@
 #include DelRaise.inc
 #include BuhConst.inc
 #include KatDoc.inc
-#IFDEF _2018_08_12_
 #include SKK.const
 #include WT.Inc
 #include Otpusk.inc
-#ENDIF
-#IFDEF _2019_02_13_
 #include PrVidoplChoice.inc
-#ENDIF
 end;
 //-----------------------------
 #include GloTypes.inc
@@ -118,18 +99,23 @@ end;
 //Регистрация дополнительных пунктов меню модуля "Управление персоналом"
 //---------------------------------------------------
 #component "GP_Common"
+#include GP_KatPodr_Func.Vih
+#include GP_ODecl.Vih
+#include GP_WorkTable.Vih
 #include GP_Static_Function.Vih
+
+
 #make "Vip\GP_Static_Function.Vip"
 #make "Vip\GP_CreateTune_Common.vip"
 #make "Vip\GP_MenuDynamic.vip"
 #make "Vip\GP_Status.vip"
-#include GP_KatPodr_Func.vih
+//#include GP_KatPodr_Func.vih
 #make "Vip\GP_KatPodr_Func.Vip"
-#include GP_Odecl.Vih
+//#include GP_Odecl.Vih
 #make "Vip\GP_Odecl.Vip"
-#include GP_WorkTable.Vih
+//#include GP_WorkTable.Vih
 #make "Vip\GP_WorkTable.Vip"
-#include GP_TypeDocs.vih
+//#include GP_TypeDocs.vih
 #make "Vip\GP_TypeDocs.vip"
 
 #make "Vip\GP_StatusAccessEdit.vip"
@@ -183,12 +169,14 @@ end;
 #make "Vip\GP_KPI_PersClassEdit.vip"
 #make "Vip\GP_KPI_Raise_StsEdit.vip"
 #make "Vip\GP_KPI_RaiseProc.vip"
+#make "Vip\GP_PickStaffStruct.vip"
 // Мотивация. Проведение оценки
 #make "Vip\GP_KPI_Alg.vip"
 #make "Vip\GP_KPI_ALG_USER_TEST.Vip"
 #make "Vip\GP_KPI_Statements.vip"
 #make "Vip\GP_PickChiefPost.vip"
 #make "Vip\GP_StatementOfEvaluationKPI.vip"
+#make "Vip\GP_PickChiefPost.vip"
 #make "Vip\GP_SummaryStatementKPI.vip"
 // Мотивация. Ведомости
 #make "Vip\GP_KPI_Doc_Base.Vip"

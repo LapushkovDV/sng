@@ -19,7 +19,7 @@ var
    cRec:comp;
    sTitleKod:string;
    sTitleName:string;
-   Marker_vib :Longint;
+   Marker_vib :tptr;
 create view as select tmp_flt_field.*
  , if(FoundMarker(Marker_Vib,tmp_flt_field.nrec),chr(251),'') (FieldName=Picked_Flt)
 

@@ -23,19 +23,19 @@ ObjInterface oiGP_VisibleHidden;
 #doc
   Устанавливает видимость полей
 #end
-Procedure SetVisibleForField(_ContainerId: longint; _sModulName: string; _sInterfaceName: string; _sSubContName: string);
+Procedure SetVisibleForField(_ContainerId: tptr; _sModulName: string; _sInterfaceName: string; _sSubContName: string);
 //------------------------------------------------------------------------------
 #doc
   Процедура возвращает строковый массив наименований субконтейнеров
 #end
-Procedure GetArrSubContName(_ContainerId: longint; var _ArrSubContName: TArrSubContName);
+Procedure GetArrSubContName(_ContainerId: tptr; var _ArrSubContName: TArrSubContName);
 //------------------------------------------------------------------------------
 End;
 //******************************************************************************
 VipInterface GP_VisibleHidden implements oiGP_VisibleHidden
 Licensed ( Free )
 Parameters (
-  ContainerId    : longint;   // указатель корневого контейнера
+  ContainerId    : tptr;   // указатель корневого контейнера
   sModulName     : string;    // Имя модуля
   sInterfaceName : string;    // Имя интерфейса
   sSubContName   : string     // Имя субконтейнера

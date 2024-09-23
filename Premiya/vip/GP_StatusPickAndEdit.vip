@@ -17,7 +17,7 @@ interface GP_StatusPickAndEdit 'Статусы документов', Cyan;
 show(20,5,90,25);
 
 var cCurTypeDoc,cStatus:comp;
-    hMarker:longint;
+    hMarker:tptr;
     Mode:word;
     pMarker:IMarker(Marker) new;
     Status:GP_Status;

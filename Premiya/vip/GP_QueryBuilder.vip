@@ -10,7 +10,8 @@
 
 interface GP_QueryBuilder;
 
-var CurRowNum,ParentRowNum,hStr:longint;
+var CurRowNum,ParentRowNum : longint;
+    hStr:tptr;
     DebugeMode:boolean;
     LogFileName:string;
     IsTmpListVal:boolean;
@@ -113,7 +114,7 @@ procedure AddCondition(s:string;val:variant='');
   AddRow(2,ParentRowNum,MakeCondition(s,val));
 }
 
-procedure AddConditionMarker(s:string;m:longint);
+procedure AddConditionMarker(s:string;m:tptr);
 var i,k,CurParentRowNum:longint;
     cRec:comp;
 {
@@ -146,7 +147,7 @@ procedure AddToWhere(s:string;val:variant='');
   AddRow(3,0,MakeCondition(s,val));
 }
 
-procedure AddToWhereMarker(s:string;m:longint);
+procedure AddToWhereMarker(s:string;m:tptr);
 var i,k,CurParentRowNum:longint;
     cRec:comp;
 {
@@ -178,7 +179,7 @@ procedure AddToGroupBy(s:string);
   AddRow(4,0,s);
 }
 
-function Make(hStr:longint=0;DebugeMode:boolean=false):longint;
+function Make(hStr:tptr=0;DebugeMode:boolean=false):tptr;
 var First:boolean;
     s:string;
 {
@@ -256,7 +257,7 @@ var First:boolean;
   Init;
 }
 
-function MakeCriteriaFromMarker(s:string;m:TPtr):longint;//Сгенерировать текст ограничения из маркера
+function MakeCriteriaFromMarker(s:string;m:TPtr):tptr;//Сгенерировать текст ограничения из маркера
 {
   result:=0;
 
@@ -306,7 +307,7 @@ var i,k:longint;
   result:=true;
 }
 
-procedure AddCriteriaFromMarker(var hStr:longint;s:string;m:TPtr);
+procedure AddCriteriaFromMarker(var hStr:tptr;s:string;m:TPtr);
 var i,k:longint;
     cRec:comp;
 {

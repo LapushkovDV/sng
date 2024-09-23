@@ -30,7 +30,7 @@ Table Struct tmp_Raise
   ,B_JOBTITLE_TXTFIELD :string[150]
   ,B_TAB_NO            :string[50]
   ,B_TAB_NEW           :string[50]
-  ,B_KATNAME           :string[50]//	Кат. перс.
+  ,B_KATNAME           :string[50]//        Кат. перс.
   ,B_KATTYPE           :string[50]//:string[50]//Категория (РСС/Рабочие/Руководители)
   ,B_WORKHOURSPLAN     :double//Отработанное время план
   ,B_WORKHOURSFACT     :double//Отработанное время факт
@@ -87,7 +87,7 @@ Table Struct tmp_Raise
   ,FIO_TXTFIELD:string[50]
   ,JOBTITLE_TXTFIELD :string[150]
   ,TAB_NO            :string[50]
-  ,KATNAME           :string[50]//	Кат. перс.
+  ,KATNAME           :string[50]//        Кат. перс.
   ,KATTYPE           :string[50]//:string[50]//Категория (РСС/Рабочие/Руководители)
   //----------------------------------------------
   ,WORKHOURSPLAN     :double//Отработанное время план
@@ -156,7 +156,7 @@ var
    isFilterRun  :boolean;////признак работы ограничений
    wc_nrec : comp;//  - var_name, тип должен совпадать с типом маркера
    KauMarkerName:string;
-   Marker_Tmp :longint;
+   Marker_Tmp :tptr;
    #mrkfld_(KatPodr)
 
 //----------------------------------
@@ -381,7 +381,7 @@ Function Fill_Tmp_Table:boolean;
       tmp_Raise.B_TAB_NEW           :=GP_KPI_DOC_SP.StrTabn;
       var _sTabn:string=string(Persons.Tabnmb);
       tmp_Raise.B_TAB_NO            :=Substr(_sTabn,1,Length(_sTabn)-3);
-      tmp_Raise.B_KATNAME           :=KlKatego.KOD;//	Кат. перс.
+      tmp_Raise.B_KATNAME           :=KlKatego.KOD;//        Кат. перс.
       tmp_Raise.B_KATTYPE          :=Tmp_Kpi_sum.sortname;//:string[50]//Категория (РСС/Рабочие/Руководители)
       insert current tmp_Raise;
     }
@@ -593,7 +593,7 @@ var ii:word;
     tmp_Raise.FIO_TXTFIELD:=v_imp.tmp_excel.dmcell[wColumn];wColumn++; //10
     tmp_Raise.JOBTITLE_TXTFIELD :=v_imp.tmp_excel.dmcell[wColumn];wColumn++;//11
     tmp_Raise.TAB_NO            :=v_imp.tmp_excel.dmcell[wColumn];wColumn++;//12
-    tmp_Raise.KATNAME           :=v_imp.tmp_excel.dmcell[wColumn];wColumn++;//13	Кат. перс.
+    tmp_Raise.KATNAME           :=v_imp.tmp_excel.dmcell[wColumn];wColumn++;//13        Кат. перс.
     tmp_Raise.KATTYPE           :=Case(v_imp.tmp_excel.dmcell[wColumn];'1':'Рабочие','2':'РСС';'Руководители');//14
     wColumn++;//:=v_imp.tmp_excel.dmcell[wColumn];wColumn++;//15 Категория (РСС/Рабочие/Руководители)
     //------------------------------------

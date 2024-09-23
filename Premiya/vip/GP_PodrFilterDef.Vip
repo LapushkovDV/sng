@@ -17,7 +17,7 @@
 Interface GP_PodrFilterDef ;
 var
  tp_spr :word ;
- marker :longint ;
+ marker :tptr ;
  namefilter :string ;
  logfilekl :boolean;
  logfilenm :string ;
@@ -126,7 +126,7 @@ Procedure SetShot_Name(w : boolean ) ;
 //================================
 // перенести данные из маркера в маркер
 //================================
- procedure MarkCopyMarkers(fromMarker : LongInt ; toMarker : LongInt) ;
+ procedure MarkCopyMarkers(fromMarker : tptr ; toMarker : tptr) ;
   // Копирует данные из маркера fromMarker в маркер toMarker
   var
   i        : LongInt ;
@@ -143,7 +143,7 @@ Procedure SetShot_Name(w : boolean ) ;
 
  } // procedure CopyMarkers
 // перенести в Pick
-Procedure Mark2Pic(fromMarker : LongInt ;wListDest : word) ;
+Procedure Mark2Pic(fromMarker : tptr ;wListDest : word) ;
   var
   i        : LongInt ;
   Item     : Comp ;
@@ -163,7 +163,7 @@ Procedure Mark2Pic(fromMarker : LongInt ;wListDest : word) ;
   }
   setbounds(#PICK)
 }
-Procedure Pic2Mark(toMarker : LongInt ;wListDest : word) ;
+Procedure Pic2Mark(toMarker : tptr ;wListDest : word) ;
 { ClearMarker(toMarker) ;
   resetbounds(#PICK);
   _loop fullcache Pick Where (( Word(wListDest) == Pick.wList ))
@@ -176,10 +176,10 @@ Procedure Pic2Mark(toMarker : LongInt ;wListDest : word) ;
 // перенести данные из заданного маркера в маркер по имени
 //================================
 
-  procedure MarkCopyMyToCat(fromMarker :longint;nmmarker :string) ;
+  procedure MarkCopyMyToCat(fromMarker :tptr;nmmarker :string) ;
   // Копирует данные из маркера DeptMarker в маркер CatalogsMarker
   var
-  CatalogsMarker : LongInt ;
+  CatalogsMarker : tptr ;
   {
   CatalogsMarker := InitMarker(nmmarker, 8, 200, 10) ;
   MarkCopyMarkers(fromMarker, CatalogsMarker) ;
@@ -189,9 +189,9 @@ Procedure Pic2Mark(toMarker : LongInt ;wListDest : word) ;
 //================================
 // перенести данные в заданный маркер из маркера по имени
 //================================
-  procedure MarkCopyCatToMy(fromMarker :longint;nmmarker :string) ;
+  procedure MarkCopyCatToMy(fromMarker :tptr;nmmarker :string) ;
   // Копирует данные из маркера CatalogsMarker в маркер DeptMarker
-  var  CatalogsMarker : LongInt ;
+  var  CatalogsMarker : tptr ;
   {
   CatalogsMarker := InitMarker(nmmarker, 8, 200, 10) ;
   MarkCopyMarkers(CatalogsMarker, fromMarker) ;
@@ -199,7 +199,7 @@ Procedure Pic2Mark(toMarker : LongInt ;wListDest : word) ;
   } // procedure MarkCopyDeptToCat
 
   
-public Function GetPodrFilterName(wMarker :longint ):string  ;
+public Function GetPodrFilterName(wMarker :tptr):string  ;
   var
   i        : LongInt ;
   Item     : Comp ;
@@ -318,7 +318,7 @@ public Function GetPodrFilterName(wMarker :longint ):string  ;
   Stopvisual('',0)
    
 }
-public Function GetPodrFilterName1(wMarker :longint;wwhist:boolean;wdate_hist:date ):string  ;
+public Function GetPodrFilterName1(wMarker :tptr;wwhist:boolean;wdate_hist:date ):string  ;
 var wstr:string ;
 { wstr:=GetPodrFilterName(wMarker) ;
   if wwhist and wpodrfilter>0
@@ -341,7 +341,7 @@ var wstr:string ;
 }
 
 
-public Function GetKatPodrFilterName(wMarker :longint  ):string  ;
+public Function GetKatPodrFilterName(wMarker :tptr  ):string  ;
   var
   i        : LongInt ;
   Item     : Comp ;
