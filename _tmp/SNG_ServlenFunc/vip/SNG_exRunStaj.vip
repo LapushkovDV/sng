@@ -1,0 +1,722 @@
+#include SNG_exRunStaj.vih
+#include RunStaj.vih
+#include CatFunc.vih         // Интерфейс работы с каталогом
+#include StrFunc.vih         // Функции работы со строками
+#doc
+Расчет стажей
+#end
+interface iSNG_exRunStaj;
+
+ create view vexRunStaj
+
+ var
+  cPerson   : comp;
+  cPosition : comp;
+  cRec      : comp;
+  isRunOk   : boolean;
+  BYears    : integer;
+  BMonths   : integer;
+  BDays     : integer;
+  cTypeStaj : comp;
+  DateBeg   : Date;
+  DateEnd   : Date;
+
+  YearsP    : Integer;
+  MonthsP   : Integer;
+  DaysP     : Integer;
+  exBYears  : integer;
+  exBMonths : integer;
+  exBDays   : integer;
+  iCatFunc  : CatalogsFunctions;   // Переменная типа интерфейс CatalogsFunctions
+  iStrFunc  : StringFunctions;     // Переменная типа интерфейс StringFunctions
+
+as select Servlen.nrec
+from
+  Servlen(SlByPosition),
+  ServLen  ServLen1(SlByPosition),
+  Sng_ServlenExt,
+  Catalogs,
+  PERSONS,
+  ServLen ServLenReCalc,
+  ServLen ServLenPerc,
+  North,
+  Klkategs
+where ((
+      cPerson == Servlen.Person           and
+    cPosition == Servlen.Position         and
+ Servlen.nRec == Sng_ServlenExt.servlen
+       ));
+
+
+procedure NRunStajAllSng(PsnNRec : comp; StajNrec : comp; RunDate : date);
+{  // Рассчитывает год, месяц и день стажа
+  var numAlg   : word;
+  var countDay : longint;
+
+  isRunOk         := FALSE;
+  BYears          := 0;
+  BMonths         := 0;
+  BDays           := 0;
+  numAlg          := 0;
+  countDay        := 0;
+
+  cTypeStaj := StajNrec;
+
+  if (Day(RunDate) = 0)
+      RunDate := Cur_Date;
+
+  if (GetFirst Catalogs where ((cTypeStaj == Catalogs.NRec)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  if (cTypeStaj = 0)
+    exit;
+
+  var bLong: boolean = false;
+  var cRec: comp = 0;
+
+  if (GetFirst ServLen where ((PsnNRec == ServLen.Person and
+                                     1 == ServLen.CurRec and
+                             cTypeStaj == ServLen.Position )) = tsOk)
+  {
+    BYears   := ServLen.YearsB;
+    BMonths  := ServLen.MonthsB;
+    BDays    := ServLen.DaysB;
+
+    if (ServLen.FromDate <= RunDate)
+      cRec := ServLen.NRec;
+    else
+      if (GetLast ServLen1 where ((PsnNRec  == ServLen1.Person and
+                                  cTypeStaj == ServLen1.Position and
+                                  (RunDate  >= ServLen1.FromDate))) = tsOk)
+        cRec := ServLen1.NRec;
+  }
+
+  if (cRec = 0)
+  {
+    if ((BYears + BMonths + BDays) > 0)
+      isRunOk := TRUE;
+    exit;
+  }
+  else
+  {
+    BYears   := 0;
+    BMonths  := 0;
+    BDays    := 0;
+  }
+
+  if (GetFirst ServLen where ((cRec == ServLen.NRec)) = tsOk)
+  {
+     if ((ServLen.ToDate <> Date(0,0,0)) and (ServLen.ToDate < RunDate))
+       RunDate := ServLen.ToDate;
+
+    if (GetFirst SNG_ServLenext where (( ServLen.Nrec == SNG_ServLenext.Servlen )) <> tsOk)
+    exit;
+
+
+     case numAlg of
+        0: // Стандартный алгоритм
+            {
+            if (ServLen.FromDate <> Date(0,0,0))
+              {
+              countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                 (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                 (Day(RunDate)   - Day(ServLen.FromDate))) * 1 +
+                                 SNG_ServLenext.YearsB * 360 +
+                                 SNG_ServLenext.MonthsB * 30 +
+                                 SNG_ServLenext.DaysB);
+
+              if (ServLen.ToDate <> Date(0,0,0))
+                 countDay := countDay + 1;
+
+              BYears   := DivI(countDay, 360);
+              BMonths  := DivI(countDay mod 360, 30);
+              BDays    := countDay mod 360 mod 30;
+              }
+            else
+              {
+              BYears   := SNG_ServLenext.YearsB;
+              BMonths  := SNG_ServLenext.MonthsB;
+              BDays    := SNG_ServLenext.DaysB;
+              }
+            }
+          6: // По дням
+          {
+            if (ServLen.FromDate <> Date(0,0,0)) and (ServLen.ToDate <> Date(0,0,0))
+              BDays := CalcDaysBetweenDates(ServLen.FromDate, RunDate, false) + SNG_ServLenext.DaysB;
+            else
+              BDays := SNG_ServLenext.DaysB;
+          }
+      end; //case
+
+      isRunOk := TRUE;
+  }
+
+  if (BYears < 0)
+    BYears := 0;
+  if (BMonths < 0)
+    BMonths := 0;
+  if (BDays < 0)
+    BDays := 0;
+}
+
+
+public procedure ReCalcStajSng(PsnNRec : comp; cPosition : comp);
+  {
+  // проверка корректности периодов
+
+  var numAlg  : word;
+  var isFirst : boolean = TRUE;           // первый проход
+  var oldDateBeg: date;
+  var oldDateEnd: date;
+
+  oldDateBeg := Date(0, 0, 0);
+  oldDateEnd := Date(0, 0, 0);
+  numAlg     := 0;
+
+  if (GetFirst Persons where ((PsnNRec == Persons.NRec)) = tsOk) {}
+
+  if (GetFirst Catalogs where ((cPosition == Catalogs.NRec)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  _loop ServLenReCalc where ((PsnNRec   == ServLenReCalc.Person    and // сведения о стаже
+               (slStaffServLenCur       = ServLenReCalc.CurRec     or
+                slStaffServLenOld       = ServLenReCalc.CurRec)    and
+                              cPosition == ServLenReCalc.Position)) ordered by index SlByPosition
+    {
+    if (day(ServLenReCalc.FromDate) = 0 and day(ServLenReCalc.ToDate) = 0)
+     continue;
+
+    if (day(ServLenReCalc.ToDate) <> 0 and ServLenReCalc.FromDate > ServLenReCalc.ToDate)
+      displ(Persons.FIO + '. ' + Catalogs.Name + '. Обнаружен период с некорректными датами: ' +
+            string(ServLenReCalc.FromDate) + ' - ' + string(ServLenReCalc.ToDate));
+
+    if (isFirst <> TRUE)
+    {
+      if (iStrFunc.isCrossPeriod(ServLenReCalc.FromDate, ServLenReCalc.ToDate, oldDateBeg, oldDateEnd) = TRUE)
+        displ(Persons.FIO + '. ' + Catalogs.Name + '. Обнаружено пересечение периодов: ' + string(oldDateBeg) + ' - ' + string(oldDateEnd)
+              + ' и ' + string(ServLenReCalc.FromDate) + ' - ' + string(ServLenReCalc.ToDate));
+    }
+    else
+      isFirst := FALSE;
+
+    oldDateBeg := ServLenReCalc.FromDate;
+    oldDateEnd := ServLenReCalc.ToDate;
+  }
+
+  var allDay: integer;
+  var oldYearsE: integer;
+  var oldMonthsE: integer;
+  var oldDaysE: integer;
+  var calcDate: date;
+  var NRecLast: comp;
+
+  isFirst := TRUE;           // первый проход
+  oldYearsE := 0;
+  oldMonthsE := 0;
+  oldDaysE := 0;
+
+  if (GetLast ServLenReCalc where ((PsnNRec   == ServLenReCalc.Person    and // сведения о стаже
+                     (slStaffServLenCur       = ServLenReCalc.CurRec     or
+                      slStaffServLenOld       = ServLenReCalc.CurRec)    and
+                                    cPosition == ServLenReCalc.Position)) ordered by index SlByPosition = tsOk)
+    NRecLast := ServLenReCalc.NRec;
+  else
+    NRecLast := 0;
+
+  _loop ServLenReCalc where ((PsnNRec   == ServLenReCalc.Person    and // сведения о стаже
+               (slStaffServLenCur       = ServLenReCalc.CurRec     or
+                slStaffServLenOld       = ServLenReCalc.CurRec)    and
+                              cPosition == ServLenReCalc.Position)) ordered by index SlByPosition
+  {
+
+    if (GetFirst SNG_ServLenext where (( ServLenReCalc.Nrec == SNG_ServLenext.Servlen )) <> tsOk) exit;
+
+    if (isFirst = FALSE)
+    {
+      set SNG_ServLenext.YearsB  := oldYearsE;
+      set SNG_ServLenext.MonthsB := oldMonthsE;
+      set SNG_ServLenext.DaysB   := oldDaysE;
+    }
+
+    if (day(ServLenReCalc.ToDate) = 0)
+      calcDate := Cur_Date;
+    else
+      calcDate := ServLenReCalc.ToDate;
+
+    if (ServLenReCalc.Nrec = NRecLast)
+      set ServLenReCalc.CurRec   := slStaffServLenCur;
+    else
+      set ServLenReCalc.CurRec   := slStaffServLenOld;
+
+
+       case numAlg of
+          0: // Стандартный алгоритм
+              {
+              allDay := longint(((Year(calcDate)  - Year(ServLenReCalc.FromDate)) * 360 +
+                               (Month(calcDate) - Month(ServLenReCalc.FromDate)) * 30 +
+                               (Day(calcDate)   - Day(ServLenReCalc.FromDate))) *
+                               1 + SNG_ServLenext.YearsB * 360  +
+                               SNG_ServLenext.MonthsB * 30 + SNG_ServLenext.DaysB);
+              if (day(ServLenReCalc.ToDate) <> 0)
+                 allDay := allDay + 1;
+
+              if (ServLenReCalc.FromDate = Date(0, 0, 0) and ServLenReCalc.ToDate = Date(0, 0, 0))
+              {
+                set SNG_ServLenext.YearsE  := SNG_ServLenext.YearsB;
+                set SNG_ServLenext.MonthsE := SNG_ServLenext.MonthsB;
+                set SNG_ServLenext.DaysE   := SNG_ServLenext.DaysB;
+              }
+              else if (ServLenReCalc.ToDate = Date(0, 0, 0) and ServLenReCalc.Nrec = NRecLast)
+              {
+                set SNG_ServLenext.YearsE  := 0;
+                set SNG_ServLenext.MonthsE := 0;
+                set SNG_ServLenext.DaysE   := 0;
+              }
+              else
+              {
+                set SNG_ServLenext.YearsE  := DivI(allDay, 360);
+                set SNG_ServLenext.MonthsE := DivI(allDay mod 360, 30);
+                set SNG_ServLenext.DaysE   := allDay mod 30;
+              }
+
+              oldYearsE   := SNG_ServLenext.YearsE;
+              oldMonthsE  := SNG_ServLenext.MonthsE;
+              oldDaysE    := SNG_ServLenext.DaysE;
+
+              isFirst := FALSE;
+
+              if (update current SNG_ServLenext <> tsOk) {  }
+
+
+              }
+          6: // По дням
+          {
+            if (ServLenReCalc.FromDate = Date(0, 0, 0) and ServLenReCalc.ToDate = Date(0, 0, 0))
+              set SNG_ServLenext.DaysE := SNG_ServLenext.DaysB;
+            else if (ServLenReCalc.ToDate = Date(0, 0, 0) and ServLenReCalc.Nrec = NRecLast)
+              set SNG_ServLenext.DaysE := 0;
+            else
+              set SNG_ServLenext.DaysE := CalcDaysBetweenDates(ServLenReCalc.FromDate, calcDate, false) + SNG_ServLenext.DaysB;
+
+            oldDaysE := SNG_ServLenext.DaysE;
+
+            isFirst := FALSE;
+
+            if (update current SNG_ServLenext <> tsOk) {  }
+          }
+
+        end; //case
+
+    } // end _loop
+  }
+
+
+function SmartPartSng(_value: integer; _variant1, _variant2, _variant3: string): string;
+{
+  result := '';
+
+  if (_value = 0)
+    exit;
+
+  if (_value > 0)
+    result := string(_value) + ' ';
+
+  if (_value = 1)
+    result += _variant1;
+  else
+    if (_value < 5)
+      result += _variant2;
+    else
+      if (_value < 21)
+        result += _variant3;
+      else
+      {
+        var rest: integer;
+        rest := _value mod 10;
+
+        if (rest = 1)
+          result += _variant1;
+        else
+          if (rest > 1) and (rest < 5)
+            result += _variant2;
+          else
+            result += _variant3;
+      }
+}
+
+procedure NRunStajAllForDateSng(PsnNRec : comp; StajNrec : comp; RunDate : date; bOnDate: boolean = false);
+  {  // Рассчитывает год, месяц и день стажа
+  var numAlg   : word;
+  var countDay : longint;
+  var cNRec    : comp;
+  var dCalc    : date;
+
+  cNRec := 0;
+
+  isRunOk         := FALSE;
+  BYears          := 0;
+  BMonths         := 0;
+  BDays           := 0;
+  numAlg          := 0;
+  countDay        := 0;
+
+  cTypeStaj := StajNrec;
+
+  if (Day(RunDate) = 0)
+      RunDate := Cur_Date;
+
+  if (GetFirst Catalogs where ((cTypeStaj == Catalogs.NRec)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  dCalc := date(0, 0, 0);
+
+  _loop ServLen where (( PsnNRec   == ServLen.Person and
+                         cTypeStaj == ServLen.Position ))
+    if ( RunDate >= ServLen.FromDate )
+      {
+        if ( ServLen.FromDate > dCalc )
+          {
+            cNRec := ServLen.NRec;
+            dCalc := ServLen.FromDate;
+          }
+      }
+
+  if ( cTypeStaj <> 0 )
+    if GetFirst ServLen
+           where ((cNRec == ServLen.NRec )) = tsOk
+        {
+          if ( ( ServLen.ToDate <> Date(0,0,0) )  and
+               ( ServLen.ToDate < RunDate) )
+          {
+            RunDate := ServLen.ToDate;
+          }
+
+      if (GetFirst SNG_ServLenext where (( ServLen.Nrec == SNG_ServLenext.Servlen )) <> tsOk) exit;
+
+       case numAlg of
+          0: // Стандартный алгоритм
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                   (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                   (Day(RunDate)   - Day(ServLen.FromDate))) * 1 +
+                                   SNG_ServLenext.YearsB * 360 +
+                                   SNG_ServLenext.MonthsB * 30 +
+                                   SNG_ServLenext.DaysB);
+
+                if (ServLen.ToDate <> Date(0,0,0)) or (bOnDate)
+                   countDay := countDay + 1;
+
+                BYears   := DivI(countDay, 360);
+                BMonths  := DivI(countDay mod 360, 30);
+                BDays    := countDay mod 360 mod 30;
+                }
+              else
+                {
+                BYears   := SNG_ServLenext.YearsB;
+                BMonths  := SNG_ServLenext.MonthsB;
+                BDays    := SNG_ServLenext.DaysB;
+                }
+              }
+          6: // По дням
+          {
+            if (ServLen.FromDate <> Date(0,0,0)) and (ServLen.ToDate <> Date(0,0,0))
+              BDays := CalcDaysBetweenDates(ServLen.FromDate, RunDate, false) + SNG_ServLenext.DaysB;
+            else
+              BDays := SNG_ServLenext.DaysB;
+          }
+        end; //case
+
+        isRunOk := TRUE;
+        }
+
+  if (BYears < 0)
+    BYears := 0;
+  if (BMonths < 0)
+    BMonths := 0;
+  if (BDays < 0)
+    BDays := 0;
+  }
+
+
+#doc
+Значение длительности стажа в виде строки 'XX лет XX месяцев XX дней'
+#end
+public function NRunStrStajSmartSng(PsnNRec, StajNrec: comp; RunDate: date): string;
+{
+  result := '';
+
+  NRunStajAllSng(PsnNRec, StajNrec, RunDate);
+
+  if (isRunOk)
+    result := SmartPartSng(BYears,  'год ', 'года ', 'лет ') +
+              SmartPartSng(BMonths, 'месяц ', 'месяца ', 'месяцев ') +
+              SmartPartSng(BDays,   'день', 'дня', 'дней');
+}
+
+#doc
+Значение длительности стажа в виде строки 'XX лет XX месяцев XX дней на дату'
+#end
+public function NRunStrStajSmartForDateSng(PsnNRec, StajNrec: comp; RunDate: date): string;
+{
+  result := '';
+
+  NRunStajAllForDateSng(PsnNRec, StajNrec, RunDate, true);
+
+  if (isRunOk)
+    result := SmartPartSng(BYears,  'год ', 'года ', 'лет ') +
+              SmartPartSng(BMonths, 'месяц ', 'месяца ', 'месяцев ') +
+              SmartPartSng(BDays,   'день', 'дня', 'дней');
+}
+
+public function GetAllStajYears(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+{  result := 0;
+   NRunStajAllSng(PsnNRec, StajNrec, RunDate);
+   result := BYears;
+}
+public function GetAllStajMonths(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+{  result := 0;
+   NRunStajAllSng(PsnNRec, StajNrec, RunDate);
+   result := BMonths;
+}
+public function GetAllStajDays(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+{  result := 0;
+   NRunStajAllSng(PsnNRec, StajNrec, RunDate);
+   result := BDays;
+}
+
+//**********************************************************************************************
+
+public function NGetStajYearsSng(PsnNRec : comp; StajNrec : comp; RunDate : date) : word;
+  {  // Возвращает количество лет в стаже
+  result := 0;
+  var vSysCode : integer = 0;
+  var iExRunStajSNG : iSNG_exRunStaj;
+  var iRunStaj  : RunStaj;
+
+  cTypeStaj := StajNrec;
+
+  if (GetFirst Catalogs where ((cTypeStaj == Catalogs.NRec)) = tsOk) vSysCode := Catalogs.SysCode;
+
+  case vSysCode of
+   64,9132:
+    {
+      BYears := GetAllStajYears(PsnNRec, StajNrec, RunDate);
+    }
+    else
+    {
+      BYears := iRunStaj.NGetStajYears(PsnNRec, StajNrec, RunDate);
+    }
+  end; //case
+
+   result := BYears;
+
+  }
+
+public function NGetStajMonthsSng(PsnNRec : comp; StajNrec : comp; RunDate : date) : word;
+  {  // Возвращает количество лет в стаже
+  result := 0;
+  var vSysCode : integer = 0;
+  var iExRunStajSNG : iSNG_exRunStaj;
+  var iRunStaj  : RunStaj;
+
+  cTypeStaj := StajNrec;
+
+  if (GetFirst Catalogs where ((cTypeStaj == Catalogs.NRec)) = tsOk) vSysCode := Catalogs.SysCode;
+
+  case vSysCode of
+   64,9132:
+    {
+      BMonths := GetAllStajMonths(PsnNRec, StajNrec, RunDate);
+    }
+    else
+    {
+      BMonths := iRunStaj.NGetStajMonths(PsnNRec, StajNrec, RunDate);
+    }
+  end; //case
+
+   result := BMonths;
+  }
+
+public function NGetStajDaysSng(PsnNRec : comp; StajNrec : comp; RunDate : date) : word;
+  {  // Возвращает количество лет в стаже
+  result := 0;
+  var vSysCode : integer = 0;
+  var iExRunStajSNG : iSNG_exRunStaj;
+  var iRunStaj  : RunStaj;
+
+  cTypeStaj := StajNrec;
+
+  if (GetFirst Catalogs where ((cTypeStaj == Catalogs.NRec)) = tsOk) vSysCode := Catalogs.SysCode;
+
+  case vSysCode of
+   64,9132:
+    {
+      BDays := GetAllStajDays(PsnNRec, StajNrec, RunDate);
+    }
+    else
+    {
+     BDays := iRunStaj.NGetStajDays(PsnNRec, StajNrec, RunDate);
+    }
+  end; //case
+
+  result := BDays;
+  }
+
+public Function GetPercServNSng(PsnNRec : comp; LSchetKateg : comp; RunDate : date) : double;
+ {
+
+
+    var ServLenYears  : integer = 0;
+    var ServLenMonths : integer = 0;
+    var ServLenDays   : integer = 0;
+    var iSysCode      : integer = 0;
+
+    var ServLenYears_0064  : integer = 0;
+    var ServLenMonths_0064 : integer = 0;
+    var ServLenDays_0064   : integer = 0;
+
+    var ServLenYears_9132  : integer = 0;
+    var ServLenMonths_9132 : integer = 0;
+    var ServLenDays_9132   : integer = 0;
+
+    GetPercServNSng  := 0.0;
+
+//Begin PArt1 <<< --------------------------------------------------------------------------------------------
+  iSysCode := 64;
+
+  if (GetFirst Persons where ((PsnNRec == Persons.NRec)) = tsOk)
+    if (GetFirst Catalogs where ((iSysCode == Catalogs.SysCode)) = tsOk)
+      if (GetFirst ServLenPerc where (( PsnNRec == ServLenPerc.Person    and // сведения о стаже
+                          slStaffServLenCur == ServLenPerc.CurRec    and
+                              Catalogs.Nrec == ServLenPerc.Position )) = tsOk)
+        {
+          var cCat: comp = Catalogs.Nrec;
+
+          if (boGetTune('UP.ZAR.SEV.SETARCH')) and (not boGetTune('UP.ZAR.SEV.RKS'))
+          {
+            ServLenYears_0064 := NGetStajYearsSng(PsnNRec, cCat, RunDate);
+            ServLenMonths_0064 := NGetStajMonthsSng(PsnNRec, cCat, RunDate);
+            ServLenDays_0064 := NGetStajDaysSng(PsnNRec, cCat, RunDate);
+          }
+          else
+          {
+            if (ServLenPerc.ToDate <> Date(0,0,0))
+            {
+              ServLenYears_0064  := ServLenPerc.YearsE;
+              ServLenMonths_0064 := ServLenPerc.MonthsE;
+              ServLenDays_0064   := ServLenPerc.DaysB;
+            }
+            else
+            {
+              ServLenYears_0064 := StajYears(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                        ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+              ServLenMonths_0064 := StajMonths(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                          ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+              ServLenDays_0064 := StajDays(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                      ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+            }
+          }
+        }
+//  End PArt1 >>> --------------------------------------------------------------------------------------------
+//Begin PArt2 <<< --------------------------------------------------------------------------------------------
+  iSysCode := 9132;
+
+  if (GetFirst Persons where ((PsnNRec == Persons.NRec)) = tsOk)
+    if (GetFirst Catalogs where ((iSysCode == Catalogs.SysCode)) = tsOk)
+      if (GetFirst ServLenPerc where (( PsnNRec == ServLenPerc.Person    and // сведения о стаже
+                          slStaffServLenCur == ServLenPerc.CurRec    and
+                              Catalogs.Nrec == ServLenPerc.Position )) = tsOk)
+        {
+          var cCat: comp = Catalogs.Nrec;
+
+          if (boGetTune('UP.ZAR.SEV.SETARCH')) and (not boGetTune('UP.ZAR.SEV.RKS'))
+          {
+            ServLenYears_9132 := NGetStajYearsSng(PsnNRec, cCat, RunDate);
+            ServLenMonths_9132 := NGetStajMonthsSng(PsnNRec, cCat, RunDate);
+            ServLenDays_9132 := NGetStajDaysSng(PsnNRec, cCat, RunDate);
+          }
+          else
+          {
+            if (ServLenPerc.ToDate <> Date(0,0,0))
+            {
+              ServLenYears_9132  := ServLenPerc.YearsE;
+              ServLenMonths_9132 := ServLenPerc.MonthsE;
+              ServLenDays_9132   := ServLenPerc.DaysB;
+            }
+            else
+            {
+              ServLenYears_9132 := StajYears(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                        ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+              ServLenMonths_9132 := StajMonths(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                          ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+              ServLenDays_9132 := StajDays(ServLenPerc.FromDate, RunDate, ServLenPerc.Rate,
+                                      ServLenPerc.DaysB, ServLenPerc.MonthsB, ServLenPerc.YearsB);
+            }
+          }
+        }
+//  End PArt2 >>> --------------------------------------------------------------------------------------------
+   var p1_y : double = 0;
+   var p2_m : double = 0;
+   var p3_d : double = 0;
+
+  if (GetFirst Klkategs where((LSchetKateg == Klkategs.Kod)) = tsOk)
+  {
+    case KlKategs.LastTime of
+      13: iSysCode := 9132;
+      else
+          iSysCode := 64;
+    end;
+  }
+   if (iSysCode = 64){
+
+   p1_y := ServLenDays_9132 / 360 ;
+
+   p2_m := ( ServLenDays_9132 - ( p1_y * 360 ) )/ (30);
+
+   p3_d :=  ServLenDays_9132 - (p1_y * 360) - (p2_m * (30));
+
+   ServLenYears := integer( ServLenYears_0064 + p1_y ) ;
+   ServLenMonths:= integer( ServLenMonths_0064 + p2_m );
+   ServLenDays  := integer( ServLenDays_0064 + p3_d );
+   }else{
+
+   ServLenDays := ServLenDays_9132 + integer(( ServLenYears_0064 * 360 ) + ( ServLenMonths_0064 * 30  ) + ServLenDays_0064);
+   }
+
+      if (iSysCode = 64)
+          {
+            if (ServLenDays > 0)
+              ServLenMonths++;
+
+            if (ServLenMonths = 13)
+            {
+              ServLenYears++;
+              ServLenMonths := 0;
+            }
+
+            if (GetFirst North where (( LSchetKateg == North.kateg and
+                                        ((ServLenYears = North.EndInt and
+                                          ServLenMonths <= North.MonthInt) or
+                                          ServLenYears < North.EndInt) )) = tsOk)
+              GetPercServNSng := North.Proc;
+          }
+          else
+          {
+            var tmpDays: longint = 0;
+
+            _loop North where (( LSchetKateg == North.kateg and
+                                 ServLenDays << North.DaysN(NoIndex) ))
+            {
+              if (tmpDays = 0) or (North.DaysN < tmpDays)
+              {
+                tmpDays := North.DaysN;
+                GetPercServNSng := North.Proc;
+              }
+            }
+          }
+
+}
+
+end.

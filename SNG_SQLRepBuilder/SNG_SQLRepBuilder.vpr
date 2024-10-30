@@ -162,8 +162,8 @@
 		<ActiveIndex>1</ActiveIndex>
 		<FileList>
 			<File Name="SNG_SQLRepBuilder.prj" PosX="18" PosY="61" OpenEditor="True"/>
-			<File Name="vip\SQLRunReport.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\SQLBuildReport.vip" PosX="69" PosY="200" OpenEditor="True" Active="True"/>
+			<File Name="vip\SQLRunReport.vip" PosX="55" PosY="118" OpenEditor="True" Active="True"/>
+			<File Name="vip\SQLBuildReport.vip" PosX="21" PosY="1525" OpenEditor="True"/>
 			<File Name="vip\SQLFilts.vip" PosX="82" PosY="316" OpenEditor="True"/>
 			<File Name="vip\SQLSetFilts.vip" PosX="48" PosY="226" OpenEditor="True"/>
 		</FileList>

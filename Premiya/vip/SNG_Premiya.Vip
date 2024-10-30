@@ -1,0 +1,913 @@
+/*************************************************************************************************\
+   |\---/|
+   | ,_, |
+    \_`_/-..----.
+ ___/ `   ' ,""+ \
+(__...'   __\    |`.___.';
+  (_,...'(_,.`__)/'...../
+
+\*************************************************************************************************/
+#include Query.vih
+
+#include CLSFuncs.vih // ф-ии пересканирования текущих л/с
+#include PAFilter.vih
+#component "SNG_PREMIYA"
+Interface Premiya;
+//table struct tCurLschet = CurLschet;
+table struct tLschetFiltr (
+  nrec : comp
+)
+with index (
+ ind0 = nrec
+);
+table struct tDolj (
+   doljNrec : comp
+ , percent : double
+)
+with index (
+ ind0 = doljNrec
+);
+Table struct tKatego (
+   KategKod : comp
+ , percent : double
+)
+with index (
+ ind0 = KategKod
+);
+Table struct tZakaz (
+   ZakazNrec : comp
+ , percent : double
+)
+with index (
+ ind0 = ZakazNrec
+);
+
+table struct tLschetAll(
+   persNrec      : comp
+ , LschetNrec    : comp
+ , PodrNrec      : comp
+ , KategKod      : word
+ , DoljNrec      : comp
+ , ZakazNrec     : comp
+ , is37Vxodimost : word
+ , isPremSovmest : word
+ , isPremStajir  : word
+ , isPremRemont  : word
+ , Summa         : double
+ , NachDatan     : date
+ , NachDatOk     : date
+ , NachCEXOZ     : comp
+ , NachCPODR     : comp
+ , NachCPODROZ   : comp
+ , NachCSCHETD   : string[20]
+ , NachCSUBSCHD  : string[21]
+ , NachCKAUD1    : comp
+ , NachTBLD1     : word
+ , NachTBLD2     : word
+ , DaysF         : double
+ , ChasF         : double
+)
+with index (
+   ind0 = LschetNrec
+ , ind1 = KategKod
+ , ind2 = DoljNrec
+ , ind3 = ZakazNrec
+ , ind4 = persNrec + LschetNrec + PodrNrec + KategKod + DoljNrec + ZakazNrec
+);
+
+table struct tLschet(
+   persNrec      : comp
+ , LschetNrec    : comp
+ , PodrNrec      : comp
+ , KategKod      : word
+ , DoljNrec      : comp
+ , ZakazNrec     : comp
+ , is37Vxodimost : word
+ , isPremSovmest : word
+ , isPremStajir  : word
+ , isPremRemont  : word
+ , Summa         : double
+ , NachDatan     : date
+ , NachDatOk     : date
+ , DaysF         : double
+ , ChasF         : double
+ , Percent_37Vxodimost : double
+ , percent_PremStajir  : double
+ , percent_PremRemont  : double
+)
+with index (
+   ind0 = LschetNrec
+ , ind1 = KategKod
+ , ind2 = DoljNrec
+ , ind3 = ZakazNrec
+ , ind4 = persNrec + LschetNrec + PodrNrec + KategKod + DoljNrec + ZakazNrec
+);
+
+Create view
+var
+    sUserName
+//  , fPodr
+  , _LogFile_debug     : string;
+    _PercentType : byte;
+    Marker_KatPodr : tptr;
+
+    _oldZAR_USER_GRUPSTN : word;
+
+    _percPremStajirovka
+  , _persPremRemontTO   : double;
+
+
+    LastCurCex
+  , lcKatPodrFlt
+  , _cAttrnamDoplata : Comp;
+    _datePrem    : date;
+    CLF          : CurLSFunctions;
+    PAF          : TraditionalPersonalAccountFilter new; // индивидуальная загрузка, так как можем работать как по уволенным, так и по стандартному разделителю
+   _PercentAll : double;
+      (
+         FilterByDepartment
+       , FilterByPersons
+      )
+ as select
+       PAF.GetDepartmentFilterStr
+     , PAF.GetPersonalAccountFilterStr
+     , ZAR_USER.GRUPSTN
+from
+   ZAR_USER
+// , KatPodr KatPodrF
+ , CurLSchet
+ , persons
+ , KatPodr
+ , KlKatego
+ , KlKatego Kateg_sel
+ , Catalogs Dolj
+ , Catalogs Dolj_sel
+ , lschet lschet_1
+ , doplata
+ , spkau Zakaz
+ , spkau Zakaz_sel
+ , ForMarks
+ , attrnam
+ , attrval
+
+ , tLschet
+ , tLschet tLschet_br
+ , tLschetAll
+ , tDolj
+ , tKatego
+ , tZakaz
+ , tLschetFiltr
+// , tCurLschet
+where ((
+               UserName    == ZAR_USER.OWNNAME
+  and tLschet_br.persNrec  == Persons.nrec
+  and tLschet_br.LschetNrec == lschet.nrec
+  and tLschet_br.PodrNrec  == KatPodr.Nrec
+  and tLschet_br.KategKod  == KlKatego.kod
+  and tLschet_br.DoljNrec  == Dolj.nrec
+  and tLschet_br.ZakazNrec == Zakaz.nrec
+
+  and tKatego.KategKod == Kateg_sel.kod
+    and tDolj.doljNrec == Dolj_sel.nrec
+  and tZakaz.ZakazNrec == Zakaz_sel.nrec
+))
+;
+Function GenerateNewFile: string;
+{
+ result := GetStringParameter('Files','OutputFilesDirectory',0)+ '\Premiya_'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS');
+}
+function GetLogFile_debug: string; {
+ if _LogFile_debug = '' then _LogFile_debug := GenerateNewFile + '_debug.log';
+ result := _LogFile_debug;
+}
+
+Procedure MyLog(_str: string);{
+   //debug
+   LogStrToFile(GetLogFile_debug, DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS') + ': ' + _str);
+}
+
+Procedure MysqlAddStr(var query_handle: tptr; add_query_str: string);
+{
+   sqlAddStr(query_handle, add_query_str);
+   MyLog('sql: ' + add_query_str);
+} //Function MysqlAddStr(var query_handle: longInt; add_query_str: string): longInt;
+/*
+Function GetFiltrName : string;
+{
+  result := '';
+  var cnt : longint; cnt := GetMarkerCount(Marker_KatPodr);
+
+  if (cnt = 1)
+  {
+      var cr : comp;
+      GetMarker(Marker_KatPodr, 0, cr);
+      if (getfirst KatPodrF where (( cr == KatPodrF.Nrec ))= tsOk)
+         result := KatPodrF.Name;
+  }
+  else
+  if lcKatPodrFlt <> 0
+  {
+     if (getfirst KatPodrF where (( lcKatPodrFlt == KatPodrF.Nrec ))= tsOk)
+        result := KatPodrF.Name;
+  }
+  else
+  if cnt = 0
+    result := 'Все подразделения'
+  else
+    result := 'Выбрано: ' + string(cnt);
+}
+
+
+ Function GetInterfaceName:string; {
+   Result:=#(__InterfaceName__);
+}
+*/
+
+procedure FilltLschet;{
+ StartNewVisual(vtRotateVisual, vfTimer,'Выполнение запроса',0);
+
+
+  delete all tLschetAll;
+  delete all tLschet;
+  delete all tKatego;
+  delete all tDolj;
+  delete all tZakaz;
+  delete all tLschetFiltr;
+
+  var objQuery: iQuery;
+  var _qryID   : tPtR;
+  var oResultSet : IResultSet;
+/*
+     Marker_KatPodr := InitMarker(GetInterfaceName + 'PremiyaPodrFiltr', 8, 100, 10);
+     var _i : longint = 0;
+      For(_i:=0;_i<GetMarkerCount(Marker_KatPodr);_i++) {
+       var _cRec : comp = 0h;
+        if not GetMarker(Marker_KatPodr, _i, _cRec)  continue;
+        insert tPodrFiltr set tPodrFiltr.nrec := _cRec;
+      }
+     DoneMarker(Marker_KatPodr, GetInterfaceName + 'PremiyaPodrFiltr');
+*/
+//delete all tCurLschet;
+/*
+           _loop CurLSchet {
+            insert tLschetFiltr set tLschetFiltr.nrec := CurLschet.CLSCHET;
+//            tCurLschet.buffer = type$tCurLschet(CurLschet.buffer);
+//            insert current tCurLschet;
+            mylog('CurLschet.CLSCHET' +string(CurLschet.CLSCHET)+ ' tLschetFiltr.fio = ' + string(CurLSchet.fio,0,0) + '  CURFILTER = ' + CurLSchet.CURFILTER);
+          }
+*/
+           _loop ForMarks where ((0 == ForMarks.choice)){
+
+//            tCurLschet.buffer = type$tCurLschet(CurLschet.buffer);
+            insert tLschetFiltr set tLschetFiltr.nrec := ForMarks.CLSCHET;
+            //mylog('ForMarks.CLSCHET' +string(ForMarks.CLSCHET)+ ' ForMarks.choice = ' + string(ForMarks.choice));
+          }
+
+
+
+//     putTableToDBF(#tCurLschet, GetStringParameter('Files','OutputFilesDirectory',0)+ '\tCurLschet'+DateToStr(cur_date,'YYYYMMDD')+'_'+timetostr(cur_time,'HHMMSS-SSS')+'.dbf', ptfFullTable);
+
+       var sID_table : string= 'Premiya'+ DateToStr(Cur_Date, 'YYMMDD') + TimeToStr(Cur_Time, 'HHMMSSSSS');
+
+
+       var sql_result : word = sqlFlushIntoTmp(tntLschetFiltr
+                                    , sID_table
+                                    , Fit_Create + Fit_Truncate + Fit_ByName);
+        if sql_result <> tsOk {
+          MyLog('ошибка при копировании во временную таблицу '+sID_table+'. Код ошибки: [' + string(Sql_result) + '].');
+          message('не удалось записать данные во временную таблицу sID_table',error);
+          exit;
+        }
+
+
+        sqlFreeStr(_qryID);
+        _qryID := 0;
+          if VisualizationActive then setvisualheader('заполнение полей запроса');
+        MysqlAddStr(_qryID, '          select  ');
+        MysqlAddStr(_qryID, '            pers.nrec       as persNrec  ');
+        MysqlAddStr(_qryID, '          , Nach.CLSCH      as LschetNrec');
+        MysqlAddStr(_qryID, '          , podr.nrec       as PodrNrec  ');
+        MysqlAddStr(_qryID, '          , kateg.KOD       as KategKod  ');
+        MysqlAddStr(_qryID, '          , dolj.nrec       as DoljNrec    ');
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] = ''+''     then 1 else 0 end as is37Vxodimost');
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(269)     then 1 else 0 end as isPremSovmest'); // премия совместителям
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(216,313) then 1 else 0 end as isPremStajir '); // премия на стажировку
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(210,213) then 1 else 0 end as isPremRemont '); // премия на ремонт и ТО
+
+        MysqlAddStr(_qryID, '          , nach.CEXOZ      as NachCEXOZ   ');
+        MysqlAddStr(_qryID, '          , nach.CPODROZ    as NachCPODROZ ');
+        MysqlAddStr(_qryID, '          , nach.CSCHETD    as NachCSCHETD ');
+        MysqlAddStr(_qryID, '          , nach.CSUBSCHD   as NachCSUBSCHD');
+        MysqlAddStr(_qryID, '          , nach.CKAUD[1]   as NachCKAUD1  ');
+        MysqlAddStr(_qryID, '          , nach.CKAUD[2]   as ZakazNrec   ');
+        MysqlAddStr(_qryID, '          , nach.TBLD[1]    as NachTBLD1   ');
+        MysqlAddStr(_qryID, '          , nach.TBLD[2]    as NachTBLD2   ');
+
+        MysqlAddStr(_qryID, '          , min(nach.datan)      as NachDatan ');
+        MysqlAddStr(_qryID, '          , max(nach.datok)      as NachDatOk ');
+        MysqlAddStr(_qryID, '          , sum(nach.SUMMA) as Summa     ');
+        MysqlAddStr(_qryID, '          , max(nach.KOLDN) as DaysF     ');
+        MysqlAddStr(_qryID, '          , max(nach.CHASF) as ChasF     ');
+        MysqlAddStr(_qryID, '          from PERSONS pers                              ');
+        MysqlAddStr(_qryID, '          join Nachisl nach on nach.TPERSON = pers.nrec  ');
+        MysqlAddStr(_qryID, '          join KLVIDOPL vo    on nach.vidopl = vo.vidoplp ');
+        MysqlAddStr(_qryID, '          join katpodr podr on podr.nrec = nach.cex      ');
+//        MysqlAddStr(_qryID, '          left join spkau zak on zak.nrec = nach.CKAUD[2]');
+        MysqlAddStr(_qryID, '          join klkatego kateg on kateg.KOD = nach.KATEG  ');
+        MysqlAddStr(_qryID, '          join catalogs dolj on dolj.nrec = nach.CAPPOINT');
+        MysqlAddStr(_qryID, '                                                         ');
+        MysqlAddStr(_qryID, '          where  nach.MESN =  '+string(month(_datePrem))+' ');
+        MysqlAddStr(_qryID, '            and nach.YEARN = ' +string(year(_datePrem))+ ' ');
+//        MysqlAddStr(_qryID, '            and Nach.CLSCH in (select CURLSCHET.CLSCHET from CURLSCHET) ');
+        MysqlAddStr(_qryID, '            and Nach.CLSCH in (select '+sID_table+'.nrec from '+sID_table+') ');
+        MysqlAddStr(_qryID, '            and (    vo.VHVO[32] = ''+''            '); // 37 входимость
+        MysqlAddStr(_qryID, '               or ( Nach.VIDOPL in(269) )           '); // премия совместителям
+        if _percPremStajirovka <> 0 {
+           MysqlAddStr(_qryID, '            or ( Nach.VIDOPL in(216,313)       ) '); // премия на стажировку
+        }
+        if   _persPremRemontTO <> 0 {
+           MysqlAddStr(_qryID, '            or ( Nach.VIDOPL in(210,213)       ) '); // премия на ремонт и ТО
+        }
+        MysqlAddStr(_qryID, '                )                         ');
+        MysqlAddStr(_qryID, '          group by pers.nrec, podr.nrec, kateg.KOD, dolj.nrec, Nach.CLSCH');
+        MysqlAddStr(_qryID, '          ,nach.CEXOZ ');
+        //,nach.CPODR
+        MysqlAddStr(_qryID, '          ,nach.CPODROZ,nach.CSCHETD,nach.CSUBSCHD,nach.CKAUD[1],nach.CKAUD[2],nach.TBLD[1],nach.TBLD[2]');
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] = ''+'' then 1 else 0 end ');
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(269)     then 1 else 0 end '); // премия совместителям
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(216,313) then 1 else 0 end '); // премия на стажировку
+        MysqlAddStr(_qryID, '          , case when vo.VHVO[32] <> ''+'' and Nach.VIDOPL in(210,213) then 1 else 0 end '); // премия на ремонт и ТО
+
+
+
+
+//  var objQuery: iQuery new;
+  if VisualizationActive then setvisualheader('SQL проверка запроса');
+  var queryManager1 : IQueryManager(vipQueryManager) new;
+  objQuery := queryManager1.createQuery(_qryID);
+  if (objQuery.execute.errorCode != tsOk) then {
+    var _err : string = 'Ошибка проверки записей в запросе '+ objQuery.ErrorCode;
+    mylog(_err);
+    sqlFreeStr(_qryID);
+    stopvisual;
+    Exit;
+  }
+  if VisualizationActive then setvisualheader('SQL передача запроса в объект');
+  var _iRes : iResultSet = objQuery.getResultSet;
+   sqlFreeStr(_qryID);
+   sqlDropTmpTable(sID_table);
+   setvisualheader('Передача результата запроса во временную таблицу');
+   if _iRes.getfirst = tsOK
+    do {
+         clearbuffer(tntLschetAll);
+          tLschetAll.persNrec      := _iRes.row.val('persNrec');
+          tLschetAll.LschetNrec    := _iRes.row.val('LschetNrec');
+          tLschetAll.PodrNrec      := _iRes.row.val('PodrNrec');
+          tLschetAll.KategKod      := _iRes.row.val('KategKod');
+          tLschetAll.DoljNrec      := _iRes.row.val('DoljNrec');
+
+          tLschetAll.is37Vxodimost := _iRes.row.val('is37Vxodimost');
+          tLschetAll.isPremSovmest := _iRes.row.val('isPremSovmest'); // премия совместителям
+          tLschetAll.isPremStajir  := _iRes.row.val('isPremStajir'); // премия на стажировку
+          tLschetAll.isPremRemont  := _iRes.row.val('isPremRemont'); // премия на ремонт и ТО
+
+          tLschetAll.NachDatan     := longtodate(longint(_iRes.row.val('NachDatan')));
+          tLschetAll.NachDatOk     := longtodate(longint(_iRes.row.val('NachDatOk')));
+          tLschetAll.NachCEXOZ     := _iRes.row.val('NachCEXOZ');
+          tLschetAll.NachCPODR     := _iRes.row.val('NachCPODR');
+          tLschetAll.NachCPODROZ   := _iRes.row.val('NachCPODROZ');
+          tLschetAll.NachCSCHETD   := _iRes.row.val('NachCSCHETD');
+          tLschetAll.NachCSUBSCHD  := _iRes.row.val('NachCSUBSCHD');
+          tLschetAll.NachCKAUD1    := _iRes.row.val('NachCKAUD1');
+          tLschetAll.ZakazNrec     := _iRes.row.val('ZakazNrec');
+          tLschetAll.NachTBLD1     := _iRes.row.val('NachTBLD1');
+          tLschetAll.NachTBLD2     := _iRes.row.val('NachTBLD2');
+          tLschetAll.Summa         := _iRes.row.val('Summa');
+          tLschetAll.DaysF         := _iRes.row.val('DaysF');
+          tLschetAll.ChasF         := _iRes.row.val('ChasF');
+         insert current tLschetAll;
+
+         if getfirst tLschet where ((   tLschetAll.persNrec   == tLschet.persNrec
+                                    and tLschetAll.LschetNrec == tLschet.LschetNrec
+                                    and tLschetAll.PodrNrec   == tLschet.PodrNrec
+                                    and tLschetAll.KategKod   == tLschet.KategKod
+                                    and tLschetAll.DoljNrec   == tLschet.DoljNrec
+                                    and tLschetAll.ZakazNrec  == tLschet.ZakazNrec
+            )) <> tsOK {
+              insert tLschet set
+                 tLschet.persNrec      := tLschetAll.persNrec
+               , tLschet.LschetNrec    := tLschetAll.LschetNrec
+               , tLschet.PodrNrec      := tLschetAll.PodrNrec
+               , tLschet.KategKod      := tLschetAll.KategKod
+               , tLschet.DoljNrec      := tLschetAll.DoljNrec
+               , tLschet.ZakazNrec     := tLschetAll.ZakazNrec
+               , tLschet.NachDatan     := tLschetAll.NachDatan
+               , tLschet.NachDatOk     := tLschetAll.NachDatOk
+               , tLschet.is37Vxodimost := tLschetAll.is37Vxodimost
+               , tLschet.isPremSovmest := tLschetAll.isPremSovmest
+               , tLschet.isPremStajir  := tLschetAll.isPremStajir
+               , tLschet.isPremRemont  := tLschetAll.isPremRemont
+               , tLschet.DaysF         := tLschetAll.DaysF
+               , tLschet.ChasF         := tLschetAll.ChasF
+               , tLschet.percent_PremStajir := _percPremStajirovka
+               , tLschet.percent_PremRemont := _persPremRemontTO
+
+              ;
+           }
+         update current tLschet set tLschet.Summa := tLschet.Summa + tLschetAll.Summa;
+
+
+         if getfirst tDolj where ((tLschet.DoljNrec == tDolj.doljNrec)) <> tsOK {
+          insert tDolj set tDolj.doljNrec := tLschet.DoljNrec;
+         }
+
+         if getfirst tKatego where ((tLschet.KategKod == tKatego.KategKod)) <> tsOK {
+          insert tKatego set tKatego.KategKod := tLschet.KategKod;
+         }
+
+         if tLschet.ZakazNrec <> 0h
+           if getfirst tZakaz where ((tLschet.ZakazNrec == tZakaz.ZakazNrec)) <> tsOK {
+            insert tZakaz set tZakaz.ZakazNrec := tLschet.ZakazNrec;
+           }
+
+     } while _iRes.getNext = tsOk;
+
+  stopvisual;
+}
+
+window winPremPercentAll 'Ввод общего процента премии'
+ show at (,,,3);
+screen scwinPremPercentAll;
+ fields
+  _PercentAll : NoProtect, {Font={BackColor=if(_PercentAll = 0,ColorNeed,0)}};
+  buttons
+    cmCancel,,,;
+    cmValue11,,,;
+<<
+Установить процент премии всем сотрудникам: .@@@@@@@
+
+      <.   отмена  .>           <. установить .>
+>>
+end;
+end;
+windowEvent winPremPercentAll;
+cmInit: {
+}
+cmValue11: {
+  set _PercentAll := _PercentAll;
+ StartNewVisual(vtRotateVisual, vfTimer,'Установка процента премии',0);
+ _loop tLschet {
+   update current tLschet set tLschet.percent_37vxodimost := _PercentAll;
+ }
+ rereadrecord;
+ stopvisual;
+ closewindow(winPremPercentAll);
+}
+end;
+
+window winPremPercentKateg 'Ввод процента премии по категориям'
+ show at(,,,10);
+Browse brwinPremPercentKateg ('',,sci1Esc);
+ show at(,,,8);
+ table tKatego;
+fields
+  Kateg_sel.kod    'Код'          headerAlign = centered:protect,[2];
+  Kateg_sel.naikat 'Наименование' headerAlign = centered:protect,[10];
+  tKatego.percent   'Процент'      headerAlign = centered:Noprotect,[4,'\2p[|-]366`666`666`666`666.88'], {Font={BackColor=if(tKatego.percent = 0,ColorNeed,0)}};
+end;
+Screen scButtonswinPremPercentKateg (,,sci1Esc);
+ show(,9,,);
+NoTableNavigation;
+buttons
+    cmCancel,,,;
+    cmValue21,,,;
+<<
+    <.   отмена  .>                     <. установить .>
+>>
+end;
+end;
+windowEvent winPremPercentKateg;
+cmInit: {
+  if getfirst tKatego = tsok {}
+  rereadrecord;
+}
+cmValue21: {
+  updatetable;
+ StartNewVisual(vtRotateVisual, vfTimer,'Установка процента премии',0);
+ _loop tKatego
+   _loop tLschet where ((tKatego.kategKod == tLschet.kategKod)){
+     update current tLschet set tLschet.percent_37vxodimost := tKatego.percent;
+   }
+ rereadrecord;
+ stopvisual;
+ closewindow(winPremPercentKateg);
+}
+cmCheckField: {
+  updatetable;
+  rereadrecord;
+}
+end;
+tableevent table tKatego;
+cmUpdateRecord: update current tKatego;
+end
+
+window winPremPercentDolj 'Ввод процента премии по должностям'
+ show at(,,,10);
+Browse brwinPremPercentDolj ('',,sci1Esc);
+ show at(,,,8);
+ table tDolj;
+fields
+  Dolj_sel.code    'Код'          headerAlign = centered:protect,[2];
+  Dolj_sel.name    'Наименование' headerAlign = centered:protect,[10];
+  tDolj.percent 'Процент'      headerAlign = centered:Noprotect,[4,'\2p[|-]366`666`666`666`666.88'], {Font={BackColor=if(tDolj.percent = 0,ColorNeed,0)}};
+end;
+Screen scButtonswinPremPercentDolj (,,sci1Esc);
+ show(,9,,);
+NoTableNavigation;
+buttons
+    cmCancel,,,;
+    cmValue31,,,;
+<<
+    <.   отмена  .>                     <. установить .>
+>>
+end;
+end;
+windowEvent winPremPercentDolj;
+cmInit: {
+  if getfirst tDolj = tsok {}
+  rereadrecord;
+}
+cmValue31: {
+    updatetable;
+ StartNewVisual(vtRotateVisual, vfTimer,'Установка процента премии',0);
+ _loop tDolj
+   _loop tLschet where ((tDolj.DoljNrec == tLschet.DoljNrec)){
+     update current tLschet set tLschet.percent_37vxodimost := tDolj.percent;
+   }
+ rereadrecord;
+ stopvisual;
+ closewindow(winPremPercentDolj);
+}
+cmCheckField: {
+  updatetable;
+  rereadrecord;
+}
+end;
+tableevent table tDolj;
+cmUpdateRecord: update current tDolj;
+end
+
+window winPremPercentZakaz 'Ввод процента премии по категориям'
+ show at(,,,10);
+Browse brwinPremPercentZakaz ('',,sci1Esc);
+ show at(,,,8);
+ table tZakaz;
+fields
+  Zakaz_sel.code 'Код'          headerAlign = centered:protect,[2];
+  Zakaz_sel.name 'Наименование' headerAlign = centered:protect,[10];
+  tZakaz.percent 'Процент'      headerAlign = centered:Noprotect,[4,'\2p[|-]366`666`666`666`666.88'], {Font={BackColor=if(tZakaz.percent = 0,ColorNeed,0)}};
+end;
+Screen scButtonswinPremPercentZakaz (,,sci1Esc);
+ show(,9,,);
+NoTableNavigation;
+buttons
+    cmCancel,,,;
+    cmValue41,,,;
+<<
+    <.   отмена  .>                     <. установить .>
+>>
+end;
+end;
+windowEvent winPremPercentZakaz;
+cmInit: {
+  if getfirst tZakaz <> tsok {
+    message('У данных сотрудников нет заказов',error);
+    closewindow(winPremPercentZakaz);
+  }
+  rereadrecord;
+}
+cmValue41: {
+  updatetable;
+ StartNewVisual(vtRotateVisual, vfTimer,'Установка процента премии',0);
+ _loop tZakaz
+   _loop tLschet where ((tZakaz.ZakazNrec == tLschet.ZakazNrec)){
+     update current tLschet set tLschet.percent_37vxodimost := tZakaz.percent;
+   }
+ rereadrecord;
+ stopvisual;
+ closewindow(winPremPercentZakaz);
+}
+cmCheckField: {
+  updatetable;
+  rereadrecord;
+}
+end;
+tableevent table tZakaz;
+cmUpdateRecord: update current tZakaz;
+end
+
+function getvidopl_vxod37 : longint; { // считаем, что стоим на tLschet
+  case tLschet.KategKod of
+   5,4 : result := 1034
+   else result := 1037
+  end
+}
+
+procedure deletedoplata; {
+  var _tmpdateBeg, _tmpdateEnd : date = dGetTune('Up.DatOtch');
+   _tmpdatebeg := to_date(01,month(_tmpdatebeg),year(_tmpdatebeg));
+   _tmpdateEnd := to_date(last_day(_tmpdateEnd),month(_tmpdateEnd),year(_tmpdateEnd));
+  if _datePrem >= dGetTune('Up.DatOtch') {
+    _loop doplata where ((tLschetAll.LschetNrec == doplata.CLSCH
+                               and _tmpdatebeg <<= doplata.DATAN (noindex)
+                               and _tmpdateEnd >>= doplata.DATOK (noindex) )) {
+       if doGetAttr(codoplata, doplata.nrec, 'Сформировано по функционалу премирования') = 1 {
+         delete attrval where  ((  codoplata == attrval.wtable
+                            and doplata.nrec == attrval.cRec
+                        and _cAttrnamDoplata == attrval.cAttrnam));
+         delete current doplata;
+       }
+     }
+   }
+}
+
+procedure insertDoplata(_percent : double; _vidopl : longint); {
+
+                  insert doplata set
+                    doplata.CEX      := tLschetAll.podrNrec
+                  , doplata.CEXOZ    := tLschetAll.NachCEXOZ
+                  , doplata.CPODR    := tLschetAll.NachCPODR
+                  , doplata.CPODROZ  := tLschetAll.NachCPODROZ
+                  , doplata.Kateg    := tLschetAll.KategKod
+                  , doplata.CAPPOINT := tLschetAll.DoljNrec
+                  , doplata.CSCHETD  := tLschetAll.NachCSCHETD
+                  , doplata.CSUBSCHD := tLschetAll.NachCSUBSCHD
+                  , doplata.CKAUD[1] := tLschetAll.NachCKAUD1
+                  , doplata.CKAUD[2] := tLschetAll.ZakazNrec
+                  , doplata.TBLD[1]  := tLschetAll.NachTBLD1
+                  , doplata.TBLD[2]  := tLschetAll.NachTBLD2
+                  , doplata.CLSCH    := tLschetAll.LschetNrec
+                  , doplata.TPERSON  := tLschetAll.persNrec
+                  , doplata.CHASF    := tLschetAll.CHASF
+                  , doplata.KOLDN    := tLschetAll.DaysF
+                  , doplata.DATANN   := tLschetAll.NachDATAN
+                  , doplata.DATAN    := tLschetAll.NachDATAN
+                  , doplata.DATOK    := tLschetAll.NachDATOK
+                  , doplata.TARIF    := lschet_1.tarif
+                  , doplata.POMETKA  := '+'
+                  , doplata.REJIM    := lschet_1.rejim
+                  , doplata.PROC     := _percent
+                  , doplata.VIDOPL   := _vidopl
+                 ;
+     doSetAttr(codoplata, doplata.nrec, 'Сформировано по функционалу премирования',1);
+}
+procedure CreateDoplata; {
+#declare casePremInsertDoplata(fieldPrem,fieldperc,vidopl)
+    if getfirst tLschetAll where ((     tLschet.persNrec   == tLschetAll.persNrec
+                                    and tLschet.LschetNrec == tLschetAll.LschetNrec
+                                    and tLschet.PodrNrec   == tLschetAll.PodrNrec
+                                    and tLschet.KategKod   == tLschetAll.KategKod
+                                    and tLschet.DoljNrec   == tLschetAll.DoljNrec
+                                    and tLschet.ZakazNrec  == tLschetAll.ZakazNrec
+                                                     and 1 == tLschetAll.#fieldPrem (noindex)
+            )) = tsOK {
+             insertDoplata(tLschet.#fieldperc, #vidopl);
+          }
+#end
+  _loop tLschet {
+    if getfirst lschet_1 where ((tLschet.lschetNrec == Lschet_1.nrec)) <> tsOK then continue;
+     deletedoplata;
+     #casePremInsertDoplata(is37Vxodimost,percent_37Vxodimost,getvidopl_vxod37)
+     #casePremInsertDoplata(isPremSovmest,percent_37Vxodimost,1109)
+     #casePremInsertDoplata(isPremStajir ,percent_PremStajir,1457)
+     #casePremInsertDoplata(isPremRemont ,percent_PremRemont,1058)
+  }
+}
+
+Screen scMain (,,sci1Esc);
+show(,,,);
+table Zar_user;
+fields
+  Zar_User.GrupStN ('Выбор фильтров для расчета',, sci1Esc): noProtect;
+  FilterByDepartment ('выбор подразделений') : Protect, PickButton;
+  FilterByPersons    ('выбор сотрудников') : Protect, PickButton;
+!  fPodr ('выбор подразделений') : Protect, PickButton, {Font={BackColor=if(fPodr = '',ColorNeed,0)}};
+  _datePrem    : ['Month YYYY'], noProtect;
+!  _PercentType : [List 0 'Не вводить процент', 1 'Ввод общего процента премии', 2 'Ввод процента по категориям',3 'Ввод процента по профессиям'], Protect;
+  _percPremStajirovka : noProtect;
+  _persPremRemontTO   : noProtect;
+  buttons
+    cmCancel,,,;
+    cmValue1,,,;
+<<'Расчет ежемесячной премии'
+  [.] подразделения` .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  [.] работники`     .@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+!`Подразделения`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`       период`.@@@@@@@@@@
+!`     % премий`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`  % процент премии за стажировку`.@@@@@@@
+`         % премии на ремонт и ТО`.@@@@@@@
+    <.  отмена  .>                     <. Далее .>
+>>
+end;
+
+formatsGroup winPremiya2 'Ввод процентов премии';
+Browse brtLschet ('',,sci1Esc);
+ show at(,,,20);
+ table tLschet_br;
+fields
+  Lschet.TABN          'Табельный','номер' headerAlign = centered:protect,[2];
+  Persons.FIO          'ФИО'               headerAlign = centered:protect,[10];
+  lschet.tarif         'Тариф'             headerAlign = centered:protect,[5,'\2p[|-]366`666`666`666`666.88'];
+  KatPodr.Name         'Подразделение'     headerAlign = centered:protect,[10];
+  tLschet_br.Summa     'Базовая сумма'     headerAlign = centered:protect,[5,'\2p[|-]366`666`666`666`666.88'];
+  tLschet_br.daysF     'Дни'               headerAlign = centered:protect,[2];
+  tLschet_br.chasF     'Часы'              headerAlign = centered:protect,[2];
+  tLschet_br.percent_37vxodimost   'Процент','премии'  headerAlign = centered:Noprotect,[4,'\2p[|-]366`666`666`666`666.88'], {Font={BackColor=if(tLschet_br.percent_37vxodimost = 0,ColorNeed,0)}};
+  Dolj.name            'Должность'         headerAlign = centered:protect,[10];
+  KlKatego.naikat      'Категория'         headerAlign = centered:protect,[10];
+  Zakaz.name           'Заказ'             headerAlign = centered:protect,[10];
+end;
+Screen scButtons (,,sci1Esc);
+ show(,21,,);
+NoTableNavigation;
+buttons
+    cmValue2,,,;
+    cmValue3,,,;
+<<
+    <.    назад    .>                     <.создать доплаты.>
+>>
+end;
+end;
+tableevent table tLschet_br;
+cmUpdateRecord: update current tLschet_br;
+end;
+tableevent table tLschet;
+cmUpdateRecord: update current tLschet;
+end;
+
+tableevent table ZAR_USER;
+cmUpdateRecord: update current ZAR_USER;
+end;
+
+HandleEvent
+cmInit: {
+/*
+  ^~^  ,
+ ('Y') )
+ /   \/
+(\|||/)
+*/
+/*
+  Marker_KatPodr := InitMarker(GetInterfaceName + 'PremiyaPodrFiltr', 8, 100, 10);
+   set fpodr := GetFiltrName;
+  DoneMarker(Marker_KatPodr, GetInterfaceName + 'PremiyaPodrFiltr');
+*/
+  _datePrem := dGetTune('Up.DatOtch');
+  _oldZAR_USER_GRUPSTN := ZAR_USER.GRUPSTN;
+    if getfirst attrnam where ((                   coDoplata == attrnam.wtable
+              and 'Сформировано по функционалу премирования' == attrnam.name)) <> tsOK {
+        insert attrnam set
+           attrtype := 1
+         , attrnam.wtable := coDoplata
+         , attrnam.name := 'Сформировано по функционалу премирования'
+        ;
+      }
+   set _cAttrnamDoplata := attrnam.nrec;
+}
+
+cmValue1: {
+/*
+      Marker_KatPodr := InitMarker(GetInterfaceName + 'PremiyaPodrFiltr', 8, 100, 10);
+      if getmarkercount(Marker_KatPodr) = 0 then {
+        message('Выберите подразделения',error);
+        DoneMarker(Marker_KatPodr, GetInterfaceName + 'PremiyaPodrFiltr');
+        stop; abort; exit;
+      }
+      DoneMarker(Marker_KatPodr, GetInterfaceName + 'PremiyaPodrFiltr');
+*/
+  if getfirst CurLSchet <> tsOK {
+    message('Выберите подразделения или сотрудников',error);
+    stop; abort; exit;
+  }
+ FilltLschet;
+ setformat(winPremiya2);
+}
+cmPick: {
+   case curfield of
+   #FilterByDepartment: {
+       PAF.ChangeDepartmentFilter(true);
+     }
+    #FilterByPersons : {
+      PAF.ChangePersonalAccountFilter(0);
+    }
+/*    #fpodr: {
+       Marker_KatPodr := InitMarker(GetInterfaceName + 'PremiyaPodrFiltr', 8, 100, 10);
+           if RunInterface('Z_KatPodr::GetPodAln', comp(12), Marker_KatPodr , 0) <> cmCancel
+              set fpodr := GetFiltrName;
+
+      DoneMarker(Marker_KatPodr, GetInterfaceName + 'PremiyaPodrFiltr');
+     }
+*/
+
+
+    end;
+ rereadrecord;
+}
+cmDelOnProtect : {
+   case curfield of
+   #FilterByDepartment: {
+       PAF.ClearDepartmentFilter;
+       set ZAR_USER.GRUPSTN := (_oldZAR_USER_GRUPSTN and 2 );
+       updatetable;
+       _oldZAR_USER_GRUPSTN := ZAR_USER.GRUPSTN
+     }
+    #FilterByPersons : {
+      PAF.ClearPersonalAccountFilter;
+       set ZAR_USER.GRUPSTN := (_oldZAR_USER_GRUPSTN and 1 );
+       updatetable;
+       _oldZAR_USER_GRUPSTN := ZAR_USER.GRUPSTN
+    }
+    end;
+ rereadrecord;
+}
+cmCheckField : {
+   updatetable;
+
+  case CurField of
+     #ZAR_USER.GRUPSTN: {
+      if _oldZAR_USER_GRUPSTN <> ZAR_USER.GRUPSTN {
+            //case Zar_User.GrupStN xor PAF.GetFilterState of   // какой фильтр изменился ?
+              if (Zar_User.GrupStN and 1) <> (_oldZAR_USER_GRUPSTN and 1) { // по подразделению
+                if (Zar_User.GrupStN and 1) > 0
+                {
+                  SelectField(#FilterByDepartment);
+                  putcommand(cmPick);
+                }
+                else
+                {
+                  PAF.ClearDepartmentFilter;
+                  ReReadRecord(#ZAR_USER);
+                }
+              }
+              if (Zar_User.GrupStN and 2) <> (_oldZAR_USER_GRUPSTN and 2) {// по работникам
+                if (Zar_User.GrupStN and 2) > 0
+                {
+                  SelectField(#FilterByPersons);
+                  putcommand(cmPick);
+                } else {
+                  PAF.ClearPersonalAccountFilter;
+                  ReReadRecord(#ZAR_USER);
+                }
+              }
+        }
+       set _oldZAR_USER_GRUPSTN := ZAR_USER.GRUPSTN;
+      }
+   end;  //case
+  rereadrecord;
+}
+cmValue2: {
+ setformat(scMain);
+}
+cmValue3 : {
+  CreateDoplata;
+  message('Формирование премий завершено');
+  closeinterface(-1);
+}
+cmHotKeys: {
+  if getfirst tZakaz <> tsOK
+    then disableCommand(cmValue40)
+    else enableCommand(cmValue40);
+  PutHotCommand(RunMenu('Premiya_TypePercent_enter'))
+}
+cmValue10 : {
+  RunWindowModal(winPremPercentAll)
+}
+cmValue20 : {
+  RunWindowModal(winPremPercentKateg)
+}
+cmValue30 : {
+  RunWindowModal(winPremPercentDolj)
+}
+cmValue40 : {
+  RunWindowModal(winPremPercentZakaz);
+}
+cmValue50 : {
+  var _iGP_Zarnetr : SNG_GP_Zarnetr;
+  _iGP_Zarnetr.RunCalcSalaryAuto;
+  FilltLschet;
+}
+end;
+end.
+
+Premiya_TypePercent_enter menu
+{
+  - 'Ввод общего процента премии', cmValue10, 'Ввод общего процента премии',  ,'',,sci1Esc;
+  - 'Ввод процента по категориям', cmValue20, 'Ввод процента по категориям',  ,'',,sci1Esc;
+  - 'Ввод процента по профессиям', cmValue30, 'Ввод процента по профессиям',  ,'',,sci1Esc;
+  - 'Ввод процента по заказам'    , cmValue40, 'Ввод процента по заказам',  ,'',,sci1Esc;
+ ----------;
+  - 'Расчет базовых сумм'    , cmValue50, 'Расчет базовых сумм',  ,'',,sci1Esc;
+//  - 'Печать пользовательских алгоритмов', cmPrint,
+//    'Печать пользовательских алгоритмов', hcPrintKatalog, 'Ctrl+P', kbCtrlP, scenterAn;
+}

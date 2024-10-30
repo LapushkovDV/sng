@@ -95,17 +95,12 @@
 			<File Name="SNG_QRY.prj" PosX="17" PosY="25" OpenEditor="True"/>
 			<File Name="vip\QRY_ALG_USER_GET_SAP_CODE_FROM_KOTPUS.vip" PosX="26" PosY="42" OpenEditor="True"/>
 			<File Name="vip\QRY_TEMPLATES.vip" PosX="1" PosY="20" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vip" PosX="1" PosY="355" OpenEditor="True"/>
-			<File Name="vip\QRY_TEMPLATES.pan" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vih" PosX="1" PosY="93" OpenEditor="True"/>
-			<File Name="vip\QRY_OUT.vip" PosX="39" PosY="1164" OpenEditor="True"/>
+			<File Name="vip\QRY_Base.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\QRY_TEMPLATES.pan" PosX="49" PosY="2" OpenEditor="True" Active="True"/>
+			<File Name="vip\QRY_OUT.vih" PosX="23" PosY="44" OpenEditor="True"/>
 			<File Name="vip\QRY_INSTANCE.vip" PosX="11" PosY="12" OpenEditor="True"/>
-			<File Name="vip\QRY_INSTANCE.pan" PosX="31" PosY="238" OpenEditor="True"/>
-			<File Name="vip\LoadDeclension.vip" PosX="60" PosY="345" OpenEditor="True" Active="True"/>
 			<File Name="vip\OpenFileExcelSearchCells.vpp" PosX="73" PosY="161" OpenEditor="True"/>
-			<File Name="vip\QRY_Base.vih" PosX="59" PosY="86" OpenEditor="True"/>
-			<File Name="vip\QRY_ALG_USER.vih" PosX="16" PosY="25" OpenEditor="True"/>
-			<File Name="..\..\..\ATL6\Source\SYSOBJIFC\Query.vih" PosX="51" PosY="412" OpenEditor="True"/>
+			<File Name="vip\QRY_OUT.vip" PosX="75" PosY="23" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

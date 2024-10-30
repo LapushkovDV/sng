@@ -1,0 +1,18 @@
+#component "SNG_PREMIYA"
+
+#include SNG_GP_ZARNETR.Vih
+
+
+Interface SNG_GP_Zarnetr;
+create view
+;
+Procedure RunCalcSalaryAuto; {
+  wDistr := 1;
+  wRaznoska := 1;
+  CalculationOptions := 1;
+  dDateParam := dGetTune('UP.ZAR.MONEY_DATE');
+  pRunCalcSalary;
+}
+handleevent
+end;
+end.

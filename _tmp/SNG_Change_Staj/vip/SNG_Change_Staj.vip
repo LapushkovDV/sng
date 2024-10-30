@@ -1,0 +1,80 @@
+#include SNG_Change_Staj.vih
+
+Interface SNG_Change_Staj 'Анкетная форма для редактирования стажа';
+
+create view
+var cEdit_Staj: comp;
+    cServLen: comp;
+
+as select
+  Edit_Staj.nRec
+
+from
+  SNG_Edit Edit_Staj
+, SNG_Edit Edit_Staj_Ins
+, ServLen ServLen_cur
+
+where
+(( cEdit_Staj == Edit_Staj.nRec and
+   cServLen   == ServLen_cur.nRec
+));
+
+window winEdit_Staj 'Редактирование стажа' EscClose;
+screen scrEdit_Staj;
+  show at (,,,);
+table Edit_Staj;
+  fields
+    Edit_Staj.vDate[1] : [10,'DD/MM/YYYY'], NoProtect;
+    Edit_Staj.vDate[2] : [10,'DD/MM/YYYY'], NoProtect;
+  buttons
+    cmOk   ,,,'Сохранить',,;
+    cmCancel,,,'Отменить',,;
+<<
+
+ Стаж за период `с`.@@@@@@@@@@@`по`.@@@@@@@@@@@
+
+ <.Сохранить.>  <.Отменить.>
+
+>>
+end;
+windowevent winEdit_Staj;
+  cmOK: {
+    CloseWindowEx(winEdit_Staj, cmDefault);
+  }
+end;
+end; // winEdit_Staj
+
+Function RunEditStaj(cSL: comp): boolean;
+{
+  result := false;
+  set cServLen := cSL;
+
+  insert Edit_Staj_Ins;
+  set cEdit_Staj := Edit_Staj_Ins.nRec;
+  if getfirst ServLen_cur = tsOk
+  {
+    Edit_Staj.vDate[1] := ServLen_cur.FromDate;
+    Edit_Staj.vDate[2] := ServLen_cur.ToDate;
+    update current Edit_Staj;
+  }
+
+  if RunWindowModal(winEdit_Staj) = cmDefault
+  {
+message('1');
+    result := true;
+  }
+  else
+  {
+message('2');
+    result := false;
+  }
+}
+
+handleevent
+  cmPick:
+  {
+
+  }
+end;
+
+end.

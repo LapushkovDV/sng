@@ -1,0 +1,185 @@
+#include ServlenFunc.vih
+
+#doc
+Работа с таблицей Sng_ServlenExt(расширением таблицы Servlen)
+#end
+interface iServlenExt 'Работа с таблицей Sng_ServlenExt(расширением таблицы Servlen)';
+
+create view vServlenExt
+
+var
+  cPerson: comp;
+  cPosition: comp;
+
+as select Servlen.nrec
+
+from
+  Servlen(SlByPosition),
+  Sng_ServlenExt,
+  Servlen ServlenPos(SlByPosition),
+  Sng_ServlenExt Sng_ServlenExtPos,
+  Servlen ServlenDel,
+  Sng_ServlenExt Sng_ServlenExtDel,
+  Sng_ServlenExt Sng_ServlenExtExist
+
+where ((
+  cPerson   == Servlen.Person              and
+  cPosition == Servlen.Position            and
+ (slStaffServLenCur   = Servlen.CurRec     or
+  slStaffServLenOld   = Servlen.CurRec)    and
+  Servlen.nRec == Sng_ServlenExt.servlen       and
+
+  cPerson   == ServlenPos.Person              and
+  cPosition == ServlenPos.Position            and
+ (slStaffServLenCur   = ServlenPos.CurRec     or
+  slStaffServLenOld   = ServlenPos.CurRec)    and
+  ServlenPos.nRec == Sng_ServlenExtPos.servlen     and
+
+  Sng_ServlenExtDel.servlen == ServlenDel.nRec
+
+));
+
+procedure SetParams(pPerson: comp; pPosition: comp);
+{
+  cPerson := pPerson;
+  cPosition := pPosition;
+}
+
+function IsExist(pNRec: comp): boolean;
+{
+  result := False;
+  if (GetFirst fastfirstrow Sng_ServlenExtExist where (( pNRec == Sng_ServlenExtExist.nRec )) = tsOk) {
+    result := True;
+  }
+}
+
+function CalcGapBefore(pPerson: comp; pPosition: comp; pDate: date): word;
+{
+  var prevDate: date = ZeroDate;
+
+  SetParams(pPerson, pPosition);
+
+  _loop ServlenPos {
+    if ServlenPos.ToDate <> ZeroDate and
+       ServlenPos.ToDate < pDate and
+       prevDate < ServlenPos.ToDate {
+         prevDate := ServlenPos.ToDate;
+    }
+  }
+
+  if prevDate <> ZeroDate
+    // Функция включает обе даты в диапазон, но их необходимо вычесть из общего кол-ва дней
+    result := CalcDaysBetweenDates(prevDate, pDate, false) - 2;
+  else
+    result := 0;
+
+}
+
+procedure UpdatePositionGaps(pPerson: comp; pPosition: comp);
+{
+  var maxToDate: date = ZeroDate;
+  var days: LongInt;
+
+  SetParams(pPerson, pPosition);
+
+  _loop ServlenPos {
+
+    if (GetFirst fastfirstrow Sng_ServlenExtPos = tsOk) {
+      if maxToDate = ZeroDate or maxToDate >= ServlenPos.FromDate {
+        //если это первая запись, либо промежуток отсутствует, то кол-во дней = 0
+        days := 0;
+      } else {
+        // Функция включает обе даты в диапазон, но их необходимо вычесть из общего кол-ва дней
+        days := CalcDaysBetweenDates(maxToDate, ServlenPos.FromDate, false) - 2;
+      }
+
+      if Sng_ServlenExtPos.zamount <> days
+        update Sng_ServlenExtPos set zamount := days;
+    }
+
+    // Запись значения даты окончания записи
+    // для вычисления промежутка на следующей итерации
+    if ServlenPos.ToDate = ZeroDate {
+      maxToDate := rvMaxDate;
+    } else if maxToDate < ServlenPos.ToDate {
+      maxToDate := ServlenPos.ToDate
+    }
+  }
+
+}
+
+  procedure InsertRecord(pPerson: comp; pPosition: comp; pServlenNRec: comp; bUpdateGaps: boolean = True);
+{
+  SetParams(pPerson, pPosition);
+
+  if (GetFirst fastfirstrow Servlen where (( pServlenNRec == Servlen.nRec )) = tsOk and
+      GetFirst fastfirstrow Sng_ServlenExt <> tsOk)
+  {
+    ClearBuffer(#Sng_ServlenExt);
+    insert current Sng_ServlenExt;
+    if bUpdateGaps = True
+    {
+      UpdatePositionGaps(pPerson, pPosition);
+    }
+  }
+}
+
+procedure DeleteRecord(pNRec: comp);
+{
+
+  if (GetFirst fastfirstrow Sng_ServlenExtDel where (( pNRec == Sng_ServlenExtDel.nRec )) = tsOk and
+      GetFirst fastfirstrow ServlenDel <> tsOk)
+  {
+    delete current Sng_ServlenExtDel;
+  }
+}
+
+end.
+
+#doc
+Функции для таблицы Servlen
+#end
+interface iServlenFunc 'Функции для таблицы Servlen';
+
+create view vServlenFunc
+
+var
+  cPerson: comp;
+  cPosition: comp;
+
+as select Servlen.nrec
+
+from
+  Servlen(SlByPosition)
+
+where ((
+  cPerson   == Servlen.Person              and
+  cPosition == Servlen.Position            and
+ (slStaffServLenCur   = Servlen.CurRec     or
+  slStaffServLenOld   = Servlen.CurRec)
+
+));
+
+function HasIntersection(pPerson: comp; pPosition: comp; pFromDate: date; pToDate: date): boolean;
+{
+  cPerson := pPerson;
+  cPosition := pPosition;
+
+  if pToDate = ZeroDate
+    pToDate := rvMaxDate;
+
+  result := False;
+
+  _loop Servlen {
+    if Servlen.ToDate = ZeroDate
+      Servlen.ToDate := rvMaxDate;
+
+    if (Servlen.FromDate <= pToDate and Servlen.ToDate >= pFromDate) {
+      result := True;
+      exit;
+    }
+  }
+
+}
+
+end.

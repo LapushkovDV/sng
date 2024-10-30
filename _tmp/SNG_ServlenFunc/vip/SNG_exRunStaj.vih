@@ -1,0 +1,74 @@
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+
+#ifndef _SNG_exRunStaj_vih_Included
+#define _SNG_exRunStaj_vih_Included
+
+#component "SNG_ServlenFunc"
+
+#doc
+Расчет стажей
+#end
+ObjInterface ObjSNG_exRunStaj;
+
+#doc
+Значение длительности стажа в виде строки 'Лет: Месяцев: Дней:'
+#end
+procedure NRunStajAllSng(PsnNRec : comp; StajNrec : comp; RunDate : date);
+
+#doc
+Значение длительности стажа в виде строки 'Лет: Месяцев: Дней:'
+#end
+public function GetAllStajYears(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+
+#doc
+Значение длительности стажа в виде строки 'Лет: Месяцев: Дней:'
+#end
+public function GetAllStajMonths(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+
+#doc
+Значение длительности стажа в виде строки 'Лет: Месяцев: Дней:'
+#end
+public function GetAllStajDays(PsnNRec : comp; StajNrec : comp; RunDate : date):integer;
+
+#doc
+Значение длительности стажа в виде строки 'XX лет XX месяцев XX дней'
+#end
+public function NRunStrStajSmartSng(PsnNRec, StajNrec: comp; RunDate: date): string;
+
+#doc
+Значение длительности стажа в виде строки 'XX лет XX месяцев XX дней на дату'
+#end
+public function NRunStrStajSmartForDateSng(PsnNRec, StajNrec: comp; RunDate: date): string;
+
+#doc
+Значение длительности стажа в виде строки 'Лет: Месяцев: Дней:'
+#end
+procedure ReCalcStajSng(PsnNRec : comp; cPosition : comp);
+
+
+#doc
+Количество лет стажа без учета коэффициента
+#end
+function NGetStajYearsSng(PsnNRec, StajNrec: comp; RunDate: date): word;
+
+#doc
+Количество месяцев стажа без учета коэффициента
+#end
+function NGetStajMonthsSng(PsnNRec, StajNrec: comp; RunDate: date): word;
+
+#doc
+Количество дней стажа без учета коэффициента
+#end
+function NGetStajDaysSng(PsnNRec, StajNrec: comp; RunDate: date): word;
+
+#doc
+Процент для северного стажа без учета коэффициента
+#end
+function GetPercServNSng(PsnNRec, LSchetKateg: comp; RunDate: date): double;
+
+end;
+vipinterface iSNG_exRunStaj implements ObjSNG_exRunStaj licensed(free);
+
+#end

@@ -1,0 +1,46 @@
+#ifndef __SNG_ServlenFunc_vih__
+#define __SNG_ServlenFunc_vih__
+
+#component "SNG_ServlenFunc"
+
+ObjInterface ObjServlenExt;
+  #doc
+  Существование записи таблицы Sng_ServlenExt с заданным nRec.
+  #end
+  function IsExist(pNRec: comp): boolean;
+
+  #doc
+  Функция подсчёта дней между окончанием предыдущей записи и текущей датой
+  среди записей данного вида стажа у человека.
+  #end
+  function CalcGapBefore(pPerson: comp; pPosition: comp; pDate: date): word;
+
+  #doc
+  Подсчёт пропущенных дней для всех записей данного вида стажа у человека
+  #end
+  procedure UpdatePositionGaps(pPerson: comp; pPosition: comp);
+
+  #doc
+  Вставка записи таблицы Sng_ServlenExt для заданной записи таблицы Servlen
+  #end
+  procedure InsertRecord(pPerson: comp; pPosition: comp; pServlenNRec: comp; bUpdateGaps: boolean = True);
+
+  #doc
+  Удаление заданной записи таблицы Sng_Servlen,
+  если связанная с ней запись таблицы Servlen уже удалена
+  #end
+  procedure DeleteRecord(pNRec: comp);
+end;
+
+ObjInterface ObjServlenFunc;
+  #doc
+  Функция проверки на пересечение дат с другими записями того же вида стажа
+  #end
+  function HasIntersection(pPerson: comp; pPosition: comp; pFromDate: date; pToDate: date): boolean;
+end;
+
+vipinterface iServlenExt implements ObjServlenExt licensed(free);
+
+vipinterface iServlenFunc implements ObjServlenFunc licensed(free);
+
+#end

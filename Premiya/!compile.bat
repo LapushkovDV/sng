@@ -12,7 +12,7 @@ del Atlantis*.res
 
 @set exedir=C:\Galaktika\ATL6\Update_11400\support\exe
 
-@%exedir%\vip.exe Vip.prj /r:Premiya.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
+@%exedir%\vip.exe SNG_Premiya.prj /r:Premiya.res /c:vip.cfg /u:lapus /p:Zraeqw123 /def:Atl60
 
 rem /c:support_res.cfg
 @echo Компиляция завершена

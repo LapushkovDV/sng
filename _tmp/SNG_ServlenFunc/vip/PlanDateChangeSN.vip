@@ -1,0 +1,546 @@
+#doc
+Плановые даты смены процента СН
+#end
+#include RunStaj.vih
+#include CatFunc.vih
+#include StrFunc.vih
+
+VipInterface PlanDateChangeSN licensed(free) parameters(PsnNRec : comp; LSchetKateg : comp; RunDate : date);
+
+Interface PlanDateChangeSN 'Плановые даты смены % СН' (,,sci1Esc);
+  show at (1, 1, 20, 11)
+
+var
+  DatePer:array [0..80] of date;
+
+var
+  iCatFunc:CatalogsFunctions;
+
+var
+  iRunStaj:RunStaj;
+
+create view
+
+var
+  PsnNRec,
+  LSchetKateg,
+  cTypeStaj       :  comp;
+  RunDate         :  date;
+  BYears          :  integer;
+  BMonths         :  integer;
+  BDays           :  integer;
+  isRunOk         :  boolean;
+
+as select
+  ServLen.NRec
+
+from
+  Persons,
+  ServLen,
+  Catalogs,
+  North(North03)
+;
+
+parameters PsnNRec,LSchetKateg,RunDate;
+
+// Расчет страхового стажа
+// DateFrom, DateTo - дата начала/окончания
+// Y, M, D - как входные, играю роль стажа на начало периода, как выходные, конечного результата
+procedure CalcStrahStaj(DateFrom, DateTo: date; var Y, M, D: integer);
+var dF, dTY, dTM, DateInc: date = date(0, 0, 0);
+    iYears, iMonths, iDays: integer = 0;
+{
+  if (DateFrom = ZeroDate)
+    exit;
+  else
+    DateInc := dF := DateFrom;
+
+  // Проход по месяцам всего периода
+  while ( integer(string(Year(DateInc)) + '00') + Month(DateInc) <= integer(string(Year(DateTo)) + '00') + Month(DateTo) ) do
+  {
+    if ( ( Month(DateInc) = 12 ) or // Это конец года
+         ( integer(string(Year(Add_Months(DateInc, 1))) + '00') + Month(Add_Months(DateInc, 1)) > integer(string(Year(DateTo)) + '00') + Month(DateTo) ) ) // Это конец периода
+    {
+      if ( ( date(Last_Day(DateInc), 12, Year(DateInc)) > DateTo ) or ( Month(DateInc) <> 12 ) ) // Период закончился раньше конца года
+        dTY := DateTo;
+      else
+        dTY := date(Last_Day(DateInc), 12, Year(DateInc));
+
+      if ( Day(dF) = 1 ) and ( Month(dF) = 1) and ( Day(dTY) = 31 ) and ( Month(dTY) = 12 ) // Полный год
+        iYears++;
+      else
+      {
+        // Проход по месяцам года
+        while ( integer(string(Year(dF)) + '00') + Month(dF) <= integer(string(Year(dTY)) + '00') + Month(dTY) ) do
+        {
+          if ( dTY > date(Last_Day(dF), Month(dF), Year(dF)) ) // Период/год закончился не в этом месяце
+            dTM := date(Last_Day(dF), Month(dF), Year(dF))
+          else
+            dTM := dTY;
+
+          if ( Day(dF) = 1 ) and ( Day(dTM) = Last_Day(dTM) ) // Полный месяц
+            iMonths++;
+          else
+            iDays := iDays + ( Day(dTM) - Day(dF) ) + 1; // Остаток дней
+
+          if ( iMonths = 12 )
+          {
+            iYears++;
+            iMonths := 0;
+          }
+
+          dF := Add_Months(dF, 1);
+
+          if ( Day(dF) <> 1 ) // Необходимо всегда переходить на первый день следующего месяца
+            dF := date(1, Month(dF), Year(dF));
+        }
+      }
+
+      if ( Month(DateInc) = 12 ) // Конец года, но не конец периода
+        dF := date(1, Month(Add_Months(DateInc, 1)), Year(Add_Months(DateInc, 1)));
+    }
+
+    DateInc := Add_Months(DateInc, 1);
+
+    if ( Day(DateInc) <> 1 ) // Необходимо всегда переходить на первый день следующего месяца
+      DateInc := date(1, Month(DateInc), Year(DateInc));
+  }
+
+  // Производим пересчет стажа с учетом стажа на начала периода, а так же остатка дней
+  iDays += D;
+  iMonths := iMonths + ( DivI(iDays mod 360, 30) + M );
+  iYears := iYears + DivI(iDays, 360) + Y + DivI(iMonths, 12);
+  iMonths := iMonths - ( DivI(iMonths, 12) * 12 );
+  iDays := iDays mod 360 mod 30;
+
+  D := iDays;
+  M := iMonths;
+  Y := iYears;
+}
+
+procedure RunStajAll(PsnNRec : comp; StajSysCode : integer; RunDate : date);
+{  // Рассчитывает год, месяц и день стажа
+  var numAlg   : word;
+  var countDay : longint;
+
+  isRunOk         := FALSE;
+  BYears          := 0;
+  BMonths         := 0;
+  BDays           := 0;
+  numAlg          := 0;
+
+  cTypeStaj := iCatFunc.GetCatalogsNRec(StajSysCode);
+
+  if (Day(RunDate) = 0)
+      RunDate := Cur_Date;
+
+  if (GetFirst Catalogs where ((StajSysCode == Catalogs.SysCode)) = tsOk)
+    numAlg := Catalogs.bPick;
+
+  if ( cTypeStaj <> 0 )
+    if GetFirst ServLen
+           where ((PsnNRec == ServLen.Person and
+                         1 == ServLen.CurRec and
+                  cTypeStaj == ServLen.Position )) = tsOk
+        {
+//        if ((ServLen.ToDate <> Date(0,0,0))  and
+//            (ServLen.ToDate < RunDate))
+//          {
+//          RunDate := ServLen.ToDate;
+//          }
+
+       if (ServLen.Rate < 0.0001)
+         ServLen.Rate := 1.0;
+
+       case numAlg of
+          0: // Стандартный алгоритм
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                   (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                   (Day(RunDate)   - Day(ServLen.FromDate))) * ServLen.Rate +
+                                   ServLen.YearsB * 360 +
+                                   ServLen.MonthsB * 30 +
+                                   ServLen.DaysB);
+
+//                if (ServLen.ToDate <> Date(0,0,0))
+//                   countDay := countDay + 1;
+
+                BYears   := DivI(countDay, 360);
+                BMonths  := DivI(countDay mod 360, 30);
+                BDays    := countDay mod 360 mod 30;
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              }
+          1: // Алгоритм ПФ РФ
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                   (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                   (Day(RunDate)   - Day(ServLen.FromDate))) * ServLen.Rate +
+                                   ServLen.YearsB * 360 +
+                                   ServLen.MonthsB * 30 +
+                                   ServLen.DaysB);
+
+//                if (ServLen.ToDate <> Date(0,0,0))
+//                   countDay := countDay + 1;
+
+                BYears   := DivI(countDay, 360);
+                BMonths  := DivI(countDay mod 360, 30);
+                BDays    := countDay mod 360 mod 30;
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              }
+          2: // Алгоритм ТК РФ
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                   (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                   (Day(RunDate)   - Day(ServLen.FromDate))) * ServLen.Rate +
+                                   ServLen.YearsB * 360 +
+                                   ServLen.MonthsB * 30 +
+                                   ServLen.DaysB);
+
+//                if (ServLen.ToDate <> Date(0,0,0))
+//                   countDay := countDay + 1;
+
+                BYears   := DivI(countDay, 360);
+                BMonths  := DivI(countDay mod 360, 30);
+                BDays    := countDay mod 360 mod 30;
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              if (Day(ServLen.FromDate) = 1 and Day(RunDate) = Last_Day(RunDate))
+                {
+                if (BDays >= 28)
+                  BMonths++;
+                BDays    := 0;
+                }
+              }
+          3: // Алгоритм расчета страхового стажа
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+
+                CalcStrahStaj(ServLen.FromDate, Sub_Day(RunDate, 1), BYears, BMonths, BDays);
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              }
+          4: // Алгоритм расчета страхового стажа + 1 день
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+
+                CalcStrahStaj(ServLen.FromDate, RunDate, BYears, BMonths, BDays);
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              }
+          5: // Для выслуги лет с непрерывным периодом
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                {
+                countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                   (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                   (Day(RunDate)   - Day(ServLen.FromDate))) * ServLen.Rate +
+                                   ServLen.YearsB * 360 +
+                                   ServLen.MonthsB * 30 +
+                                   ServLen.DaysB);
+
+                if (ServLen.ToDate <> Date(0,0,0))
+                   countDay := countDay + 1;
+
+                BYears   := DivI(countDay, 360);
+                BMonths  := DivI(countDay mod 360, 30);
+                BDays    := countDay mod 360 mod 30;
+                }
+              else
+                {
+                BYears   := ServLen.YearsB;
+                BMonths  := ServLen.MonthsB;
+                BDays    := ServLen.DaysB;
+                }
+              }
+          6: // По дням
+          {
+            if (ServLen.FromDate <> Date(0,0,0)) and (ServLen.ToDate <> Date(0,0,0))
+              BDays := CalcDaysBetweenDates(ServLen.FromDate, RunDate, false) + ServLen.DaysB * ServLen.Rate;
+            else
+              BDays := ServLen.DaysB * ServLen.Rate;
+          }
+          else //
+              {
+              if (ServLen.FromDate <> Date(0,0,0))
+                  {
+                  countDay := longint(((Year(RunDate)  - Year(ServLen.FromDate)) * 360 +
+                                     (Month(RunDate) - Month(ServLen.FromDate)) * 30 +
+                                     (Day(RunDate)   - Day(ServLen.FromDate))) * ServLen.Rate +
+                                     ServLen.YearsB * 360 +
+                                     ServLen.MonthsB * 30 +
+                                     ServLen.DaysB);
+
+//                  if (ServLen.ToDate <> Date(0,0,0))
+//                     countDay := countDay + 1;
+
+                  BYears   := DivI(countDay, 360);
+                  BMonths  := DivI(countDay mod 360, 30);
+                  BDays    := countDay mod 360 mod 30;
+                  }
+                else
+                  {
+                  BYears   := ServLen.YearsB;
+                  BMonths  := ServLen.MonthsB;
+                  BDays    := ServLen.DaysB;
+                  }
+                }
+        end; //case
+
+        isRunOk := TRUE;
+        }
+
+  if (BYears < 0)
+    BYears := 0;
+  if (BMonths < 0)
+    BMonths := 0;
+  if (BDays < 0)
+    BDays := 0;
+}
+
+function GetStajYears(PsnNRec : comp; StajSysCode : integer; RunDate : date) : word;
+{  // Возвращает количество лет в стаже
+  RunStajAll(PsnNRec, StajSysCode, RunDate);
+  if (BYears > 0)
+    GetStajYears := BYears;
+  else
+    GetStajYears := 0;
+}
+
+function GetStajMonths(PsnNRec : comp; StajSysCode : integer; RunDate : date) : word;
+{  // Возвращает количество месяцев в стаже
+  RunStajAll(PsnNRec, StajSysCode, RunDate);
+  if (BMonths > 0)
+    GetStajMonths := BMonths;
+  else
+    GetStajMonths := 0;
+}
+
+function GetStajDays(PsnNRec : comp; StajSysCode : integer; RunDate : date) : word;
+{  // Возвращает количество дней в стаже
+  RunStajAll(PsnNRec, StajSysCode, RunDate);
+  if (BDays > 0)
+    GetStajDays := BDays;
+  else
+    GetStajDays := 0;
+}
+
+function GetDateForNorthFirst(PsnNRec : comp; LSchetKateg : comp; Percent : double; RunDate : date) : date;
+{
+  GetDateForNorthFirst:= Date(0,0,0);
+  //RunDate - предварительная дата, которую нужно уточнять...
+  if (GetFirst Persons where ((PsnNRec == Persons.NRec)) = tsOk){};
+
+  if (getfirst North where ((LSchetKateg == North.kateg and
+                             Percent == North.Proc
+                          )) = tsOk)
+  {
+    var NRecNorth : comp;
+        NRecNorth:= 0;
+
+    _loop North where ((LSchetKateg == North.kateg))
+    {
+      if (Percent <= North.Proc) break;
+
+      NRecNorth:= North.Nrec;
+    }
+
+    //Мы нашли верхнюю границу, теперь попытаемся найти нижнюю
+    //if (getprev North where ((LSchetKateg == North.kateg)) = tsOk)
+    if (getfirst North where ((NRecNorth == North.Nrec)) = tsOk)
+      {
+        //Нашли предыдущую градацию...
+        var ValueCurrDate : word;
+            ValueCurrDate:= (GetStajYears(PsnNRec, integer(64), RunDate) * 360) +
+                            (GetStajMonths(PsnNRec, integer(64),RunDate) * 30)  +
+                             GetStajDays(PsnNRec, integer(64),RunDate);
+
+        var ValueNeedDate : word;
+            ValueNeedDate:= (North.EndInt * 360) + (North.MonthInt * 30) + 1;
+
+        var ValueDifferent : longint;
+        if (ValueCurrDate > ValueNeedDate)
+          { ValueDifferent:= ValueCurrDate - ValueNeedDate;
+            RunDate:= Sub_Day(RunDate, ValueDifferent);
+          }
+        if (ValueCurrDate < ValueNeedDate)
+          { ValueDifferent:= ValueNeedDate - ValueCurrDate;
+            RunDate:= Add_Day(RunDate, ValueDifferent);
+          }
+
+        //Уточняем погрешность...
+        ValueCurrDate:= (GetStajYears(PsnNRec, integer(64), RunDate) * 360) +
+                        (GetStajMonths(PsnNRec, integer(64),RunDate) * 30)  +
+                         GetStajDays(PsnNRec, integer(64),RunDate);
+
+        if (ValueCurrDate > ValueNeedDate)
+          { ValueDifferent:= ValueCurrDate - ValueNeedDate;
+            RunDate:= Sub_Day(RunDate, ValueDifferent);
+          }
+        if (ValueCurrDate < ValueNeedDate)
+          { ValueDifferent:= ValueNeedDate - ValueCurrDate;
+            RunDate:= Add_Day(RunDate, ValueDifferent);
+          }
+
+        GetDateForNorthFirst:= RunDate;
+      } else GetDateForNorthFirst:= Persons.AppDate;
+
+      if (day(GetDateForNorthFirst) > 0)
+        if (GetDateForNorthFirst < Persons.AppDate)
+           GetDateForNorthFirst:= Persons.AppDate;
+
+  }
+}
+
+function GetDateForNorthP(PsnNRec : comp; LSchetKateg : comp; Percent : double; RunDate : date) : date;
+{
+  GetDateForNorthP:= Date(0,0,0);
+  if (GetFirst FastFirstRow Persons where ((PsnNRec == Persons.NRec)) = tsOk){};
+
+  if (getfirst North where ((LSchetKateg == North.kateg and
+                             Percent == North.Proc
+                          )) = tsOk)
+  {
+    var NRecNorth : comp;
+        NRecNorth:= 0;
+    _loop North where ((LSchetKateg == North.kateg))
+    {
+      if (Percent <= North.Proc) break;
+
+      NRecNorth:= North.Nrec;
+    }
+    if (getfirst North where ((NRecNorth == North.Nrec)) = tsOk)
+    {
+      var ValueNeedDate : word;
+          ValueNeedDate := (North.EndInt * 12) + North.MonthInt;
+
+      var ValueCurrDate : word;
+      if(North.Proc<>0)
+        if (getprev North  = tsOk)
+        {
+          ValueCurrDate:= (North.EndInt * 12) + North.MonthInt;
+        }
+
+      var ValueDifferent : longint;
+      if (ValueCurrDate > ValueNeedDate)
+      {
+        ValueDifferent:= ValueCurrDate - ValueNeedDate;
+        RunDate:= Sub_Months(RunDate, ValueDifferent);
+      }
+      if (ValueCurrDate < ValueNeedDate)
+      {
+        ValueDifferent:= ValueNeedDate - ValueCurrDate;
+        RunDate:= Add_Months(RunDate, ValueDifferent);
+      }
+
+      GetDateForNorthP:= RunDate;
+    }
+    else
+      GetDateForNorthP:= Persons.AppDate;
+
+    if (day(GetDateForNorthP) > 0)
+      if (GetDateForNorthP < Persons.AppDate)
+        GetDateForNorthP:= Persons.AppDate;
+  }
+}
+
+screen scr01;
+  fields
+    DatePer[10] ('Дата 10%'):Protect;
+    DatePer[20] ('Дата 20%'):Protect;
+    DatePer[30] ('Дата 30%'):Protect;
+    DatePer[40] ('Дата 40%'):Protect;
+    DatePer[50] ('Дата 50%'):Protect;
+    DatePer[60] ('Дата 60%'):Protect;
+    DatePer[70] ('Дата 70%'):Protect;
+    DatePer[80] ('Дата 80%'):Protect;
+<<
+   %      Расчетная
+          дата
+  `10%` .@@@@@@@@@@
+  `20%` .@@@@@@@@@@
+  `30%` .@@@@@@@@@@
+  `40%` .@@@@@@@@@@
+  `50%` .@@@@@@@@@@
+  `60%` .@@@@@@@@@@
+  `70%` .@@@@@@@@@@
+  `80%` .@@@@@@@@@@
+>>
+end; // scr01
+
+HandleEvent
+
+cmInit:
+{
+  SetLimit(DatePer, 0);
+  var ServLenYears  : integer;
+  var ServLenMonths : integer;
+  var ServLenDays   : integer;
+  var iSysCode      : integer;
+  var GetPercServN  : integer;
+  var iCount        : integer;
+  var MaxPer        : integer;
+  var Get_DatePer   : date;
+  if GetLast North where (( LSchetKateg == North.kateg )) = TsOk
+    MaxPer:=LongInt(North.Proc);
+
+  GetPercServN:=LongInt(iRunStaj.GetPercServN(PsnNRec,LSchetKateg,RunDate));
+  set DatePer[GetPercServN]:=RunDate;
+  Get_DatePer:=RunDate;
+  for(iCount:=GetPercServN+10;iCount<=MaxPer;iCount+=10)
+  {
+//    set DatePer[iCount]:=GetDateForNorthP(PsnNRec,LSchetKateg,iCount,Get_DatePer);
+//    if(DatePer[iCount]<>0)
+//      Get_DatePer:=DatePer[iCount];
+    if(iCount=GetPercServN+10)
+      set DatePer[iCount]:=GetDateForNorthFirst(PsnNRec,LSchetKateg,iCount,Get_DatePer);
+    else
+      set DatePer[iCount]:=GetDateForNorthP(PsnNRec,LSchetKateg,iCount,Get_DatePer);
+    if(DatePer[iCount]<>0)
+      Get_DatePer:=DatePer[iCount];
+  }
+}
+
+end; // HandleEvent
+
+end.

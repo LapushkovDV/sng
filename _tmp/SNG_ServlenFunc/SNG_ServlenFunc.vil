@@ -1,0 +1,9 @@
+//------------------------------------------------------------------------------
+//                                                      (c) ПАО Сургутнефтегаз
+// Галактика ERP - Управление персоналом
+// Описание реализаций объектов компонента SNG_ServlenFunc
+//------------------------------------------------------------------------------
+
+#component "SNG_ServlenFunc"
+
+VipInterface PlanDateChangeSN licensed(free) parameters(PsnNRec : comp; LSchetKateg : comp; RunDate : date);

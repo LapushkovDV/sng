@@ -1,0 +1,30 @@
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+
+#component "SNG"
+#define CompTitle Ежемесячные премии
+#doc
+  #CompTitle
+#end
+#include SNG_Premiya.ver
+
+//-------------------
+// Параметры
+#params
+[vip]
+LicenseControlInclude=""
+#end
+
+
+//---------------------------------------------------
+//Регистрация дополнительных пунктов меню модуля "Расчет ежемесячных премий"
+//---------------------------------------------------
+
+
+//#make "vip\Zarnetr.vip"
+#component "SNG_PREMIYA"
+#include SNG_GP_ZARNETR.Vih
+#make "vip\SNG_GP_ZARNETR.vip"
+#make "vip\SNG_Premiya.vip"

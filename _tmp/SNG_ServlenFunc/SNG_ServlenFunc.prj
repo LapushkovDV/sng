@@ -1,0 +1,16 @@
+//------------------------------------------------------------------------------
+// Проектный файл сборки компонента SNG_CharLockLog
+//------------------------------------------------------------------------------
+
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+
+#component "SNG_ServlenFunc"
+#define CompTitle Функции для работы с Servlen и Sng_ServlenExt
+#doc
+  #CompTitle
+#end
+
+#make "vip\*.vip"

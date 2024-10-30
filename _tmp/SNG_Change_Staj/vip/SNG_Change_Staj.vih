@@ -1,0 +1,19 @@
+#ifnDef _SNG_CHANGE_STAJ_INCLUDED_
+#define _SNG_CHANGE_STAJ_INCLUDED_
+#component "SNG_Change_Staj"
+
+ObjInterface oSNG_Change_Staj;
+public:
+#doc
+#end
+
+#doc
+Окно редактирования стажа
+#end
+Function RunEditStaj(cSL: comp): boolean;
+
+end;
+
+VipInterface SNG_Change_Staj Implements oSNG_Change_Staj #Licensed_Free;
+
+#end

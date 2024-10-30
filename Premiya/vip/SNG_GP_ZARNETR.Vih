@@ -1,0 +1,13 @@
+#ifndef __GP_ZARNETR_INCLUDED__
+#define __GP_ZARNETR_INCLUDED__
+
+#include Z_Zar.vil
+
+#component "SNG_PREMIYA"
+
+VipInterface SNG_GP_Zarnetr (Z_Zar::Zarnetr);
+//   parameters(prOne, calculationStatus: word);
+Public:
+  Procedure RunCalcSalaryAuto;
+ end;
+#endif

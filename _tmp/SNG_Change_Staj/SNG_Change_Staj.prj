@@ -1,0 +1,15 @@
+#statusline "statgal"
+
+#include GalNet.inc end;
+#include GloVars.inc
+#include galaktika.vil
+
+#component "SNG_Change_Staj"
+#define CompTitle Анкетная форма для редактирования стажа
+#doc
+  #CompTitle
+#end
+#include SNG_Change_Staj.ver
+
+#make "vip\SNG_Change_Staj.vip"
+#make "vip\SLHISTRY.VIP"
