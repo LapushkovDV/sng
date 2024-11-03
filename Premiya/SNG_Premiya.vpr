@@ -91,14 +91,12 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="vip\Premiya.Vip" PosX="30" PosY="7" OpenEditor="True"/>
-			<File Name="vip\GP_ZARNETR.vip" PosX="21" PosY="6" OpenEditor="True"/>
-			<File Name="vip\GP_ZARNETR.Vih" PosX="14" PosY="8" OpenEditor="True" Active="True"/>
 			<File Name="..\..\erp91\CompSrc\Z\Z_Zar\vip\ZARNETR.VIP" PosX="49" PosY="1353" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_LSchet\vip\CLSFuncs.vih" PosX="29" PosY="299" OpenEditor="True"/>
 			<File Name="..\..\erp91\CompSrc\Z\Z_LSchet\vip\CLSFuncs.vip" PosX="26" PosY="1452" OpenEditor="True"/>
 			<File Name="..\..\..\GAL\Frm\SRC\CompSrc\Z\Z_LSchet\vip\PAFilter.vih" PosX="36" PosY="290" OpenEditor="True"/>
-			<File Name="SNG_Premiya.prj" PosX="19" PosY="29" OpenEditor="True"/>
+			<File Name="SNG_Premiya.prj" PosX="19" PosY="30" OpenEditor="True"/>
+			<File Name="vip\SNG_Premiya.vip" PosX="58" PosY="686" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -159,6 +157,7 @@
 			<Marker FileName="vip\GP_KPI_RaiseEdit.vip" Caption="Нумерованная закладка 1" Line="518" NumIndex="1" MarkerType="mtNumBookmark" Comment="GP_KPI_Fields_TD.Name 'Наименование' :[30],NoProtect;"/>
 			<Marker FileName="vip\Premiya.Vip" Caption="Нумерованная закладка 2" Line="258" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\Premiya.Vip" Caption="Нумерованная закладка 1" Line="691" NumIndex="1" MarkerType="mtNumBookmark" Comment="setformat();"/>
+			<Marker FileName="vip\SNG_Premiya.vip" Caption="Нумерованная закладка 1" Line="776" NumIndex="1" MarkerType="mtNumBookmark" Comment="_cAttrnam := attrnam.nrec"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="71"/>
