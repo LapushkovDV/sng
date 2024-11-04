@@ -53,3 +53,8 @@ LicenseControlInclude=""
 #make "vip\QUE_SendMessToExtSys_oilix_absence.vip"
 
 #make "vip\QUE_SendMessToExtSys_galaktika.vip"
+
+#include epSystem.vih
+#make "vip\BSIAtl_QUE_EntriesForReview.vip"
+#make "vip\BSIAtl_QUE_OUT.vip"
+#make "vip\BSIAtl_QUE_INCOME.vip"

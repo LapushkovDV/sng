@@ -1,0 +1,71 @@
+/*************************************************************************************************\
+* Наименование: Базовый объект работы очереди                                                     *
+* Контур/Модуль: Очередь исходящих сообщений                                                      *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+*/
+#include IBackgroundStarter.vih
+#include QUE_BASE.vih
+
+handler with replace hep_BSIAtl_QUE_OUT on ExtensionPoint epGetBackgroundStarters(aNames: pointer)
+Action
+{
+  Container_Insert(aNames, 'SNG_QUE::BSIAtl_QUE_OUT');
+  Result := true;
+};
+
+
+  VipInterface BSIAtl_QUE_OUT
+    implements IBackgroundStarter
+    licensed(Free);
+  Public:
+    constructor Init;
+    destructor  Done;
+  end;
+
+
+  // ──────────────────────────────────────
+
+interface BSIAtl_QUE_OUT;
+
+
+var pTitle   : string  = 'Обработка исходящей очереди';
+var pNeedTune: byte    = bttNone;
+
+
+property Title:    string Read  pTitle;
+property NeedTune: byte   Read  pNeedTune;
+
+
+  constructor Init; {
+     Result := true;
+  };
+
+  destructor Done; {
+  };
+
+  function SelectTaskTune(aTune: String): String; {
+     Result := '';
+  };
+
+  function IsTuneValid(aTune: String): Boolean; {
+     Result := false;
+  };
+  function  SelectTaskTunes  (mTunes : Pointer): Word; {
+    result := 0;
+  }
+  function  GetTuneName (aNRec : Comp): String; {
+    result := '';
+  }
+
+  function RunProcess(aTune: String): Word; {
+
+   var iQUE_BASE : QUE_BASE;
+    iQUE_BASE.ProcessQueueOut;
+    freevipinterface(iQUE_BASE);
+    Result := tsOk;
+  };
+
+end.

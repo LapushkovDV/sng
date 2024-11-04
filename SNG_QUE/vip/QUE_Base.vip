@@ -956,13 +956,22 @@ Function SendOneMessage(_cQue_OUT : comp) : boolean; {
               }
             }
 
-            result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  QUE_OUT_SNDMSG.nrec
-                                                                  , _longValue // JSON_Object
-                                                                  , QUE_OUT_SNDMSG.QRY_Instance_code
-                                                                  , QUE_OUT_SNDMSG.TypeEvent
-                                                                  , _cTuneReciptSystem
-                                                                  , _retStatus
-                                                                  , _retFileLog);
+         _try
+            {
+              result :=_arrQUE_SendMessToExtSys[ww_num].SendMessage(  QUE_OUT_SNDMSG.nrec
+                                                                    , _longValue // JSON_Object
+                                                                    , QUE_OUT_SNDMSG.QRY_Instance_code
+                                                                    , QUE_OUT_SNDMSG.TypeEvent
+                                                                    , _cTuneReciptSystem
+                                                                    , _retStatus
+                                                                    , _retFileLog
+                                                                    );
+            }
+            _except
+            else {
+              exit;
+            }
+
             Break;
           } while True;
 

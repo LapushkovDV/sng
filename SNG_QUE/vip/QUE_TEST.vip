@@ -121,7 +121,7 @@ handleevent // фейса
  cmValue4: {
    var iQUE_BASE : QUE_BASE;
    StartNewVisual(vtRotateVisual, vfTimer + vfBreak, 'Копирование в очередь', 1);
-    iQUE_BASE.CopyEntriesForReviewToQueue;;
+    iQUE_BASE.CopyEntriesForReviewToQueue;
    StopVisual('', 0);
      message('Готово')
 }

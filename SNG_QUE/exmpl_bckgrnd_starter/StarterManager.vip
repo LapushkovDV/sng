@@ -1,3 +1,4 @@
+#include IBackgroundStarter.vih
 
 handler with replace hep_GetBSIAtl on ExtensionPoint epGetBackgroundStarters(aNames: pointer)
 Action
