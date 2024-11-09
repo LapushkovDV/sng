@@ -309,8 +309,10 @@ function widestring_to_longstring(_widestr : widestring[2097151]) : tptr; {
   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
   var _longstring : TPtr =  HttpConnect_CreateLongString( m_service);
   var _i : longint;
-  for (_i := 1; _i <= Length(_widestr)-1; _i += 200)
+
+  for (_i := 1; _i <= Length(_widestr)-1; _i += 200) {
     HttpConnect_AddValueToLongString( m_service, SubStr(_widestr, _i, 200), _longstring);
+  }
  result := _longstring;
 }
 
@@ -412,28 +414,44 @@ function convertLongstringFromBase64(_longStrBase64 : tptr): tptr; {
   var __httpcon : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
   var _FilePath       : string = '';
   var _FilePathDecode : string = '';
-  _FilePath       := GenerateNewFile + 'base64.txt';
-  _FilePathDecode := GenerateNewFile + 'decodebase64.txt';
+  _FilePath       := GenerateNewFile + 'base64_cnvrt.txt';
+  _FilePathDecode := GenerateNewFile + 'decodebase64_cnvrt.txt';
   HttpConnect_SaveToFileEx(__httpcon, _longStrBase64, _FilePath, cpUTF8, false);
   DecodeFileFromBase64(_FilePath, _FilePathDecode);
   result := HttpConnect_LoadFromFile (__httpcon, _FilePathDecode, cpUTF8) ;
-  //deletefile(_FilePath);
-  //deletefile(_FilePathDecode);
+  deletefile(_FilePath);
+  deletefile(_FilePathDecode);
+}
+
+function UnEscapeStr(Str:widestring[2097151]):widestring[2097151]; {
+  Str:=Replace(Str, '\"', '"');
+  Str:=Replace(Str, '\/', '/');
+  Str:=Replace(Str, '\n', ''#10);
+  Str:=Replace(Str, '\r', ''#13);
+  Str:=Replace(Str, '\\', '\');
+  result:=Str;
 }
 
 function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _mess : widestring[2097151]; var ID_QUEUE : string[36]) : boolean; {
+
   result := false;
   ID_QUEUE := '';
   var m_service : tptr = HttpConnect_CreateEx('http://ya.ru', '', '', true);
-  var _messlongstr : TPtr =  HttpConnect_CreateLongString( m_service);
+  var _messlongstr, _messlongstrtmp : TPtr =  HttpConnect_CreateLongString( m_service);
   var _messdecode : widestring[2097151];
   var _log_string : string = '';
 
-  _messlongstr := widestring_to_longstring(_mess);
 
-  if bodyinbase64 {
-    var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
-     _messlongstr := iQUE_INCOME_BASE.convertLongstringFromBase64(_messlongstr);
+  if bodyinbase64 = false then {
+    _messlongstr := widestring_to_longstring(_mess);
+  }
+   else {
+       _mess := UnEscapeStr(_mess);
+       _messlongstrtmp := widestring_to_longstring(_mess);
+      var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
+       _messlongstr := iQUE_INCOME_BASE.convertLongstringFromBase64(_messlongstrtmp);
+
+       //_messlongstr := HttpConnect_DecodeBase64(m_service, _messlongstrtmp);
 
 //     putfiletoclient(_FilePath,false);
 //     putfiletoclient(_FilePathDecode,false);

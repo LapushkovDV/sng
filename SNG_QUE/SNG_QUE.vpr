@@ -92,16 +92,14 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="20" PosY="11" OpenEditor="True"/>
-			<File Name="vip\QUE_REST.vip" PosX="15" PosY="7" OpenEditor="True"/>
-			<File Name="vip\QUE_INCOME_BASE.vip" PosX="19" PosY="16" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="32" PosY="50" OpenEditor="True" Active="True"/>
-			<File Name="vip\QUE_BASE.vip" PosX="7" PosY="553" OpenEditor="True"/>
-			<File Name="vip\QUE_BASE.vih" PosX="27" PosY="18" OpenEditor="True"/>
-			<File Name="vip\QUE_RecipientSystems.vip" PosX="31" PosY="49" OpenEditor="True"/>
-			<File Name="vip\QUE_View_QUE_EntriesForReview.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_View_QUE_EntriesForReview.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_TEST.vip" PosX="15" PosY="117" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="27" PosY="60" OpenEditor="True"/>
+			<File Name="vip\QUE_TEST.vip" PosX="12" PosY="117" OpenEditor="True"/>
+			<File Name="vip\QUE_BASE.vip" PosX="32" PosY="1081" OpenEditor="True"/>
+			<File Name="inc\SNG_QUE.inc" PosX="34" PosY="15" OpenEditor="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_testInsertKAU.vip" PosX="40" PosY="222" OpenEditor="True"/>
+			<File Name="vip\BSIAtl_QUE_EntriesForReview.vip" PosX="38" PosY="68" OpenEditor="True"/>
+			<File Name="vip\BSIAtl_QUE_INCOME.vip" PosX="23" PosY="9" OpenEditor="True"/>
+			<File Name="exmpl_bckgrnd_starter\IBackgroundStarter.vih" PosX="26" PosY="30" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -157,7 +155,8 @@
 			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 2" Line="394" NumIndex="2" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QUE_INCOME_BASE.vip" Caption="Нумерованная закладка 1" Line="338" NumIndex="1" MarkerType="mtNumBookmark" Comment="DecodeFileToBase64(_FilePath, _FilePathEncode);"/>
 			<Marker FileName="vip\QUE_ProcessMessIncomeQueue_QRY_TEMPLATE.vip" Caption="Нумерованная закладка 1" Line="285" NumIndex="1" MarkerType="mtNumBookmark" Comment="tQRY_TEMPLATESP.DESCRIPTION :="/>
-			<Marker FileName="vip\QUE_BASE.vip" Caption="Нумерованная закладка 1" Line="553" NumIndex="1" MarkerType="mtNumBookmark" Comment="//deletefile(_jsonFile);"/>
+			<Marker FileName="vip\QUE_BASE.vip" Caption="Нумерованная закладка 1" Line="974" NumIndex="1" MarkerType="mtNumBookmark"/>
+			<Marker FileName="vip\QUE_SendMessToExtSys_galaktika.vip" Caption="Нумерованная закладка 1" Line="325" NumIndex="1" MarkerType="mtNumBookmark"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>

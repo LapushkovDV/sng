@@ -11,46 +11,14 @@
 \*************************************************************************************************/
 /*
 структура JSON
-{
-    "MSG_KATKAU_SPKAU": [
-        {
-            "KAU_NAME": "Пользовательская аналитика. Тест",
-            "KAU_CODE": "10500",
-            "SP_KAU": [
-                {
-                    "CODE" : "01",
-                    "NAME" : "name 01",
-                    "NREC" : "1",
-                    "CPARENT" : "0"
-                },
-                {
-                    "CODE" : "02",
-                    "NAME" : "name 02",
-                    "NREC" : "2",
-                    "CPARENT" : "1"
-                }
-            ]
-        },
-        {
-            "KAU_NAME": "Пользовательская аналитика. Тест 1",
-            "KAU_CODE": "10501",
-            "SP_KAU": [
-                {
-                    "CODE" : "001-1",
-                    "NAME" : "name 01-125",
-                    "NREC" : "21",
-                    "CPARENT" : "0"
-                },
-                {
-                    "CODE" : "002-1",
-                    "NAME" : "name 02-458",
-                    "NREC" : "22",
-                    "CPARENT" : "0"
-                }
-            ]
-        }
-    ]
-}
+"MESSAGE" :
+    {
+      "NAME" : "QRY_TEMPLATE",
+      "BODY" :
+       [
+         тут вся передаваемая структура
+       ]
+    }
 */
 #include QUE_ProcessMessIncomeQueue.vih
 #include QUE_ProcessMessIncomeMessageGalaktika.vih

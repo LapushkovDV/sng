@@ -268,6 +268,15 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
   var _messageFileBase64 : string = iQUE_BASE.GenerateNewFile +'_messageFilebase64.json' ;
   EncodeFileToBase64(_messageFile, _messageFileBase64);
   var _longValue64 : tptr = HttpConnect_LoadFromFile(httpCon, _messageFileBase64, cpUTF8) ;
+
+
+  /*debug*/
+  putfiletoclient(_messageFile,false);
+  putfiletoclient(_messageFileBase64,false);
+  var _from_longValue64 : string = iQUE_BASE.GenerateNewFile +'_from_longValue64.json' ;
+  HttpConnect_SaveToFileEx(httpCon, _longValue64, _from_longValue64, cpUTF8, false);
+  putfiletoclient(_from_longValue64,false);
+  /*end debug */
   deletefile(_messageFile);
   deletefile(_messageFileBase64);
 
@@ -297,6 +306,12 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
   HttpConnect_JsonObjectAddObject(httpCon , _JSON, 'params', _JSONparams);
 
   var _JSONBODYlongstring : tptr = HttpConnect_JSONObjectToJSON(httpCon, _JSON);
+
+  /*debug*/
+  var _fJSONBODYlongstring : string = iQUE_BASE.GenerateNewFile +'_JSONBODYlongstring.json' ;
+  HttpConnect_SaveToFileEx(httpCon, _JSONBODYlongstring, _fJSONBODYlongstring, cpUTF8, false);
+  putfiletoclient(_fJSONBODYlongstring,false);
+  /*end debug*/
 
 /*
    if Handler_tune.VALUEWORD[1] = 1 {
@@ -334,7 +349,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
 // message('after HttpConnect_GetLongStringLength');
  var _lresponse : tptr;
 
- if not DoRequest(_URL+_port, _token, _JSONBODYlongstring,_retStatus,_lresponse){
+ if not DoRequest(_URL+_port, _token, _JSONBODYlongstring, _retStatus, _lresponse){
      _retStatus := 'Ошибка выполнения POST-запроса';
       exit;
  }
