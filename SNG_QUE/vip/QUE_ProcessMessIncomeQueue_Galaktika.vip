@@ -13,7 +13,7 @@
 структура JSON
 "MESSAGE" :
     {
-      "NAME" : "QRY_TEMPLATE",
+      "INTERFACE" : "SNG_QUE::QUE_Process_KATMC",
       "BODY" :
        [
          тут вся передаваемая структура
@@ -92,9 +92,9 @@ function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLon
        exit;
      }
 
-   var _name : string = HttpConnect_JsonObjectValueByName( m_service, JSON_MESSAGE, 'NAME');
-   if _name = '' {
-       _answer := 'Пустой или отсутствует элемент NAME';
+   var _nameINTERFACE : string = HttpConnect_JsonObjectValueByName( m_service, JSON_MESSAGE, 'INTERFACE');
+   if _nameINTERFACE = '' {
+       _answer := 'Пустой или отсутствует элемент INTERFACE';
        HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
        exit;
      }
@@ -102,6 +102,21 @@ function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLon
 
     var JSON_MSG_BODY_ARR_lStr : tptr = HttpConnect_JSONObjectToJSON(m_service, JSON_MSG_BODY_ARR);
 
+
+     var _iProcessMessIncomeMessageGalaktika : oQUE_ProcessMessIncomeMessageGalaktika;
+        if LoadvipRef(_iProcessMessIncomeMessageGalaktika,_nameINTERFACE) {
+             if not _iProcessMessIncomeMessageGalaktika.ProcessMessage(JSON_MSG_BODY_ARR_lStr, _cQUE_Handler_tune, _answerLong, _answer) {
+              HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+              exit;
+            }
+        } else {
+         _answer := 'Интерфейс "'+_nameINTERFACE+'" отсутствует в системе';
+          HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);
+          exit;
+        }
+       result := true;
+
+/*
     case _name of
      'JSON_QRY_TEMPLATE' : {
        var _iProcessMessIncomeMessageGalaktika : oQUE_ProcessMessIncomeMessageGalaktika;
@@ -137,7 +152,7 @@ function ProcessMessage(_message:TpTr; _cQUE_Handler_tune : comp; var _answerLon
        exit;
      }
     end;
-
+*/
    result := true;
    _answer := 'Сообщение успешно обработано';
    HttpConnect_AddValueToLongString (m_service, _answer,_answerLong);

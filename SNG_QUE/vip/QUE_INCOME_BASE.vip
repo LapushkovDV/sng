@@ -278,7 +278,7 @@ Function ProcessOneMessage(_cQue_income : comp) : boolean; {
              if ImportFileToMemo(QUE_IN_ANSWR.answer_body, _FilePath_retMessage, false) {
                update current QUE_IN_ANSWR;
              }
-            //deletefile(_retFileLog);
+            deletefile(_FilePath_retMessage);
            }
          //putfiletoclient(GetLogFile,false);
 
@@ -352,6 +352,8 @@ function EncodelongStringToBase64(_longstr : tptr) : tptr; {
 
   EncodeFileToBase64(_FilePath, _FilePathEncode);
   var _longValue64 : tptr = HttpConnect_LoadFromFile(m_service, _FilePathEncode, cpUTF8) ;
+  deletefile(_FilePathEncode);
+  deletefile(_FilePath);
   result := _longValue64;
 }
 
@@ -448,7 +450,7 @@ function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _m
    else {
        _mess := UnEscapeStr(_mess);
        _messlongstrtmp := widestring_to_longstring(_mess);
-      var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
+       var iQUE_INCOME_BASE : QUE_INCOME_BASE new;
        _messlongstr := iQUE_INCOME_BASE.convertLongstringFromBase64(_messlongstrtmp);
 
        //_messlongstr := HttpConnect_DecodeBase64(m_service, _messlongstrtmp);
@@ -505,6 +507,7 @@ function PutMessageToQueueIncome(_system_code: string; bodyinbase64: boolean; _m
   if not ImportFileToMemo(QUE_IN_INSERT.mess_body, _messFile, false) {
       exit;
    }
+  deletefile(_messFile);
   QUE_IN_INSERT.status := coQUE_INCOME_ReadyToProcess;
   if (update current QUE_IN_INSERT) <> tsOK {
       exit
