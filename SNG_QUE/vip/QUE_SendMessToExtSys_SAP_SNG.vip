@@ -45,31 +45,159 @@ where ((
       ))
 ;
 
+function encrypt(_str:string):string;{
+  var _strres : string = '';
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres :=_strres + chr(ord(char(substr(_str,_i,1))) + _i + Handler_tune.VALUEWORD[2]);
+     _i++;
+   }
+   result := _strres;
+}
+
+function decrypt(_str:string):string;{
+  var _strres : string = '' ;
+  var _i : byte = 1;
+  while _i <= length(_str)
+   {
+     _strres := _strres + chr(ord(char(substr(_str,_i,1))) - _i - Handler_tune.VALUEWORD[2]);
+     _i++;
+   }
+   result := _strres;
+}
+
 function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
 
  result := false;
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+
+  if getfirst Handler_tune <> tsOK {
+    _retFileLog := '';
+    _retStatus  := 'Не найдена настройка QUE_Handler_tune.nrec=' + string(_cQUE_Handler_tune);
+    exit;
+ }
+
+
  var iQUE_BASE : QUE_BASE new;
 
- var httpCon: TPtr = HttpConnect_CreateEx('ya.ru', '', '', True);
+ var httpCon0: TPtr = HttpConnect_CreateEx('ya.ru', '', '', True);
 
  var _JSON_from_message : tptr;
-  _JSON_from_message := HttpConnect_JSONObjectByLongString(httpCon, _bodyMessage);
+  _JSON_from_message := HttpConnect_JSONObjectByLongString(httpCon0, _bodyMessage);
    if _JSON_from_message = 0 {
       _retStatus := 'не смогли преобразовать сообщение в JSON';
-      HttpConnect_Free(httpCon);
+      HttpConnect_Free(httpCon0);
       exit;
      }
 
-  var iSAP_Provider: oSNG_HTTP_Provider(SNG_HTTP_Provider_SAP);
-    iSAP_Provider.HideErrorMessages;
-    if (not iSAP_Provider.sendJson(_JSON_from_message)) {
-      _retStatus := iSAP_Provider.getTextMessage;
-      result := false;
-      exit;
-    }
 
-  _retStatus := '';
-  result := true;
+  var lResponse : TPtr;
+  var httpCon   : TPtr = longint(0);
+  var lHeader   : TPtr = longint(0);
+
+  var Api_url      : string = Handler_tune.VALUESTRING[1];
+  var API_Method   : string = Handler_tune.VALUESTRING[2];
+  var API_Username : string = Handler_tune.VALUESTRING[3];
+  var API_Password : string = decrypt(Handler_tune.VALUESTRING[3]);
+
+   if trim(Api_url) = '' {
+     _retFileLog := '';
+     _retStatus  := 'В настройке не указан URL';
+     exit;
+   }
+    if trim(API_Method) = '' {
+     _retFileLog := '';
+     _retStatus  := 'В настройке не указан метод';
+     exit;
+   }
+    if trim(API_Username) = '' {
+     _retFileLog := '';
+     _retStatus  := 'В настройке не указан пользователь';
+     exit;
+   }
+    if trim(API_Password) = '' {
+     _retFileLog := '';
+     _retStatus  := 'В настройке не указан пароль';
+     exit;
+   }
+
+
+  var API_Basic: string;
+
+  httpCon := HttpConnect_CreateEx(Api_url, API_Username, API_Password, True);
+  HttpConnect_SetUserAgent(httpCon, 'Mozilla/5.0');
+  HttpConnect_ResponseLogEnable(httpCon);
+
+  var sMessage : string = '';
+  _try
+  {
+    //формируем заголовок
+    lHeader := HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, 'Content-Type: application/json' + chr(13), lHeader);
+    HttpConnect_AddValueToLongString(httpCon, 'Accept: application/json'       + chr(13), lHeader);
+    var API_Basic: string;
+    encodeToBase64(API_Username+':'+API_Password, API_Basic);
+    HttpConnect_AddValueToLongString(httpCon, 'Authorization: Basic '+ API_Basic + chr(13), lHeader);
+//---------------------------------------------------------------------------------------------------
+    //формируем адрес
+    var lAddUrl: TPtr = HttpConnect_CreateLongString(httpCon);
+    HttpConnect_AddValueToLongString(httpCon, API_Method, lAddUrl);
+
+    _try
+    {
+       //формируем тело запроса
+      var lRequest: TPtr = _JSON_from_message;
+
+
+      _try
+      {
+        //отправляем запрос
+        lResponse := HttpConnect_SendRequestPostJSON(httpCon, lAddUrl, lHeader, lRequest, false);
+
+        if (HttpConnect_LastError(httpCon) <> 0) {
+           result := false;
+           sMessage := HttpConnect_LastErrorText(httpCon);
+           result := false;
+        // LogMessage('При выполнении запроса возникла ошибка. Лог ошибок в файле: ' + filelResponse);
+        } else {
+        // LogMessage('Запрос выполнен. ответ в файле: ' + filelResponse );
+
+           //обработка ответа lResponse
+           var JSONResponse : TPtr   = HttpConnect_JSONObjectByLongString(httpCon, lResponse);
+
+           //пример обработки полей ответа
+           sMessage := HttpConnect_JsonObjectValueByName(httpCon,JSONResponse,'EV_ERROR_TEXT');
+           if (upcase(HttpConnect_JsonObjectValueByName(httpCon,JSONResponse,'EV_STATUS'))) = 'E'
+           {
+             sMessage := 'Ошибка обработки документа: ' + if(sMessage <> '', sMessage, 'Неизвестная ошибка');
+             result := false;
+           }
+           else
+           {
+             sMessage := 'ok';
+             result := true;
+           }
+        }
+      }
+      _finally
+      {
+        HttpConnect_DestroyLongString(httpCon, lRequest);
+      }
+    }
+    _finally
+    {
+      HttpConnect_DestroyLongString(httpCon, lHeader);
+      HttpConnect_DestroyLongString(httpCon, lAddUrl);
+    }
+  }
+  _finally
+  {
+    HttpConnect_DestroyLongString(httpCon, lResponse);
+    HttpConnect_Free(httpCon);
+  }
+  _retStatus := sMessage;
+  //result := true;
 
   HttpConnect_Free(httpCon);
 }
@@ -78,12 +206,55 @@ function GetDescription : string; {
   result := 'Интеграция с SAP посредством JSON (СНГ)'
 }
 
+Window winSapTune 'Настройки интерфейса передачи JSON-сообщений в SAP';
+  Show at (,,,);
+  //---------------------------------------------
+    Screen ScrwinSapTune(,,Sci1Esc);
+
+    Table Handler_tune;
+    Fields
+     Handler_tune.NAME           : NoProtect, {Font={BackColor=if(trim(Handler_tune.name) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[1] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[1]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[2] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[2]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[3] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[3]) = '',ColorNeed,0)}};
+     Handler_tune.VALUESTRING[4] : NoProtect, {Font={BackColor=if(trim(Handler_tune.VALUESTRING[4]) = '',ColorNeed,0)}};
+    buttons
+     cmValue1,[singleLine],,;
+<<
+`Наименование настройки`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+   `URL`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например https://sappod.sgc.oil.gas:8131)
+ `Метод`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (например RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so)
+
+ `Логин`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+`Пароль`.@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ (после изменения будет зашифрован)
+
+                           <.Сохранить и закрыть.>
+>>
+    end;
+end;
+windowevent winSapTune;
+cmValue1 : {
+  update current Handler_tune;
+  closewindow(winSapTune);
+}
+end;
 procedure Setup(__cQUE_Handler_tune : comp);{
   set _cQUE_Handler_tune := __cQUE_Handler_tune;
-  if getfirst Handler_tune = tsOK {
-    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
-  }
-  message('Настроек не предусмотрено',error);
+  if getfirst Handler_tune <> tsOK then exit;
+  runwindowmodal(winSapTune)
 }
 
+handleevent
+cmCheckField : {
+  case curfield of
+    #Handler_tune.VALUESTRING[4]: {
+       set Handler_tune.VALUEWORD[2] := word(timetostr(cur_time,'SS'));
+       update current Handler_tune;
+       Handler_tune.VALUESTRING[4] := encrypt(Handler_tune.VALUESTRING[4]);
+    }
+  end;
+  update current Handler_tune;
+  rereadrecord;
+}
+end;
 end.
