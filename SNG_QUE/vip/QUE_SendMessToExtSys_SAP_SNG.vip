@@ -147,7 +147,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
     _try
     {
        //формируем тело запроса
-      var lRequest: TPtr = _JSON_from_message;
+      var lRequest: TPtr = HttpConnect_JSONObjectToJSON(httpCon, _JSON_from_message);
 
 
       _try

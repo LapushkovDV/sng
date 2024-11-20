@@ -97,8 +97,8 @@
 			<File Name="vip\QUE_SendMessToExtSys_oilix_absence.vip" PosX="37" PosY="239" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys.vih" PosX="1" PosY="1" OpenEditor="True"/>
 			<File Name="vip\QUE_Base.vip" PosX="77" PosY="1072" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="1" PosY="215" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG.vip" PosX="41" PosY="169" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="81" PosY="259" OpenEditor="True"/>
+			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG.vip" PosX="43" PosY="131" OpenEditor="True" Active="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vih" PosX="11" PosY="188" OpenEditor="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vip" PosX="17" PosY="177" OpenEditor="True"/>
 		</FileList>
