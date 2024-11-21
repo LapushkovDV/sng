@@ -1,0 +1,78 @@
+
+/*************************************************************************************************\
+* Наименование: Выбор адреса по иерархии                                                          *
+* Контур/Модуль: Абстрактный конструктор JSON                                                     *
+* Примечание:                                                                                     *
+*                                                                                                 *
+* Вид работы  |Номер         |Дата    |Исполнитель              |Проект                           *
+* ----------------------------------------------------------------------------------------------- *
+
+\*************************************************************************************************/
+/*
+вот такой JSON отсылаем в Галактику
+ "action":"atmcall"
+  , "jsonrpc":"2.0"
+  , "id":3
+  , "class": "SNG_QUE::QUE_REST"
+  , "method": "oQUE_REST_PutMessageToIncomeQueue"
+  , "params":{"body": "тут наш JSON перекодированный в base64"
+            , "isbase64":true
+            , "system_code":"KATKAUSPKAU"
+            }
+
+
+*/
+#include SNG_Provider.vih
+#include QUE_SendMessToExtSys.vih
+#include QUE_BASE.vih
+#include QUE_INCOME_BASE.vih
+//************************************************************
+
+vipinterface QUE_SendMessToExtSys_SAP_SNG_sapprovider implements oQUE_SendMessToExtSys
+  Licensed(free);
+
+Interface QUE_SendMessToExtSys_SAP_SNG_sapprovider;
+
+create view
+var _cQUE_Handler_tune : comp;
+    iQUE_BASE : QUE_BASE;
+    iQUE_INCOME_BASE : QUE_INCOME_BASE;
+    logenable : boolean = false;
+from
+  QUE_Handler_tune Handler_tune
+where ((
+       _cQUE_Handler_tune == Handler_tune.nrec
+      ))
+;
+
+function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string; _typeEvent: string; __cQUE_Handler_tune : comp; var _retStatus, _retFileLog: string) : boolean; {
+
+ result := false;
+
+
+  var iSAP_Provider: oSNG_HTTP_Provider(SNG_HTTP_Provider_SAP);
+    iSAP_Provider.HideErrorMessages;
+    if (not iSAP_Provider.sendJson(_bodyMessage)) {
+      _retStatus := iSAP_Provider.getTextMessage;
+      result := false;
+      exit;
+    }
+
+  _retStatus := '';
+  result := true;
+
+}
+
+function GetDescription : string; {
+  result := 'Интеграция с SAP посредством JSON (СНГ) SapProvider'
+}
+
+procedure Setup(__cQUE_Handler_tune : comp);{
+  set _cQUE_Handler_tune := __cQUE_Handler_tune;
+  if getfirst Handler_tune = tsOK {
+    update current Handler_tune set Handler_tune.name = 'Настроек не предусмотрено';
+  }
+  message('Настроек не предусмотрено',error);
+}
+
+end.

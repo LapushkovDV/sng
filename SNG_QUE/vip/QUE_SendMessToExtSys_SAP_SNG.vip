@@ -83,6 +83,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
 
  var httpCon0: TPtr = HttpConnect_CreateEx('ya.ru', '', '', True);
 
+/*
  var _JSON_from_message : tptr;
   _JSON_from_message := HttpConnect_JSONObjectByLongString(httpCon0, _bodyMessage);
    if _JSON_from_message = 0 {
@@ -90,7 +91,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
       HttpConnect_Free(httpCon0);
       exit;
      }
-
+*/
 
   var lResponse : TPtr;
   var httpCon   : TPtr = longint(0);
@@ -147,7 +148,7 @@ function SendMessage(_cQueue : comp; _bodyMessage : TpTr; _InstanceCode: string;
     _try
     {
        //формируем тело запроса
-      var lRequest: TPtr = HttpConnect_JSONObjectToJSON(httpCon, _JSON_from_message);
+      var lRequest: TPtr = _bodyMessage;
 
 
       _try

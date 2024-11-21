@@ -92,15 +92,16 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="29" PosY="55" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="52" PosY="57" OpenEditor="True"/>
 			<File Name="vip\QUE_TEST.vip" PosX="38" PosY="117" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys_oilix_absence.vip" PosX="37" PosY="239" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_Base.vip" PosX="77" PosY="1072" OpenEditor="True"/>
+			<File Name="vip\QUE_Base.vip" PosX="18" PosY="907" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="81" PosY="259" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG.vip" PosX="43" PosY="131" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG.vip" PosX="28" PosY="203" OpenEditor="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vih" PosX="11" PosY="188" OpenEditor="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vip" PosX="17" PosY="177" OpenEditor="True"/>
+			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG_sapprovider.vip" PosX="65" PosY="67" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -158,7 +159,7 @@
 			<Marker FileName="vip\QUE_ProcessMessIncomeQueue_QRY_TEMPLATE.vip" Caption="Нумерованная закладка 1" Line="285" NumIndex="1" MarkerType="mtNumBookmark" Comment="tQRY_TEMPLATESP.DESCRIPTION :="/>
 			<Marker FileName="vip\QUE_BASE.vip" Caption="Нумерованная закладка 1" Line="974" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QUE_SendMessToExtSys_galaktika.vip" Caption="Нумерованная закладка 1" Line="325" NumIndex="1" MarkerType="mtNumBookmark"/>
-			<Marker FileName="vip\QUE_SendMessToExtSys_SAP_SNG.vip" Caption="Нумерованная закладка 1" Line="99" NumIndex="1" MarkerType="mtNumBookmark" Comment="var Api_url      : string = 'https://'+API_Host+'/RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so';"/>
+			<Marker FileName="vip\QUE_SendMessToExtSys_SAP_SNG.vip" Caption="Нумерованная закладка 1" Line="100" NumIndex="1" MarkerType="mtNumBookmark" Comment="var Api_url      : string = 'https://'+API_Host+'/RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so';"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
