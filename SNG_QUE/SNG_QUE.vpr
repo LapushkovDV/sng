@@ -92,16 +92,16 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="52" PosY="57" OpenEditor="True"/>
+			<File Name="SNG_QUE.prj" PosX="84" PosY="33" OpenEditor="True"/>
 			<File Name="vip\QUE_TEST.vip" PosX="38" PosY="117" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys_oilix_absence.vip" PosX="37" PosY="239" OpenEditor="True"/>
 			<File Name="vip\QUE_SendMessToExtSys.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_Base.vip" PosX="18" PosY="907" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="81" PosY="259" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG.vip" PosX="28" PosY="203" OpenEditor="True"/>
+			<File Name="vip\QUE_Base.vip" PosX="2" PosY="437" OpenEditor="True"/>
+			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="54" PosY="80" OpenEditor="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vih" PosX="11" PosY="188" OpenEditor="True"/>
 			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vip" PosX="17" PosY="177" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_SAP_SNG_sapprovider.vip" PosX="65" PosY="67" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="1" PosY="1" OpenEditor="True"/>
+			<File Name="vip\QUE_Process_QRY_TEMPLATE.vip" PosX="76" PosY="312" OpenEditor="True" Active="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>

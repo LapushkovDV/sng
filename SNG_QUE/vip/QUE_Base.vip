@@ -741,7 +741,7 @@ function CopyEntriesForReviewRecordsToQueue(_cEntriesForReview : comp; _codeReci
    }
 }
 
-function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string) : boolean; {
+function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string; var _cQue : comp) : boolean; {
 /*
 _TypeEvent
 coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
@@ -782,7 +782,7 @@ coQUE_TypeEvent_Update = 'UPDATE'; // Событие удаление
       HttpConnect_Free(m_service);
       exit;
      }
-
+   _cQue := QUE_OUT_Copy.nrec;
    deletefile(_bodyMessageFile);
    HttpConnect_Free(m_service);
    result := true;

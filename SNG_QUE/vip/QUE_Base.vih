@@ -112,8 +112,9 @@ procedure CopyEntriesForReviewToQueue;
 _bodyMessage - tptr, ссылка на длинную строку с содержимым сообщения
 _codeReciptSystem - string, код системы-получателя (по ней определяется интерфейс для отсылки сообщения во внешнюю систему)
 _TypeEvent - тип события (coQUE_TypeEvent_Insert, coQUE_TypeEvent_Delete, coQUE_TypeEvent_Update)
+_cQue - возвращаемый, ссылка на вставленную запись в очередь
 #end
-function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string) : boolean;
+function InsertMessageDirectToQueue(_bodyMessage : tptr; _codeReciptSystem : string; _TypeEvent : string; var _cQue : comp) : boolean;
 
 #doc
 Положить уже исполненное сообщение в очередь.

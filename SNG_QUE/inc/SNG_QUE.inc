@@ -20,7 +20,7 @@ coPreQUE_ErrorGenerateJSON           = 4; //  ошибка при генерации JSON
 coPreQUE_SuccessTransferToQueue      = 5; //  успешно передана в очередь
 coPreQUE_ErrorTransferToQueue        = 6; //  ошибка передачи в очередь
 coPreQUE_ErrorFindInstanceInReciept  = 7; //  Экземпляр запроса не подписан на внешние системы
-
+coPreQUE_SkipDuplicate               = 8; //  пропущен, т.к. есть необработанные дубли
 
 // поле Status таблицы QUE_EntriesForReview  QUE_OUT
 //coQUE_  = 0;
@@ -32,6 +32,7 @@ coQUE_NotAllPoolRcrdTransToExtSystem = 4; //  не все записи из пула переданы во 
 coQUE_ErrorFindInstanceInReciept     = 5; //  Экземпляр запроса не подписан на внешние системы
 coQUE_ErrButWillContinueTryToSend    = 6; //  Ошибка передачи, но еще будем пробовать
 coQUE_TryToSend                      = 7; //  обрабатывается сейчас
+coQUE_SkipDuplicate                  = 8; //  пропущен, т.к. есть необработанные дубли
 
 coQUE_TypeEvent_Insert = 'INSERT'; // Событие вставка
 coQUE_TypeEvent_Delete = 'DELETE'; // Событие обновление
