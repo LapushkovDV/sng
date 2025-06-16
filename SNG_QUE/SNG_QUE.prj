@@ -54,7 +54,7 @@ LicenseControlInclude=""
 
 #make "vip\QUE_SendMessToExtSys_galaktika.vip"
 #make "vip\QUE_SendMessToExtSys_SAP_SNG.vip"
-#make "vip\QUE_SendMessToExtSys_SAP_SNG_sapprovider.vip"
+//#make "vip\QUE_SendMessToExtSys_SAP_SNG_sapprovider.vip"
 
 #include epSystem.vih
 #make "vip\BSIAtl_QUE_EntriesForReview.vip"

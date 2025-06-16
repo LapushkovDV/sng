@@ -92,16 +92,9 @@
 			</ConfigurationList>
 		</DatabaseConfiguration>
 		<FileList>
-			<File Name="SNG_QUE.prj" PosX="84" PosY="33" OpenEditor="True"/>
-			<File Name="vip\QUE_TEST.vip" PosX="38" PosY="117" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_oilix_absence.vip" PosX="37" PosY="239" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys.vih" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_Base.vip" PosX="2" PosY="437" OpenEditor="True"/>
-			<File Name="vip\QUE_SendMessToExtSys_galaktika.vip" PosX="54" PosY="80" OpenEditor="True"/>
-			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vih" PosX="11" PosY="188" OpenEditor="True"/>
-			<File Name="..\..\vaz\C_QUE\vip\QUE_BASE.vip" PosX="17" PosY="177" OpenEditor="True"/>
-			<File Name="vip\QUE_ProcessMessIncomeQueue_Galaktika.vip" PosX="1" PosY="1" OpenEditor="True"/>
-			<File Name="vip\QUE_Process_QRY_TEMPLATE.vip" PosX="76" PosY="312" OpenEditor="True" Active="True"/>
+			<File Name="SNG_QUE.prj" PosX="17" PosY="40" OpenEditor="True"/>
+			<File Name="vip\QUE_INCOME_BASE.vip" PosX="3" PosY="510" OpenEditor="True" Active="True"/>
+			<File Name="vip\QUE_REST.vip" PosX="46" PosY="42" OpenEditor="True"/>
 		</FileList>
 		<DebugOptions StopOnStartup="False"/>
 		<MarkerList>
@@ -160,6 +153,7 @@
 			<Marker FileName="vip\QUE_BASE.vip" Caption="Нумерованная закладка 1" Line="974" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QUE_SendMessToExtSys_galaktika.vip" Caption="Нумерованная закладка 1" Line="325" NumIndex="1" MarkerType="mtNumBookmark"/>
 			<Marker FileName="vip\QUE_SendMessToExtSys_SAP_SNG.vip" Caption="Нумерованная закладка 1" Line="100" NumIndex="1" MarkerType="mtNumBookmark" Comment="var Api_url      : string = 'https://'+API_Host+'/RESTAdapter/Galaktika/SI_GAL_SYNC_DATA_so';"/>
+			<Marker FileName="vip\QUE_View_QUE_OUT.vip" Caption="Нумерованная закладка 1" Line="34" NumIndex="1" MarkerType="mtNumBookmark" Comment="iQUE_BASE.GetNameStatusQueue(QUE_OUT_BR.status) (FieldName = StatusNameQueue)"/>
 		</MarkerList>
 		<BreakPointList>
 			<BreakPoint FileName="Vip.prj" Line="90"/>
